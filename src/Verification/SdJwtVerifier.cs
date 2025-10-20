@@ -431,7 +431,9 @@ public class SdJwtVerifier
 
     /// <summary>
     /// Extracts disclosed claims from disclosures.
+    /// Supports both object property disclosures (3-element) and array element disclosures (2-element).
     /// Invalid disclosures are tracked but not included in the result.
+    /// Note: Array element disclosures are validated but not currently reconstructed into arrays.
     /// </summary>
     private Dictionary<string, JsonElement> ExtractDisclosedClaims(List<string> disclosures)
     {
@@ -445,8 +447,17 @@ public class SdJwtVerifier
                 var json = Base64UrlEncoder.DecodeString(disclosure);
                 var array = JsonDocument.Parse(json).RootElement;
 
-                if (array.ValueKind == JsonValueKind.Array && array.GetArrayLength() == 3)
+                if (array.ValueKind != JsonValueKind.Array)
                 {
+                    invalidDisclosureCount++;
+                    continue;
+                }
+
+                var arrayLength = array.GetArrayLength();
+
+                if (arrayLength == 3)
+                {
+                    // Object property disclosure: [salt, claim_name, claim_value]
                     var claimName = array[1].GetString();
                     var claimValue = array[2];
 
@@ -459,8 +470,18 @@ public class SdJwtVerifier
                         invalidDisclosureCount++;
                     }
                 }
+                else if (arrayLength == 2)
+                {
+                    // Array element disclosure: [salt, claim_value]
+                    // These are validated but not added to the simple claims dictionary
+                    // Full array reconstruction would require changes to VerificationResult structure
+                    // For now, we just validate that they're well-formed
+                    var claimValue = array[1];
+                    // Valid array element disclosure - count it as valid but don't add to claims
+                }
                 else
                 {
+                    // Invalid array length
                     invalidDisclosureCount++;
                 }
             }

@@ -47,11 +47,15 @@ public class SdJwtIssuer
 
         var selectiveClaimsList = selectivelyDisclosableClaims?.ToList() ?? new List<string>();
 
+        // Parse claim specifications to separate simple claims from array elements
+        var parsedClaims = selectiveClaimsList.Select(Core.ClaimPath.Parse).ToList();
+
         // Validate that security-critical claims are not selectively disclosable
         // Per SD-JWT spec section 5.3: "An Issuer MUST NOT allow any content to be
         // selectively disclosable that is critical for evaluating the SD-JWT's authenticity or validity"
-        var reservedClaimsInList = selectiveClaimsList
-            .Where(c => Core.Constants.ReservedClaims.Contains(c))
+        var reservedClaimsInList = parsedClaims
+            .Where(p => !p.IsArrayElement && Core.Constants.ReservedClaims.Contains(p.BaseName))
+            .Select(p => p.BaseName)
             .ToList();
 
         if (reservedClaimsInList.Any())
@@ -67,20 +71,37 @@ public class SdJwtIssuer
         var disclosures = new List<string>();
         var digests = new List<string>();
 
-        foreach (var claimName in selectiveClaimsList)
+        // Track which array elements should be selectively disclosable
+        // Key: base claim name (e.g., "degrees"), Value: set of indices to make selectively disclosable
+        var arrayElementsToDisclose = new Dictionary<string, HashSet<int>>();
+
+        foreach (var claimPath in parsedClaims)
         {
-            if (claims.TryGetValue(claimName, out var claimValue))
+            if (claimPath.IsArrayElement)
             {
-                // Convert claim value to JsonElement
-                var jsonElement = JsonSerializer.SerializeToElement(claimValue);
+                // Track array element for later processing
+                if (!arrayElementsToDisclose.ContainsKey(claimPath.BaseName))
+                {
+                    arrayElementsToDisclose[claimPath.BaseName] = new HashSet<int>();
+                }
+                arrayElementsToDisclose[claimPath.BaseName].Add(claimPath.ArrayIndex!.Value);
+            }
+            else
+            {
+                // Simple claim - process immediately
+                if (claims.TryGetValue(claimPath.BaseName, out var claimValue))
+                {
+                    // Convert claim value to JsonElement
+                    var jsonElement = JsonSerializer.SerializeToElement(claimValue);
 
-                // Generate disclosure
-                var disclosure = disclosureGenerator.GenerateDisclosure(claimName, jsonElement);
-                disclosures.Add(disclosure);
+                    // Generate disclosure
+                    var disclosure = disclosureGenerator.GenerateDisclosure(claimPath.BaseName, jsonElement);
+                    disclosures.Add(disclosure);
 
-                // Compute digest
-                var digest = digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
-                digests.Add(digest);
+                    // Compute digest
+                    var digest = digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
+                    digests.Add(digest);
+                }
             }
         }
 
@@ -95,13 +116,89 @@ public class SdJwtIssuer
             digests = decoyGenerator.InterleaveDecoys(digests, decoyDigests);
         }
 
-        // Step 2: Build JWT payload
+        // Step 2: Process array elements and generate their disclosures
+        // This modifies the claims dictionary to replace selectively disclosable array elements with placeholders
+        var modifiedClaims = new Dictionary<string, object>(claims);
+
+        foreach (var (arrayClaimName, indicesToDisclose) in arrayElementsToDisclose)
+        {
+            if (!claims.TryGetValue(arrayClaimName, out var arrayValue))
+            {
+                continue; // Array claim doesn't exist in claims
+            }
+
+            // Convert to JsonElement to work with array
+            var arrayElement = JsonSerializer.SerializeToElement(arrayValue);
+
+            if (arrayElement.ValueKind != JsonValueKind.Array)
+            {
+                throw new ArgumentException(
+                    $"Claim '{arrayClaimName}' is specified with array index syntax (e.g., '{arrayClaimName}[0]'), " +
+                    "but the actual value is not an array.",
+                    nameof(selectivelyDisclosableClaims));
+            }
+
+            var arrayLength = arrayElement.GetArrayLength();
+
+            // Validate all indices are within bounds
+            foreach (var index in indicesToDisclose)
+            {
+                if (index >= arrayLength)
+                {
+                    throw new ArgumentException(
+                        $"Array index {index} is out of bounds for claim '{arrayClaimName}' which has {arrayLength} elements.",
+                        nameof(selectivelyDisclosableClaims));
+                }
+            }
+
+            // Build new array with placeholders for selectively disclosable elements
+            var newArray = new List<object>();
+
+            for (int i = 0; i < arrayLength; i++)
+            {
+                if (indicesToDisclose.Contains(i))
+                {
+                    // This element should be selectively disclosable
+                    var elementValue = arrayElement[i];
+
+                    // Generate array element disclosure (2-element format)
+                    var disclosure = disclosureGenerator.GenerateArrayElementDisclosure(elementValue);
+                    disclosures.Add(disclosure);
+
+                    // Compute digest
+                    var digest = digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
+                    digests.Add(digest);
+
+                    // Replace element with placeholder
+                    newArray.Add(new Dictionary<string, string>
+                    {
+                        { "...", digest }
+                    });
+                }
+                else
+                {
+                    // Non-selectively-disclosable element - keep as-is
+                    newArray.Add(JsonSerializer.Deserialize<object>(arrayElement[i].GetRawText())!);
+                }
+            }
+
+            // Replace the original array with the modified one
+            modifiedClaims[arrayClaimName] = newArray;
+        }
+
+        // Step 3: Build JWT payload
         var payload = new Dictionary<string, object>();
 
-        // Add non-selective claims
-        foreach (var claim in claims)
+        // Get list of simple claim names that are selectively disclosable (not arrays)
+        var simpleSelectiveClaimNames = parsedClaims
+            .Where(p => !p.IsArrayElement)
+            .Select(p => p.BaseName)
+            .ToHashSet();
+
+        // Add non-selective claims and modified arrays
+        foreach (var claim in modifiedClaims)
         {
-            if (!selectiveClaimsList.Contains(claim.Key))
+            if (!simpleSelectiveClaimNames.Contains(claim.Key))
             {
                 // Validate _sd_alg placement - MUST only appear at top level
                 // Per SD-JWT spec section 4.2.3: "_sd_alg MUST appear at the top level
