@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeroSdJwt", "src\HeroSdJwt.csproj", "{AC72C772-F849-0149-604B-0ED56A55E9D2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeroSdJwt.Tests", "tests\HeroSdJwt.Tests.csproj", "{CE7E3F73-72B8-F0FF-117D-3A0EA8A50FBD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AC72C772-F849-0149-604B-0ED56A55E9D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC72C772-F849-0149-604B-0ED56A55E9D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC72C772-F849-0149-604B-0ED56A55E9D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC72C772-F849-0149-604B-0ED56A55E9D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE7E3F73-72B8-F0FF-117D-3A0EA8A50FBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE7E3F73-72B8-F0FF-117D-3A0EA8A50FBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE7E3F73-72B8-F0FF-117D-3A0EA8A50FBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE7E3F73-72B8-F0FF-117D-3A0EA8A50FBD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {306D4403-F627-498C-9496-386336811A4A}
+	EndGlobalSection
+EndGlobal
