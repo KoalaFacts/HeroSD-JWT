@@ -45,10 +45,11 @@ public class EndToEndVerificationFlowTests
         // Act - Holder creates presentation with all disclosures
         var presenter = new SdJwtPresenter();
         var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
+        var presentationString = presenter.FormatPresentation(presentation);
 
         // Verify - Verifier validates the presentation
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentation(presentation, signingKey);
+        var result = verifier.VerifyPresentation(presentationString, signingKey);
 
         // Assert
         Assert.NotNull(result);
@@ -84,10 +85,11 @@ public class EndToEndVerificationFlowTests
         // Act - Holder creates presentation with only email and age (not ssn or credit_score)
         var presenter = new SdJwtPresenter();
         var presentation = presenter.CreatePresentation(sdJwt, new[] { "email", "age" });
+        var presentationString = presenter.FormatPresentation(presentation);
 
         // Verify
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentation(presentation, signingKey);
+        var result = verifier.VerifyPresentation(presentationString, signingKey);
 
         // Assert
         Assert.True(result.IsValid, "Selective disclosure verification should succeed");
@@ -122,11 +124,12 @@ public class EndToEndVerificationFlowTests
 
         var presenter = new SdJwtPresenter();
         var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
+        var presentationString = presenter.FormatPresentation(presentation);
 
         // Act
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) };
         var verifier = new SdJwtVerifier(options);
-        var result = verifier.VerifyPresentation(presentation, signingKey);
+        var result = verifier.VerifyPresentation(presentationString, signingKey);
 
         // Assert
         Assert.True(result.IsValid, "Verification with valid temporal claims should succeed");
@@ -155,10 +158,11 @@ public class EndToEndVerificationFlowTests
 
         var presenter = new SdJwtPresenter();
         var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
+        var presentationString = presenter.FormatPresentation(presentation);
 
         // Act
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentationSafe(presentation, signingKey);
+        var result = verifier.VerifyPresentationSafe(presentationString, signingKey);
 
         // Assert
         Assert.False(result.IsValid, "Expired token should fail verification");
@@ -187,20 +191,21 @@ public class EndToEndVerificationFlowTests
 
         var presenter = new SdJwtPresenter();
         var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
+        var presentationString = presenter.FormatPresentation(presentation);
 
         // Tamper with a disclosure
-        var parts = presentation.Split('~');
+        var parts = presentationString.Split('~');
         if (parts.Length > 1)
         {
             var chars = parts[1].ToCharArray();
             chars[^1] = chars[^1] == 'A' ? 'B' : 'A'; // Change last character
             parts[1] = new string(chars);
-            presentation = string.Join("~", parts);
+            presentationString = string.Join("~", parts);
         }
 
         // Act
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentationSafe(presentation, signingKey);
+        var result = verifier.VerifyPresentationSafe(presentationString, signingKey);
 
         // Assert
         Assert.False(result.IsValid, "Tampered disclosure should fail verification");
@@ -230,10 +235,11 @@ public class EndToEndVerificationFlowTests
 
         var presenter = new SdJwtPresenter();
         var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
+        var presentationString = presenter.FormatPresentation(presentation);
 
         // Act - Verify with wrong key
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentationSafe(presentation, wrongKey);
+        var result = verifier.VerifyPresentationSafe(presentationString, wrongKey);
 
         // Assert
         Assert.False(result.IsValid, "Verification with wrong key should fail");
@@ -265,10 +271,11 @@ public class EndToEndVerificationFlowTests
 
             var presenter = new SdJwtPresenter();
             var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
+        var presentationString = presenter.FormatPresentation(presentation);
 
             // Act
             var verifier = new SdJwtVerifier();
-            var result = verifier.VerifyPresentation(presentation, signingKey);
+            var result = verifier.VerifyPresentation(presentationString, signingKey);
 
             // Assert
             Assert.True(result.IsValid, $"Verification with {algorithm} should succeed");
@@ -297,10 +304,11 @@ public class EndToEndVerificationFlowTests
 
         var presenter = new SdJwtPresenter();
         var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
+        var presentationString = presenter.FormatPresentation(presentation);
 
         // Act
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentation(presentation, signingKey);
+        var result = verifier.VerifyPresentation(presentationString, signingKey);
 
         // Assert
         Assert.True(result.IsValid, "Verification with no selective disclosures should succeed");
@@ -329,6 +337,7 @@ public class EndToEndVerificationFlowTests
 
         var presenter = new SdJwtPresenter();
         var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
+        var presentationString = presenter.FormatPresentation(presentation);
 
         // Act
         var options = new SdJwtVerificationOptions
@@ -336,7 +345,7 @@ public class EndToEndVerificationFlowTests
             ExpectedIssuer = "https://issuer.example.com"
         };
         var verifier = new SdJwtVerifier(options);
-        var result = verifier.VerifyPresentation(presentation, signingKey);
+        var result = verifier.VerifyPresentation(presentationString, signingKey);
 
         // Assert
         Assert.True(result.IsValid, "Verification with correct issuer should succeed");
@@ -364,6 +373,7 @@ public class EndToEndVerificationFlowTests
 
         var presenter = new SdJwtPresenter();
         var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
+        var presentationString = presenter.FormatPresentation(presentation);
 
         // Act
         var options = new SdJwtVerificationOptions
@@ -371,7 +381,7 @@ public class EndToEndVerificationFlowTests
             ExpectedIssuer = "https://wrong-issuer.example.com"
         };
         var verifier = new SdJwtVerifier(options);
-        var result = verifier.VerifyPresentationSafe(presentation, signingKey);
+        var result = verifier.VerifyPresentationSafe(presentationString, signingKey);
 
         // Assert
         Assert.False(result.IsValid, "Verification with wrong issuer should fail");
