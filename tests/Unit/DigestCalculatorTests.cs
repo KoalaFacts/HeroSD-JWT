@@ -1,3 +1,4 @@
+using HeroSdJwt.Common;
 using HeroSdJwt.Issuance;
 using System.Security.Cryptography;
 using System.Text;
@@ -179,7 +180,6 @@ public class DigestCalculatorTests
 
     private static string ConvertToBase64Url(byte[] bytes)
     {
-        var base64 = Convert.ToBase64String(bytes);
-        return base64.Replace('+', '-').Replace('/', '_').TrimEnd('=');
+        return Base64UrlEncoder.Encode(bytes);
     }
 }

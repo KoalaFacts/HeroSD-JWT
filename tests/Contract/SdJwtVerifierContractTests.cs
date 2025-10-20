@@ -371,10 +371,8 @@ public class SdJwtVerifierContractTests
         var signingKey = GenerateSecureTestKey();
 
         // Create a JWT with "none" algorithm (algorithm confusion attack)
-        var header = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("{\"alg\":\"none\",\"typ\":\"JWT\"}"))
-            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
-        var payload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("{\"sub\":\"user123\"}"))
-            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        var header = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes("{\"alg\":\"none\",\"typ\":\"JWT\"}"));
+        var payload = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes("{\"sub\":\"user123\"}"));
         var presentation = $"{header}.{payload}.~~";
 
         // Act
@@ -576,16 +574,13 @@ public class SdJwtVerifierContractTests
         var verifier = new SdJwtVerifier();
 
         // Create JWT with unsupported hash algorithm
-        var header = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("{\"alg\":\"HS256\",\"typ\":\"JWT\"}"))
-            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
-        var payload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("{\"sub\":\"user123\",\"_sd_alg\":\"md5\",\"_sd\":[]}"))
-            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        var header = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes("{\"alg\":\"HS256\",\"typ\":\"JWT\"}"));
+        var payload = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes("{\"sub\":\"user123\",\"_sd_alg\":\"md5\",\"_sd\":[]}"));
 
         // Sign it properly
         using var hmac = new HMACSHA256(signingKey);
         var dataToSign = $"{header}.{payload}";
-        var signature = Convert.ToBase64String(hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(dataToSign)))
-            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        var signature = Base64UrlEncoder.Encode(hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(dataToSign)));
         var presentation = $"{header}.{payload}.{signature}~~";
 
         // Act

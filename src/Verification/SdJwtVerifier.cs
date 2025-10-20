@@ -119,6 +119,14 @@ public class SdJwtVerifier
         var errors = new List<ErrorCode>();
         var errorDetails = new List<string>();
 
+        // Validate presentation size to prevent DoS attacks
+        if (presentation.Length > Core.Constants.MaxJwtSizeBytes)
+        {
+            errors.Add(ErrorCode.InvalidInput);
+            errorDetails.Add($"Presentation exceeds maximum allowed size of {Core.Constants.MaxJwtSizeBytes} bytes");
+            return new VerificationResult(errors, string.Join("; ", errorDetails));
+        }
+
         // Parse presentation into parts: JWT~disclosure1~disclosure2~...~keyBinding
         var parts = presentation.Split('~');
         if (parts.Length < 2)
@@ -129,21 +137,27 @@ public class SdJwtVerifier
         }
 
         var jwt = parts[0];
+
+        // Validate JWT size
+        if (jwt.Length > Core.Constants.MaxJwtSizeBytes / 2)
+        {
+            errors.Add(ErrorCode.InvalidInput);
+            errorDetails.Add("JWT component exceeds reasonable size limit");
+            return new VerificationResult(errors, string.Join("; ", errorDetails));
+        }
         var disclosures = new List<string>();
         var keyBindingJwt = parts.Length > 1 ? parts[^1] : null;
 
         // Extract disclosures (all parts between JWT and key binding, excluding empty strings)
         // Limit to prevent DoS attacks via excessive disclosures
-        const int MaxDisclosures = 100; // Reasonable limit per SD-JWT spec guidance
-
         for (int i = 1; i < parts.Length - 1; i++)
         {
             if (!string.IsNullOrWhiteSpace(parts[i]))
             {
-                if (disclosures.Count >= MaxDisclosures)
+                if (disclosures.Count >= Core.Constants.MaxDisclosures)
                 {
                     errors.Add(ErrorCode.InvalidInput);
-                    errorDetails.Add($"Too many disclosures: exceeds maximum of {MaxDisclosures}");
+                    errorDetails.Add($"Too many disclosures: exceeds maximum of {Core.Constants.MaxDisclosures}");
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
 
@@ -280,11 +294,29 @@ public class SdJwtVerifier
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
                 holderPublicKey = Convert.FromBase64String(jwkBase64);
+
+                // Validate the public key format and curve
+                using var ecdsa = ECDsa.Create();
+                ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
+
+                // Only P-256 (ES256) is supported
+                if (ecdsa.KeySize != 256)
+                {
+                    errors.Add(ErrorCode.UnsupportedAlgorithm);
+                    errorDetails.Add($"Unsupported elliptic curve: only P-256 is supported, got {ecdsa.KeySize}-bit key");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
             }
-            catch (Exception ex)
+            catch (FormatException)
             {
                 errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add($"Failed to decode holder public key from cnf claim: {ex.Message}");
+                errorDetails.Add("Invalid cnf claim: jwk is not valid Base64");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+            catch (CryptographicException)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("Invalid cnf claim: jwk is not a valid ECDSA public key");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 

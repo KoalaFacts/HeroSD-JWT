@@ -1,3 +1,4 @@
+using HeroSdJwt.Common;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -55,7 +56,23 @@ public class KeyBindingGenerator
         // Sign with holder's private key
         var signingInput = $"{headerBase64}.{payloadBase64}";
         using var ecdsa = ECDsa.Create();
-        ecdsa.ImportECPrivateKey(holderPrivateKey, out _);
+        try
+        {
+            ecdsa.ImportECPrivateKey(holderPrivateKey, out _);
+        }
+        catch (CryptographicException ex)
+        {
+            throw new ArgumentException("Invalid ECDSA private key format", nameof(holderPrivateKey), ex);
+        }
+
+        // Validate elliptic curve - only P-256 (ES256) is supported
+        if (ecdsa.KeySize != 256)
+        {
+            throw new ArgumentException(
+                $"Only P-256 (256-bit) elliptic curve is supported for ES256. Provided key is {ecdsa.KeySize}-bit.",
+                nameof(holderPrivateKey));
+        }
+
         var signature = ecdsa.SignData(
             Encoding.UTF8.GetBytes(signingInput),
             HashAlgorithmName.SHA256
@@ -68,14 +85,11 @@ public class KeyBindingGenerator
     private static string Base64UrlEncode(string input)
     {
         var bytes = Encoding.UTF8.GetBytes(input);
-        return Base64UrlEncode(bytes);
+        return Base64UrlEncoder.Encode(bytes);
     }
 
     private static string Base64UrlEncode(byte[] input)
     {
-        return Convert.ToBase64String(input)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
+        return Base64UrlEncoder.Encode(input);
     }
 }

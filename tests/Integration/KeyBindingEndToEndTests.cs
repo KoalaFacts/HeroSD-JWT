@@ -95,10 +95,7 @@ public class KeyBindingEndToEndTests
         var sdJwtString = string.Join("~", sdJwtParts) + "~";
         using var sha256 = SHA256.Create();
         var sdJwtHashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(sdJwtString));
-        var sdJwtHash = Convert.ToBase64String(sdJwtHashBytes)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
+        var sdJwtHash = Base64UrlEncoder.Encode(sdJwtHashBytes);
 
         // Generate key binding JWT
         var keyBindingGenerator = new KeyBindingGenerator();
@@ -166,10 +163,7 @@ public class KeyBindingEndToEndTests
 
         using var sha256 = SHA256.Create();
         var sdJwtHashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(presentationStringWithoutKb));
-        var sdJwtHash = Convert.ToBase64String(sdJwtHashBytes)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
+        var sdJwtHash = Base64UrlEncoder.Encode(sdJwtHashBytes);
 
         var keyBindingGenerator = new KeyBindingGenerator();
         var keyBindingJwt = keyBindingGenerator.CreateKeyBindingJwt(
@@ -225,10 +219,7 @@ public class KeyBindingEndToEndTests
 
         using var sha256 = SHA256.Create();
         var sdJwtHashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(presentationStringWithoutKb));
-        var sdJwtHash = Convert.ToBase64String(sdJwtHashBytes)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
+        var sdJwtHash = Base64UrlEncoder.Encode(sdJwtHashBytes);
 
         var keyBindingGenerator = new KeyBindingGenerator();
         var audience = "https://verifier.example.com";
@@ -289,10 +280,7 @@ public class KeyBindingEndToEndTests
 
         using var sha256 = SHA256.Create();
         var sdJwtHashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(presentationStringWithoutKb));
-        var sdJwtHash = Convert.ToBase64String(sdJwtHashBytes)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
+        var sdJwtHash = Base64UrlEncoder.Encode(sdJwtHashBytes);
 
         // Attacker tries to create key binding with their own private key
         var keyBindingGenerator = new KeyBindingGenerator();
@@ -388,10 +376,7 @@ public class KeyBindingEndToEndTests
 
         using var sha256 = SHA256.Create();
         var sdJwtHashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(presentationStringWithoutKb));
-        var sdJwtHash = Convert.ToBase64String(sdJwtHashBytes)
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
+        var sdJwtHash = Base64UrlEncoder.Encode(sdJwtHashBytes);
 
         // Create key binding JWT anyway
         var keyBindingGenerator = new KeyBindingGenerator();

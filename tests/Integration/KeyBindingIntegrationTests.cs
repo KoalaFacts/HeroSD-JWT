@@ -24,12 +24,11 @@ public class KeyBindingIntegrationTests
         var holderPrivateKey = holderEcdsa.ExportECPrivateKey();
         var holderPublicKey = holderEcdsa.ExportSubjectPublicKeyInfo();
 
-        // Create SD-JWT (issuer includes holder's public key in cnf claim)
+        // Create SD-JWT (issuer includes holder's public key in cnf claim via parameter)
         var claims = new Dictionary<string, object>
         {
             { "sub", "user123" },
-            { "email", "user@example.com" },
-            { "cnf", new { jwk = Convert.ToBase64String(holderPublicKey) } }
+            { "email", "user@example.com" }
         };
 
         var issuer = new SdJwtIssuer();
@@ -37,7 +36,8 @@ public class KeyBindingIntegrationTests
             claims,
             new[] { "email" },
             issuerKey,
-            HashAlgorithm.Sha256
+            HashAlgorithm.Sha256,
+            holderPublicKey  // Use parameter instead of manual cnf claim
         );
 
         // Holder creates key binding JWT

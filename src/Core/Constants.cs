@@ -47,6 +47,18 @@ public static class Constants
     public const int MinimumSaltLengthBytes = 16;
 
     /// <summary>
+    /// The maximum number of disclosures allowed in an SD-JWT presentation.
+    /// Prevents DoS attacks via excessive disclosures.
+    /// </summary>
+    public const int MaxDisclosures = 100;
+
+    /// <summary>
+    /// The maximum size of a JWT string in bytes.
+    /// Prevents DoS attacks via excessively large JWT payloads.
+    /// </summary>
+    public const int MaxJwtSizeBytes = 65536; // 64 KB
+
+    /// <summary>
     /// The separator character used in combined SD-JWT presentation format.
     /// </summary>
     public const char CombinedFormatSeparator = '~';

@@ -56,13 +56,20 @@ internal static class ClaimValidator
             }
         }
 
-        // Validate issued-at time (iat) - OPTIONAL, informational
-        // We validate it exists and is reasonable, but don't enforce future/past constraints
+        // Validate issued-at time (iat) - OPTIONAL
+        // Reject tokens with iat in the future (with clock skew tolerance)
         if (payload.TryGetProperty("iat", out var iatElement))
         {
-            if (!TryGetUnixTimestamp(iatElement, out var _))
+            if (!TryGetUnixTimestamp(iatElement, out var iat))
             {
                 return false;
+            }
+
+            // Reject if issued in the future (current time < iat - clock skew)
+            // This prevents accepting tokens with suspicious future timestamps
+            if (now < iat.AddSeconds(-clockSkew.TotalSeconds))
+            {
+                return false; // Token issued in the future
             }
         }
 

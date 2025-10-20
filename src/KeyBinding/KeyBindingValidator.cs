@@ -57,11 +57,16 @@ internal static class KeyBindingValidator
             var payloadJson = DecodeBase64Url(payloadBase64);
             var payload = JsonDocument.Parse(payloadJson).RootElement;
 
-            // Validate sd_hash
-            if (!payload.TryGetProperty("sd_hash", out var sdHashElement) ||
-                sdHashElement.GetString() != expectedSdJwtHash)
+            // Validate sd_hash claim exists and matches expected value
+            if (!payload.TryGetProperty("sd_hash", out var sdHashElement))
             {
                 return false;
+            }
+
+            var sdHashClaim = sdHashElement.GetString();
+            if (sdHashClaim != expectedSdJwtHash)
+            {
+                return false; // SD-JWT hash mismatch
             }
 
             // Validate audience if provided
@@ -91,7 +96,21 @@ internal static class KeyBindingValidator
                     .PadRight(signatureBase64.Length + (4 - signatureBase64.Length % 4) % 4, '='));
 
             using var ecdsa = ECDsa.Create();
-            ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
+            try
+            {
+                ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
+            }
+            catch (CryptographicException)
+            {
+                // Invalid key format
+                return false;
+            }
+
+            // Validate elliptic curve - only P-256 (ES256) is supported
+            if (ecdsa.KeySize != 256)
+            {
+                return false; // Only P-256 curve is supported for ES256
+            }
 
             return ecdsa.VerifyData(
                 Encoding.UTF8.GetBytes(signingInput),
@@ -99,8 +118,19 @@ internal static class KeyBindingValidator
                 HashAlgorithmName.SHA256
             );
         }
-        catch
+        catch (CryptographicException)
         {
+            // Cryptographic operation failed
+            return false;
+        }
+        catch (FormatException)
+        {
+            // Base64 decoding failed
+            return false;
+        }
+        catch (JsonException)
+        {
+            // JSON parsing failed
             return false;
         }
     }
