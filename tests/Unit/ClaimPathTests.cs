@@ -134,4 +134,56 @@ public class ClaimPathTests
         // Assert
         Assert.Equal("degrees[2]", result);
     }
+
+    // Nested property tests
+    [Fact]
+    public void Parse_NestedProperty_ReturnsNestedPath()
+    {
+        // Act
+        var path = ClaimPath.Parse("address.street");
+
+        // Assert
+        Assert.Equal("address", path.BaseName);
+        Assert.Equal("street", path.NestedPath);
+        Assert.True(path.IsNested);
+        Assert.False(path.IsArrayElement);
+        Assert.Equal(new[] { "address", "street" }, path.PathComponents);
+    }
+
+    [Fact]
+    public void Parse_DeeplyNestedProperty_ReturnsCorrectPath()
+    {
+        // Act
+        var path = ClaimPath.Parse("address.geo.coordinates");
+
+        // Assert
+        Assert.Equal("address", path.BaseName);
+        Assert.Equal("geo.coordinates", path.NestedPath);
+        Assert.True(path.IsNested);
+        Assert.Equal(new[] { "address", "geo", "coordinates" }, path.PathComponents);
+    }
+
+    [Fact]
+    public void Parse_PathStartingWithDot_ThrowsArgumentException()
+    {
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => ClaimPath.Parse(".address"));
+        Assert.Contains("cannot start with '.'", exception.Message);
+    }
+
+    [Fact]
+    public void Parse_PathEndingWithDot_ThrowsArgumentException()
+    {
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => ClaimPath.Parse("address."));
+        Assert.Contains("cannot end with '.'", exception.Message);
+    }
+
+    [Fact]
+    public void Parse_PathWithEmptyComponent_ThrowsArgumentException()
+    {
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => ClaimPath.Parse("address..street"));
+        Assert.Contains("empty path component", exception.Message);
+    }
 }
