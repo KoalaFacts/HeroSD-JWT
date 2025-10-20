@@ -89,6 +89,36 @@ internal static class KeyBindingValidator
                 }
             }
 
+            // Validate iat (issued at) claim for freshness - REQUIRED by spec section 4.3.3
+            // "The Verifier MUST check that the creation time of the Key Binding JWT,
+            // as determined by the iat claim, is within an acceptable window."
+            if (!payload.TryGetProperty("iat", out var iatElement))
+            {
+                return false; // iat claim is required
+            }
+
+            if (!iatElement.TryGetInt64(out var iatUnixSeconds))
+            {
+                return false; // Invalid iat format
+            }
+
+            var iat = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds);
+            var now = DateTimeOffset.UtcNow;
+
+            // Reject if KB-JWT is too old (replay attack prevention)
+            var maxAge = TimeSpan.FromSeconds(Core.Constants.MaxKeyBindingJwtAgeSeconds);
+            if (now - iat > maxAge)
+            {
+                return false; // KB-JWT is too old
+            }
+
+            // Reject if iat is in the future (with small tolerance for clock skew)
+            var clockSkewTolerance = TimeSpan.FromSeconds(60); // 1 minute tolerance
+            if (iat > now + clockSkewTolerance)
+            {
+                return false; // KB-JWT issued in the future
+            }
+
             // Verify signature
             var signingInput = $"{headerBase64}.{payloadBase64}";
             var signature = Convert.FromBase64String(

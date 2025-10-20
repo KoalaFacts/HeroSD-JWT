@@ -59,6 +59,30 @@ public static class Constants
     public const int MaxJwtSizeBytes = 65536; // 64 KB
 
     /// <summary>
+    /// Security-critical JWT claims that MUST NOT be selectively disclosable.
+    /// Per SD-JWT spec section 5.3, these claims are critical for evaluating authenticity and validity.
+    /// </summary>
+    public static readonly IReadOnlySet<string> ReservedClaims = new HashSet<string>
+    {
+        "iss",   // Issuer - identifies who created the JWT
+        "aud",   // Audience - identifies intended recipients
+        "exp",   // Expiration - critical for validity window
+        "nbf",   // Not Before - critical for validity window
+        "cnf",   // Confirmation - holder public key for key binding
+        "iat",   // Issued At - important for replay prevention
+        "sub",   // Subject - often security-sensitive identity
+        "jti",   // JWT ID - important for deduplication/tracking
+        "_sd",   // Selective Disclosure array - internal SD-JWT claim
+        "_sd_alg" // Hash algorithm - internal SD-JWT claim
+    };
+
+    /// <summary>
+    /// Maximum age of key binding JWT in seconds (default: 5 minutes).
+    /// KB-JWTs older than this are rejected to prevent replay attacks.
+    /// </summary>
+    public const int MaxKeyBindingJwtAgeSeconds = 300;
+
+    /// <summary>
     /// The separator character used in combined SD-JWT presentation format.
     /// </summary>
     public const char CombinedFormatSeparator = '~';

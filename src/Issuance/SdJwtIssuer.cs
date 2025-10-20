@@ -45,6 +45,22 @@ public class SdJwtIssuer
 
         var selectiveClaimsList = selectivelyDisclosableClaims?.ToList() ?? new List<string>();
 
+        // Validate that security-critical claims are not selectively disclosable
+        // Per SD-JWT spec section 5.3: "An Issuer MUST NOT allow any content to be
+        // selectively disclosable that is critical for evaluating the SD-JWT's authenticity or validity"
+        var reservedClaimsInList = selectiveClaimsList
+            .Where(c => Core.Constants.ReservedClaims.Contains(c))
+            .ToList();
+
+        if (reservedClaimsInList.Any())
+        {
+            throw new ArgumentException(
+                $"The following security-critical claims cannot be selectively disclosable: {string.Join(", ", reservedClaimsInList)}. " +
+                "Per SD-JWT specification section 5.3, claims like iss, aud, exp, nbf, cnf, iat, sub, jti, _sd, and _sd_alg " +
+                "are critical for evaluating authenticity and validity and must remain visible in the JWT payload.",
+                nameof(selectivelyDisclosableClaims));
+        }
+
         // Step 1: Generate disclosures for selectively disclosable claims
         var disclosures = new List<string>();
         var digests = new List<string>();
@@ -74,6 +90,20 @@ public class SdJwtIssuer
         {
             if (!selectiveClaimsList.Contains(claim.Key))
             {
+                // Validate _sd_alg placement - MUST only appear at top level
+                // Per SD-JWT spec section 4.2.3: "_sd_alg MUST appear at the top level
+                // of the SD-JWT payload and MUST NOT be used in any object nested within the payload"
+                if (claim.Key == Constants.SdAlgClaimName)
+                {
+                    throw new ArgumentException(
+                        $"The claim '{Constants.SdAlgClaimName}' is reserved for internal use and cannot be explicitly set. " +
+                        "The hash algorithm is specified via the hashAlgorithm parameter.",
+                        nameof(claims));
+                }
+
+                // Check for nested _sd_alg in object values
+                ValidateNoNestedSdAlg(claim.Value, claim.Key);
+
                 payload[claim.Key] = claim.Value;
             }
         }
@@ -100,6 +130,39 @@ public class SdJwtIssuer
 
         // Step 4: Create SdJwt object
         return new SdJwt(jwt, disclosures, hashAlgorithm);
+    }
+
+    /// <summary>
+    /// Recursively validates that _sd_alg does not appear in nested objects.
+    /// Per SD-JWT spec section 4.2.3, _sd_alg MUST only appear at top level.
+    /// </summary>
+    private static void ValidateNoNestedSdAlg(object value, string claimPath)
+    {
+        if (value is Dictionary<string, object> dict)
+        {
+            foreach (var kvp in dict)
+            {
+                if (kvp.Key == Constants.SdAlgClaimName)
+                {
+                    throw new ArgumentException(
+                        $"The claim '{Constants.SdAlgClaimName}' was found in nested object at path '{claimPath}.{kvp.Key}'. " +
+                        "Per SD-JWT specification section 4.2.3, _sd_alg MUST appear at the top level of the SD-JWT payload " +
+                        "and MUST NOT be used in any object nested within the payload.",
+                        nameof(value));
+                }
+
+                ValidateNoNestedSdAlg(kvp.Value, $"{claimPath}.{kvp.Key}");
+            }
+        }
+        else if (value is System.Collections.IEnumerable enumerable and not string)
+        {
+            var index = 0;
+            foreach (var item in enumerable)
+            {
+                ValidateNoNestedSdAlg(item, $"{claimPath}[{index}]");
+                index++;
+            }
+        }
     }
 
     /// <summary>
