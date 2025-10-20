@@ -147,6 +147,7 @@ nCrunchTemp_*
 !**/[Pp]ackages/build/
 *.nuget.props
 *.nuget.targets
+nupkg/
 
 # Windows Store app package directories and files
 AppPackages/
