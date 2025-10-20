@@ -32,13 +32,15 @@ public class SdJwtIssuer
     /// <param name="signingKey">The signing key for JWT signature.</param>
     /// <param name="hashAlgorithm">The hash algorithm for disclosure digests.</param>
     /// <param name="holderPublicKey">Optional holder public key for key binding (cnf claim).</param>
+    /// <param name="decoyDigestCount">Number of decoy digests to add for privacy protection (default: 0). Per SD-JWT spec section 4.2.5, decoy digests prevent claim enumeration.</param>
     /// <returns>The created SD-JWT.</returns>
     public SdJwt CreateSdJwt(
         Dictionary<string, object> claims,
         IEnumerable<string> selectivelyDisclosableClaims,
         byte[] signingKey,
         HashAlgorithm hashAlgorithm,
-        byte[]? holderPublicKey = null)
+        byte[]? holderPublicKey = null,
+        int decoyDigestCount = 0)
     {
         ArgumentNullException.ThrowIfNull(claims);
         ArgumentNullException.ThrowIfNull(signingKey);
@@ -82,6 +84,17 @@ public class SdJwtIssuer
             }
         }
 
+        // Add decoy digests for privacy protection if requested
+        // Per SD-JWT spec section 4.2.5: "The use of decoy digests is RECOMMENDED when the
+        // number of claims (or the existence of particular claims) can be a side-channel
+        // disclosing information about the End-User."
+        if (decoyDigestCount > 0)
+        {
+            var decoyGenerator = new DecoyDigestGenerator();
+            var decoyDigests = decoyGenerator.GenerateDecoyDigests(decoyDigestCount, hashAlgorithm);
+            digests = decoyGenerator.InterleaveDecoys(digests, decoyDigests);
+        }
+
         // Step 2: Build JWT payload
         var payload = new Dictionary<string, object>();
 
@@ -117,11 +130,13 @@ public class SdJwtIssuer
         payload[Constants.SdAlgClaimName] = Constants.HashAlgorithmNames[hashAlgorithm];
 
         // Add cnf claim if holder public key is provided (for key binding)
+        // Per RFC 7800 and SD-JWT spec section 4.3, use proper JWK format
         if (holderPublicKey != null)
         {
+            var jwk = Common.JwkHelper.CreateEcPublicKeyJwk(holderPublicKey);
             payload["cnf"] = new Dictionary<string, object>
             {
-                { "jwk", Convert.ToBase64String(holderPublicKey) }
+                { "jwk", jwk }
             };
         }
 

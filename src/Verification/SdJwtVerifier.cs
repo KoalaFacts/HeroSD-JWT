@@ -286,14 +286,30 @@ public class SdJwtVerifier
             byte[] holderPublicKey;
             try
             {
-                var jwkBase64 = jwkElement.GetString();
-                if (string.IsNullOrWhiteSpace(jwkBase64))
+                // Parse JWK per RFC 7800 - support both legacy base64 format and proper JWK
+                if (jwkElement.ValueKind == JsonValueKind.String)
+                {
+                    // Legacy format: base64-encoded raw key (for backward compatibility)
+                    var jwkBase64 = jwkElement.GetString();
+                    if (string.IsNullOrWhiteSpace(jwkBase64))
+                    {
+                        errors.Add(ErrorCode.InvalidInput);
+                        errorDetails.Add("Invalid cnf claim: jwk is empty");
+                        return new VerificationResult(errors, string.Join("; ", errorDetails));
+                    }
+                    holderPublicKey = Convert.FromBase64String(jwkBase64);
+                }
+                else if (jwkElement.ValueKind == JsonValueKind.Object)
+                {
+                    // RFC 7800 format: proper JWK with kty, crv, x, y
+                    holderPublicKey = Common.JwkHelper.ParseEcPublicKeyJwk(jwkElement);
+                }
+                else
                 {
                     errors.Add(ErrorCode.InvalidInput);
-                    errorDetails.Add("Invalid cnf claim: jwk is empty");
+                    errorDetails.Add("Invalid cnf claim: jwk must be a string or object");
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
-                holderPublicKey = Convert.FromBase64String(jwkBase64);
 
                 // Validate the public key format and curve
                 using var ecdsa = ECDsa.Create();
@@ -310,13 +326,19 @@ public class SdJwtVerifier
             catch (FormatException)
             {
                 errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add("Invalid cnf claim: jwk is not valid Base64");
+                errorDetails.Add("Invalid cnf claim: jwk encoding error");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
             catch (CryptographicException)
             {
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add("Invalid cnf claim: jwk is not a valid ECDSA public key");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+            catch (ArgumentException ex)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add($"Invalid cnf claim JWK: {ex.Message}");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 

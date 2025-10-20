@@ -25,11 +25,15 @@ public class SdJwtPresenter
         var selectedClaimsList = selectedClaimNames.ToList();
 
         // Build a map of claim names to their disclosures
+        // Note: Array element disclosures (which have no claim name) are not included in this map
         var claimToDisclosure = new Dictionary<string, string>();
         foreach (var disclosure in sdJwt.Disclosures)
         {
             var claimName = DisclosureParser.GetClaimName(disclosure);
-            claimToDisclosure[claimName] = disclosure;
+            if (claimName != null)
+            {
+                claimToDisclosure[claimName] = disclosure;
+            }
         }
 
         // Filter disclosures based on selected claims
