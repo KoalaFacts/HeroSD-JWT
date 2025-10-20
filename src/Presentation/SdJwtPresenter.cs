@@ -12,8 +12,12 @@ public class SdJwtPresenter
     /// </summary>
     /// <param name="sdJwt">The SD-JWT to present.</param>
     /// <param name="selectedClaimNames">The names of claims to disclose.</param>
+    /// <param name="keyBindingJwt">Optional key binding JWT to prove holder possession of private key.</param>
     /// <returns>The presentation containing only selected disclosures.</returns>
-    public SdJwtPresentation CreatePresentation(SdJwt sdJwt, IEnumerable<string> selectedClaimNames)
+    public SdJwtPresentation CreatePresentation(
+        SdJwt sdJwt,
+        IEnumerable<string> selectedClaimNames,
+        string? keyBindingJwt = null)
     {
         ArgumentNullException.ThrowIfNull(sdJwt);
         ArgumentNullException.ThrowIfNull(selectedClaimNames);
@@ -43,7 +47,9 @@ public class SdJwtPresenter
             selectedDisclosures.Add(disclosure);
         }
 
-        return new SdJwtPresentation(sdJwt.Jwt, selectedDisclosures, sdJwt.KeyBindingJwt);
+        // Use provided key binding JWT, or fall back to the one in sdJwt
+        var finalKeyBindingJwt = keyBindingJwt ?? sdJwt.KeyBindingJwt;
+        return new SdJwtPresentation(sdJwt.Jwt, selectedDisclosures, finalKeyBindingJwt);
     }
 
     /// <summary>
@@ -51,12 +57,15 @@ public class SdJwtPresenter
     /// Convenience method for full disclosure.
     /// </summary>
     /// <param name="sdJwt">The SD-JWT to present.</param>
+    /// <param name="keyBindingJwt">Optional key binding JWT to prove holder possession of private key.</param>
     /// <returns>The presentation containing all disclosures.</returns>
-    public SdJwtPresentation CreatePresentationWithAllClaims(SdJwt sdJwt)
+    public SdJwtPresentation CreatePresentationWithAllClaims(SdJwt sdJwt, string? keyBindingJwt = null)
     {
         ArgumentNullException.ThrowIfNull(sdJwt);
 
-        return new SdJwtPresentation(sdJwt.Jwt, sdJwt.Disclosures, sdJwt.KeyBindingJwt);
+        // Use provided key binding JWT, or fall back to the one in sdJwt
+        var finalKeyBindingJwt = keyBindingJwt ?? sdJwt.KeyBindingJwt;
+        return new SdJwtPresentation(sdJwt.Jwt, sdJwt.Disclosures, finalKeyBindingJwt);
     }
 
     /// <summary>

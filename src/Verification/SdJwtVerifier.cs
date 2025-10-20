@@ -1,6 +1,10 @@
 using HeroSdJwt.Common;
 using HeroSdJwt.Core;
+using HeroSdJwt.KeyBinding;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using HashAlgorithm = HeroSdJwt.Common.HashAlgorithm;
 
 namespace HeroSdJwt.Verification;
 
@@ -253,9 +257,73 @@ public class SdJwtVerifier
             }
         }
 
-        // Step 5: Check key binding if required
-        if (_options.RequireKeyBinding && string.IsNullOrWhiteSpace(keyBindingJwt))
+        // Step 5: Validate key binding if present or required
+        if (!string.IsNullOrWhiteSpace(keyBindingJwt))
         {
+            // Extract holder's public key from cnf claim
+            if (!payload.TryGetProperty("cnf", out var cnfElement) ||
+                !cnfElement.TryGetProperty("jwk", out var jwkElement))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("Key binding JWT present but cnf claim missing from SD-JWT");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            byte[] holderPublicKey;
+            try
+            {
+                var jwkBase64 = jwkElement.GetString();
+                if (string.IsNullOrWhiteSpace(jwkBase64))
+                {
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add("Invalid cnf claim: jwk is empty");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
+                holderPublicKey = Convert.FromBase64String(jwkBase64);
+            }
+            catch (Exception ex)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add($"Failed to decode holder public key from cnf claim: {ex.Message}");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            // Compute SD-JWT hash for key binding validation
+            // The hash is computed over: JWT~disclosure1~disclosure2~...~
+            // (everything before the key binding JWT, including the trailing tilde)
+            var sdJwtParts = parts.Take(parts.Length - 1);
+            var sdJwtString = string.Join("~", sdJwtParts) + "~";
+            string sdJwtHash;
+            try
+            {
+                using var sha256 = SHA256.Create();
+                var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(sdJwtString));
+                sdJwtHash = Base64UrlEncoder.Encode(hashBytes);
+            }
+            catch (Exception ex)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add($"Failed to compute SD-JWT hash: {ex.Message}");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            // Validate key binding JWT
+            bool keyBindingValid = KeyBindingValidator.ValidateKeyBinding(
+                keyBindingJwt,
+                holderPublicKey,
+                sdJwtHash,
+                _options.ExpectedAudience,
+                _options.ExpectedNonce);
+
+            if (!keyBindingValid)
+            {
+                errors.Add(ErrorCode.InvalidSignature);
+                errorDetails.Add("Key binding JWT validation failed");
+            }
+        }
+        else if (_options.RequireKeyBinding)
+        {
+            // Key binding is required but not present
             errors.Add(ErrorCode.InvalidInput);
             errorDetails.Add("Key binding is required but not present");
             return new VerificationResult(errors, string.Join("; ", errorDetails));

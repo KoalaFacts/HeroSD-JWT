@@ -44,6 +44,13 @@ public class SdJwtVerificationOptions
     public HashAlgorithm? ExpectedHashAlgorithm { get; init; }
 
     /// <summary>
+    /// Gets the expected nonce for key binding JWT validation.
+    /// When set, key binding JWTs with different nonce will fail verification.
+    /// Default is null (nonce not validated).
+    /// </summary>
+    public string? ExpectedNonce { get; init; }
+
+    /// <summary>
     /// Validates the options and throws if configuration is invalid.
     /// </summary>
     /// <exception cref="ArgumentException">Thrown when clock skew exceeds maximum allowed value.</exception>

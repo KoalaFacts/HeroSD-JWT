@@ -31,12 +31,14 @@ public class SdJwtIssuer
     /// <param name="selectivelyDisclosableClaims">Claims that should be selectively disclosable.</param>
     /// <param name="signingKey">The signing key for JWT signature.</param>
     /// <param name="hashAlgorithm">The hash algorithm for disclosure digests.</param>
+    /// <param name="holderPublicKey">Optional holder public key for key binding (cnf claim).</param>
     /// <returns>The created SD-JWT.</returns>
     public SdJwt CreateSdJwt(
         Dictionary<string, object> claims,
         IEnumerable<string> selectivelyDisclosableClaims,
         byte[] signingKey,
-        HashAlgorithm hashAlgorithm)
+        HashAlgorithm hashAlgorithm,
+        byte[]? holderPublicKey = null)
     {
         ArgumentNullException.ThrowIfNull(claims);
         ArgumentNullException.ThrowIfNull(signingKey);
@@ -83,6 +85,15 @@ public class SdJwtIssuer
         }
 
         payload[Constants.SdAlgClaimName] = Constants.HashAlgorithmNames[hashAlgorithm];
+
+        // Add cnf claim if holder public key is provided (for key binding)
+        if (holderPublicKey != null)
+        {
+            payload["cnf"] = new Dictionary<string, object>
+            {
+                { "jwk", Convert.ToBase64String(holderPublicKey) }
+            };
+        }
 
         // Step 3: Create JWT
         var jwt = CreateJwt(payload, signingKey);
