@@ -44,7 +44,7 @@ internal static class KeyBindingValidator
             var signatureBase64 = parts[2];
 
             // Decode and validate header
-            var headerJson = DecodeBase64Url(headerBase64);
+            var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
             var header = JsonDocument.Parse(headerJson).RootElement;
 
             if (!header.TryGetProperty("typ", out var typElement) ||
@@ -54,7 +54,7 @@ internal static class KeyBindingValidator
             }
 
             // Decode and validate payload
-            var payloadJson = DecodeBase64Url(payloadBase64);
+            var payloadJson = Base64UrlEncoder.DecodeString(payloadBase64);
             var payload = JsonDocument.Parse(payloadJson).RootElement;
 
             // Validate sd_hash claim exists and matches expected value
@@ -121,9 +121,7 @@ internal static class KeyBindingValidator
 
             // Verify signature
             var signingInput = $"{headerBase64}.{payloadBase64}";
-            var signature = Convert.FromBase64String(
-                signatureBase64.Replace('-', '+').Replace('_', '/')
-                    .PadRight(signatureBase64.Length + (4 - signatureBase64.Length % 4) % 4, '='));
+            var signature = Base64UrlEncoder.DecodeBytes(signatureBase64);
 
             using var ecdsa = ECDsa.Create();
             try
@@ -163,12 +161,10 @@ internal static class KeyBindingValidator
             // JSON parsing failed
             return false;
         }
-    }
-
-    private static string DecodeBase64Url(string base64Url)
-    {
-        var base64 = base64Url.Replace('-', '+').Replace('_', '/')
-            .PadRight(base64Url.Length + (4 - base64Url.Length % 4) % 4, '=');
-        return Encoding.UTF8.GetString(Convert.FromBase64String(base64));
+        catch (SdJwtException)
+        {
+            // Base64UrlEncoder.DecodeBytes/DecodeString throws SdJwtException on invalid input
+            return false;
+        }
     }
 }

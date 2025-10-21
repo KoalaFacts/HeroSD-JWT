@@ -13,7 +13,7 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
 - ✅ **Decoy digests** - Privacy protection against claim enumeration
 - ✅ Holder-controlled claim disclosure
 - ✅ Cryptographic verification of signatures and claim integrity
-- ✅ Zero external dependencies (uses only .NET BCL)
+- ✅ Zero third-party dependencies (uses only .NET BCL including `System.Security.Cryptography`, `System.Text.Json`, `System.Buffers.Text`)
 - ✅ Constant-time comparison for security-critical operations
 - ✅ Algorithm confusion prevention (rejects "none" algorithm)
 - ✅ Multi-targeting .NET 8.0 and .NET 9.0
@@ -268,7 +268,7 @@ This library implements security best practices:
 - **Constant-time comparison**: Uses `CryptographicOperations.FixedTimeEquals` for digest validation to prevent timing attacks
 - **Algorithm confusion prevention**: Rejects "none" algorithm (both lowercase and uppercase)
 - **Cryptographically secure salts**: Uses `RandomNumberGenerator` for 128-bit salts
-- **No external dependencies**: Zero supply chain risk (uses only .NET BCL)
+- **No third-party dependencies**: Zero supply chain risk from third-party packages (uses only .NET BCL)
 - **Strict validation**: Treats warnings as errors, validates all inputs
 
 ### Supported Algorithms
@@ -281,8 +281,9 @@ This library implements security best practices:
 
 ## Requirements
 
-- **.NET 8.0** or **.NET 9.0**
-- No external dependencies
+- **.NET 8.0** (LTS) or **.NET 9.0**
+- No third-party dependencies (uses only .NET BCL)
+  - Note: .NET 8.0 includes a polyfill dependency (`Microsoft.Bcl.Memory`) to backport .NET 9.0's native `Base64Url` APIs
 
 ## Testing
 
@@ -330,7 +331,7 @@ Contributions are welcome! Please follow these guidelines:
 2. Ensure all tests pass
 3. Follow .NET naming conventions
 4. Add XML documentation for public APIs
-5. No external dependencies (BCL only)
+5. No third-party dependencies (BCL only)
 
 ## License
 
@@ -339,13 +340,13 @@ MIT License - see [LICENSE](LICENSE) file for details
 ## References
 
 - **Specification**: [IETF draft-ietf-oauth-selective-disclosure-jwt](https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/)
-- **Repository**: https://github.com/BeingCiteable/HeroSD-JWT
+- **Repository**: https://github.com/KoalaFacts/HeroSD-JWT
 - **Quick Start**: See [specs/001-sd-jwt-library/quickstart.md](specs/001-sd-jwt-library/quickstart.md)
 - **Implementation Plan**: See [specs/001-sd-jwt-library/plan.md](specs/001-sd-jwt-library/plan.md)
 
 ## Support
 
-- **Issues**: Report bugs at https://github.com/BeingCiteable/HeroSD-JWT/issues
+- **Issues**: Report bugs at https://github.com/KoalaFacts/HeroSD-JWT/issues
 - **Discussions**: Community support via GitHub Discussions
 
 ---

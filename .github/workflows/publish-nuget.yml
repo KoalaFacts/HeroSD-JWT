@@ -1,0 +1,59 @@
+name: Publish to NuGet
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+
+permissions:
+  id-token: write  # Required for OIDC token
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: nuget-org
+      url: https://www.nuget.org/packages/HeroSD-JWT
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Pack
+        run: dotnet pack src/HeroSdJwt.csproj --configuration Release --no-build --output ./nupkg
+
+      - name: Publish to NuGet using Trusted Publishing (OIDC)
+        run: |
+          dotnet nuget push ./nupkg/*.nupkg \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+        # Uses GitHub Actions OIDC token for authentication
+        # No API key needed - authentication happens automatically via id-token: write permission
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./nupkg/*.nupkg
+          retention-days: 90

@@ -10,19 +10,19 @@
     <!-- Package Metadata -->
     <PackageId>HeroSD-JWT</PackageId>
     <Version>1.0.0</Version>
-    <Authors>BeingCiteable</Authors>
-    <Company>BeingCiteable</Company>
+    <Authors>KoalaFacts</Authors>
+    <Company>KoalaFacts</Company>
     <Product>HeroSD-JWT</Product>
-    <Description>A production-ready .NET library implementing SD-JWT (Selective Disclosure for JSON Web Tokens) according to IETF draft-ietf-oauth-selective-disclosure-jwt. Supports array element disclosure, nested claims, key binding, and multiple signature algorithms (HS256, RS256, ES256). Zero external dependencies.</Description>
+    <Description>A production-ready .NET library implementing SD-JWT (Selective Disclosure for JSON Web Tokens) according to IETF draft-ietf-oauth-selective-disclosure-jwt. Supports array element disclosure, nested claims, key binding, and multiple signature algorithms (HS256, RS256, ES256). Zero third-party dependencies - uses only .NET BCL.</Description>
     <PackageTags>sd-jwt;selective-disclosure;jwt;verifiable-credentials;privacy;zero-knowledge;cryptography;security;json-web-token</PackageTags>
-    <PackageProjectUrl>https://github.com/BeingCiteable/HeroSD-JWT</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/BeingCiteable/HeroSD-JWT</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/KoalaFacts/HeroSD-JWT</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/KoalaFacts/HeroSD-JWT</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
-    <Copyright>Copyright (c) 2025 BeingCiteable</Copyright>
+    <Copyright>Copyright (c) 2025 KoalaFacts</Copyright>
 
     <!-- Release Notes -->
     <PackageReleaseNotes>Initial v1.0.0 release with full SD-JWT support including array elements, nested claims, key binding, and RS256/ES256 algorithms.</PackageReleaseNotes>
