@@ -244,9 +244,9 @@ dotnet test
 dotnet test --verbosity normal
 ```
 
-Current test coverage: **194 passing tests** across:
+Current test coverage: **244 passing tests** across:
 - Contract tests (API behavior)
-- Unit tests (component logic, array elements, claim paths, disclosures, signature algorithms)
+- Unit tests (component logic, array elements, claim paths, disclosures, signature algorithms, Base64Url encoding, decoy digests, JWK handling)
 - Integration tests (end-to-end flows with arrays and nested claims)
 - Security tests (timing attacks, algorithm confusion, salt entropy, key binding)
 
