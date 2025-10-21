@@ -8,6 +8,9 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
 
 **Key Features**:
 - ✅ Create SD-JWTs with selectively disclosable claims
+- ✅ **Array element selective disclosure** - Syntax like `degrees[1]` for individual array elements
+- ✅ **Key binding (proof of possession)** - RFC 7800 compliant with temporal validation
+- ✅ **Decoy digests** - Privacy protection against claim enumeration
 - ✅ Holder-controlled claim disclosure
 - ✅ Cryptographic verification of signatures and claim integrity
 - ✅ Zero external dependencies (uses only .NET BCL)
@@ -57,6 +60,26 @@ var sdJwt = issuer.CreateSdJwt(
 
 // sdJwt.Jwt contains the signed JWT
 // sdJwt.Disclosures contains disclosure documents
+```
+
+**Array Element Example**:
+```csharp
+var claims = new Dictionary<string, object>
+{
+    ["sub"] = "user-456",
+    ["degrees"] = new[] { "BS", "MS", "PhD" }
+};
+
+// Make only MS and PhD selectively disclosable, keep BS always visible
+var sdJwt = issuer.CreateSdJwt(
+    claims,
+    selectivelyDisclosableClaims: new[] { "degrees[1]", "degrees[2]" },
+    signingKey,
+    HashAlgorithm.Sha256
+);
+
+// JWT payload will contain:
+// "degrees": ["BS", {"...": "digest_for_MS"}, {"...": "digest_for_PhD"}]
 ```
 
 ### 2. Holder: Create Presentation
@@ -190,10 +213,11 @@ dotnet test
 dotnet test --verbosity normal
 ```
 
-Current test coverage: 42 passing tests across:
+Current test coverage: **177 passing tests** across:
 - Contract tests (API behavior)
-- Unit tests (component logic)
-- Security tests (timing attacks, algorithm confusion, salt entropy)
+- Unit tests (component logic, array elements, claim paths, disclosures)
+- Integration tests (end-to-end flows with arrays)
+- Security tests (timing attacks, algorithm confusion, salt entropy, key binding)
 
 ## Performance
 
@@ -203,13 +227,19 @@ Current test coverage: 42 passing tests across:
 
 ## Roadmap
 
-- [ ] Key binding (proof of possession)
-- [ ] Nested claims selective disclosure
-- [ ] Array element selective disclosure
-- [ ] Decoy digests for privacy enhancement
-- [ ] RS256/ES256 signature algorithm support
-- [ ] Integration tests for end-to-end flows
-- [ ] Performance benchmarks
+### ✅ Completed
+- [x] **Key binding (proof of possession)** - RFC 7800 compliant with temporal validation
+- [x] **Array element selective disclosure** - Full support with syntax like `degrees[1]`
+- [x] **Decoy digests for privacy enhancement** - Cryptographically secure decoy generation
+- [x] **Security hardening** - Critical claim protection, _sd_alg placement validation, KB-JWT replay prevention
+- [x] **Integration tests for end-to-end flows** - 7 comprehensive tests
+- [x] **Nested property path parsing** - Foundation with dot notation support (`address.street`)
+
+### 🚧 In Progress / Planned
+- [ ] **Nested claims selective disclosure** - Parser ready, full implementation deferred
+- [ ] **RS256/ES256 signature algorithm support** - Currently HS256 only
+- [ ] **Performance benchmarks** - Systematic benchmarking suite
+- [ ] **NuGet package publishing** - Production-ready release
 
 ## Contributing
 
