@@ -43,8 +43,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-          cache: true
-          cache-dependency-path: '**/packages.lock.json'
+          cache: true  # Auto-detects lock files if present, falls back to .csproj
 
       - name: Restore dependencies
         run: dotnet restore
@@ -69,8 +68,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-          cache: true
-          cache-dependency-path: '**/packages.lock.json'
+          cache: true  # Auto-detects lock files if present, falls back to .csproj
 
       - name: Restore and audit dependencies
         run: |
