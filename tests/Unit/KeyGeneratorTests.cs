@@ -5,15 +5,17 @@ using Xunit;
 namespace HeroSdJwt.Tests.Unit;
 
 /// <summary>
-/// Tests for CryptoHelpers key generation utilities.
+/// Tests for KeyGenerator cryptographic key generation.
 /// </summary>
-public class CryptoHelpersTests
+public class KeyGeneratorTests
 {
+    private readonly IKeyGenerator _keyGenerator = KeyGenerator.Instance;
+
     [Fact]
     public void GenerateHmacKey_WithDefaultSize_Returns256BitKey()
     {
         // Act
-        var key = CryptoHelpers.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
 
         // Assert
         Assert.Equal(32, key.Length); // 256 bits = 32 bytes
@@ -23,7 +25,7 @@ public class CryptoHelpersTests
     public void GenerateHmacKey_WithCustomSize_ReturnsCorrectSize()
     {
         // Act
-        var key512 = CryptoHelpers.GenerateHmacKey(512);
+        var key512 = _keyGenerator.GenerateHmacKey(512);
 
         // Assert
         Assert.Equal(64, key512.Length); // 512 bits = 64 bytes
@@ -33,8 +35,8 @@ public class CryptoHelpersTests
     public void GenerateHmacKey_MultipleCallsProduceDifferentKeys()
     {
         // Act
-        var key1 = CryptoHelpers.GenerateHmacKey();
-        var key2 = CryptoHelpers.GenerateHmacKey();
+        var key1 = _keyGenerator.GenerateHmacKey();
+        var key2 = _keyGenerator.GenerateHmacKey();
 
         // Assert
         Assert.NotEqual(key1, key2);
@@ -44,16 +46,16 @@ public class CryptoHelpersTests
     public void GenerateHmacKey_WithInvalidSize_ThrowsArgumentException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => CryptoHelpers.GenerateHmacKey(0));
-        Assert.Throws<ArgumentException>(() => CryptoHelpers.GenerateHmacKey(-1));
-        Assert.Throws<ArgumentException>(() => CryptoHelpers.GenerateHmacKey(7)); // Not multiple of 8
+        Assert.Throws<ArgumentException>(() => _keyGenerator.GenerateHmacKey(0));
+        Assert.Throws<ArgumentException>(() => _keyGenerator.GenerateHmacKey(-1));
+        Assert.Throws<ArgumentException>(() => _keyGenerator.GenerateHmacKey(7)); // Not multiple of 8
     }
 
     [Fact]
     public void GenerateRsaKeyPair_WithDefaultSize_Returns2048BitKeys()
     {
         // Act
-        var (privateKey, publicKey) = CryptoHelpers.GenerateRsaKeyPair();
+        var (privateKey, publicKey) = _keyGenerator.GenerateRsaKeyPair();
 
         // Assert
         Assert.NotNull(privateKey);
@@ -71,7 +73,7 @@ public class CryptoHelpersTests
     public void GenerateRsaKeyPair_WithCustomSize_ReturnsCorrectSize()
     {
         // Act
-        var (privateKey, publicKey) = CryptoHelpers.GenerateRsaKeyPair(4096);
+        var (privateKey, publicKey) = _keyGenerator.GenerateRsaKeyPair(4096);
 
         // Assert
         using var rsa = RSA.Create();
@@ -84,7 +86,7 @@ public class CryptoHelpersTests
     {
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            CryptoHelpers.GenerateRsaKeyPair(1024));
+            _keyGenerator.GenerateRsaKeyPair(1024));
 
         Assert.Contains("2048", exception.Message);
     }
@@ -93,7 +95,7 @@ public class CryptoHelpersTests
     public void GenerateRsaKeyPair_PublicKeyMatchesPrivateKey()
     {
         // Act
-        var (privateKey, publicKey) = CryptoHelpers.GenerateRsaKeyPair();
+        var (privateKey, publicKey) = _keyGenerator.GenerateRsaKeyPair();
 
         // Assert - Extract public key from private key and compare
         using var rsaPrivate = RSA.Create();
@@ -107,7 +109,7 @@ public class CryptoHelpersTests
     public void GenerateEcdsaKeyPair_ReturnsP256Keys()
     {
         // Act
-        var (privateKey, publicKey) = CryptoHelpers.GenerateEcdsaKeyPair();
+        var (privateKey, publicKey) = _keyGenerator.GenerateEcdsaKeyPair();
 
         // Assert
         Assert.NotNull(privateKey);
@@ -125,7 +127,7 @@ public class CryptoHelpersTests
     public void GenerateEcdsaKeyPair_PublicKeyMatchesPrivateKey()
     {
         // Act
-        var (privateKey, publicKey) = CryptoHelpers.GenerateEcdsaKeyPair();
+        var (privateKey, publicKey) = _keyGenerator.GenerateEcdsaKeyPair();
 
         // Assert
         using var ecdsaPrivate = ECDsa.Create();
@@ -136,10 +138,10 @@ public class CryptoHelpersTests
     }
 
     [Fact]
-    public void GenerateKeyBindingKeyPair_ReturnsSameAsEcdsa()
+    public void GenerateEcdsaKeyPair_CanBeUsedForKeyBinding()
     {
-        // Act
-        var (holderPrivateKey, holderPublicKey) = CryptoHelpers.GenerateKeyBindingKeyPair();
+        // Act - Key binding uses ECDSA keys
+        var (holderPrivateKey, holderPublicKey) = _keyGenerator.GenerateEcdsaKeyPair();
 
         // Assert - Should be valid P-256 ECDSA keys
         using var ecdsa = ECDsa.Create();
@@ -154,8 +156,8 @@ public class CryptoHelpersTests
     public void GenerateEcdsaKeyPair_MultipleCallsProduceDifferentKeys()
     {
         // Act
-        var (privateKey1, publicKey1) = CryptoHelpers.GenerateEcdsaKeyPair();
-        var (privateKey2, publicKey2) = CryptoHelpers.GenerateEcdsaKeyPair();
+        var (privateKey1, publicKey1) = _keyGenerator.GenerateEcdsaKeyPair();
+        var (privateKey2, publicKey2) = _keyGenerator.GenerateEcdsaKeyPair();
 
         // Assert
         Assert.NotEqual(privateKey1, privateKey2);
@@ -166,8 +168,8 @@ public class CryptoHelpersTests
     public void GenerateRsaKeyPair_MultipleCallsProduceDifferentKeys()
     {
         // Act
-        var (privateKey1, publicKey1) = CryptoHelpers.GenerateRsaKeyPair();
-        var (privateKey2, publicKey2) = CryptoHelpers.GenerateRsaKeyPair();
+        var (privateKey1, publicKey1) = _keyGenerator.GenerateRsaKeyPair();
+        var (privateKey2, publicKey2) = _keyGenerator.GenerateRsaKeyPair();
 
         // Assert
         Assert.NotEqual(privateKey1, privateKey2);

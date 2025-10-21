@@ -13,11 +13,13 @@ namespace HeroSdJwt.Tests.Unit;
 /// </summary>
 public class SdJwtBuilderTests
 {
+    private readonly IKeyGenerator _keyGenerator = KeyGenerator.Instance;
+
     [Fact]
     public void Build_WithMinimalConfig_CreatesValidSdJwt()
     {
         // Arrange
-        var key = CryptoHelpers.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -41,7 +43,7 @@ public class SdJwtBuilderTests
     public void Build_WithIndividualClaims_CreatesValidSdJwt()
     {
         // Arrange
-        var key = CryptoHelpers.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
 
         // Act
         var sdJwt = SdJwtBuilder.Create()
@@ -61,7 +63,7 @@ public class SdJwtBuilderTests
     public void Build_WithRsaSignature_CreatesValidSdJwt()
     {
         // Arrange
-        var (privateKey, _) = CryptoHelpers.GenerateRsaKeyPair();
+        var (privateKey, _) = _keyGenerator.GenerateRsaKeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
@@ -79,7 +81,7 @@ public class SdJwtBuilderTests
     public void Build_WithEcdsaSignature_CreatesValidSdJwt()
     {
         // Arrange
-        var (privateKey, _) = CryptoHelpers.GenerateEcdsaKeyPair();
+        var (privateKey, _) = _keyGenerator.GenerateEcdsaKeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
@@ -97,8 +99,8 @@ public class SdJwtBuilderTests
     public void Build_WithKeyBinding_IncludesCnfClaim()
     {
         // Arrange
-        var issuerKey = CryptoHelpers.GenerateHmacKey();
-        var (_, holderPublicKey) = CryptoHelpers.GenerateKeyBindingKeyPair();
+        var issuerKey = _keyGenerator.GenerateHmacKey();
+        var (_, holderPublicKey) = _keyGenerator.GenerateEcdsaKeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
@@ -118,7 +120,7 @@ public class SdJwtBuilderTests
     public void Build_WithDecoys_CreatesExtraDigests()
     {
         // Arrange
-        var key = CryptoHelpers.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -143,7 +145,7 @@ public class SdJwtBuilderTests
     public void Build_WithoutClaims_ThrowsInvalidOperationException()
     {
         // Arrange
-        var key = CryptoHelpers.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
@@ -181,7 +183,7 @@ public class SdJwtBuilderTests
     public void Build_WithCustomHashAlgorithm_UsesSha512()
     {
         // Arrange
-        var key = CryptoHelpers.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -208,8 +210,8 @@ public class SdJwtBuilderTests
     public void FluentAPI_CanChainAllMethods()
     {
         // Arrange
-        var key = CryptoHelpers.GenerateHmacKey();
-        var (_, holderPublicKey) = CryptoHelpers.GenerateKeyBindingKeyPair();
+        var key = _keyGenerator.GenerateHmacKey();
+        var (_, holderPublicKey) = _keyGenerator.GenerateEcdsaKeyPair();
 
         // Act - Chain all methods to verify fluent interface
         var sdJwt = SdJwtBuilder.Create()
@@ -234,8 +236,8 @@ public class SdJwtBuilderTests
     public void SignWith_MultipleCallsOverridePrevious()
     {
         // Arrange
-        var hmacKey = CryptoHelpers.GenerateHmacKey();
-        var (rsaKey, _) = CryptoHelpers.GenerateRsaKeyPair();
+        var hmacKey = _keyGenerator.GenerateHmacKey();
+        var (rsaKey, _) = _keyGenerator.GenerateRsaKeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act - Call SignWithHmac then SignWithRsa (last one should win)

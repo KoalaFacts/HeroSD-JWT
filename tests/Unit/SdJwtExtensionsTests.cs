@@ -11,11 +11,13 @@ namespace HeroSdJwt.Tests.Unit;
 /// </summary>
 public class SdJwtExtensionsTests
 {
+    private readonly IKeyGenerator _keyGenerator = KeyGenerator.Instance;
+
     [Fact]
     public void ToPresentation_WithSelectedClaims_ReturnsValidPresentation()
     {
         // Arrange
-        var key = CryptoHelpers.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -42,7 +44,7 @@ public class SdJwtExtensionsTests
     public void ToPresentation_CanBeVerified()
     {
         // Arrange
-        var key = CryptoHelpers.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -70,7 +72,7 @@ public class SdJwtExtensionsTests
     public void ToPresentationWithAllClaims_RevealsEverything()
     {
         // Arrange
-        var key = CryptoHelpers.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -118,7 +120,7 @@ public class SdJwtExtensionsTests
     public void ToPresentationWithKeyBinding_WithNullKeyBinding_ThrowsArgumentNullException()
     {
         // Arrange
-        var key = CryptoHelpers.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
         var sdJwt = SdJwtBuilder.Create()
             .WithClaims(claims)
@@ -134,7 +136,7 @@ public class SdJwtExtensionsTests
     public void ToPresentation_WithNoClaimsToReveal_ReturnsJwtOnly()
     {
         // Arrange
-        var key = CryptoHelpers.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -160,7 +162,7 @@ public class SdJwtExtensionsTests
     public void ExtensionMethods_WorkWithBuilderAPI()
     {
         // Arrange & Act - Fluent chain from builder to presentation
-        var key = CryptoHelpers.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var presentation = SdJwtBuilder.Create()
             .WithClaim("sub", "user123")
             .WithClaim("email", "user@example.com")

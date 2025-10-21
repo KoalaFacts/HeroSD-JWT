@@ -41,7 +41,8 @@ using HeroSdJwt.Common;
 using HeroSdJwt.Core;
 
 // Generate a signing key
-var key = CryptoHelpers.GenerateHmacKey();
+var keyGen = KeyGenerator.Instance;
+var key = keyGen.GenerateHmacKey();
 
 // Create SD-JWT with fluent builder
 var sdJwt = SdJwtBuilder.Create()
@@ -60,8 +61,10 @@ var presentation = sdJwt.ToPresentation("email");
 ### 🔑 Different Signature Algorithms
 
 ```csharp
+var keyGen = KeyGenerator.Instance;
+
 // HMAC (simple, symmetric)
-var key = CryptoHelpers.GenerateHmacKey();
+var key = keyGen.GenerateHmacKey();
 var sdJwt = SdJwtBuilder.Create()
     .WithClaims(claims)
     .MakeSelective("email")
@@ -69,7 +72,7 @@ var sdJwt = SdJwtBuilder.Create()
     .Build();
 
 // RSA (asymmetric, widely supported)
-var (rsaPrivate, rsaPublic) = CryptoHelpers.GenerateRsaKeyPair();
+var (rsaPrivate, rsaPublic) = keyGen.GenerateRsaKeyPair();
 var sdJwt = SdJwtBuilder.Create()
     .WithClaims(claims)
     .MakeSelective("email")
@@ -77,7 +80,7 @@ var sdJwt = SdJwtBuilder.Create()
     .Build();
 
 // ECDSA (asymmetric, compact)
-var (ecPrivate, ecPublic) = CryptoHelpers.GenerateEcdsaKeyPair();
+var (ecPrivate, ecPublic) = keyGen.GenerateEcdsaKeyPair();
 var sdJwt = SdJwtBuilder.Create()
     .WithClaims(claims)
     .MakeSelective("email")
