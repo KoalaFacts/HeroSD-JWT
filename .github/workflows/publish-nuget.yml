@@ -6,11 +6,12 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to publish (e.g., 1.0.0)'
+        description: 'Package version (e.g., 1.0.0)'
         required: true
+        type: string
 
 permissions:
-  id-token: write  # Required for OIDC token
+  id-token: write  # Required for OIDC authentication with NuGet.org
   contents: read
 
 jobs:
@@ -23,6 +24,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for versioning
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -34,16 +37,33 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+            VERSION="${VERSION#v}"  # Remove 'v' prefix if present
+          else
+            VERSION="${{ inputs.version }}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION"
+
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build --configuration Release --no-restore /p:Version=${{ steps.version.outputs.VERSION }}
 
       - name: Run tests
         run: dotnet test --configuration Release --no-build --verbosity normal
 
       - name: Pack
-        run: dotnet pack src/HeroSdJwt.csproj --configuration Release --no-build --output ./nupkg
+        run: |
+          dotnet pack src/HeroSdJwt.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./packages \
+            /p:PackageVersion=${{ steps.version.outputs.VERSION }}
 
-      - name: Authenticate to NuGet using Trusted Publishing
+      - name: NuGet login (OIDC → temporary API key)
         uses: NuGet/login@v1
         id: nuget-login
         with:
@@ -51,16 +71,18 @@ jobs:
           # Uses GitHub Actions OIDC token to get a temporary (1-hour) NuGet API key
           # No long-lived API keys needed!
 
-      - name: Publish to NuGet
+      - name: Publish to NuGet.org using Trusted Publishing
         run: |
-          dotnet nuget push ./nupkg/*.nupkg \
-            --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} \
+          dotnet nuget push "./packages/*.nupkg" \
             --source https://api.nuget.org/v3/index.json \
+            --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} \
             --skip-duplicate
+        env:
+          DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: nuget-packages
-          path: ./nupkg/*.nupkg
+          name: nuget-packages-v${{ steps.version.outputs.VERSION }}
+          path: ./packages/*.nupkg
           retention-days: 90

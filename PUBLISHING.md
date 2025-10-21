@@ -8,7 +8,7 @@ For first-time publishing with Trusted Publishing:
 
 - [ ] Have a NuGet.org account
 - [ ] Set up Trusted Publishing policy on NuGet.org with environment `production` (see Setup Steps below)
-- [ ] Add `NUGET_USERNAME` secret to GitHub repository
+- [ ] Add `NUGET_USERNAME` secret to GitHub repository (Settings → Secrets)
 - [ ] Create GitHub environment named `production` with protection rules
 - [ ] Push code to `https://github.com/KoalaFacts/HeroSD-JWT`
 - [ ] Create and publish a GitHub release with tag `v1.0.0`
@@ -66,7 +66,10 @@ The workflow needs your NuGet.org username (not email!) to authenticate:
    - **Value**: Your NuGet.org username (visible at https://www.nuget.org/ when logged in)
 5. Click **Add secret**
 
-**Important**: Use your NuGet.org profile username, **not** your email address.
+**Why use secrets?**
+- Keeps your username private in workflow logs (better privacy)
+- Consistent with how credentials are typically handled
+- Prevents accidental exposure in public repos or forks
 
 ### 3. Create GitHub Production Environment (Required)
 
@@ -80,8 +83,9 @@ The workflow uses a `production` environment for additional security and control
    - ✅ **Deployment branches**: Select "Selected branches" → Add `main` (only main branch can publish to production)
    - ⚠️ **Wait timer** (optional): Add a delay before deployment if desired
 5. **Environment secrets** (optional but recommended):
-   - Move `NUGET_USERNAME` here from repository secrets for better isolation
+   - You can optionally move `NUGET_USERNAME` from repository secrets to environment secrets for better isolation
    - This restricts the username to only the production environment
+   - Go to the `production` environment → Environment secrets → Add secret
 
 **Why use a production environment?**
 - Prevents accidental publishing from feature branches
@@ -187,9 +191,10 @@ With Trusted Publishing, authentication happens via OIDC token → temporary API
   - Policy must be "Active" or "Temporarily Active"
 
 - **Check `NUGET_USERNAME` Secret**:
-  - Verify the secret exists in GitHub (Settings → Secrets → Actions)
+  - Verify the secret exists in GitHub (Settings → Secrets and variables → Actions → Secrets tab)
   - **Must be your NuGet.org username, NOT your email address**
   - Check for typos or extra spaces
+  - Secrets are masked in logs for privacy
 
 - **Verify Workflow Permissions**:
   - Workflow must have `id-token: write` permission (already configured)
@@ -218,7 +223,10 @@ If Trusted Publishing fails:
    - `NUGET_USERNAME` secret exists and is correct (username, not email)
    - `production` environment exists with correct name
    - Workflow has `id-token: write` permission
-3. **Fallback to API Key**: As a temporary workaround, you can use an API key (see Method 3)
+3. **Check Workflow Logs**:
+   - Look for "Determine version" step output
+   - Verify version number is correct (e.g., `1.0.0` not `v1.0.0`)
+4. **Fallback to API Key**: As a temporary workaround, you can use an API key (see Method 3)
 
 ## Best Practices
 
