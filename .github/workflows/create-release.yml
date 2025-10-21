@@ -1,0 +1,121 @@
+name: Create GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v2.1.3, etc.
+
+permissions:
+  contents: write  # Required to create releases
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog generation
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}  # Remove 'v' prefix
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Creating release for $TAG_NAME (version $VERSION)"
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          # Extract the section for this version from CHANGELOG.md
+          VERSION=${{ steps.version.outputs.VERSION }}
+
+          if [ -f CHANGELOG.md ]; then
+            # Get content between this version and the next version/end
+            CHANGELOG=$(awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | sed '$d' | tail -n +2)
+
+            if [ -z "$CHANGELOG" ]; then
+              CHANGELOG="See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
+            fi
+          else
+            CHANGELOG="Release $VERSION"
+          fi
+
+          # Save to file for multi-line output
+          echo "$CHANGELOG" > release-notes.md
+          echo "Changelog extracted for version $VERSION"
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          TAG_NAME=${{ steps.version.outputs.TAG_NAME }}
+
+          cat > full-release-notes.md << 'EOF'
+          ## What's New in $VERSION
+
+          $(cat release-notes.md)
+
+          ---
+
+          ### 📦 Installation
+
+          ```bash
+          dotnet add package HeroSD-JWT --version $VERSION
+          ```
+
+          ### 📝 Documentation
+
+          - **Full Changelog**: https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md
+          - **Documentation**: https://github.com/${{ github.repository }}/blob/main/README.md
+
+          ### 🔗 NuGet Package
+
+          https://www.nuget.org/packages/HeroSD-JWT/$VERSION
+          EOF
+
+          # Expand variables
+          envsubst < full-release-notes.md > final-release-notes.md
+
+          echo "Release notes generated"
+
+      - name: Determine if pre-release
+        id: prerelease
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+
+          # Check if version contains pre-release identifiers
+          if [[ "$VERSION" =~ (alpha|beta|rc|preview) ]]; then
+            echo "IS_PRERELEASE=true" >> $GITHUB_OUTPUT
+            echo "This is a pre-release version"
+          else
+            echo "IS_PRERELEASE=false" >> $GITHUB_OUTPUT
+            echo "This is a stable release"
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.TAG_NAME }}
+          name: ${{ steps.version.outputs.TAG_NAME }}
+          body_path: final-release-notes.md
+          draft: false
+          prerelease: ${{ steps.prerelease.outputs.IS_PRERELEASE }}
+          generate_release_notes: true  # Also include auto-generated notes from commits
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "### ✅ GitHub Release Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag**: ${{ steps.version.outputs.TAG_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Pre-release**: ${{ steps.prerelease.outputs.IS_PRERELEASE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The publish workflow will now automatically publish to NuGet.org" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [View Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.TAG_NAME }})" >> $GITHUB_STEP_SUMMARY
