@@ -7,13 +7,14 @@ This guide explains how to publish the HeroSD-JWT package to NuGet.org using **G
 For first-time publishing with Trusted Publishing:
 
 - [ ] Have a NuGet.org account
+- [ ] Set up Trusted Publishing policy on NuGet.org with environment `production` (see Setup Steps below)
+- [ ] Add `NUGET_USERNAME` secret to GitHub repository
+- [ ] Create GitHub environment named `production` with protection rules
 - [ ] Push code to `https://github.com/KoalaFacts/HeroSD-JWT`
-- [ ] Create GitHub environment named `nuget-org` (optional but recommended)
 - [ ] Create and publish a GitHub release with tag `v1.0.0`
-- [ ] GitHub Actions automatically publishes to NuGet.org via OIDC
-- [ ] After first publish, optionally configure Trusted Publishers on NuGet.org for additional security
+- [ ] GitHub Actions automatically authenticates via OIDC and publishes
 
-That's it! No API keys needed. 🎉
+**No long-lived API keys needed!** Only your NuGet.org username. 🎉
 
 ## Prerequisites
 
@@ -25,36 +26,68 @@ That's it! No API keys needed. 🎉
 
 ### 1. Configure Trusted Publishing on NuGet.org
 
-NuGet.org now supports **Trusted Publishing** using GitHub Actions OIDC - this is the **recommended and most secure method** (no API keys to manage!).
+NuGet.org now supports **Trusted Publishing** using GitHub Actions OIDC - this is the **recommended and most secure method** (no long-lived API keys!).
 
-1. **First-time package registration**:
-   - If this is your first time publishing `HeroSD-JWT`, NuGet.org will automatically accept the package from your GitHub Actions workflow
-   - The package will be associated with your NuGet.org account
+**IMPORTANT**: You **must** set up a Trusted Publishing policy on NuGet.org **before** your first publish:
 
-2. **For existing packages** (if you've published before):
-   - Go to https://www.nuget.org/packages/HeroSD-JWT/manage
-   - Navigate to the **Trusted Publishers** section
-   - Add GitHub Actions as a trusted publisher:
+1. **Log into NuGet.org**:
+   - Go to https://www.nuget.org/
+   - Sign in with your account
+
+2. **Navigate to Trusted Publishing**:
+   - Click your username (top-right)
+   - Select **Trusted Publishing**
+
+3. **Create a New Policy**:
+   - Click **Create new policy**
+   - Fill in the details:
      - **Repository Owner**: `KoalaFacts`
      - **Repository Name**: `HeroSD-JWT`
-     - **Workflow file**: `.github/workflows/publish-nuget.yml`
-     - **Environment** (optional): `nuget-org`
+     - **Workflow File**: `publish-nuget.yml` (just the filename, not the full path)
+     - **Environment**: `production` (**required** - matches the workflow environment)
+   - Click **Create**
 
-That's it! **No API keys needed** - authentication happens automatically via GitHub's OIDC token.
+4. **Policy Status**:
+   - New policies show as "Temporarily Active" for 7 days
+   - After a successful publish, the policy becomes permanently active
+   - If no publish occurs within 7 days, the policy expires
 
-### 2. Create GitHub Environment (Optional but Recommended)
+**How it works**: When GitHub Actions runs, it gets a short-lived OIDC token, exchanges it for a temporary (1-hour) NuGet API key, then uses that key to publish. The temporary key expires automatically.
 
-For better security and approval workflows:
+### 2. Add NuGet Username to GitHub Secrets
+
+The workflow needs your NuGet.org username (not email!) to authenticate:
+
+1. Go to your repository: https://github.com/KoalaFacts/HeroSD-JWT
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Add:
+   - **Name**: `NUGET_USERNAME`
+   - **Value**: Your NuGet.org username (visible at https://www.nuget.org/ when logged in)
+5. Click **Add secret**
+
+**Important**: Use your NuGet.org profile username, **not** your email address.
+
+### 3. Create GitHub Production Environment (Required)
+
+The workflow uses a `production` environment for additional security and control:
 
 1. Go to **Settings** → **Environments**
 2. Click **New environment**
-3. Name it: `nuget-org`
-4. Configure:
-   - **Environment protection rules** (recommended):
-     - Add required reviewers (yourself or team members) for manual approval before publishing
-     - Add branch protection (only `main` branch can publish)
-     - Set deployment delay if desired
-   - **No secrets needed** - Trusted Publishing uses OIDC!
+3. Name it: `production` (**must match exactly - required by workflow**)
+4. Configure **Environment protection rules** (highly recommended for production):
+   - ✅ **Required reviewers**: Add yourself or team members for manual approval before publishing
+   - ✅ **Deployment branches**: Select "Selected branches" → Add `main` (only main branch can publish to production)
+   - ⚠️ **Wait timer** (optional): Add a delay before deployment if desired
+5. **Environment secrets** (optional but recommended):
+   - Move `NUGET_USERNAME` here from repository secrets for better isolation
+   - This restricts the username to only the production environment
+
+**Why use a production environment?**
+- Prevents accidental publishing from feature branches
+- Requires manual approval before publishing (if reviewers are configured)
+- Provides audit trail of all production deployments
+- Matches the Trusted Publishing policy on NuGet.org
 
 ## Publishing Methods
 
@@ -146,12 +179,25 @@ If you get "Package already exists" error:
 
 ### Authentication Fails (Trusted Publishing)
 
-With Trusted Publishing, authentication happens automatically via OIDC. If you get authentication errors:
+With Trusted Publishing, authentication happens via OIDC token → temporary API key. If you get authentication errors:
 
-- **Verify GitHub Environment**: Ensure the workflow is running in the `nuget-org` environment
-- **Check NuGet.org Trusted Publishers**: Verify the repository and workflow are correctly configured
-- **Verify Permissions**: Ensure the workflow has `id-token: write` and `contents: read` permissions
-- **First-time Package**: Make sure you're logged into NuGet.org with the account that will own the package
+- **Verify Trusted Publishing Policy on NuGet.org**:
+  - Check https://www.nuget.org/ → your username → Trusted Publishing
+  - Ensure policy exists with correct repository owner (`KoalaFacts`), repository name (`HeroSD-JWT`), and workflow file (`publish-nuget.yml`)
+  - Policy must be "Active" or "Temporarily Active"
+
+- **Check `NUGET_USERNAME` Secret**:
+  - Verify the secret exists in GitHub (Settings → Secrets → Actions)
+  - **Must be your NuGet.org username, NOT your email address**
+  - Check for typos or extra spaces
+
+- **Verify Workflow Permissions**:
+  - Workflow must have `id-token: write` permission (already configured)
+
+- **Check GitHub Environment**:
+  - Environment name must match exactly: `production` (not `nuget-org`)
+  - If using environment protection rules, ensure the workflow is approved by reviewers
+  - Check that deployment is allowed from the `main` branch
 
 ### Tests Fail in CI
 
@@ -163,11 +209,15 @@ With Trusted Publishing, authentication happens automatically via OIDC. If you g
 
 If Trusted Publishing fails:
 
-1. **Check NuGet.org Support**: Ensure your NuGet.org account has Trusted Publishing enabled
-2. **Verify Workflow Configuration**:
+1. **Check NuGet.org Trusted Publishing Policy**:
    - Repository owner: `KoalaFacts`
    - Repository name: `HeroSD-JWT`
-   - Workflow path: `.github/workflows/publish-nuget.yml`
+   - Workflow file: `publish-nuget.yml` (just filename)
+   - Environment: `production` (must match exactly)
+2. **Verify GitHub Configuration**:
+   - `NUGET_USERNAME` secret exists and is correct (username, not email)
+   - `production` environment exists with correct name
+   - Workflow has `id-token: write` permission
 3. **Fallback to API Key**: As a temporary workaround, you can use an API key (see Method 3)
 
 ## Best Practices
@@ -181,13 +231,53 @@ If Trusted Publishing fails:
 7. **Symbol Packages**: Always publish `.snupkg` for better debugging experience
 8. **Avoid API Keys**: Only use API keys for local emergency publishing - prefer Trusted Publishing
 
+## How Trusted Publishing Works
+
+```
+┌─────────────────────┐
+│  GitHub Actions     │
+│  (your workflow)    │
+└──────────┬──────────┘
+           │
+           │ 1. Request OIDC token
+           │    (id-token: write permission)
+           ▼
+┌─────────────────────┐
+│  GitHub OIDC        │
+│  Token Issuer       │
+└──────────┬──────────┘
+           │
+           │ 2. Short-lived token
+           │    (expires in minutes)
+           ▼
+┌─────────────────────┐
+│  NuGet/login@v1     │
+│  Action             │
+└──────────┬──────────┘
+           │
+           │ 3. Exchange OIDC token for
+           │    temporary NuGet API key
+           │    (valid for 1 hour)
+           ▼
+┌─────────────────────┐
+│  NuGet.org          │
+│  API                │
+└──────────┬──────────┘
+           │
+           │ 4. Publish package using
+           │    temporary API key
+           ▼
+      ✅ Published!
+```
+
 ## Security Benefits of Trusted Publishing
 
-✅ **No API Keys to Manage**: Eliminates the risk of leaked or stolen API keys
+✅ **No Long-Lived API Keys**: Only temporary (1-hour) keys exist, eliminating leak risks
 ✅ **Automatic Rotation**: OIDC tokens are short-lived and automatically rotated
 ✅ **Fine-grained Access**: Tied to specific repository and workflow
 ✅ **Audit Trail**: Better visibility into who published what and when
 ✅ **Recommended by NuGet.org**: Official best practice for publishing packages
+✅ **No Secrets Management**: Only need username, not sensitive credentials
 
 ## Useful Links
 

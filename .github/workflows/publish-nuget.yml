@@ -17,7 +17,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     environment:
-      name: nuget-org
+      name: production
       url: https://www.nuget.org/packages/HeroSD-JWT
 
     steps:
@@ -43,13 +43,20 @@ jobs:
       - name: Pack
         run: dotnet pack src/HeroSdJwt.csproj --configuration Release --no-build --output ./nupkg
 
-      - name: Publish to NuGet using Trusted Publishing (OIDC)
+      - name: Authenticate to NuGet using Trusted Publishing
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: ${{ secrets.NUGET_USERNAME }}
+          # Uses GitHub Actions OIDC token to get a temporary (1-hour) NuGet API key
+          # No long-lived API keys needed!
+
+      - name: Publish to NuGet
         run: |
           dotnet nuget push ./nupkg/*.nupkg \
+            --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
-        # Uses GitHub Actions OIDC token for authentication
-        # No API key needed - authentication happens automatically via id-token: write permission
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
