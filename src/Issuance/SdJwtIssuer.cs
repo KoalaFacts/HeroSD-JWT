@@ -71,8 +71,9 @@ public class SdJwtIssuer
         var disclosures = new List<string>();
         var digests = new List<string>();
 
-        // Track which array elements should be selectively disclosable
-        // Key: base claim name (e.g., "degrees"), Value: set of indices to make selectively disclosable
+        // Categorize claims by type
+        var simpleTopLevelClaims = new List<ClaimPath>();
+        var nestedClaims = new List<ClaimPath>();
         var arrayElementsToDisclose = new Dictionary<string, HashSet<int>>();
 
         foreach (var claimPath in parsedClaims)
@@ -86,22 +87,33 @@ public class SdJwtIssuer
                 }
                 arrayElementsToDisclose[claimPath.BaseName].Add(claimPath.ArrayIndex!.Value);
             }
+            else if (claimPath.IsNested)
+            {
+                // Nested property - process separately
+                nestedClaims.Add(claimPath);
+            }
             else
             {
-                // Simple claim - process immediately
-                if (claims.TryGetValue(claimPath.BaseName, out var claimValue))
-                {
-                    // Convert claim value to JsonElement
-                    var jsonElement = JsonSerializer.SerializeToElement(claimValue);
+                // Simple top-level claim
+                simpleTopLevelClaims.Add(claimPath);
+            }
+        }
 
-                    // Generate disclosure
-                    var disclosure = disclosureGenerator.GenerateDisclosure(claimPath.BaseName, jsonElement);
-                    disclosures.Add(disclosure);
+        // Process simple top-level claims
+        foreach (var claimPath in simpleTopLevelClaims)
+        {
+            if (claims.TryGetValue(claimPath.BaseName, out var claimValue))
+            {
+                // Convert claim value to JsonElement
+                var jsonElement = JsonSerializer.SerializeToElement(claimValue);
 
-                    // Compute digest
-                    var digest = digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
-                    digests.Add(digest);
-                }
+                // Generate disclosure
+                var disclosure = disclosureGenerator.GenerateDisclosure(claimPath.BaseName, jsonElement);
+                disclosures.Add(disclosure);
+
+                // Compute digest
+                var digest = digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
+                digests.Add(digest);
             }
         }
 
@@ -116,9 +128,22 @@ public class SdJwtIssuer
             digests = decoyGenerator.InterleaveDecoys(digests, decoyDigests);
         }
 
+        // Step 1.5: Process nested claims and build objects with _sd arrays
+        var modifiedClaims = new Dictionary<string, object>(claims);
+
+        if (nestedClaims.Count > 0)
+        {
+            var nestedProcessor = new NestedClaimProcessor(disclosureGenerator, digestCalculator);
+            modifiedClaims = nestedProcessor.ProcessNestedClaims(
+                modifiedClaims,
+                nestedClaims,
+                hashAlgorithm,
+                disclosures,
+                digests);
+        }
+
         // Step 2: Process array elements and generate their disclosures
         // This modifies the claims dictionary to replace selectively disclosable array elements with placeholders
-        var modifiedClaims = new Dictionary<string, object>(claims);
 
         foreach (var (arrayClaimName, indicesToDisclose) in arrayElementsToDisclose)
         {
@@ -189,16 +214,16 @@ public class SdJwtIssuer
         // Step 3: Build JWT payload
         var payload = new Dictionary<string, object>();
 
-        // Get list of simple claim names that are selectively disclosable (not arrays)
-        var simpleSelectiveClaimNames = parsedClaims
-            .Where(p => !p.IsArrayElement)
+        // Get list of top-level claim names that are fully selectively disclosable
+        // (not nested properties, which modify the base object instead)
+        var fullySelectiveClaimNames = simpleTopLevelClaims
             .Select(p => p.BaseName)
             .ToHashSet();
 
-        // Add non-selective claims and modified arrays
+        // Add non-selective claims, modified arrays, and objects with nested _sd
         foreach (var claim in modifiedClaims)
         {
-            if (!simpleSelectiveClaimNames.Contains(claim.Key))
+            if (!fullySelectiveClaimNames.Contains(claim.Key))
             {
                 // Validate _sd_alg placement - MUST only appear at top level
                 // Per SD-JWT spec section 4.2.3: "_sd_alg MUST appear at the top level
