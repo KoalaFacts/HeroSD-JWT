@@ -1,0 +1,170 @@
+using HeroSdJwt.Common;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+
+namespace HeroSdJwt.KeyBinding;
+
+/// <summary>
+/// Validates key binding JWTs to prove holder possession of private key.
+/// </summary>
+internal static class KeyBindingValidator
+{
+    /// <summary>
+    /// Validates a key binding JWT against the holder's public key.
+    /// </summary>
+    /// <param name="keyBindingJwt">The key binding JWT to validate.</param>
+    /// <param name="holderPublicKey">The holder's public key from the cnf claim.</param>
+    /// <param name="expectedSdJwtHash">The expected SD-JWT hash.</param>
+    /// <param name="expectedAudience">The expected audience.</param>
+    /// <param name="expectedNonce">The expected nonce.</param>
+    /// <returns>True if valid; otherwise, false.</returns>
+    public static bool ValidateKeyBinding(
+        string keyBindingJwt,
+        byte[] holderPublicKey,
+        string expectedSdJwtHash,
+        string? expectedAudience = null,
+        string? expectedNonce = null)
+    {
+        ArgumentNullException.ThrowIfNull(keyBindingJwt);
+        ArgumentNullException.ThrowIfNull(holderPublicKey);
+        ArgumentNullException.ThrowIfNull(expectedSdJwtHash);
+
+        try
+        {
+            // Parse JWT
+            var parts = keyBindingJwt.Split('.');
+            if (parts.Length != 3)
+            {
+                return false;
+            }
+
+            var headerBase64 = parts[0];
+            var payloadBase64 = parts[1];
+            var signatureBase64 = parts[2];
+
+            // Decode and validate header
+            var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
+            var header = JsonDocument.Parse(headerJson).RootElement;
+
+            if (!header.TryGetProperty("typ", out var typElement) ||
+                typElement.GetString() != "kb+jwt")
+            {
+                return false;
+            }
+
+            // Decode and validate payload
+            var payloadJson = Base64UrlEncoder.DecodeString(payloadBase64);
+            var payload = JsonDocument.Parse(payloadJson).RootElement;
+
+            // Validate sd_hash claim exists and matches expected value
+            if (!payload.TryGetProperty("sd_hash", out var sdHashElement))
+            {
+                return false;
+            }
+
+            var sdHashClaim = sdHashElement.GetString();
+            if (sdHashClaim != expectedSdJwtHash)
+            {
+                return false; // SD-JWT hash mismatch
+            }
+
+            // Validate audience if provided
+            if (expectedAudience != null)
+            {
+                if (!payload.TryGetProperty("aud", out var audElement) ||
+                    audElement.GetString() != expectedAudience)
+                {
+                    return false;
+                }
+            }
+
+            // Validate nonce if provided
+            if (expectedNonce != null)
+            {
+                if (!payload.TryGetProperty("nonce", out var nonceElement) ||
+                    nonceElement.GetString() != expectedNonce)
+                {
+                    return false;
+                }
+            }
+
+            // Validate iat (issued at) claim for freshness - REQUIRED by spec section 4.3.3
+            // "The Verifier MUST check that the creation time of the Key Binding JWT,
+            // as determined by the iat claim, is within an acceptable window."
+            if (!payload.TryGetProperty("iat", out var iatElement))
+            {
+                return false; // iat claim is required
+            }
+
+            if (!iatElement.TryGetInt64(out var iatUnixSeconds))
+            {
+                return false; // Invalid iat format
+            }
+
+            var iat = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds);
+            var now = DateTimeOffset.UtcNow;
+
+            // Reject if KB-JWT is too old (replay attack prevention)
+            var maxAge = TimeSpan.FromSeconds(Core.Constants.MaxKeyBindingJwtAgeSeconds);
+            if (now - iat > maxAge)
+            {
+                return false; // KB-JWT is too old
+            }
+
+            // Reject if iat is in the future (with small tolerance for clock skew)
+            var clockSkewTolerance = TimeSpan.FromSeconds(60); // 1 minute tolerance
+            if (iat > now + clockSkewTolerance)
+            {
+                return false; // KB-JWT issued in the future
+            }
+
+            // Verify signature
+            var signingInput = $"{headerBase64}.{payloadBase64}";
+            var signature = Base64UrlEncoder.DecodeBytes(signatureBase64);
+
+            using var ecdsa = ECDsa.Create();
+            try
+            {
+                ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
+            }
+            catch (CryptographicException)
+            {
+                // Invalid key format
+                return false;
+            }
+
+            // Validate elliptic curve - only P-256 (ES256) is supported
+            if (ecdsa.KeySize != 256)
+            {
+                return false; // Only P-256 curve is supported for ES256
+            }
+
+            return ecdsa.VerifyData(
+                Encoding.UTF8.GetBytes(signingInput),
+                signature,
+                HashAlgorithmName.SHA256
+            );
+        }
+        catch (CryptographicException)
+        {
+            // Cryptographic operation failed
+            return false;
+        }
+        catch (FormatException)
+        {
+            // Base64 decoding failed
+            return false;
+        }
+        catch (JsonException)
+        {
+            // JSON parsing failed
+            return false;
+        }
+        catch (SdJwtException)
+        {
+            // Base64UrlEncoder.DecodeBytes/DecodeString throws SdJwtException on invalid input
+            return false;
+        }
+    }
+}
