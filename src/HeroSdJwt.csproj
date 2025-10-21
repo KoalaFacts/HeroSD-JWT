@@ -6,15 +6,47 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Package Metadata -->
+    <PackageId>HeroSD-JWT</PackageId>
+    <Version>1.0.0</Version>
     <Authors>BeingCiteable</Authors>
-    <Description>SD-JWT (Selective Disclosure for JSON Web Tokens) implementation conforming to IETF draft-ietf-oauth-selective-disclosure-jwt</Description>
-    <PackageTags>sd-jwt;selective-disclosure;jwt;verifiable-credentials;privacy</PackageTags>
+    <Company>BeingCiteable</Company>
+    <Product>HeroSD-JWT</Product>
+    <Description>A production-ready .NET library implementing SD-JWT (Selective Disclosure for JSON Web Tokens) according to IETF draft-ietf-oauth-selective-disclosure-jwt. Supports array element disclosure, nested claims, key binding, and multiple signature algorithms (HS256, RS256, ES256). Zero external dependencies.</Description>
+    <PackageTags>sd-jwt;selective-disclosure;jwt;verifiable-credentials;privacy;zero-knowledge;cryptography;security;json-web-token</PackageTags>
+    <PackageProjectUrl>https://github.com/BeingCiteable/HeroSD-JWT</PackageProjectUrl>
     <RepositoryUrl>https://github.com/BeingCiteable/HeroSD-JWT</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <Copyright>Copyright (c) 2025 BeingCiteable</Copyright>
+
+    <!-- Release Notes -->
+    <PackageReleaseNotes>Initial v1.0.0 release with full SD-JWT support including array elements, nested claims, key binding, and RS256/ES256 algorithms.</PackageReleaseNotes>
+
+    <!-- Source Link for debugging -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageReference Include="Microsoft.Bcl.Memory" Version="9.0.10" />
+  </ItemGroup>
+
+  <!-- Source Link for debugging support -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Include README and icon in NuGet package -->
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
