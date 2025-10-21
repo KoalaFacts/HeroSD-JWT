@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- Enable NuGet package lock files for reproducible builds -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+
+    <!-- Restore lock file mode: LockedMode ensures lock file is up to date -->
+    <!-- Use 'LockedMode' in CI to ensure no unexpected package changes -->
+    <RestoreLockedMode Condition="'$(CI)' == 'true' or '$(ContinuousIntegrationBuild)' == 'true'">true</RestoreLockedMode>
+  </PropertyGroup>
+</Project>

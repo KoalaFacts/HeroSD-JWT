@@ -44,6 +44,7 @@ jobs:
       with:
         dotnet-version: ${{ matrix.dotnet-version }}
         cache: true
+        cache-dependency-path: '**/packages.lock.json'
 
     - name: Restore dependencies
       run: dotnet restore
@@ -93,6 +94,7 @@ jobs:
       with:
         dotnet-version: '9.0.x'
         cache: true
+        cache-dependency-path: '**/packages.lock.json'
 
     - name: Restore dependencies
       run: dotnet restore
@@ -119,6 +121,7 @@ jobs:
       with:
         dotnet-version: '9.0.x'
         cache: true
+        cache-dependency-path: '**/packages.lock.json'
 
     - name: Restore dependencies
       run: dotnet restore
