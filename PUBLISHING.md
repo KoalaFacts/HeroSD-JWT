@@ -2,6 +2,21 @@
 
 This guide explains how to publish the HeroSD-JWT package to NuGet.org using **GitHub Actions Trusted Publishing** with OIDC authentication - **no API keys required!**
 
+## What's New
+
+The publishing workflow has been significantly improved with:
+
+- ✅ **Automated changelog generation** from commit history
+- ✅ **Automated GitHub release creation** with formatted release notes
+- ✅ **Package provenance attestation** for supply chain security
+- ✅ **Version format validation** to prevent publishing errors
+- ✅ **Package content validation** before publishing
+- ✅ **Dependency caching** for faster builds (30-60s saved per run)
+- ✅ **Security scanning** with CodeQL and dependency audits
+- ✅ **Multi-platform CI testing** across 6 configurations (3 OS × 2 .NET versions)
+
+See [.github/workflows/README.md](.github/workflows/README.md) for complete workflow documentation.
+
 ## Quick Start Checklist
 
 For first-time publishing with Trusted Publishing:
@@ -95,34 +110,50 @@ The workflow uses a `production` environment for additional security and control
 
 ## Publishing Methods
 
-### Method 1: Publish on GitHub Release (Recommended)
+### Method 1: Automated Release (Recommended) ⭐
 
-This is automated and triggered when you create a GitHub release:
+This is the fully automated method with changelog generation:
 
-1. **Create a Git Tag**:
+1. **Update Version**:
+   - Update `<Version>` in `src/HeroSdJwt.csproj`
+   - Update `<PackageReleaseNotes>` if needed
+   - Commit changes:
+     ```bash
+     git add src/HeroSdJwt.csproj
+     git commit -m "chore: bump version to 1.0.0"
+     git push origin main
+     ```
+
+2. **Create and Push Tag**:
    ```bash
-   git tag -a v1.0.0 -m "Release v1.0.0: Initial production release"
+   git tag -a v1.0.0 -m "Release v1.0.0"
    git push origin v1.0.0
    ```
 
-2. **Create GitHub Release**:
-   - Go to https://github.com/KoalaFacts/HeroSD-JWT/releases
-   - Click **Draft a new release**
-   - Choose the tag you just created (`v1.0.0`)
-   - Set release title: `v1.0.0 - Initial Release`
-   - Add release notes (can copy from `RELEASE_NOTES.md`)
-   - Click **Publish release**
-
-3. **Automatic Publishing**:
-   - GitHub Actions will automatically:
-     - Build the project
-     - Run all tests
-     - Create the NuGet package
-     - Publish to NuGet.org
+3. **Automated Process**:
+   GitHub Actions will automatically:
+   - **Release Workflow** (`release.yml`):
+     - Generate changelog from commit history
+     - Create GitHub release with notes
+     - Attach NuGet packages (.nupkg and .snupkg)
+   - **Publish Workflow** (`publish-nuget.yml`):
+     - Build and test the project
+     - Validate package format
+     - Generate package provenance attestation
+     - Publish to NuGet.org (requires production environment approval)
 
 4. **Monitor Progress**:
    - Go to **Actions** tab
-   - Watch the "Publish to NuGet" workflow
+   - Watch "Create Release" workflow first
+   - Then "Publish to NuGet" workflow
+   - Approve in production environment if prompted
+
+**Pro tip**: Use conventional commit messages for better changelogs:
+```bash
+git commit -m "feat: add support for nested claims"
+git commit -m "fix: resolve timing attack vulnerability"
+git commit -m "docs: update API documentation"
+```
 
 ### Method 2: Manual Publish via Workflow Dispatch
 

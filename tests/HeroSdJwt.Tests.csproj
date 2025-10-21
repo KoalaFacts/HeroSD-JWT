@@ -5,7 +5,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- xUnit v3 requires apphost for test execution -->
+    <UseAppHost>true</UseAppHost>
+    <!-- Build targets sequentially to avoid apphost copy race condition -->
+    <BuildInParallel>false</BuildInParallel>
   </PropertyGroup>
 
   <ItemGroup>
