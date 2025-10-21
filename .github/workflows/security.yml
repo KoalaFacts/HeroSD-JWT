@@ -128,20 +128,29 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: TruffleHog Secret Scan (Full Repository)
-        if: github.event_name != 'pull_request'
+      - name: TruffleHog Secret Scan (Push Events)
+        if: github.event_name == 'push'
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          extra_args: --only-verified --since-commit HEAD~1
+          base: ${{ github.event.before }}
+          head: ${{ github.sha }}
+          extra_args: --only-verified
 
-      - name: TruffleHog Secret Scan (PR Changes)
+      - name: TruffleHog Secret Scan (PR Events)
         if: github.event_name == 'pull_request'
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
           base: ${{ github.event.pull_request.base.sha }}
           head: ${{ github.event.pull_request.head.sha }}
+          extra_args: --only-verified
+
+      - name: TruffleHog Secret Scan (Scheduled/Manual)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
           extra_args: --only-verified
 
   security-summary:
