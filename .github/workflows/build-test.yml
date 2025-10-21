@@ -30,13 +30,22 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       - name: Run tests
-        run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --results-directory ./TestResults
 
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always() && runner.os == 'Linux'
         with:
-          files: '**/test-results.trx'
+          files: 'TestResults/**/*.trx'
+          check_name: 'Test Results (${{ matrix.os }} - .NET ${{ matrix.dotnet-version }})'
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.dotnet-version }}
+          path: TestResults/**/*.trx
+          retention-days: 30
 
   code-quality:
     runs-on: ubuntu-latest
