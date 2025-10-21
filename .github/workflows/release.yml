@@ -11,9 +11,15 @@ on:
         required: true
         type: string
 
+# Prevent concurrent releases
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
   pull-requests: read
+  actions: read  # To download artifacts from CI
 
 jobs:
   create-release:
@@ -49,32 +55,67 @@ jobs:
           fi
           echo "Tag format validated: $TAG"
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build release package
+      - name: Wait for CI to complete
         run: |
-          dotnet build --configuration Release --no-restore /p:Version=${{ steps.tag.outputs.VERSION }}
-          dotnet pack src/HeroSdJwt.csproj \
-            --configuration Release \
-            --no-build \
-            --output ./release-packages \
-            /p:PackageVersion=${{ steps.tag.outputs.VERSION }} \
-            /p:IncludeSymbols=true \
-            /p:SymbolPackageFormat=snupkg
+          echo "Waiting for CI workflow to complete for commit ${{ github.sha }}..."
+
+          # Wait up to 30 minutes for CI to complete
+          timeout=1800
+          elapsed=0
+          interval=30
+
+          while [ $elapsed -lt $timeout ]; do
+            # Get the status of CI runs for this commit
+            status=$(gh run list \
+              --workflow=ci.yml \
+              --commit=${{ github.sha }} \
+              --json status,conclusion \
+              --jq '.[0] | select(.status == "completed") | .conclusion')
+
+            if [ "$status" = "success" ]; then
+              echo "CI completed successfully!"
+              break
+            elif [ "$status" = "failure" ] || [ "$status" = "cancelled" ]; then
+              echo "Error: CI workflow $status for this commit"
+              exit 1
+            fi
+
+            echo "CI still running... waiting $interval seconds"
+            sleep $interval
+            elapsed=$((elapsed + interval))
+          done
+
+          if [ $elapsed -ge $timeout ]; then
+            echo "Error: Timeout waiting for CI to complete"
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Download packages from CI
+        run: |
+          echo "Downloading packages from CI run..."
+
+          # Get the run ID for the CI workflow on this commit
+          RUN_ID=$(gh run list \
+            --workflow=ci.yml \
+            --commit=${{ github.sha }} \
+            --status=success \
+            --json databaseId \
+            --jq '.[0].databaseId')
+
+          if [ -z "$RUN_ID" ]; then
+            echo "Error: Could not find successful CI run for commit ${{ github.sha }}"
+            exit 1
+          fi
+
+          echo "Downloading artifacts from run $RUN_ID..."
+          gh run download $RUN_ID --name nuget-packages-${{ github.sha }} --dir ./release-packages
+
+          echo "Downloaded packages:"
+          ls -lh ./release-packages/
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Get previous tag
         id: previoustag
