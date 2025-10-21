@@ -37,6 +37,7 @@ public class KeyBindingIntegrationTests
             new[] { "email" },
             issuerKey,
             HashAlgorithm.Sha256,
+            SignatureAlgorithm.HS256,
             holderPublicKey  // Use parameter instead of manual cnf claim
         );
 

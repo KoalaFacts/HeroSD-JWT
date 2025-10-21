@@ -82,6 +82,35 @@ var sdJwt = issuer.CreateSdJwt(
 // "degrees": ["BS", {"...": "digest_for_MS"}, {"...": "digest_for_PhD"}]
 ```
 
+**RS256/ES256 Example**:
+```csharp
+using System.Security.Cryptography;
+
+// For RSA (RS256)
+using var rsa = RSA.Create(2048);
+var privateKey = rsa.ExportPkcs8PrivateKey();
+var publicKey = rsa.ExportSubjectPublicKeyInfo();
+
+var sdJwt = issuer.CreateSdJwt(
+    claims,
+    new[] { "email" },
+    privateKey,
+    HashAlgorithm.Sha256,
+    SignatureAlgorithm.RS256);  // Specify algorithm
+
+// For ECDSA (ES256)
+using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+var privateKey = ecdsa.ExportPkcs8PrivateKey();
+var publicKey = ecdsa.ExportSubjectPublicKeyInfo();
+
+var sdJwt = issuer.CreateSdJwt(
+    claims,
+    new[] { "email" },
+    privateKey,
+    HashAlgorithm.Sha256,
+    SignatureAlgorithm.ES256);  // Specify algorithm
+```
+
 ### 2. Holder: Create Presentation
 
 ```csharp
@@ -195,8 +224,10 @@ This library implements security best practices:
 ### Supported Algorithms
 
 - **Hash algorithms**: SHA-256 (default), SHA-384, SHA-512
-- **Signature algorithms**: HS256 (HMAC-SHA256) currently implemented
-  - Future: RS256 (RSA), ES256 (ECDSA)
+- **Signature algorithms**:
+  - **HS256** (HMAC-SHA256) - Symmetric signing with HMAC
+  - **RS256** (RSA-SHA256) - Asymmetric signing with RSA (minimum 2048 bits)
+  - **ES256** (ECDSA-P256-SHA256) - Asymmetric signing with ECDSA (P-256 curve)
 
 ## Requirements
 
@@ -213,10 +244,10 @@ dotnet test
 dotnet test --verbosity normal
 ```
 
-Current test coverage: **177 passing tests** across:
+Current test coverage: **194 passing tests** across:
 - Contract tests (API behavior)
-- Unit tests (component logic, array elements, claim paths, disclosures)
-- Integration tests (end-to-end flows with arrays)
+- Unit tests (component logic, array elements, claim paths, disclosures, signature algorithms)
+- Integration tests (end-to-end flows with arrays and nested claims)
 - Security tests (timing attacks, algorithm confusion, salt entropy, key binding)
 
 ## Performance
@@ -234,10 +265,10 @@ Current test coverage: **177 passing tests** across:
 - [x] **Security hardening** - Critical claim protection, _sd_alg placement validation, KB-JWT replay prevention
 - [x] **Integration tests for end-to-end flows** - 7 comprehensive tests
 - [x] **Nested property path parsing** - Foundation with dot notation support (`address.street`)
+- [x] **Nested claims selective disclosure** - Full support for nested properties with `_sd` arrays
+- [x] **RS256/ES256 signature algorithm support** - All three algorithms (HS256, RS256, ES256) fully implemented
 
 ### 🚧 In Progress / Planned
-- [ ] **Nested claims selective disclosure** - Parser ready, full implementation deferred
-- [ ] **RS256/ES256 signature algorithm support** - Currently HS256 only
 - [ ] **Performance benchmarks** - Systematic benchmarking suite
 - [ ] **NuGet package publishing** - Production-ready release
 

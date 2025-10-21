@@ -46,6 +46,7 @@ public class KeyBindingEndToEndTests
             selectivelyDisclosableClaims,
             issuerSigningKey,
             HashAlgorithm.Sha256,
+            SignatureAlgorithm.HS256,
             holderPublicKey);
 
         // Verify cnf claim is present
@@ -155,6 +156,7 @@ public class KeyBindingEndToEndTests
             Array.Empty<string>(),
             issuerSigningKey,
             HashAlgorithm.Sha256,
+            SignatureAlgorithm.HS256,
             holderPublicKey);
 
         var presenter = new SdJwtPresenter();
@@ -211,6 +213,7 @@ public class KeyBindingEndToEndTests
             Array.Empty<string>(),
             issuerSigningKey,
             HashAlgorithm.Sha256,
+            SignatureAlgorithm.HS256,
             holderPublicKey);
 
         var presenter = new SdJwtPresenter();
@@ -272,6 +275,7 @@ public class KeyBindingEndToEndTests
             Array.Empty<string>(),
             issuerSigningKey,
             HashAlgorithm.Sha256,
+            SignatureAlgorithm.HS256,
             holderPublicKey);
 
         var presenter = new SdJwtPresenter();
@@ -330,6 +334,7 @@ public class KeyBindingEndToEndTests
             Array.Empty<string>(),
             issuerSigningKey,
             HashAlgorithm.Sha256,
+            SignatureAlgorithm.HS256,
             holderPublicKey);
 
         var presenter = new SdJwtPresenter();

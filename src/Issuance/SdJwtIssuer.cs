@@ -29,8 +29,9 @@ public class SdJwtIssuer
     /// </summary>
     /// <param name="claims">All claims to include in the JWT.</param>
     /// <param name="selectivelyDisclosableClaims">Claims that should be selectively disclosable.</param>
-    /// <param name="signingKey">The signing key for JWT signature.</param>
+    /// <param name="signingKey">The signing key for JWT signature (format depends on algorithm).</param>
     /// <param name="hashAlgorithm">The hash algorithm for disclosure digests.</param>
+    /// <param name="signatureAlgorithm">The signature algorithm for JWT signing (default: HS256).</param>
     /// <param name="holderPublicKey">Optional holder public key for key binding (cnf claim).</param>
     /// <param name="decoyDigestCount">Number of decoy digests to add for privacy protection (default: 0). Per SD-JWT spec section 4.2.5, decoy digests prevent claim enumeration.</param>
     /// <returns>The created SD-JWT.</returns>
@@ -39,6 +40,7 @@ public class SdJwtIssuer
         IEnumerable<string> selectivelyDisclosableClaims,
         byte[] signingKey,
         HashAlgorithm hashAlgorithm,
+        SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256,
         byte[]? holderPublicKey = null,
         int decoyDigestCount = 0)
     {
@@ -262,8 +264,8 @@ public class SdJwtIssuer
             };
         }
 
-        // Step 3: Create JWT
-        var jwt = CreateJwt(payload, signingKey);
+        // Step 3: Create JWT using the specified signature algorithm
+        var jwt = Common.JwtSigner.CreateJwt(payload, signingKey, signatureAlgorithm);
 
         // Step 4: Create SdJwt object
         return new SdJwt(jwt, disclosures, hashAlgorithm);
@@ -300,34 +302,5 @@ public class SdJwtIssuer
                 index++;
             }
         }
-    }
-
-    /// <summary>
-    /// Creates a simple JWT with HMAC-SHA256 signature.
-    /// This is a minimal implementation for testing purposes.
-    /// Production code should use a proper JWT library.
-    /// </summary>
-    private static string CreateJwt(Dictionary<string, object> payload, byte[] signingKey)
-    {
-        // Create header
-        var header = new Dictionary<string, object>
-        {
-            { "alg", "HS256" },
-            { "typ", "JWT" }
-        };
-
-        var headerJson = JsonSerializer.Serialize(header);
-        var headerBase64 = Base64UrlEncoder.Encode(headerJson);
-
-        var payloadJson = JsonSerializer.Serialize(payload);
-        var payloadBase64 = Base64UrlEncoder.Encode(payloadJson);
-
-        // Create signature
-        var message = $"{headerBase64}.{payloadBase64}";
-        var messageBytes = Encoding.UTF8.GetBytes(message);
-        var signatureBytes = HMACSHA256.HashData(signingKey, messageBytes);
-        var signatureBase64 = Base64UrlEncoder.Encode(signatureBytes);
-
-        return $"{headerBase64}.{payloadBase64}.{signatureBase64}";
     }
 }
