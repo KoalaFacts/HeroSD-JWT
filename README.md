@@ -31,35 +31,82 @@ Install-Package HeroSD-JWT
 
 ## Quick Start
 
-### 1. Issuer: Create SD-JWT
+### ✨ Simple API (Recommended)
+
+The fluent builder provides an easy, discoverable API:
+
+```csharp
+using HeroSdJwt.Issuance;
+using HeroSdJwt.Common;
+using HeroSdJwt.Core;
+
+// Generate a signing key
+var key = CryptoHelpers.GenerateHmacKey();
+
+// Create SD-JWT with fluent builder
+var sdJwt = SdJwtBuilder.Create()
+    .WithClaim("sub", "user-123")
+    .WithClaim("name", "Alice")
+    .WithClaim("email", "alice@example.com")
+    .WithClaim("age", 30)
+    .MakeSelective("email", "age")  // Selectively disclosable
+    .SignWithHmac(key)
+    .Build();
+
+// Create presentation revealing only email
+var presentation = sdJwt.ToPresentation("email");
+```
+
+### 🔑 Different Signature Algorithms
+
+```csharp
+// HMAC (simple, symmetric)
+var key = CryptoHelpers.GenerateHmacKey();
+var sdJwt = SdJwtBuilder.Create()
+    .WithClaims(claims)
+    .MakeSelective("email")
+    .SignWithHmac(key)
+    .Build();
+
+// RSA (asymmetric, widely supported)
+var (rsaPrivate, rsaPublic) = CryptoHelpers.GenerateRsaKeyPair();
+var sdJwt = SdJwtBuilder.Create()
+    .WithClaims(claims)
+    .MakeSelective("email")
+    .SignWithRsa(rsaPrivate)
+    .Build();
+
+// ECDSA (asymmetric, compact)
+var (ecPrivate, ecPublic) = CryptoHelpers.GenerateEcdsaKeyPair();
+var sdJwt = SdJwtBuilder.Create()
+    .WithClaims(claims)
+    .MakeSelective("email")
+    .SignWithEcdsa(ecPrivate)
+    .Build();
+```
+
+### 🔧 Advanced API (Full Control)
+
+For advanced scenarios, use the low-level API:
 
 ```csharp
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Common;
 
-// Define claims
+var issuer = new SdJwtIssuer();
 var claims = new Dictionary<string, object>
 {
     ["sub"] = "user-123",
-    ["name"] = "Alice Example",
-    ["birthdate"] = "1990-01-01",
     ["email"] = "alice@example.com"
 };
 
-// Create SD-JWT with selective disclosure
-var issuer = new SdJwtIssuer();
-var signingKey = new byte[32]; // Your HMAC key (HS256)
-// For production, use RSA or ECDSA keys
-
+var signingKey = new byte[32];
 var sdJwt = issuer.CreateSdJwt(
     claims,
-    selectivelyDisclosableClaims: new[] { "birthdate", "email" },
+    selectivelyDisclosableClaims: new[] { "email" },
     signingKey,
-    HashAlgorithm.Sha256
-);
-
-// sdJwt.Jwt contains the signed JWT
-// sdJwt.Disclosures contains disclosure documents
+    HashAlgorithm.Sha256,
+    SignatureAlgorithm.HS256);
 ```
 
 **Array Element Example**:
@@ -244,9 +291,9 @@ dotnet test
 dotnet test --verbosity normal
 ```
 
-Current test coverage: **244 passing tests** across:
+Current test coverage: **277 passing tests** across:
 - Contract tests (API behavior)
-- Unit tests (component logic, array elements, claim paths, disclosures, signature algorithms, Base64Url encoding, decoy digests, JWK handling)
+- Unit tests (component logic, array elements, claim paths, disclosures, signature algorithms, Base64Url encoding, decoy digests, JWK handling, builder API, crypto helpers)
 - Integration tests (end-to-end flows with arrays and nested claims)
 - Security tests (timing attacks, algorithm confusion, salt entropy, key binding)
 
