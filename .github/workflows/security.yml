@@ -3,12 +3,15 @@ name: Security Scanning
 on:
   push:
     branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
   schedule:
     # Run weekly on Monday at 00:00 UTC
     - cron: '0 0 * * 1'
   workflow_dispatch:
+
+# Only run one security scan at a time
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   actions: read
@@ -40,14 +43,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
+          cache: true  # Auto-detects lock files if present, falls back to .csproj
 
       - name: Restore dependencies
         run: dotnet restore
@@ -59,22 +55,6 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
-
-  dependency-review:
-    name: Dependency Review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: high
-          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
-          comment-summary-in-pr: always
 
   nuget-audit:
     name: NuGet Security Audit
@@ -88,14 +68,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
+          cache: true  # Auto-detects lock files if present, falls back to .csproj
 
       - name: Restore and audit dependencies
         run: |
@@ -166,16 +139,18 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Security scans completed on $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "### Comprehensive Security Scan Results" >> $GITHUB_STEP_SUMMARY
           echo "- CodeQL Analysis: ${{ needs.codeql-analysis.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- NuGet Audit: ${{ needs.nuget-audit.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Secret Scanning: ${{ needs.secret-scanning.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> **Note**: Dependency review for PRs is handled in the CI workflow." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ needs.codeql-analysis.result }}" != "success" ] || \
              [ "${{ needs.nuget-audit.result }}" != "success" ] || \
              [ "${{ needs.secret-scanning.result }}" != "success" ]; then
-            echo "⚠️ **Some security checks failed. Please review the results above.**" >> $GITHUB_STEP_SUMMARY
+            echo "**Some security checks failed. Please review the results above.**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "✅ **All security checks passed!**" >> $GITHUB_STEP_SUMMARY
+            echo "**All security checks passed!**" >> $GITHUB_STEP_SUMMARY
           fi

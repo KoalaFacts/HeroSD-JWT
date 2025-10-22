@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <!-- Enable NuGet package lock files for reproducible builds -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+
+    <!-- Restore lock file mode: LockedMode ensures lock file is up to date -->
+    <!-- Only enforce in CI if NUGET_LOCKED_MODE is explicitly set to 'true' -->
+    <!-- This allows the first CI run to generate lock files without failing -->
+    <RestoreLockedMode Condition="'$(NUGET_LOCKED_MODE)' == 'true'">true</RestoreLockedMode>
+  </PropertyGroup>
+</Project>
