@@ -10,9 +10,19 @@ on:
         required: true
         type: string
 
+# Prevent concurrent publishes
+concurrency:
+  group: publish-nuget
+  cancel-in-progress: false
+
 permissions:
   id-token: write  # Required for OIDC authentication with NuGet.org
   contents: read
+  attestations: write  # For package provenance
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
   publish:
@@ -22,46 +32,62 @@ jobs:
       url: https://www.nuget.org/packages/HeroSD-JWT
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Full history for versioning
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            8.0.x
-            9.0.x
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Determine version
+      - name: Determine version and tag
         id: version
         run: |
           if [ "${{ github.event_name }}" == "release" ]; then
-            VERSION="${{ github.event.release.tag_name }}"
-            VERSION="${VERSION#v}"  # Remove 'v' prefix if present
+            TAG="${{ github.event.release.tag_name }}"
+            VERSION="${TAG#v}"  # Remove 'v' prefix if present
           else
             VERSION="${{ inputs.version }}"
+            TAG="v$VERSION"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Publishing version: $VERSION"
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION (tag: $TAG)"
 
-      - name: Build
-        run: dotnet build --configuration Release --no-restore /p:Version=${{ steps.version.outputs.VERSION }}
-
-      - name: Run tests
-        run: dotnet test --configuration Release --no-build --verbosity normal
-
-      - name: Pack
+      - name: Validate version format
         run: |
-          dotnet pack src/HeroSdJwt.csproj \
-            --configuration Release \
-            --no-build \
-            --output ./packages \
-            /p:PackageVersion=${{ steps.version.outputs.VERSION }}
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "Error: Invalid version format: $VERSION"
+            echo "Expected format: X.Y.Z or X.Y.Z-prerelease"
+            exit 1
+          fi
+          echo "Version format validated: $VERSION"
+
+      - name: Download packages from release
+        run: |
+          echo "Downloading packages from release ${{ steps.version.outputs.TAG }}..."
+
+          # Create packages directory
+          mkdir -p ./packages
+
+          # Download all .nupkg and .snupkg files from the release
+          gh release download ${{ steps.version.outputs.TAG }} \
+            --pattern '*.nupkg' \
+            --pattern '*.snupkg' \
+            --dir ./packages
+
+          echo "Downloaded packages:"
+          ls -lh ./packages/
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Validate package contents
+        run: |
+          echo "Package contents:"
+          for pkg in ./packages/*.nupkg; do
+            if [ -f "$pkg" ]; then
+              echo "=== $pkg ==="
+              unzip -l "$pkg" || true
+            fi
+          done
+
+      - name: Generate package provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: './packages/*.nupkg'
 
       - name: NuGet login (OIDC → temporary API key)
         uses: NuGet/login@v1
@@ -77,12 +103,25 @@ jobs:
             --source https://api.nuget.org/v3/index.json \
             --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} \
             --skip-duplicate
-        env:
-          DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages-v${{ steps.version.outputs.VERSION }}
-          path: ./packages/*.nupkg
+          path: |
+            ./packages/*.nupkg
+            ./packages/*.snupkg
           retention-days: 90
+
+      - name: Create release summary
+        run: |
+          echo "## NuGet Package Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package**: https://www.nuget.org/packages/HeroSD-JWT/${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Published**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installation" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "dotnet add package HeroSD-JWT --version ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
