@@ -332,6 +332,27 @@ This library implements security best practices:
 - No third-party dependencies (uses only .NET BCL)
   - Note: .NET 8.0 includes a polyfill dependency (`Microsoft.Bcl.Memory`) to backport .NET 9.0's native `Base64Url` APIs
 
+## Native AOT and Trimming Compatibility
+
+✅ **Fully AOT-Compatible**: This library is designed to work seamlessly with .NET Native AOT compilation and IL trimming.
+
+**Implementation approach**:
+- Uses `Utf8JsonWriter` for all JSON serialization instead of reflection-based `JsonSerializer.Serialize`
+- Direct dictionary parsing for JWK handling (no serialize-then-deserialize round-trips)
+- All cryptographic operations use standard BCL APIs
+- Zero dynamic code generation or runtime reflection dependencies
+
+**Key technical details**:
+- SD-JWT disclosure arrays mix string and JsonElement types: `[salt, claim_name, claim_value]`
+- Instead of using `JsonSerializer.Serialize(object[])` which requires reflection, we use `Utf8JsonWriter.WriteStringValue()` and `JsonElement.WriteTo()` for compile-time type safety
+- JWT headers and payloads are serialized with explicit type handling for all common JSON value types
+
+**AOT validation**:
+The library has been tested with EnableTrimAnalyzer and produces no IL2026/IL3050 warnings. It's ready for:
+- Native AOT applications
+- Trimmed deployments
+- Self-contained single-file executables
+
 ## Testing
 
 ```bash

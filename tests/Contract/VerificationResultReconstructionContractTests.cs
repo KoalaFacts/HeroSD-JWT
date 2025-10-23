@@ -207,9 +207,9 @@ public class VerificationResultReconstructionContractTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            #pragma warning disable CS8604 // Possible null reference argument - intentional for test
+#pragma warning disable CS8604 // Possible null reference argument - intentional for test
             result.GetDisclosedArray("degrees")
-            #pragma warning restore CS8604
+#pragma warning restore CS8604
         );
         Assert.Equal("result", exception.ParamName);
     }
@@ -223,9 +223,9 @@ public class VerificationResultReconstructionContractTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type - intentional for test
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type - intentional for test
             result.GetDisclosedArray(null)
-            #pragma warning restore CS8625
+#pragma warning restore CS8625
         );
         Assert.Equal("claimName", exception.ParamName);
     }
@@ -393,9 +393,9 @@ public class VerificationResultReconstructionContractTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            #pragma warning disable CS8604 // Possible null reference argument - intentional for test
+#pragma warning disable CS8604 // Possible null reference argument - intentional for test
             result.GetDisclosedObject("address")
-            #pragma warning restore CS8604
+#pragma warning restore CS8604
         );
         Assert.Equal("result", exception.ParamName);
     }
@@ -409,9 +409,9 @@ public class VerificationResultReconstructionContractTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type - intentional for test
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type - intentional for test
             result.GetDisclosedObject(null)
-            #pragma warning restore CS8625
+#pragma warning restore CS8625
         );
         Assert.Equal("claimName", exception.ParamName);
     }
@@ -567,9 +567,9 @@ public class VerificationResultReconstructionContractTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            #pragma warning disable CS8604 // Possible null reference argument - intentional for test
+#pragma warning disable CS8604 // Possible null reference argument - intentional for test
             result.GetReconstructibleClaims()
-            #pragma warning restore CS8604
+#pragma warning restore CS8604
         );
         Assert.Equal("result", exception.ParamName);
     }

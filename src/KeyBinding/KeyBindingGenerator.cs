@@ -1,4 +1,5 @@
 using HeroSdJwt.Common;
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -31,25 +32,14 @@ public class KeyBindingGenerator
         ArgumentNullException.ThrowIfNull(audience);
         ArgumentNullException.ThrowIfNull(nonce);
 
-        // Create header with typ: "kb+jwt" and alg: "ES256"
-        var header = new
-        {
-            alg = "ES256",
-            typ = "kb+jwt"
-        };
+        // Encode header and payload using AOT-compatible serialization
+        var headerJson = SerializeKeyBindingHeader();
+        var payloadJson = SerializeKeyBindingPayload(
+            DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            audience,
+            nonce,
+            sdJwtHash);
 
-        // Create payload with required claims
-        var payload = new
-        {
-            iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            aud = audience,
-            nonce = nonce,
-            sd_hash = sdJwtHash
-        };
-
-        // Encode header and payload
-        var headerJson = JsonSerializer.Serialize(header);
-        var payloadJson = JsonSerializer.Serialize(payload);
         var headerBase64 = Base64UrlEncode(headerJson);
         var payloadBase64 = Base64UrlEncode(payloadJson);
 
@@ -91,5 +81,45 @@ public class KeyBindingGenerator
     private static string Base64UrlEncode(byte[] input)
     {
         return Base64UrlEncoder.Encode(input);
+    }
+
+    /// <summary>
+    /// Serializes the key binding JWT header using Utf8JsonWriter for AOT compatibility.
+    /// Format: {"alg":"ES256","typ":"kb+jwt"}
+    /// </summary>
+    private static string SerializeKeyBindingHeader()
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("alg", "ES256");
+            writer.WriteString("typ", "kb+jwt");
+            writer.WriteEndObject();
+            writer.Flush();
+        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    /// <summary>
+    /// Serializes the key binding JWT payload using Utf8JsonWriter for AOT compatibility.
+    /// Format: {"iat":timestamp,"aud":"...","nonce":"...","sd_hash":"..."}
+    /// </summary>
+    private static string SerializeKeyBindingPayload(long iat, string aud, string nonce, string sdHash)
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("iat", iat);
+            writer.WriteString("aud", aud);
+            writer.WriteString("nonce", nonce);
+            writer.WriteString("sd_hash", sdHash);
+            writer.WriteEndObject();
+            writer.Flush();
+        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 }

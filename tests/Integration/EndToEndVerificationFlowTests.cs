@@ -271,7 +271,7 @@ public class EndToEndVerificationFlowTests
 
             var presenter = new SdJwtPresenter();
             var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
-        var presentationString = presenter.FormatPresentation(presentation);
+            var presentationString = presenter.FormatPresentation(presentation);
 
             // Act
             var verifier = new SdJwtVerifier();

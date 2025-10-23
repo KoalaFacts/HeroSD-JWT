@@ -170,9 +170,9 @@ public class ObjectReconstructionContractTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            #pragma warning disable CS8604
+#pragma warning disable CS8604
             result.GetDisclosedObject("address")
-            #pragma warning restore CS8604
+#pragma warning restore CS8604
         );
         Assert.Equal("result", exception.ParamName);
     }
