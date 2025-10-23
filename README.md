@@ -334,24 +334,42 @@ This library implements security best practices:
 
 ## Native AOT and Trimming Compatibility
 
-✅ **Fully AOT-Compatible**: This library is designed to work seamlessly with .NET Native AOT compilation and IL trimming.
+✅ **AOT-Compatible with Standard JSON Types**: This library works with .NET Native AOT compilation when used with standard JSON-serializable types.
 
 **Implementation approach**:
-- Uses `Utf8JsonWriter` for all JSON serialization instead of reflection-based `JsonSerializer.Serialize`
+- Uses `Utf8JsonWriter` for all **internal** JSON serialization (disclosures, JWTs, key binding)
 - Direct dictionary parsing for JWK handling (no serialize-then-deserialize round-trips)
 - All cryptographic operations use standard BCL APIs
-- Zero dynamic code generation or runtime reflection dependencies
+- Minimal reflection usage - only at API boundary for user-provided claim values
+
+**API Boundary Consideration**:
+The public API accepts `Dictionary<string, object>` for claim values to support any JSON-serializable type. This means:
+- ✅ **Primitive types work in AOT**: string, int, long, double, bool, arrays, dictionaries
+- ✅ **JsonElement works perfectly in AOT**: Pre-parsed JSON values
+- ⚠️ **Custom classes may require trimming annotations**: If you pass custom POCOs, ensure they're preserved
 
 **Key technical details**:
-- SD-JWT disclosure arrays mix string and JsonElement types: `[salt, claim_name, claim_value]`
-- Instead of using `JsonSerializer.Serialize(object[])` which requires reflection, we use `Utf8JsonWriter.WriteStringValue()` and `JsonElement.WriteTo()` for compile-time type safety
-- JWT headers and payloads are serialized with explicit type handling for all common JSON value types
+- SD-JWT disclosure arrays use `Utf8JsonWriter`: `[salt, claim_name, claim_value]`
+- Internal processing is fully AOT-compatible (no reflection beyond JSON serialization)
+- JWT headers and payloads serialized with explicit type handling
 
-**AOT validation**:
-The library has been tested with EnableTrimAnalyzer and produces no IL2026/IL3050 warnings. It's ready for:
-- Native AOT applications
-- Trimmed deployments
-- Self-contained single-file executables
+**Recommendation for AOT applications**:
+```csharp
+// Instead of custom classes:
+var claims = new Dictionary<string, object>
+{
+    ["sub"] = "user-123",
+    ["email"] = "alice@example.com",
+    ["age"] = 30
+};
+
+// Or use JsonElement for pre-parsed JSON:
+var claims = new Dictionary<string, object>
+{
+    ["sub"] = "user-123",
+    ["profile"] = JsonSerializer.SerializeToElement(new { name = "Alice", age = 30 })
+};
+```
 
 ## Testing
 
