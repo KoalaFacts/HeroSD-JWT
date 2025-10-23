@@ -1,16 +1,13 @@
-name: Publish to NuGet
+name: Publish to NuGet (API Key)
+
+# This is a simpler alternative to publish-nuget.yml that uses a traditional API key
+# instead of Trusted Publishing. Use this if you want quick setup without OIDC configuration.
 
 on:
-  # Trigger when create-release workflow completes successfully
-  workflow_run:
-    workflows: ["Create Release"]
-    types: [completed]
-    branches: [main]
-  # Keep manual trigger for emergency republishing
   workflow_dispatch:
     inputs:
       version:
-        description: 'Package version (e.g., 1.0.0)'
+        description: 'Package version (leave blank to use version from .csproj)'
         required: false
         type: string
 
@@ -20,9 +17,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  id-token: write  # Required for OIDC authentication with NuGet.org
   contents: read
-  attestations: write  # For package provenance
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
@@ -31,11 +26,6 @@ env:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # Only run if create-release workflow succeeded (or if manually triggered)
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-    environment:
-      name: production
-      url: https://www.nuget.org/packages/HeroSD-JWT
 
     steps:
       - name: Checkout code
@@ -51,24 +41,14 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          if [ "${{ github.event_name }}" == "workflow_run" ]; then
-            # Get the latest release tag when triggered by create-release workflow
-            TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
-            VERSION="${TAG#v}"  # Remove 'v' prefix if present
-            echo "Detected latest release: $TAG"
-          elif [ -n "${{ inputs.version }}" ]; then
+          if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
-            TAG="v$VERSION"
           else
             # Extract from csproj
             VERSION=$(grep '<Version>' src/HeroSdJwt.csproj | sed 's/.*<Version>\(.*\)<\/Version>.*/\1/')
-            TAG="v$VERSION"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "TAG=$TAG" >> $GITHUB_OUTPUT
-          echo "Publishing version: $VERSION (tag: $TAG)"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "Publishing version: $VERSION"
 
       - name: Validate version format
         run: |
@@ -78,7 +58,7 @@ jobs:
             echo "Expected format: X.Y.Z or X.Y.Z-prerelease"
             exit 1
           fi
-          echo "Version format validated: $VERSION"
+          echo "✅ Version format validated: $VERSION"
 
       - name: Restore dependencies
         run: dotnet restore
@@ -100,7 +80,7 @@ jobs:
             /p:IncludeSymbols=true \
             /p:SymbolPackageFormat=snupkg
 
-          echo "Created packages:"
+          echo "✅ Created packages:"
           ls -lh ./packages/
 
       - name: Validate package contents
@@ -113,30 +93,19 @@ jobs:
             fi
           done
 
-      - name: Generate package provenance
-        uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: './packages/*.nupkg'
-
-      - name: NuGet login (OIDC → temporary API key)
-        uses: NuGet/login@v1
-        id: nuget-login
-        with:
-          user: ${{ secrets.NUGET_USERNAME }}
-          # Uses GitHub Actions OIDC token to get a temporary (1-hour) NuGet API key
-          # No long-lived API keys needed!
-
-      - name: Publish to NuGet.org using Trusted Publishing
+      - name: Publish to NuGet.org using API Key
         run: |
           for pkg in ./packages/*.nupkg; do
             if [[ "$pkg" != *".symbols."* ]]; then
               echo "Publishing $pkg..."
               dotnet nuget push "$pkg" \
                 --source https://api.nuget.org/v3/index.json \
-                --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} \
+                --api-key ${{ secrets.NUGET_API_KEY }} \
                 --skip-duplicate
             fi
           done
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
 
       - name: Upload package artifacts
         if: always()
@@ -165,3 +134,9 @@ jobs:
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "- Package will be available on NuGet.org within 5-10 minutes" >> $GITHUB_STEP_SUMMARY
           echo "- Verify at: https://www.nuget.org/packages/HeroSD-JWT" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Security Note" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ Consider migrating to Trusted Publishing for better security:" >> $GITHUB_STEP_SUMMARY
+          echo "- No long-lived API keys" >> $GITHUB_STEP_SUMMARY
+          echo "- Automatic key rotation" >> $GITHUB_STEP_SUMMARY
+          echo "- See publish-nuget.yml for Trusted Publishing workflow" >> $GITHUB_STEP_SUMMARY
