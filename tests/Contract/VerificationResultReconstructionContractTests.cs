@@ -237,7 +237,7 @@ public class VerificationResultReconstructionContractTests
         var signingKey = GenerateSecureTestKey();
         var invalidPresentation = "invalid.presentation.string";
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentation(invalidPresentation, signingKey);
+        var result = verifier.TryVerifyPresentation(invalidPresentation, signingKey);
 
         // Act & Assert
         Assert.False(result.IsValid);
@@ -423,7 +423,7 @@ public class VerificationResultReconstructionContractTests
         var signingKey = GenerateSecureTestKey();
         var invalidPresentation = "invalid.presentation.string";
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentation(invalidPresentation, signingKey);
+        var result = verifier.TryVerifyPresentation(invalidPresentation, signingKey);
 
         // Act & Assert
         Assert.False(result.IsValid);
@@ -581,7 +581,7 @@ public class VerificationResultReconstructionContractTests
         var signingKey = GenerateSecureTestKey();
         var invalidPresentation = "invalid.presentation.string";
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentation(invalidPresentation, signingKey);
+        var result = verifier.TryVerifyPresentation(invalidPresentation, signingKey);
 
         // Act & Assert
         Assert.False(result.IsValid);

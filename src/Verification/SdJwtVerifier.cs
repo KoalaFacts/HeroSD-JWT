@@ -1,6 +1,7 @@
 using HeroSdJwt.Common;
 using HeroSdJwt.Core;
 using HeroSdJwt.KeyBinding;
+using HeroSdJwt.Presentation;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -70,14 +71,15 @@ public class SdJwtVerifier
     }
 
     /// <summary>
-    /// Verifies an SD-JWT presentation without throwing exceptions.
+    /// Attempts to verify an SD-JWT presentation without throwing exceptions.
     /// Returns a result object with validation status and errors.
+    /// Follows the standard .NET Try* pattern (similar to TryParse, TryGetValue).
     /// </summary>
     /// <param name="presentation">The combined SD-JWT presentation string.</param>
     /// <param name="publicKey">The public key or shared secret for signature verification.</param>
     /// <param name="expectedHashAlgorithm">Optional expected hash algorithm.</param>
     /// <returns>Verification result with validation status, errors, and disclosed claims.</returns>
-    public VerificationResult VerifyPresentationSafe(
+    public VerificationResult TryVerifyPresentation(
         string presentation,
         byte[] publicKey,
         HashAlgorithm? expectedHashAlgorithm = null)
@@ -248,26 +250,40 @@ public class SdJwtVerifier
             return new VerificationResult(errors, string.Join("; ", errorDetails));
         }
 
-        if (payload.TryGetProperty("_sd", out var sdElement) &&
-            sdElement.ValueKind == JsonValueKind.Array)
+        // Collect all _sd array digests from both the JWT payload AND disclosure values
+        // This supports nested selective disclosure per SD-JWT spec
+        var expectedDigests = new List<Digest>();
+        CollectAllSdDigests(payload, expectedDigests, algorithm);
+
+        // Also collect _sd digests from disclosure values (for nested structures)
+        foreach (var disclosure in disclosures)
         {
-            var expectedDigests = new List<Digest>();
-            foreach (var digestValue in sdElement.EnumerateArray())
+            try
             {
-                if (digestValue.ValueKind == JsonValueKind.String)
+                var json = Base64UrlEncoder.DecodeString(disclosure);
+                var array = JsonDocument.Parse(json).RootElement;
+
+                if (array.ValueKind == JsonValueKind.Array && array.GetArrayLength() >= 2)
                 {
-                    expectedDigests.Add(new Digest(digestValue.GetString()!, algorithm));
+                    // For 3-element disclosures, check if the value contains _sd arrays
+                    var valueIndex = array.GetArrayLength() == 3 ? 2 : 1;
+                    var value = array[valueIndex];
+                    CollectAllSdDigests(value, expectedDigests, algorithm);
                 }
             }
-
-            if (disclosures.Count > 0)
+            catch
             {
-                bool digestsValid = DigestValidator.ValidateAllDigests(disclosures, expectedDigests, algorithm);
-                if (!digestsValid)
-                {
-                    errors.Add(ErrorCode.DigestMismatch);
-                    errorDetails.Add("Disclosure digest validation failed");
-                }
+                // Skip malformed disclosures
+            }
+        }
+
+        if (disclosures.Count > 0 && expectedDigests.Count > 0)
+        {
+            bool digestsValid = DigestValidator.ValidateAllDigests(disclosures, expectedDigests, algorithm);
+            if (!digestsValid)
+            {
+                errors.Add(ErrorCode.DigestMismatch);
+                errorDetails.Add("Disclosure digest validation failed");
             }
         }
 
@@ -383,8 +399,8 @@ public class SdJwtVerifier
             return new VerificationResult(errors, string.Join("; ", errorDetails));
         }
 
-        // Step 6: Extract disclosed claims
-        var disclosedClaims = ExtractDisclosedClaims(disclosures);
+        // Step 6: Extract disclosed claims with full paths
+        var disclosedClaims = ExtractDisclosedClaims(jwt, disclosures, algorithm);
 
         // Return result
         if (errors.Count > 0)
@@ -430,73 +446,118 @@ public class SdJwtVerifier
     }
 
     /// <summary>
-    /// Extracts disclosed claims from disclosures.
+    /// Extracts disclosed claims from disclosures using full paths.
+    /// Uses DisclosureClaimPathMapper to determine full paths by analyzing JWT structure.
     /// Supports both object property disclosures (3-element) and array element disclosures (2-element).
-    /// Invalid disclosures are tracked but not included in the result.
-    /// Note: Array element disclosures are validated but not currently reconstructed into arrays.
     /// </summary>
-    private Dictionary<string, JsonElement> ExtractDisclosedClaims(List<string> disclosures)
+    private Dictionary<string, JsonElement> ExtractDisclosedClaims(
+        string jwt,
+        List<string> disclosures,
+        HashAlgorithm algorithm)
     {
         var claims = new Dictionary<string, JsonElement>();
-        var invalidDisclosureCount = 0;
 
-        foreach (var disclosure in disclosures)
+        if (disclosures.Count == 0)
         {
-            try
-            {
-                var json = Base64UrlEncoder.DecodeString(disclosure);
-                var array = JsonDocument.Parse(json).RootElement;
-
-                if (array.ValueKind != JsonValueKind.Array)
-                {
-                    invalidDisclosureCount++;
-                    continue;
-                }
-
-                var arrayLength = array.GetArrayLength();
-
-                if (arrayLength == 3)
-                {
-                    // Object property disclosure: [salt, claim_name, claim_value]
-                    var claimName = array[1].GetString();
-                    var claimValue = array[2];
-
-                    if (!string.IsNullOrWhiteSpace(claimName))
-                    {
-                        claims[claimName] = claimValue;
-                    }
-                    else
-                    {
-                        invalidDisclosureCount++;
-                    }
-                }
-                else if (arrayLength == 2)
-                {
-                    // Array element disclosure: [salt, claim_value]
-                    // These are validated but not added to the simple claims dictionary
-                    // Full array reconstruction would require changes to VerificationResult structure
-                    // For now, we just validate that they're well-formed
-                    var claimValue = array[1];
-                    // Valid array element disclosure - count it as valid but don't add to claims
-                }
-                else
-                {
-                    // Invalid array length
-                    invalidDisclosureCount++;
-                }
-            }
-            catch
-            {
-                // Track invalid disclosures for security monitoring
-                // In production, this should be logged for analysis
-                invalidDisclosureCount++;
-            }
+            return claims;
         }
 
-        // Note: In production systems, invalidDisclosureCount should be logged
-        // for security monitoring to detect potential tampering attempts
-        // For now, we silently ignore to prevent information disclosure
+        try
+        {
+            // Build claim path mapping using the mapper
+            var sdJwt = new SdJwt(jwt, disclosures, algorithm);
+            var mapper = new DisclosureClaimPathMapper();
+            var claimPathToIndex = mapper.BuildClaimPathMapping(sdJwt);
+
+            // Extract claim values using full paths
+            // Skip intermediate objects that contain _sd arrays (they're reconstruction helpers, not actual claims)
+            foreach (var (fullPath, disclosureIndex) in claimPathToIndex)
+            {
+                try
+                {
+                    var disclosure = disclosures[disclosureIndex];
+                    var json = Base64UrlEncoder.DecodeString(disclosure);
+                    var array = JsonDocument.Parse(json).RootElement;
+
+                    if (array.ValueKind != JsonValueKind.Array)
+                    {
+                        continue;
+                    }
+
+                    var arrayLength = array.GetArrayLength();
+
+                    if (arrayLength == 3)
+                    {
+                        // Object property disclosure: [salt, claim_name, claim_value]
+                        var claimValue = array[2];
+
+                        // Skip intermediate nested objects (those containing _sd arrays)
+                        // These are needed for presentation but not for final disclosed claims
+                        bool isIntermediateObject = claimValue.ValueKind == JsonValueKind.Object &&
+                                                   claimValue.TryGetProperty("_sd", out _);
+
+                        if (!isIntermediateObject)
+                        {
+                            claims[fullPath] = claimValue;
+                        }
+                    }
+                    else if (arrayLength == 2)
+                    {
+                        // Array element disclosure: [salt, claim_value]
+                        var claimValue = array[1];
+                        claims[fullPath] = claimValue;
+                    }
+                }
+                catch
+                {
+                    // Skip invalid disclosures
+                }
+            }
+        }
+        catch
+        {
+            // If mapping fails, return empty claims dictionary
+            // This can happen with malformed JWT or disclosures
+        }
 
         return claims;
+    }
+
+    /// <summary>
+    /// Recursively collects all _sd array digests from a JSON element.
+    /// This supports nested selective disclosure structures per SD-JWT spec.
+    /// </summary>
+    private static void CollectAllSdDigests(JsonElement element, List<Digest> digests, HashAlgorithm algorithm)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                if (property.Name == "_sd" && property.Value.ValueKind == JsonValueKind.Array)
+                {
+                    // Found an _sd array - collect all digests
+                    foreach (var digestValue in property.Value.EnumerateArray())
+                    {
+                        if (digestValue.ValueKind == JsonValueKind.String)
+                        {
+                            digests.Add(new Digest(digestValue.GetString()!, algorithm));
+                        }
+                    }
+                }
+                else if (property.Name != "_sd_alg")
+                {
+                    // Recursively search nested objects and arrays
+                    CollectAllSdDigests(property.Value, digests, algorithm);
+                }
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            // Recursively search array elements
+            foreach (var item in element.EnumerateArray())
+            {
+                CollectAllSdDigests(item, digests, algorithm);
+            }
+        }
     }
 }

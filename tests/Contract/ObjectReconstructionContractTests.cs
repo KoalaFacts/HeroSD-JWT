@@ -183,7 +183,7 @@ public class ObjectReconstructionContractTests
         // Arrange
         var signingKey = GenerateSecureTestKey();
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentation("invalid.presentation.string", signingKey);
+        var result = verifier.TryVerifyPresentation("invalid.presentation.string", signingKey);
 
         // Act & Assert
         Assert.False(result.IsValid);

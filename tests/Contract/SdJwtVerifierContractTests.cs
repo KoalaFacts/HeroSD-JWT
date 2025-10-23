@@ -60,7 +60,7 @@ public class SdJwtVerifierContractTests
         var verifier = new SdJwtVerifier();
 
         // Act
-        var result = verifier.VerifyPresentationSafe(presentation, wrongKey);
+        var result = verifier.TryVerifyPresentation(presentation, wrongKey);
 
         // Assert
         Assert.NotNull(result);
@@ -88,7 +88,7 @@ public class SdJwtVerifierContractTests
         var verifier = new SdJwtVerifier();
 
         // Act
-        var result = verifier.VerifyPresentationSafe(presentation, signingKey);
+        var result = verifier.TryVerifyPresentation(presentation, signingKey);
 
         // Assert
         Assert.NotNull(result);
@@ -128,7 +128,7 @@ public class SdJwtVerifierContractTests
         var verifier = new SdJwtVerifier(options);
 
         // Act
-        var result = verifier.VerifyPresentationSafe(presentation, signingKey);
+        var result = verifier.TryVerifyPresentation(presentation, signingKey);
 
         // Assert
         Assert.NotNull(result);
@@ -168,7 +168,7 @@ public class SdJwtVerifierContractTests
         var verifier = new SdJwtVerifier(options);
 
         // Act
-        var result = verifier.VerifyPresentationSafe(presentation, signingKey);
+        var result = verifier.TryVerifyPresentation(presentation, signingKey);
 
         // Assert
         Assert.NotNull(result);
@@ -299,18 +299,18 @@ public class SdJwtVerifierContractTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            verifier.VerifyPresentationSafe(null!, signingKey));
+            verifier.TryVerifyPresentation(null!, signingKey));
     }
 
     [Fact]
-    public void VerifyPresentationSafe_WithEmptyPresentation_ReturnsInvalidInput()
+    public void TryVerifyPresentation_WithEmptyPresentation_ReturnsInvalidInput()
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
         var verifier = new SdJwtVerifier();
 
         // Act
-        var result = verifier.VerifyPresentationSafe(string.Empty, signingKey);
+        var result = verifier.TryVerifyPresentation(string.Empty, signingKey);
 
         // Assert
         Assert.NotNull(result);
@@ -328,18 +328,18 @@ public class SdJwtVerifierContractTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            verifier.VerifyPresentationSafe(presentation, null!));
+            verifier.TryVerifyPresentation(presentation, null!));
     }
 
     [Fact]
-    public void VerifyPresentationSafe_WithMalformedJwt_ReturnsInvalidInput()
+    public void TryVerifyPresentation_WithMalformedJwt_ReturnsInvalidInput()
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
         var verifier = new SdJwtVerifier();
 
         // Act - JWT with only 2 parts instead of 3
-        var result = verifier.VerifyPresentationSafe("header.payload~", signingKey);
+        var result = verifier.TryVerifyPresentation("header.payload~", signingKey);
 
         // Assert
         Assert.NotNull(result);
@@ -348,14 +348,14 @@ public class SdJwtVerifierContractTests
     }
 
     [Fact]
-    public void VerifyPresentationSafe_WithInvalidBase64Encoding_ReturnsInvalidInput()
+    public void TryVerifyPresentation_WithInvalidBase64Encoding_ReturnsInvalidInput()
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
         var verifier = new SdJwtVerifier();
 
         // Act - Invalid Base64URL characters
-        var result = verifier.VerifyPresentationSafe("invalid@#$.base64!~.signature~~", signingKey);
+        var result = verifier.TryVerifyPresentation("invalid@#$.base64!~.signature~~", signingKey);
 
         // Assert
         Assert.NotNull(result);
@@ -364,7 +364,7 @@ public class SdJwtVerifierContractTests
     }
 
     [Fact]
-    public void VerifyPresentationSafe_WithNoneAlgorithm_ReturnsAlgorithmConfusion()
+    public void TryVerifyPresentation_WithNoneAlgorithm_ReturnsAlgorithmConfusion()
     {
         // Arrange
         var verifier = new SdJwtVerifier();
@@ -376,7 +376,7 @@ public class SdJwtVerifierContractTests
         var presentation = $"{header}.{payload}.~~";
 
         // Act
-        var result = verifier.VerifyPresentationSafe(presentation, signingKey);
+        var result = verifier.TryVerifyPresentation(presentation, signingKey);
 
         // Assert
         Assert.NotNull(result);
@@ -385,7 +385,7 @@ public class SdJwtVerifierContractTests
     }
 
     [Fact]
-    public void VerifyPresentationSafe_WithExcessiveDisclosures_ReturnsInvalidInput()
+    public void TryVerifyPresentation_WithExcessiveDisclosures_ReturnsInvalidInput()
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
@@ -406,7 +406,7 @@ public class SdJwtVerifierContractTests
         var presentation = string.Join("~", disclosures);
 
         // Act
-        var result = verifier.VerifyPresentationSafe(presentation, signingKey);
+        var result = verifier.TryVerifyPresentation(presentation, signingKey);
 
         // Assert
         Assert.NotNull(result);
@@ -415,7 +415,7 @@ public class SdJwtVerifierContractTests
     }
 
     [Fact]
-    public void VerifyPresentationSafe_WithDuplicateDisclosures_DetectsMismatch()
+    public void TryVerifyPresentation_WithDuplicateDisclosures_DetectsMismatch()
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
@@ -445,7 +445,7 @@ public class SdJwtVerifierContractTests
         var verifier = new SdJwtVerifier();
 
         // Act
-        var result = verifier.VerifyPresentationSafe(presentation, signingKey);
+        var result = verifier.TryVerifyPresentation(presentation, signingKey);
 
         // Assert
         Assert.NotNull(result);
@@ -454,7 +454,7 @@ public class SdJwtVerifierContractTests
     }
 
     [Fact]
-    public void VerifyPresentationSafe_WithReorderedDisclosures_StillValidates()
+    public void TryVerifyPresentation_WithReorderedDisclosures_StillValidates()
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
@@ -493,7 +493,7 @@ public class SdJwtVerifierContractTests
     }
 
     [Fact]
-    public void VerifyPresentationSafe_WithPartiallyTamperedDisclosure_ReturnsDigestMismatch()
+    public void TryVerifyPresentation_WithPartiallyTamperedDisclosure_ReturnsDigestMismatch()
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
@@ -512,7 +512,7 @@ public class SdJwtVerifierContractTests
         var verifier = new SdJwtVerifier();
 
         // Act
-        var result = verifier.VerifyPresentationSafe(presentation, signingKey);
+        var result = verifier.TryVerifyPresentation(presentation, signingKey);
 
         // Assert
         Assert.NotNull(result);
@@ -521,7 +521,7 @@ public class SdJwtVerifierContractTests
     }
 
     [Fact]
-    public void VerifyPresentationSafe_WithMissingRequiredDisclosures_ReturnsDigestMismatch()
+    public void TryVerifyPresentation_WithMissingRequiredDisclosures_ReturnsDigestMismatch()
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
@@ -551,7 +551,7 @@ public class SdJwtVerifierContractTests
         var verifier = new SdJwtVerifier();
 
         // Act
-        var result = verifier.VerifyPresentationSafe(presentation, signingKey);
+        var result = verifier.TryVerifyPresentation(presentation, signingKey);
 
         // Assert
         Assert.NotNull(result);
@@ -567,7 +567,7 @@ public class SdJwtVerifierContractTests
     }
 
     [Fact]
-    public void VerifyPresentationSafe_WithUnsupportedHashAlgorithm_ReturnsUnsupportedAlgorithm()
+    public void TryVerifyPresentation_WithUnsupportedHashAlgorithm_ReturnsUnsupportedAlgorithm()
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
@@ -584,7 +584,7 @@ public class SdJwtVerifierContractTests
         var presentation = $"{header}.{payload}.{signature}~~";
 
         // Act
-        var result = verifier.VerifyPresentationSafe(presentation, signingKey);
+        var result = verifier.TryVerifyPresentation(presentation, signingKey);
 
         // Assert
         Assert.NotNull(result);

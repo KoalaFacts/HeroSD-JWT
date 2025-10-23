@@ -8,7 +8,9 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
 
 **Key Features**:
 - ✅ Create SD-JWTs with selectively disclosable claims
+- ✅ **Nested object selective disclosure** - Full support for nested properties like `address.street`, `address.geo.lat` (multi-level nesting)
 - ✅ **Array element selective disclosure** - Syntax like `degrees[1]` for individual array elements
+- ✅ **Array & Object Reconstruction API** - Automatically reconstruct hierarchical structures from disclosed claims
 - ✅ **Key binding (proof of possession)** - RFC 7800 compliant with temporal validation
 - ✅ **Decoy digests** - Privacy protection against claim enumeration
 - ✅ Holder-controlled claim disclosure
@@ -56,6 +58,56 @@ var sdJwt = SdJwtBuilder.Create()
 
 // Create presentation revealing only email
 var presentation = sdJwt.ToPresentation("email");
+```
+
+### 🏢 Nested Object Selective Disclosure
+
+Selectively disclose nested properties with full JSONPath-style syntax:
+
+```csharp
+// Create SD-JWT with nested object claims
+var sdJwt = SdJwtBuilder.Create()
+    .WithClaim("sub", "user-456")
+    .WithClaim("address", new
+    {
+        street = "123 Main Street",
+        city = "Boston",
+        state = "MA",
+        zip = "02101",
+        geo = new { lat = 42.3601, lon = -71.0589 }
+    })
+    .MakeSelective("address.street", "address.city", "address.geo.lat", "address.geo.lon")
+    .SignWithHmac(key)
+    .Build();
+
+// Holder creates presentation with only specific nested claims
+var presentation = sdJwt.ToPresentation("address.street", "address.geo.lat");
+
+// Verifier receives and verifies
+var verifier = new SdJwtVerifier();
+var result = verifier.VerifyPresentation(presentation, key);
+
+// Automatically reconstruct the nested object structure
+var address = result.GetDisclosedObject("address");
+// Returns: { "street": "123 Main Street", "geo": { "lat": 42.3601 } }
+```
+
+### 📊 Array Element Selective Disclosure
+
+```csharp
+var sdJwt = SdJwtBuilder.Create()
+    .WithClaim("degrees", new[] { "BS", "MS", "PhD" })
+    .MakeSelective("degrees[1]", "degrees[2]") // Only MS and PhD are selective
+    .SignWithHmac(key)
+    .Build();
+
+// Create presentation
+var presentation = sdJwt.ToPresentation("degrees[2]"); // Only reveal PhD
+
+// Reconstruct array from disclosed elements
+var result = verifier.VerifyPresentation(presentation, key);
+var degrees = result.GetDisclosedArray("degrees");
+// Returns: [null, null, "PhD"] - sparse array with only disclosed element
 ```
 
 ### 🔑 Different Signature Algorithms
@@ -193,17 +245,12 @@ var disclosures = parts[1..^1]; // All parts between JWT and key binding
 var verifier = new SdJwtVerifier();
 var verificationKey = new byte[32]; // Same key used for signing (HS256)
 
-var result = verifier.VerifyPresentation(
-    jwt,
-    disclosures,
-    verificationKey,
-    new SdJwtVerificationOptions
-    {
-        ClockSkew = TimeSpan.FromMinutes(5)
-    }
-);
+// Option 1: Throws exception on failure (recommended for most cases)
+var result = verifier.VerifyPresentation(presentationString, verificationKey);
+Console.WriteLine($"Birthdate: {result.DisclosedClaims["birthdate"]}");
 
-// Check result
+// Option 2: Returns result without throwing (Try* pattern)
+var result = verifier.TryVerifyPresentation(presentationString, verificationKey);
 if (result.IsValid)
 {
     Console.WriteLine("✅ Verification succeeded!");
