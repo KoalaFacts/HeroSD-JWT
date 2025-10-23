@@ -14,6 +14,9 @@ internal class DisclosureClaimPathMapper
 {
     private readonly DigestCalculator _digestCalculator = new();
 
+    // Security: Maximum nesting depth to prevent stack overflow attacks
+    private const int MaxNestingDepth = 10;
+
     /// <summary>
     /// Builds a mapping from user-friendly claim paths to disclosure indices.
     /// This enables ToPresentation() to work with nested and array element claims.

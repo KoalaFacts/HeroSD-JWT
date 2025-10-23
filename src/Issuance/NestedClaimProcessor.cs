@@ -13,6 +13,9 @@ internal class NestedClaimProcessor
     private readonly DisclosureGenerator _disclosureGenerator;
     private readonly DigestCalculator _digestCalculator;
 
+    // Security: Maximum nesting depth to prevent stack overflow attacks
+    private const int MaxNestingDepth = 10;
+
     public NestedClaimProcessor(DisclosureGenerator disclosureGenerator, DigestCalculator digestCalculator)
     {
         _disclosureGenerator = disclosureGenerator;
@@ -87,8 +90,14 @@ internal class NestedClaimProcessor
         JsonElement originalObject,
         List<ClaimPath> nestedPaths,
         HashAlgorithm hashAlgorithm,
-        List<string> disclosures)
+        List<string> disclosures,
+        int depth = 0)
     {
+        // Security: Prevent stack overflow with deeply nested structures
+        if (depth > MaxNestingDepth)
+        {
+            throw new ArgumentException($"Maximum nesting depth of {MaxNestingDepth} exceeded. This may indicate a malformed or malicious JSON structure.");
+        }
         var result = new Dictionary<string, object>();
         var sdDigests = new List<string>();
 
@@ -134,12 +143,13 @@ internal class NestedClaimProcessor
                         return ClaimPath.Parse(newOriginalSpec);
                     }).ToList();
 
-                    // Recursively build the nested object
+                    // Recursively build the nested object (increment depth)
                     var nestedObject = BuildObjectWithSelectiveDisclosure(
                         propertyValue,
                         shiftedPaths,
                         hashAlgorithm,
-                        disclosures);
+                        disclosures,
+                        depth + 1);
 
                     // Serialize the nested object back to JsonElement
                     valueToDisclose = JsonSerializer.SerializeToElement(nestedObject);

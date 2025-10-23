@@ -527,8 +527,15 @@ public class SdJwtVerifier
     /// Recursively collects all _sd array digests from a JSON element.
     /// This supports nested selective disclosure structures per SD-JWT spec.
     /// </summary>
-    private static void CollectAllSdDigests(JsonElement element, List<Digest> digests, HashAlgorithm algorithm)
+    private static void CollectAllSdDigests(JsonElement element, List<Digest> digests, HashAlgorithm algorithm, int depth = 0)
     {
+        // Security: Prevent stack overflow with deeply nested structures
+        const int MaxNestingDepth = 10;
+        if (depth > MaxNestingDepth)
+        {
+            throw new ArgumentException($"Maximum nesting depth of {MaxNestingDepth} exceeded during digest collection");
+        }
+
         if (element.ValueKind == JsonValueKind.Object)
         {
             foreach (var property in element.EnumerateObject())
@@ -546,17 +553,17 @@ public class SdJwtVerifier
                 }
                 else if (property.Name != "_sd_alg")
                 {
-                    // Recursively search nested objects and arrays
-                    CollectAllSdDigests(property.Value, digests, algorithm);
+                    // Recursively search nested objects and arrays (increment depth)
+                    CollectAllSdDigests(property.Value, digests, algorithm, depth + 1);
                 }
             }
         }
         else if (element.ValueKind == JsonValueKind.Array)
         {
-            // Recursively search array elements
+            // Recursively search array elements (increment depth)
             foreach (var item in element.EnumerateArray())
             {
-                CollectAllSdDigests(item, digests, algorithm);
+                CollectAllSdDigests(item, digests, algorithm, depth + 1);
             }
         }
     }

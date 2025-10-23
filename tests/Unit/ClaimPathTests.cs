@@ -184,6 +184,7 @@ public class ClaimPathTests
     {
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() => ClaimPath.Parse("address..street"));
-        Assert.Contains("empty path component", exception.Message);
+        // Security fix: ".." is now caught by path traversal validation
+        Assert.Contains("path traversal", exception.Message);
     }
 }
