@@ -17,12 +17,13 @@ namespace HeroSdJwt.Verification;
 public class SdJwtVerifier
 {
     private readonly SdJwtVerificationOptions _options;
+    private readonly IEcPublicKeyConverter _ecPublicKeyConverter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtVerifier"/> class with default options.
     /// </summary>
     public SdJwtVerifier()
-        : this(new SdJwtVerificationOptions())
+        : this(new SdJwtVerificationOptions(), new EcPublicKeyConverter())
     {
     }
 
@@ -31,10 +32,19 @@ public class SdJwtVerifier
     /// </summary>
     /// <param name="options">Verification options.</param>
     public SdJwtVerifier(SdJwtVerificationOptions options)
+        : this(options, new EcPublicKeyConverter())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SdJwtVerifier"/> class with dependencies.
+    /// </summary>
+    internal SdJwtVerifier(SdJwtVerificationOptions options, IEcPublicKeyConverter ecPublicKeyConverter)
     {
         ArgumentNullException.ThrowIfNull(options);
         options.Validate();
         _options = options;
+        _ecPublicKeyConverter = ecPublicKeyConverter;
     }
 
     /// <summary>
@@ -318,7 +328,7 @@ public class SdJwtVerifier
                 else if (jwkElement.ValueKind == JsonValueKind.Object)
                 {
                     // RFC 7800 format: proper JWK with kty, crv, x, y
-                    holderPublicKey = Common.JwkHelper.ParseEcPublicKeyJwk(jwkElement);
+                    holderPublicKey = _ecPublicKeyConverter.FromJwk(jwkElement);
                 }
                 else
                 {

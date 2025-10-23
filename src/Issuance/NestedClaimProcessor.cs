@@ -58,7 +58,10 @@ internal class NestedClaimProcessor
             }
 
             // Convert to JsonElement for processing
+            // Suppression: This is at the public API boundary where users provide arbitrary claim values.
+#pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement at API boundary
             var baseElement = JsonSerializer.SerializeToElement(baseValue);
+#pragma warning restore IL2026, IL3050
 
             if (baseElement.ValueKind != JsonValueKind.Object)
             {
@@ -152,7 +155,10 @@ internal class NestedClaimProcessor
                         depth + 1);
 
                     // Serialize the nested object back to JsonElement
+                    // Suppression: Converting processed nested object back to JsonElement.
+#pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement for internal processing
                     valueToDisclose = JsonSerializer.SerializeToElement(nestedObject);
+#pragma warning restore IL2026, IL3050
                 }
                 else
                 {
@@ -173,7 +179,10 @@ internal class NestedClaimProcessor
             else
             {
                 // Non-selective property - include as-is
+                // Suppression: Converting JsonElement to object for JWT payload construction.
+#pragma warning disable IL2026, IL3050 // JsonSerializer.Deserialize for JWT payload
                 var nativeValue = JsonSerializer.Deserialize<object>(propertyValue.GetRawText());
+#pragma warning restore IL2026, IL3050
                 result[propertyName] = nativeValue!;
             }
         }

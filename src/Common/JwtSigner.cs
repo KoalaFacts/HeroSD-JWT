@@ -229,8 +229,10 @@ internal static class JwtSigner
                 break;
             default:
                 // For any other type, fall back to JsonSerializer.SerializeToElement
-                // This fallback maintains compatibility but may trigger AOT warnings
+                // Suppression: Fallback for edge cases at API boundary (rarely hit).
+#pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement fallback
                 var element = JsonSerializer.SerializeToElement(value);
+#pragma warning restore IL2026, IL3050
                 element.WriteTo(writer);
                 break;
         }

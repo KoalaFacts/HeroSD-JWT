@@ -4,19 +4,18 @@ using System.Text.Json;
 namespace HeroSdJwt.Common;
 
 /// <summary>
-/// Helper class for working with JSON Web Keys (JWK) per RFC 7517.
-/// Specifically handles Elliptic Curve keys for SD-JWT key binding.
+/// Converts between ECDSA public keys and JSON Web Key (JWK) format per RFC 7517.
+/// Handles P-256 elliptic curve keys for SD-JWT key binding.
 /// </summary>
-internal static class JwkHelper
+internal class EcPublicKeyConverter : IEcPublicKeyConverter
 {
     /// <summary>
-    /// Creates a JWK representation from an ECDSA public key.
-    /// Supports P-256 (ES256) curve per SD-JWT spec requirements.
+    /// Converts an ECDSA public key to JWK (JSON Web Key) format.
     /// </summary>
     /// <param name="publicKeyBytes">The public key in SubjectPublicKeyInfo format.</param>
-    /// <returns>A dictionary representing the JWK.</returns>
-    /// <exception cref="ArgumentException">If the key is invalid or unsupported.</exception>
-    public static Dictionary<string, object> CreateEcPublicKeyJwk(byte[] publicKeyBytes)
+    /// <returns>A dictionary representing the JWK with kty, crv, x, y parameters.</returns>
+    /// <exception cref="ArgumentException">If the key is invalid or not P-256.</exception>
+    public Dictionary<string, object> ToJwk(byte[] publicKeyBytes)
     {
         ArgumentNullException.ThrowIfNull(publicKeyBytes);
 
@@ -56,12 +55,12 @@ internal static class JwkHelper
     }
 
     /// <summary>
-    /// Parses a JWK and extracts the ECDSA public key in SubjectPublicKeyInfo format.
+    /// Converts a JWK (JSON Web Key) to ECDSA public key format.
     /// </summary>
     /// <param name="jwk">The JWK as a JsonElement.</param>
     /// <returns>The public key bytes in SubjectPublicKeyInfo format.</returns>
-    /// <exception cref="ArgumentException">If the JWK is invalid or unsupported.</exception>
-    public static byte[] ParseEcPublicKeyJwk(JsonElement jwk)
+    /// <exception cref="ArgumentException">If the JWK is invalid or not P-256.</exception>
+    public byte[] FromJwk(JsonElement jwk)
     {
         // Validate required fields
         if (!jwk.TryGetProperty("kty", out var ktyElement) || ktyElement.GetString() != "EC")
@@ -126,30 +125,31 @@ internal static class JwkHelper
     }
 
     /// <summary>
-    /// Parses a JWK from a JSON object (used when JWK is nested in cnf claim).
+    /// Converts a JWK from various formats (Dictionary or JsonElement) to ECDSA public key.
+    /// Used when JWK is nested in cnf claim.
     /// </summary>
-    /// <param name="jwkObject">The JWK as an object (Dictionary or JsonElement).</param>
+    /// <param name="jwkObject">The JWK as Dictionary or JsonElement.</param>
     /// <returns>The public key bytes in SubjectPublicKeyInfo format.</returns>
-    public static byte[] ParseEcPublicKeyJwkObject(object jwkObject)
+    public byte[] FromJwkObject(object jwkObject)
     {
         if (jwkObject is JsonElement jsonElement)
         {
-            return ParseEcPublicKeyJwk(jsonElement);
+            return FromJwk(jsonElement);
         }
 
         if (jwkObject is Dictionary<string, object> dict)
         {
             // Parse directly from dictionary for AOT compatibility
-            return ParseEcPublicKeyJwkFromDictionary(dict);
+            return FromJwkDictionary(dict);
         }
 
         throw new ArgumentException("JWK must be a JsonElement or Dictionary<string, object>");
     }
 
     /// <summary>
-    /// Parses a JWK from a Dictionary for AOT compatibility (avoids JsonSerializer.Serialize).
+    /// Converts a JWK dictionary to ECDSA public key (AOT-compatible, no JSON serialization).
     /// </summary>
-    private static byte[] ParseEcPublicKeyJwkFromDictionary(Dictionary<string, object> dict)
+    private byte[] FromJwkDictionary(Dictionary<string, object> dict)
     {
         // Validate required fields
         if (!dict.TryGetValue("kty", out var ktyObj) || ktyObj as string != "EC")

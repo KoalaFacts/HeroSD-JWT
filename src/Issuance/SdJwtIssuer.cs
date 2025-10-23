@@ -14,14 +14,24 @@ public class SdJwtIssuer
 {
     private readonly DisclosureGenerator disclosureGenerator;
     private readonly DigestCalculator digestCalculator;
+    private readonly IEcPublicKeyConverter ecPublicKeyConverter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtIssuer"/> class.
     /// </summary>
     public SdJwtIssuer()
+        : this(new DisclosureGenerator(), new DigestCalculator(), new EcPublicKeyConverter())
     {
-        disclosureGenerator = new DisclosureGenerator();
-        digestCalculator = new DigestCalculator();
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SdJwtIssuer"/> class with dependencies.
+    /// </summary>
+    internal SdJwtIssuer(DisclosureGenerator disclosureGenerator, DigestCalculator digestCalculator, IEcPublicKeyConverter ecPublicKeyConverter)
+    {
+        this.disclosureGenerator = disclosureGenerator;
+        this.digestCalculator = digestCalculator;
+        this.ecPublicKeyConverter = ecPublicKeyConverter;
     }
 
     /// <summary>
@@ -107,7 +117,11 @@ public class SdJwtIssuer
             if (claims.TryGetValue(claimPath.BaseName, out var claimValue))
             {
                 // Convert claim value to JsonElement
+                // Suppression: This is at the public API boundary where users provide arbitrary claim values.
+                // The library's internal processing is fully AOT-compatible (uses Utf8JsonWriter).
+#pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement at API boundary
                 var jsonElement = JsonSerializer.SerializeToElement(claimValue);
+#pragma warning restore IL2026, IL3050
 
                 // Generate disclosure
                 var disclosure = disclosureGenerator.GenerateDisclosure(claimPath.BaseName, jsonElement);
@@ -155,7 +169,10 @@ public class SdJwtIssuer
             }
 
             // Convert to JsonElement to work with array
+            // Suppression: This is at the public API boundary where users provide arbitrary claim values.
+#pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement at API boundary
             var arrayElement = JsonSerializer.SerializeToElement(arrayValue);
+#pragma warning restore IL2026, IL3050
 
             if (arrayElement.ValueKind != JsonValueKind.Array)
             {
@@ -205,7 +222,10 @@ public class SdJwtIssuer
                 else
                 {
                     // Non-selectively-disclosable element - keep as-is
+                    // Suppression: Converting JsonElement back to object for JWT payload construction.
+#pragma warning disable IL2026, IL3050 // JsonSerializer.Deserialize at API boundary
                     newArray.Add(JsonSerializer.Deserialize<object>(arrayElement[i].GetRawText())!);
+#pragma warning restore IL2026, IL3050
                 }
             }
 
@@ -257,7 +277,7 @@ public class SdJwtIssuer
         // Per RFC 7800 and SD-JWT spec section 4.3, use proper JWK format
         if (holderPublicKey != null)
         {
-            var jwk = Common.JwkHelper.CreateEcPublicKeyJwk(holderPublicKey);
+            var jwk = ecPublicKeyConverter.ToJwk(holderPublicKey);
             payload["cnf"] = new Dictionary<string, object>
             {
                 { "jwk", jwk }
