@@ -75,6 +75,12 @@ internal readonly struct ClaimPath
             throw new ArgumentException("Claim specification cannot be empty or whitespace.", nameof(claimSpec));
         }
 
+        // Security: Prevent path traversal attacks
+        if (claimSpec.Contains("..") || claimSpec.Contains('/') || claimSpec.Contains('\\'))
+        {
+            throw new ArgumentException($"Invalid claim specification '{claimSpec}': path traversal patterns and path separators are not allowed", nameof(claimSpec));
+        }
+
         // Check for array syntax: claimName[index]
         var openBracket = claimSpec.IndexOf('[');
 
@@ -159,6 +165,12 @@ internal readonly struct ClaimPath
             if (index < 0)
             {
                 throw new ArgumentException($"Invalid claim specification '{claimSpec}': array index cannot be negative", nameof(claimSpec));
+            }
+
+            // Security: Prevent DoS attacks with unreasonably large array indices
+            if (index > 10000)
+            {
+                throw new ArgumentException($"Invalid claim specification '{claimSpec}': array index exceeds maximum allowed value of 10000", nameof(claimSpec));
             }
 
             return new ClaimPath(claimSpec, baseName, index, null, new[] { baseName });

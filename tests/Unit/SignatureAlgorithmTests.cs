@@ -332,7 +332,7 @@ public class SignatureAlgorithmTests
         var presentation = sdJwt.ToCombinedFormat();
 
         // Act - Verify with attacker's public key
-        var result = verifier.VerifyPresentationSafe(
+        var result = verifier.TryVerifyPresentation(
             presentation,
             attackerPublicKey);
 
@@ -374,7 +374,7 @@ public class SignatureAlgorithmTests
         var presentation = sdJwt.ToCombinedFormat();
 
         // Act - Verify with attacker's public key
-        var result = verifier.VerifyPresentationSafe(
+        var result = verifier.TryVerifyPresentation(
             presentation,
             attackerPublicKey);
 

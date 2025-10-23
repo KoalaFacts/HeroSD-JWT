@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -40,11 +41,11 @@ internal static class JwtSigner
             { "typ", "JWT" }
         };
 
-        // Encode header and payload
-        var headerJson = JsonSerializer.Serialize(header);
+        // Encode header and payload using AOT-compatible serialization
+        var headerJson = SerializeDictionary(header);
         var headerBase64 = Base64UrlEncoder.Encode(headerJson);
 
-        var payloadJson = JsonSerializer.Serialize(payload);
+        var payloadJson = SerializeDictionary(payload);
         var payloadBase64 = Base64UrlEncoder.Encode(payloadJson);
 
         // Create signing input
@@ -132,6 +133,106 @@ internal static class JwtSigner
                 "Invalid ECDSA private key format. Expected PKCS#8 PrivateKeyInfo format with P-256 curve.",
                 nameof(privateKeyBytes),
                 ex);
+        }
+    }
+
+    /// <summary>
+    /// Serializes a dictionary to JSON using Utf8JsonWriter for AOT compatibility.
+    /// Handles string, number, boolean, and JsonElement values.
+    /// </summary>
+    private static string SerializeDictionary(Dictionary<string, object> dict)
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+
+            foreach (var kvp in dict)
+            {
+                writer.WritePropertyName(kvp.Key);
+                WriteValue(writer, kvp.Value);
+            }
+
+            writer.WriteEndObject();
+            writer.Flush();
+        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    /// <summary>
+    /// Writes a value of unknown type to Utf8JsonWriter.
+    /// Supports primitives, JsonElement, dictionaries, and collections for AOT compatibility.
+    /// </summary>
+    private static void WriteValue(Utf8JsonWriter writer, object value)
+    {
+        switch (value)
+        {
+            case string s:
+                writer.WriteStringValue(s);
+                break;
+            case int i:
+                writer.WriteNumberValue(i);
+                break;
+            case long l:
+                writer.WriteNumberValue(l);
+                break;
+            case double d:
+                writer.WriteNumberValue(d);
+                break;
+            case float f:
+                writer.WriteNumberValue(f);
+                break;
+            case decimal dec:
+                writer.WriteNumberValue(dec);
+                break;
+            case bool b:
+                writer.WriteBooleanValue(b);
+                break;
+            case JsonElement je:
+                je.WriteTo(writer);
+                break;
+            case null:
+                writer.WriteNullValue();
+                break;
+            case Dictionary<string, object> nestedDict:
+                writer.WriteStartObject();
+                foreach (var kvp in nestedDict)
+                {
+                    writer.WritePropertyName(kvp.Key);
+                    WriteValue(writer, kvp.Value);
+                }
+                writer.WriteEndObject();
+                break;
+            case Dictionary<string, string> stringDict:
+                writer.WriteStartObject();
+                foreach (var kvp in stringDict)
+                {
+                    writer.WritePropertyName(kvp.Key);
+                    writer.WriteStringValue(kvp.Value);
+                }
+                writer.WriteEndObject();
+                break;
+            case System.Collections.IEnumerable enumerable when value is not string:
+                writer.WriteStartArray();
+                foreach (var item in enumerable)
+                {
+                    WriteValue(writer, item);
+                }
+                writer.WriteEndArray();
+                break;
+            case Core.Digest digest:
+                // Digest objects are serialized as simple strings
+                writer.WriteStartObject();
+                writer.WriteString("...", digest.Value);
+                writer.WriteEndObject();
+                break;
+            default:
+                // For any other type, fall back to JsonSerializer.SerializeToElement
+                // This fallback maintains compatibility but may trigger AOT warnings
+                var element = JsonSerializer.SerializeToElement(value);
+                element.WriteTo(writer);
+                break;
         }
     }
 }

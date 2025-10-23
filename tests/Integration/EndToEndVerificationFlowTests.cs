@@ -162,7 +162,7 @@ public class EndToEndVerificationFlowTests
 
         // Act
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentationSafe(presentationString, signingKey);
+        var result = verifier.TryVerifyPresentation(presentationString, signingKey);
 
         // Assert
         Assert.False(result.IsValid, "Expired token should fail verification");
@@ -205,7 +205,7 @@ public class EndToEndVerificationFlowTests
 
         // Act
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentationSafe(presentationString, signingKey);
+        var result = verifier.TryVerifyPresentation(presentationString, signingKey);
 
         // Assert
         Assert.False(result.IsValid, "Tampered disclosure should fail verification");
@@ -239,7 +239,7 @@ public class EndToEndVerificationFlowTests
 
         // Act - Verify with wrong key
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentationSafe(presentationString, wrongKey);
+        var result = verifier.TryVerifyPresentation(presentationString, wrongKey);
 
         // Assert
         Assert.False(result.IsValid, "Verification with wrong key should fail");
@@ -271,7 +271,7 @@ public class EndToEndVerificationFlowTests
 
             var presenter = new SdJwtPresenter();
             var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
-        var presentationString = presenter.FormatPresentation(presentation);
+            var presentationString = presenter.FormatPresentation(presentation);
 
             // Act
             var verifier = new SdJwtVerifier();
@@ -381,7 +381,7 @@ public class EndToEndVerificationFlowTests
             ExpectedIssuer = "https://wrong-issuer.example.com"
         };
         var verifier = new SdJwtVerifier(options);
-        var result = verifier.VerifyPresentationSafe(presentationString, signingKey);
+        var result = verifier.TryVerifyPresentation(presentationString, signingKey);
 
         // Assert
         Assert.False(result.IsValid, "Verification with wrong issuer should fail");

@@ -139,12 +139,77 @@ internal static class JwkHelper
 
         if (jwkObject is Dictionary<string, object> dict)
         {
-            // Convert Dictionary to JsonElement for parsing
-            var json = JsonSerializer.Serialize(dict);
-            var element = JsonDocument.Parse(json).RootElement;
-            return ParseEcPublicKeyJwk(element);
+            // Parse directly from dictionary for AOT compatibility
+            return ParseEcPublicKeyJwkFromDictionary(dict);
         }
 
         throw new ArgumentException("JWK must be a JsonElement or Dictionary<string, object>");
+    }
+
+    /// <summary>
+    /// Parses a JWK from a Dictionary for AOT compatibility (avoids JsonSerializer.Serialize).
+    /// </summary>
+    private static byte[] ParseEcPublicKeyJwkFromDictionary(Dictionary<string, object> dict)
+    {
+        // Validate required fields
+        if (!dict.TryGetValue("kty", out var ktyObj) || ktyObj as string != "EC")
+        {
+            throw new ArgumentException("JWK must have kty=EC for Elliptic Curve keys");
+        }
+
+        if (!dict.TryGetValue("crv", out var crvObj) || crvObj as string != "P-256")
+        {
+            throw new ArgumentException("Only P-256 curve is supported");
+        }
+
+        if (!dict.TryGetValue("x", out var xObj) || xObj is not string xStr)
+        {
+            throw new ArgumentException("JWK must contain 'x' coordinate as a string");
+        }
+
+        if (!dict.TryGetValue("y", out var yObj) || yObj is not string yStr)
+        {
+            throw new ArgumentException("JWK must contain 'y' coordinate as a string");
+        }
+
+        // Decode coordinates
+        byte[] x, y;
+        try
+        {
+            x = Base64UrlEncoder.DecodeBytes(xStr);
+            y = Base64UrlEncoder.DecodeBytes(yStr);
+        }
+        catch (Exception ex) when (ex is FormatException or SdJwtException)
+        {
+            throw new ArgumentException("Invalid base64url encoding in JWK coordinates", ex);
+        }
+
+        // Validate coordinate sizes (P-256 uses 32-byte coordinates)
+        if (x.Length != 32 || y.Length != 32)
+        {
+            throw new ArgumentException($"P-256 coordinates must be 32 bytes each. Got x={x.Length}, y={y.Length}");
+        }
+
+        // Create ECParameters and import to get SubjectPublicKeyInfo format
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var parameters = new ECParameters
+        {
+            Curve = ECCurve.NamedCurves.nistP256,
+            Q = new ECPoint
+            {
+                X = x,
+                Y = y
+            }
+        };
+
+        try
+        {
+            ecdsa.ImportParameters(parameters);
+            return ecdsa.ExportSubjectPublicKeyInfo();
+        }
+        catch (CryptographicException ex)
+        {
+            throw new ArgumentException("Invalid EC public key parameters", ex);
+        }
     }
 }

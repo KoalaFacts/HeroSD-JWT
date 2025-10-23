@@ -128,7 +128,7 @@ public class AlgorithmSecurityTests
 
         // Act & Assert
         // Should fail signature verification
-        var result = verifier.VerifyPresentationSafe(presentation, publicKey);
+        var result = verifier.TryVerifyPresentation(presentation, publicKey);
         Assert.False(result.IsValid);
         Assert.Contains(ErrorCode.InvalidSignature, result.Errors);
     }
@@ -155,7 +155,7 @@ public class AlgorithmSecurityTests
         var publicKey = new byte[32];
 
         // Act - Verify with SHA-512 (mismatch)
-        var result = verifier.VerifyPresentationSafe(presentation, publicKey, HashAlgorithm.Sha512);
+        var result = verifier.TryVerifyPresentation(presentation, publicKey, HashAlgorithm.Sha512);
 
         // Assert
         Assert.False(result.IsValid);

@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Text;
 using System.Text.Json;
 
 namespace HeroSdJwt.Core;
@@ -88,20 +90,31 @@ public readonly struct Disclosure : IEquatable<Disclosure>
     /// Returns the JSON array representation of this disclosure.
     /// Format: [salt, claim_name, claim_value] for object properties (3-element)
     /// or [salt, claim_value] for array elements (2-element).
+    /// AOT-compatible: Uses Utf8JsonWriter instead of reflection-based serialization.
     /// </summary>
     /// <returns>JSON string representation.</returns>
     public string ToJson()
     {
-        if (IsArrayElement)
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
         {
-            // Array element disclosure: [salt, claim_value]
-            return JsonSerializer.Serialize(new object[] { Salt, ClaimValue });
+            writer.WriteStartArray();
+            writer.WriteStringValue(Salt);
+
+            if (!IsArrayElement)
+            {
+                // Object property disclosure: [salt, claim_name, claim_value]
+                writer.WriteStringValue(ClaimName!);
+            }
+
+            // Write the JsonElement value
+            ClaimValue.WriteTo(writer);
+
+            writer.WriteEndArray();
+            writer.Flush();
         }
-        else
-        {
-            // Object property disclosure: [salt, claim_name, claim_value]
-            return JsonSerializer.Serialize(new object[] { Salt, ClaimName!, ClaimValue });
-        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
     /// <inheritdoc/>

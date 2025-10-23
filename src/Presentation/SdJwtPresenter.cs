@@ -24,32 +24,67 @@ public class SdJwtPresenter
 
         var selectedClaimsList = selectedClaimNames.ToList();
 
-        // Build a map of claim names to their disclosures
-        // Note: Array element disclosures (which have no claim name) are not included in this map
-        var claimToDisclosure = new Dictionary<string, string>();
-        foreach (var disclosure in sdJwt.Disclosures)
+        // Build claim path mapping by analyzing JWT structure
+        // This is computed on-demand per SD-JWT spec: "it is up to the Holder how to maintain the mapping"
+        var mapper = new DisclosureClaimPathMapper();
+        var claimPathToIndex = mapper.BuildClaimPathMapping(sdJwt);
+
+        // Select disclosures based on requested claim paths
+        // Also include parent disclosures for nested paths (e.g., for "address.geo.lat", include "address.geo")
+        var selectedDisclosureIndices = new HashSet<int>();
+
+        foreach (var requestedPath in selectedClaimsList)
         {
-            var claimName = DisclosureParser.GetClaimName(disclosure);
-            if (claimName != null)
+            string claimPath = requestedPath;
+            int disclosureIndex;
+
+            if (!claimPathToIndex.TryGetValue(claimPath, out disclosureIndex))
             {
-                claimToDisclosure[claimName] = disclosure;
+                // Check if this is a simple claim name (legacy support)
+                var simpleMatch = claimPathToIndex.FirstOrDefault(kvp =>
+                    kvp.Key == claimPath || kvp.Key.EndsWith($".{claimPath}") || kvp.Key.EndsWith($"[{claimPath}]"));
+
+                if (!simpleMatch.Equals(default(KeyValuePair<string, int>)))
+                {
+                    disclosureIndex = simpleMatch.Value;
+                    claimPath = simpleMatch.Key; // Use the full matched path
+                }
+                else
+                {
+                    throw new ArgumentException(
+                        $"Claim path '{claimPath}' not found in SD-JWT. " +
+                        $"Available paths: {string.Join(", ", claimPathToIndex.Keys)}",
+                        nameof(selectedClaimNames));
+                }
+            }
+
+            if (disclosureIndex < 0 || disclosureIndex >= sdJwt.Disclosures.Count)
+            {
+                throw new InvalidOperationException(
+                    $"Invalid disclosure index {disclosureIndex} for claim '{claimPath}'");
+            }
+
+            // Add this disclosure
+            selectedDisclosureIndices.Add(disclosureIndex);
+
+            // For nested paths, also add all parent disclosures
+            // E.g., for "address.geo.lat", also add "address.geo"
+            var parts = claimPath.Split('.');
+            for (int i = 1; i < parts.Length; i++)
+            {
+                var parentPath = string.Join(".", parts.Take(i + 1));
+                if (claimPathToIndex.TryGetValue(parentPath, out var parentIndex))
+                {
+                    selectedDisclosureIndices.Add(parentIndex);
+                }
             }
         }
 
-        // Filter disclosures based on selected claims
-        var selectedDisclosures = new List<string>();
-        foreach (var claimName in selectedClaimsList)
-        {
-            if (!claimToDisclosure.TryGetValue(claimName, out var disclosure))
-            {
-                throw new ArgumentException(
-                    $"Claim '{claimName}' not found in SD-JWT disclosures. " +
-                    $"Available claims: {string.Join(", ", claimToDisclosure.Keys)}",
-                    nameof(selectedClaimNames));
-            }
-
-            selectedDisclosures.Add(disclosure);
-        }
+        // Convert indices to actual disclosures
+        var selectedDisclosures = selectedDisclosureIndices
+            .OrderBy(i => i) // Maintain order for consistency
+            .Select(i => sdJwt.Disclosures[i])
+            .ToList();
 
         // Use provided key binding JWT, or fall back to the one in sdJwt
         var finalKeyBindingJwt = keyBindingJwt ?? sdJwt.KeyBindingJwt;

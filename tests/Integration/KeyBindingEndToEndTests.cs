@@ -186,7 +186,7 @@ public class KeyBindingEndToEndTests
         var verifier = new SdJwtVerifier(verificationOptions);
 
         // Act
-        var result = verifier.VerifyPresentationSafe(
+        var result = verifier.TryVerifyPresentation(
             finalPresentationString,
             issuerSigningKey);
 
@@ -244,7 +244,7 @@ public class KeyBindingEndToEndTests
         var verifier = new SdJwtVerifier(verificationOptions);
 
         // Act
-        var result = verifier.VerifyPresentationSafe(
+        var result = verifier.TryVerifyPresentation(
             finalPresentationString,
             issuerSigningKey);
 
@@ -308,7 +308,7 @@ public class KeyBindingEndToEndTests
         var verifier = new SdJwtVerifier(verificationOptions);
 
         // Act
-        var result = verifier.VerifyPresentationSafe(
+        var result = verifier.TryVerifyPresentation(
             finalPresentationString,
             issuerSigningKey);
 
@@ -348,7 +348,7 @@ public class KeyBindingEndToEndTests
         var verifier = new SdJwtVerifier(verificationOptions);
 
         // Act
-        var result = verifier.VerifyPresentationSafe(
+        var result = verifier.TryVerifyPresentation(
             presentationString,
             issuerSigningKey);
 
@@ -401,7 +401,7 @@ public class KeyBindingEndToEndTests
         var verifier = new SdJwtVerifier(verificationOptions);
 
         // Act
-        var result = verifier.VerifyPresentationSafe(
+        var result = verifier.TryVerifyPresentation(
             finalPresentationString,
             issuerSigningKey);
 

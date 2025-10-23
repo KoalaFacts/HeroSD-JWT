@@ -1,6 +1,7 @@
 using HeroSdJwt.Common;
 using HeroSdJwt.Core;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace HeroSdJwt.Issuance;
@@ -14,6 +15,7 @@ public class DisclosureGenerator
     /// <summary>
     /// Generates a base64url-encoded disclosure for an object property (3-element format).
     /// Format: Base64url(JSON([salt, claim_name, claim_value]))
+    /// AOT-compatible: Uses Disclosure.ToJson() with Utf8JsonWriter.
     /// </summary>
     /// <param name="claimName">The name of the claim.</param>
     /// <param name="claimValue">The value of the claim.</param>
@@ -34,11 +36,9 @@ public class DisclosureGenerator
         // Convert salt to base64url
         var salt = Base64UrlEncoder.Encode(saltBytes);
 
-        // Create disclosure array: [salt, claim_name, claim_value]
-        var disclosureArray = new object[] { salt, claimName, claimValue };
-
-        // Serialize to JSON
-        var json = JsonSerializer.Serialize(disclosureArray);
+        // Create disclosure and serialize to JSON using AOT-compatible method
+        var disclosure = new Disclosure(salt, claimName, claimValue);
+        var json = disclosure.ToJson();
 
         // Convert to base64url
         return Base64UrlEncoder.Encode(json);
@@ -48,6 +48,7 @@ public class DisclosureGenerator
     /// Generates a base64url-encoded disclosure for an array element (2-element format).
     /// Format: Base64url(JSON([salt, claim_value]))
     /// Per SD-JWT spec section 4.2.4, array elements don't include a claim name.
+    /// AOT-compatible: Uses Disclosure.ToJson() with Utf8JsonWriter.
     /// </summary>
     /// <param name="claimValue">The value of the array element.</param>
     /// <returns>Base64url-encoded disclosure string.</returns>
@@ -60,11 +61,9 @@ public class DisclosureGenerator
         // Convert salt to base64url
         var salt = Base64UrlEncoder.Encode(saltBytes);
 
-        // Create disclosure array: [salt, claim_value] (2-element for arrays)
-        var disclosureArray = new object[] { salt, claimValue };
-
-        // Serialize to JSON
-        var json = JsonSerializer.Serialize(disclosureArray);
+        // Create disclosure and serialize to JSON using AOT-compatible method
+        var disclosure = new Disclosure(salt, claimValue);
+        var json = disclosure.ToJson();
 
         // Convert to base64url
         return Base64UrlEncoder.Encode(json);
