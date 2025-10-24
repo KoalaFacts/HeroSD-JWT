@@ -1,4 +1,4 @@
-namespace HeroSdJwt.Core;
+namespace HeroSdJwt.Models;
 
 /// <summary>
 /// Specifies the type of reconstruction available for a claim.

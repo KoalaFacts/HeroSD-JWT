@@ -1,9 +1,10 @@
-using HeroSdJwt.Common;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.Primitives;
 using System.Security.Cryptography;
 using System.Text;
 using Xunit;
-using HashAlgorithm = HeroSdJwt.Common.HashAlgorithm;
+using Base64UrlEncoder = HeroSdJwt.Encoding.Base64UrlEncoder;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Unit;
 
@@ -173,7 +174,7 @@ public class DigestCalculatorTests
     private static string ComputeExpectedDigest(string disclosure)
     {
         // Compute: Base64url(SHA-256(disclosure))
-        var bytes = Encoding.UTF8.GetBytes(disclosure);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(disclosure);
         var hash = SHA256.HashData(bytes);
         return ConvertToBase64Url(hash);
     }

@@ -1,6 +1,7 @@
+using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
 
-namespace HeroSdJwt.Core;
+namespace HeroSdJwt.Extensions;
 
 /// <summary>
 /// Extension methods to simplify common SD-JWT operations.

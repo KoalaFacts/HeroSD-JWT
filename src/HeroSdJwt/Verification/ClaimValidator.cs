@@ -1,4 +1,4 @@
-using HeroSdJwt.Common;
+
 using System.Text.Json;
 
 namespace HeroSdJwt.Verification;

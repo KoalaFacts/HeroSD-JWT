@@ -1,4 +1,4 @@
-namespace HeroSdJwt.Core;
+namespace HeroSdJwt.Models;
 
 /// <summary>
 /// Represents a parsed claim path that can include nested properties and array indices.

@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace HeroSdJwt.Common;
+namespace HeroSdJwt.Cryptography;
 
 /// <summary>
 /// Default implementation of IKeyGenerator using .NET BCL cryptographic primitives.

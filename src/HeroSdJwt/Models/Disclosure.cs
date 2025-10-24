@@ -2,7 +2,7 @@ using System.Buffers;
 using System.Text;
 using System.Text.Json;
 
-namespace HeroSdJwt.Core;
+namespace HeroSdJwt.Models;
 
 /// <summary>
 /// Represents a single disclosure in an SD-JWT.
@@ -114,7 +114,7 @@ public readonly struct Disclosure : IEquatable<Disclosure>
             writer.Flush();
         }
 
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+        return System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
     /// <inheritdoc/>

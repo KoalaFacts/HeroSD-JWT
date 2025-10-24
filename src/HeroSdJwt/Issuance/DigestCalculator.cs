@@ -1,7 +1,7 @@
-using HeroSdJwt.Common;
 using System.Security.Cryptography;
 using System.Text;
-using HashAlgorithm = HeroSdJwt.Common.HashAlgorithm;
+using HeroSdJwt.Encoding;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Issuance;
 
@@ -27,7 +27,7 @@ public class DigestCalculator
         }
 
         // Convert disclosure to bytes (it's already UTF-8 string)
-        var disclosureBytes = Encoding.UTF8.GetBytes(disclosure);
+        var disclosureBytes = System.Text.Encoding.UTF8.GetBytes(disclosure);
 
         // Compute hash based on algorithm
         byte[] hashBytes = algorithm switch

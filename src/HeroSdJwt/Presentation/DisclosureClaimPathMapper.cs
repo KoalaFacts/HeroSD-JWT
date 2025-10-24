@@ -1,7 +1,7 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
-using HeroSdJwt.Issuance;
 using System.Text.Json;
+using HeroSdJwt.Encoding;
+using HeroSdJwt.Issuance;
+using HeroSdJwt.Models;
 
 namespace HeroSdJwt.Presentation;
 

@@ -1,6 +1,7 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
 using System.Text.Json;
+using HeroSdJwt.Encoding;
+using HeroSdJwt.Exceptions;
+using HeroSdJwt.Models;
 
 namespace HeroSdJwt.Presentation;
 

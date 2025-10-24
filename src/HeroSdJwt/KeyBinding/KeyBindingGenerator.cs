@@ -1,8 +1,8 @@
-using HeroSdJwt.Common;
 using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using HeroSdJwt.Encoding;
 
 namespace HeroSdJwt.KeyBinding;
 
@@ -64,7 +64,7 @@ public class KeyBindingGenerator
         }
 
         var signature = ecdsa.SignData(
-            Encoding.UTF8.GetBytes(signingInput),
+            System.Text.Encoding.UTF8.GetBytes(signingInput),
             HashAlgorithmName.SHA256
         );
 
@@ -74,7 +74,7 @@ public class KeyBindingGenerator
 
     private static string Base64UrlEncode(string input)
     {
-        var bytes = Encoding.UTF8.GetBytes(input);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(input);
         return Base64UrlEncoder.Encode(bytes);
     }
 
@@ -99,7 +99,7 @@ public class KeyBindingGenerator
             writer.Flush();
         }
 
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+        return System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
     /// <summary>
@@ -120,6 +120,6 @@ public class KeyBindingGenerator
             writer.Flush();
         }
 
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+        return System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 }

@@ -1,9 +1,13 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using HashAlgorithm = HeroSdJwt.Common.HashAlgorithm;
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.Exceptions;
+using HeroSdJwt.Models;
+using Constants = HeroSdJwt.Primitives.Constants;
+using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
+using SignatureAlgorithm = HeroSdJwt.Primitives.SignatureAlgorithm;
 
 namespace HeroSdJwt.Issuance;
 
@@ -60,13 +64,13 @@ public class SdJwtIssuer
         var selectiveClaimsList = selectivelyDisclosableClaims?.ToList() ?? new List<string>();
 
         // Parse claim specifications to separate simple claims from array elements
-        var parsedClaims = selectiveClaimsList.Select(Core.ClaimPath.Parse).ToList();
+        var parsedClaims = selectiveClaimsList.Select(ClaimPath.Parse).ToList();
 
         // Validate that security-critical claims are not selectively disclosable
         // Per SD-JWT spec section 5.3: "An Issuer MUST NOT allow any content to be
         // selectively disclosable that is critical for evaluating the SD-JWT's authenticity or validity"
         var reservedClaimsInList = parsedClaims
-            .Where(p => !p.IsArrayElement && Core.Constants.ReservedClaims.Contains(p.BaseName))
+            .Where(p => !p.IsArrayElement && Constants.ReservedClaims.Contains(p.BaseName))
             .Select(p => p.BaseName)
             .ToList();
 
@@ -284,7 +288,7 @@ public class SdJwtIssuer
         }
 
         // Step 3: Create JWT using the specified signature algorithm
-        var jwt = Common.JwtSigner.CreateJwt(payload, signingKey, signatureAlgorithm);
+        var jwt = JwtSigner.CreateJwt(payload, signingKey, signatureAlgorithm);
 
         // Step 4: Create SdJwt object
         return new SdJwt(jwt, disclosures, hashAlgorithm);

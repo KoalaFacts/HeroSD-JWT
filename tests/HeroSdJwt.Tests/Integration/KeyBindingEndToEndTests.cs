@@ -1,12 +1,14 @@
-using HeroSdJwt.Common;
+using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Presentation;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
 using System.Text;
 using Xunit;
-using HashAlgorithm = HeroSdJwt.Common.HashAlgorithm;
+using Base64UrlEncoder = HeroSdJwt.Encoding.Base64UrlEncoder;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Integration;
 
@@ -68,7 +70,7 @@ public class KeyBindingEndToEndTests
                 var decodedJson = Convert.FromBase64String(
                     disclosure.Replace('-', '+').Replace('_', '/')
                         .PadRight(disclosure.Length + (4 - disclosure.Length % 4) % 4, '='));
-                var decodedString = Encoding.UTF8.GetString(decodedJson);
+                var decodedString = System.Text.Encoding.UTF8.GetString(decodedJson);
                 var array = System.Text.Json.JsonDocument.Parse(decodedString).RootElement;
                 if (array.GetArrayLength() == 3)
                 {
@@ -95,7 +97,7 @@ public class KeyBindingEndToEndTests
         // Compute SD-JWT hash: hash of "JWT~disclosure1~disclosure2~" (with trailing tilde)
         var sdJwtString = string.Join("~", sdJwtParts) + "~";
         using var sha256 = SHA256.Create();
-        var sdJwtHashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(sdJwtString));
+        var sdJwtHashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(sdJwtString));
         var sdJwtHash = Base64UrlEncoder.Encode(sdJwtHashBytes);
 
         // Generate key binding JWT
@@ -164,7 +166,7 @@ public class KeyBindingEndToEndTests
         var presentationStringWithoutKb = presenter.FormatPresentation(presentationWithoutKb);
 
         using var sha256 = SHA256.Create();
-        var sdJwtHashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(presentationStringWithoutKb));
+        var sdJwtHashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(presentationStringWithoutKb));
         var sdJwtHash = Base64UrlEncoder.Encode(sdJwtHashBytes);
 
         var keyBindingGenerator = new KeyBindingGenerator();
@@ -221,7 +223,7 @@ public class KeyBindingEndToEndTests
         var presentationStringWithoutKb = presenter.FormatPresentation(presentationWithoutKb);
 
         using var sha256 = SHA256.Create();
-        var sdJwtHashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(presentationStringWithoutKb));
+        var sdJwtHashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(presentationStringWithoutKb));
         var sdJwtHash = Base64UrlEncoder.Encode(sdJwtHashBytes);
 
         var keyBindingGenerator = new KeyBindingGenerator();
@@ -283,7 +285,7 @@ public class KeyBindingEndToEndTests
         var presentationStringWithoutKb = presenter.FormatPresentation(presentationWithoutKb);
 
         using var sha256 = SHA256.Create();
-        var sdJwtHashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(presentationStringWithoutKb));
+        var sdJwtHashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(presentationStringWithoutKb));
         var sdJwtHash = Base64UrlEncoder.Encode(sdJwtHashBytes);
 
         // Attacker tries to create key binding with their own private key
@@ -380,7 +382,7 @@ public class KeyBindingEndToEndTests
         var presentationStringWithoutKb = presenter.FormatPresentation(presentationWithoutKb);
 
         using var sha256 = SHA256.Create();
-        var sdJwtHashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(presentationStringWithoutKb));
+        var sdJwtHashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(presentationStringWithoutKb));
         var sdJwtHash = Base64UrlEncoder.Encode(sdJwtHashBytes);
 
         // Create key binding JWT anyway

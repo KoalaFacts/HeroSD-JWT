@@ -1,8 +1,9 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using HeroSdJwt.Encoding;
+using HeroSdJwt.Models;
+using Constants = HeroSdJwt.Primitives.Constants;
 
 namespace HeroSdJwt.Issuance;
 

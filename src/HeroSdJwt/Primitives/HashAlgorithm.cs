@@ -1,4 +1,4 @@
-namespace HeroSdJwt.Common;
+namespace HeroSdJwt.Primitives;
 
 /// <summary>
 /// Specifies the cryptographic hash algorithm used for SD-JWT digest computation.

@@ -1,9 +1,10 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
+using HeroSdJwt.Exceptions;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
 using System.Text.Json;
 using Xunit;
+using Base64UrlEncoder = HeroSdJwt.Encoding.Base64UrlEncoder;
 
 namespace HeroSdJwt.Tests.Unit;
 

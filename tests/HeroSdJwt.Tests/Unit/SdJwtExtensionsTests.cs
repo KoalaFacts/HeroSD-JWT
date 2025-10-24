@@ -1,6 +1,7 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.Models;
 using HeroSdJwt.Verification;
 using Xunit;
 

@@ -1,7 +1,9 @@
-using HeroSdJwt.Common;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using HeroSdJwt.Encoding;
+using HeroSdJwt.Exceptions;
+using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 
 namespace HeroSdJwt.Verification;
 
@@ -74,7 +76,7 @@ internal static class SignatureValidator
 
         // Construct the signing input (header.payload)
         var signingInput = $"{headerBase64}.{payloadBase64}";
-        var signingInputBytes = Encoding.UTF8.GetBytes(signingInput);
+        var signingInputBytes = System.Text.Encoding.UTF8.GetBytes(signingInput);
 
         // Decode signature
         var signatureBytes = Base64UrlEncoder.DecodeBytes(signatureBase64);

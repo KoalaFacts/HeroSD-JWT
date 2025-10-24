@@ -1,6 +1,6 @@
-using HeroSdJwt.Common;
 using System.Security.Cryptography;
-using HashAlgorithm = HeroSdJwt.Common.HashAlgorithm;
+using HeroSdJwt.Encoding;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Issuance;
 

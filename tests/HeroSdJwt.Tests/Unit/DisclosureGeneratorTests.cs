@@ -1,4 +1,3 @@
-using HeroSdJwt.Core;
 using HeroSdJwt.Issuance;
 using System.Text;
 using System.Text.Json;
@@ -164,7 +163,7 @@ public class DisclosureGeneratorTests
     {
         var base64 = ConvertFromBase64Url(base64UrlDisclosure);
         var bytes = Convert.FromBase64String(base64);
-        var json = Encoding.UTF8.GetString(bytes);
+        var json = System.Text.Encoding.UTF8.GetString(bytes);
         return JsonDocument.Parse(json).RootElement;
     }
 

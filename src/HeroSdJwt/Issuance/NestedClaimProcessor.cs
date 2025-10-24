@@ -1,6 +1,6 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
 using System.Text.Json;
+using HeroSdJwt.Models;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Issuance;
 

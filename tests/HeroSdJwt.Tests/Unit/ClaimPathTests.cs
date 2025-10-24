@@ -1,4 +1,4 @@
-using HeroSdJwt.Core;
+using HeroSdJwt.Models;
 using Xunit;
 
 namespace HeroSdJwt.Tests.Unit;

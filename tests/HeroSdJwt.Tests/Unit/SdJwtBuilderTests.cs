@@ -1,9 +1,9 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.Primitives;
 using System.Security.Cryptography;
 using Xunit;
-using HashAlgorithm = HeroSdJwt.Common.HashAlgorithm;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Unit;
 

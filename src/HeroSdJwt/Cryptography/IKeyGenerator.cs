@@ -1,4 +1,4 @@
-namespace HeroSdJwt.Common;
+namespace HeroSdJwt.Cryptography;
 
 /// <summary>
 /// Interface for cryptographic key generation.

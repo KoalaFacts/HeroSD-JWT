@@ -1,11 +1,15 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
-using HeroSdJwt.KeyBinding;
-using HeroSdJwt.Presentation;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using HashAlgorithm = HeroSdJwt.Common.HashAlgorithm;
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.Encoding;
+using HeroSdJwt.Exceptions;
+using HeroSdJwt.KeyBinding;
+using HeroSdJwt.Models;
+using HeroSdJwt.Presentation;
+using Constants = HeroSdJwt.Primitives.Constants;
+using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Verification;
 
@@ -377,7 +381,7 @@ public class SdJwtVerifier
             try
             {
                 using var sha256 = SHA256.Create();
-                var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(sdJwtString));
+                var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(sdJwtString));
                 sdJwtHash = Base64UrlEncoder.Encode(hashBytes);
             }
             catch (Exception ex)

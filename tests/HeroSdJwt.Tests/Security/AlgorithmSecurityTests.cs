@@ -1,6 +1,8 @@
-using HeroSdJwt.Common;
+using HeroSdJwt.Exceptions;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using Xunit;
+using Base64UrlEncoder = HeroSdJwt.Encoding.Base64UrlEncoder;
 
 namespace HeroSdJwt.Tests.Security;
 

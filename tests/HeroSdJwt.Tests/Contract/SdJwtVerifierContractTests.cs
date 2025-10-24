@@ -1,11 +1,11 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
+using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
-using HeroSdJwt.Presentation;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
 using Xunit;
-using HashAlgorithm = HeroSdJwt.Common.HashAlgorithm;
+using Base64UrlEncoder = HeroSdJwt.Encoding.Base64UrlEncoder;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Contract;
 

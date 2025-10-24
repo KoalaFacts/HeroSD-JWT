@@ -1,4 +1,4 @@
-namespace HeroSdJwt.Common;
+namespace HeroSdJwt.Primitives;
 
 /// <summary>
 /// Enumeration of error codes for SD-JWT operations.

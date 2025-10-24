@@ -1,6 +1,8 @@
-using HeroSdJwt.Common;
+using HeroSdJwt.Exceptions;
+using HeroSdJwt.Primitives;
 using System.Text;
 using Xunit;
+using Base64UrlEncoder = HeroSdJwt.Encoding.Base64UrlEncoder;
 
 namespace HeroSdJwt.Tests.Unit;
 
@@ -14,7 +16,7 @@ public class Base64UrlEncoderTests
     public void Encode_WithBytes_ReturnsBase64UrlString()
     {
         // Arrange
-        var bytes = Encoding.UTF8.GetBytes("Hello, World!");
+        var bytes = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
 
         // Act
         var encoded = Base64UrlEncoder.Encode(bytes);
@@ -87,7 +89,7 @@ public class Base64UrlEncoderTests
     public void DecodeBytes_WithValidBase64Url_ReturnsOriginalBytes()
     {
         // Arrange
-        var originalBytes = Encoding.UTF8.GetBytes("Hello, World!");
+        var originalBytes = System.Text.Encoding.UTF8.GetBytes("Hello, World!");
         var encoded = Base64UrlEncoder.Encode(originalBytes);
 
         // Act

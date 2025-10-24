@@ -1,4 +1,4 @@
-using HeroSdJwt.Common;
+using HeroSdJwt.Cryptography;
 using System.Security.Cryptography;
 using Xunit;
 

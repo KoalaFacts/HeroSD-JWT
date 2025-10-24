@@ -1,7 +1,9 @@
-using HeroSdJwt.Common;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using HeroSdJwt.Encoding;
+using HeroSdJwt.Exceptions;
+using HeroSdJwt.Primitives;
 
 namespace HeroSdJwt.KeyBinding;
 
@@ -106,7 +108,7 @@ internal static class KeyBindingValidator
             var now = DateTimeOffset.UtcNow;
 
             // Reject if KB-JWT is too old (replay attack prevention)
-            var maxAge = TimeSpan.FromSeconds(Core.Constants.MaxKeyBindingJwtAgeSeconds);
+            var maxAge = TimeSpan.FromSeconds(Constants.MaxKeyBindingJwtAgeSeconds);
             if (now - iat > maxAge)
             {
                 return false; // KB-JWT is too old
@@ -141,7 +143,7 @@ internal static class KeyBindingValidator
             }
 
             return ecdsa.VerifyData(
-                Encoding.UTF8.GetBytes(signingInput),
+                System.Text.Encoding.UTF8.GetBytes(signingInput),
                 signature,
                 HashAlgorithmName.SHA256
             );

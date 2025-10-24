@@ -1,12 +1,13 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
+using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Xunit;
-using HashAlgorithm = HeroSdJwt.Common.HashAlgorithm;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Contract;
 

@@ -1,7 +1,7 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
+using HeroSdJwt.Primitives;
 using Xunit;
 
 namespace HeroSdJwt.Tests.Contract;

@@ -1,4 +1,4 @@
-using HeroSdJwt.Common;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Verification;
 

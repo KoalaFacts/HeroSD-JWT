@@ -1,6 +1,5 @@
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.Primitives;
 using System.Text.Json;
 using Xunit;
 

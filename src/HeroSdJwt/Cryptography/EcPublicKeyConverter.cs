@@ -1,7 +1,10 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using HeroSdJwt.Encoding;
+using HeroSdJwt.Exceptions;
+using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 
-namespace HeroSdJwt.Common;
+namespace HeroSdJwt.Cryptography;
 
 /// <summary>
 /// Converts between ECDSA public keys and JSON Web Key (JWK) format per RFC 7517.

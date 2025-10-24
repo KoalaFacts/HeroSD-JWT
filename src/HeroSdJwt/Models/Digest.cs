@@ -1,8 +1,8 @@
-using HeroSdJwt.Common;
 using System.Security.Cryptography;
-using HashAlgorithm = HeroSdJwt.Common.HashAlgorithm;
+using HeroSdJwt.Encoding;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
-namespace HeroSdJwt.Core;
+namespace HeroSdJwt.Models;
 
 /// <summary>
 /// Represents a cryptographic digest of a disclosure.

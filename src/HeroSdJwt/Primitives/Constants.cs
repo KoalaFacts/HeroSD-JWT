@@ -1,4 +1,4 @@
-namespace HeroSdJwt.Core;
+namespace HeroSdJwt.Primitives;
 
 /// <summary>
 /// Contains constant values used throughout the SD-JWT library.
@@ -95,22 +95,22 @@ public static class Constants
     /// <summary>
     /// Mapping of hash algorithm enum to string representation in JWT.
     /// </summary>
-    public static readonly IReadOnlyDictionary<Common.HashAlgorithm, string> HashAlgorithmNames =
-        new Dictionary<Common.HashAlgorithm, string>
+    public static readonly IReadOnlyDictionary<HashAlgorithm, string> HashAlgorithmNames =
+        new Dictionary<HashAlgorithm, string>
         {
-            { Common.HashAlgorithm.Sha256, "sha-256" },
-            { Common.HashAlgorithm.Sha384, "sha-384" },
-            { Common.HashAlgorithm.Sha512, "sha-512" }
+            { HashAlgorithm.Sha256, "sha-256" },
+            { HashAlgorithm.Sha384, "sha-384" },
+            { HashAlgorithm.Sha512, "sha-512" }
         };
 
     /// <summary>
     /// Reverse mapping of hash algorithm string to enum.
     /// </summary>
-    public static readonly IReadOnlyDictionary<string, Common.HashAlgorithm> HashAlgorithmFromName =
-        new Dictionary<string, Common.HashAlgorithm>
+    public static readonly IReadOnlyDictionary<string, HashAlgorithm> HashAlgorithmFromName =
+        new Dictionary<string, HashAlgorithm>
         {
-            { "sha-256", Common.HashAlgorithm.Sha256 },
-            { "sha-384", Common.HashAlgorithm.Sha384 },
-            { "sha-512", Common.HashAlgorithm.Sha512 }
+            { "sha-256", HashAlgorithm.Sha256 },
+            { "sha-384", HashAlgorithm.Sha384 },
+            { "sha-512", HashAlgorithm.Sha512 }
         };
 }

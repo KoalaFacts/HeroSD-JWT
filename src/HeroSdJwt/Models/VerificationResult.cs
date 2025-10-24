@@ -1,8 +1,8 @@
-using HeroSdJwt.Common;
 using System.Collections.ObjectModel;
 using System.Text.Json;
+using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 
-namespace HeroSdJwt.Core;
+namespace HeroSdJwt.Models;
 
 /// <summary>
 /// Represents the result of an SD-JWT verification operation.

@@ -1,9 +1,11 @@
-using HeroSdJwt.Common;
+using HeroSdJwt.Exceptions;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Xunit;
+using Base64UrlEncoder = HeroSdJwt.Encoding.Base64UrlEncoder;
 
 namespace HeroSdJwt.Tests.Unit.Verification;
 
@@ -319,18 +321,18 @@ public class SignatureValidatorTests
         {
             using var rsa = RSA.Create();
             rsa.ImportRSAPrivateKey(key, out _);
-            signature = rsa.SignData(Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            signature = rsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         }
         else if (useEcdsa)
         {
             using var ecdsa = ECDsa.Create();
             ecdsa.ImportECPrivateKey(key, out _);
-            signature = ecdsa.SignData(Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256);
+            signature = ecdsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256);
         }
         else // HMAC
         {
             using var hmac = new HMACSHA256(key);
-            signature = hmac.ComputeHash(Encoding.UTF8.GetBytes(signingInput));
+            signature = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(signingInput));
         }
 
         var signatureBase64 = Base64UrlEncode(signature);
@@ -363,7 +365,7 @@ public class SignatureValidatorTests
 
     private static string Base64UrlEncode(string input)
     {
-        var bytes = Encoding.UTF8.GetBytes(input);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(input);
         return Base64UrlEncode(bytes);
     }
 

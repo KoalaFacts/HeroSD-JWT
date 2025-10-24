@@ -1,7 +1,7 @@
-using HeroSdJwt.Common;
 using System.Collections.ObjectModel;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
-namespace HeroSdJwt.Core;
+namespace HeroSdJwt.Models;
 
 /// <summary>
 /// Represents a complete SD-JWT (Selective Disclosure JSON Web Token).

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace HeroSdJwt.Common;
+namespace HeroSdJwt.Cryptography;
 
 /// <summary>
 /// Converts between ECDSA public keys and JSON Web Key (JWK) format per RFC 7517.

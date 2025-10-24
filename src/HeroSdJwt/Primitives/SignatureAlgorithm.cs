@@ -1,4 +1,4 @@
-namespace HeroSdJwt.Common;
+namespace HeroSdJwt.Primitives;
 
 /// <summary>
 /// Supported JWT signature algorithms per RFC 7518.

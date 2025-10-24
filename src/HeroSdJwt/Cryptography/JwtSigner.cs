@@ -2,8 +2,10 @@ using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using HeroSdJwt.Encoding;
+using HeroSdJwt.Primitives;
 
-namespace HeroSdJwt.Common;
+namespace HeroSdJwt.Cryptography;
 
 /// <summary>
 /// Creates and signs JWTs using various signature algorithms.
@@ -50,7 +52,7 @@ internal static class JwtSigner
 
         // Create signing input
         var signingInput = $"{headerBase64}.{payloadBase64}";
-        var signingInputBytes = Encoding.UTF8.GetBytes(signingInput);
+        var signingInputBytes = System.Text.Encoding.UTF8.GetBytes(signingInput);
 
         // Sign based on algorithm
         byte[] signatureBytes = algorithm switch
@@ -157,7 +159,7 @@ internal static class JwtSigner
             writer.Flush();
         }
 
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+        return System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
     /// <summary>
@@ -221,7 +223,7 @@ internal static class JwtSigner
                 }
                 writer.WriteEndArray();
                 break;
-            case Core.Digest digest:
+            case Models.Digest digest:
                 // Digest objects are serialized as simple strings
                 writer.WriteStartObject();
                 writer.WriteString("...", digest.Value);

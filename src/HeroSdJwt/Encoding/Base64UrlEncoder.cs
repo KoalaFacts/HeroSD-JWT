@@ -1,7 +1,8 @@
 using System.Buffers.Text;
-using System.Text;
+using HeroSdJwt.Exceptions;
+using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 
-namespace HeroSdJwt.Common;
+namespace HeroSdJwt.Encoding;
 
 /// <summary>
 /// Provides Base64url encoding and decoding utilities using the BCL Base64Url class.
@@ -48,7 +49,7 @@ internal static class Base64UrlEncoder
     {
         ArgumentNullException.ThrowIfNull(text);
 
-        var bytes = Encoding.UTF8.GetBytes(text);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(text);
         return Encode(bytes);
     }
 
@@ -75,7 +76,7 @@ internal static class Base64UrlEncoder
         try
         {
             // Convert string to UTF-8 bytes for Base64Url.DecodeFromUtf8
-            var utf8Bytes = Encoding.UTF8.GetBytes(base64Url);
+            var utf8Bytes = System.Text.Encoding.UTF8.GetBytes(base64Url);
 
             // Calculate maximum possible decoded size
             var maxDecodedLength = Base64Url.GetMaxDecodedLength(utf8Bytes.Length);
@@ -111,6 +112,6 @@ internal static class Base64UrlEncoder
         ArgumentNullException.ThrowIfNull(base64Url);
 
         var bytes = DecodeBytes(base64Url);
-        return Encoding.UTF8.GetString(bytes);
+        return System.Text.Encoding.UTF8.GetString(bytes);
     }
 }

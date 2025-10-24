@@ -1,8 +1,8 @@
-using HeroSdJwt.Common;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.Primitives;
 using System.Reflection;
 using Xunit;
-using HashAlgorithm = HeroSdJwt.Common.HashAlgorithm;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Unit;
 

@@ -1,9 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using HeroSdJwt.Models;
 
 // ReSharper disable once CheckNamespace
 #pragma warning disable IDE0130 // Namespace does not match folder structure - intentional for extension methods
-namespace HeroSdJwt.Core;
+namespace HeroSdJwt.Extensions;
 #pragma warning restore IDE0130
 
 /// <summary>

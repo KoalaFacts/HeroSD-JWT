@@ -1,4 +1,6 @@
-namespace HeroSdJwt.Common;
+using HeroSdJwt.Primitives;
+
+namespace HeroSdJwt.Exceptions;
 
 /// <summary>
 /// Base exception type for all SD-JWT library errors.
