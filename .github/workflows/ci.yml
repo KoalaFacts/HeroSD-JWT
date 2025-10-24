@@ -43,7 +43,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ matrix.dotnet-version }}
-        cache: true  # Auto-detects lock files if present, falls back to .csproj
+        cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
       run: dotnet restore
@@ -122,7 +122,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
-        cache: true  # Auto-detects lock files if present, falls back to .csproj
+        cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
       run: dotnet restore
@@ -148,7 +148,7 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
-        cache: true  # Auto-detects lock files if present, falls back to .csproj
+        cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
       run: dotnet restore
