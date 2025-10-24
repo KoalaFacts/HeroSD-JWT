@@ -12,7 +12,10 @@
 
     <!-- Package Metadata -->
     <PackageId>HeroSD-JWT</PackageId>
+
+    <!-- Version: Update before each release. CI overrides this with -p:Version during official releases. -->
     <Version>1.0.3</Version>
+
     <Authors>KoalaFacts</Authors>
     <Company>KoalaFacts</Company>
     <Product>HeroSD-JWT</Product>
@@ -27,8 +30,15 @@
     <PackageIcon>icon.png</PackageIcon>
     <Copyright>Copyright (c) 2025 KoalaFacts</Copyright>
 
-    <!-- Release Notes -->
-    <PackageReleaseNotes>Initial v1.0.0 release with full SD-JWT support including array elements, nested claims, key binding, and RS256/ES256 algorithms.</PackageReleaseNotes>
+    <!-- Release Notes: MUST be updated before each release. CI uses this value (does NOT override). -->
+    <PackageReleaseNotes>
+Version 1.0.3:
+- Fixed nested array disclosure issue
+- Improved verification performance
+- Updated to support .NET 9.0
+
+See full changelog: https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG.md
+    </PackageReleaseNotes>
 
     <!-- Source Link for debugging -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
