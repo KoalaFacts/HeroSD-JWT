@@ -9,13 +9,13 @@ namespace HeroSdJwt.Tests.Unit;
 /// </summary>
 public class KeyGeneratorTests
 {
-    private readonly IKeyGenerator _keyGenerator = KeyGenerator.Instance;
+    private readonly IKeyGenerator keyGenerator = KeyGenerator.Instance;
 
     [Fact]
     public void GenerateHmacKey_WithDefaultSize_Returns256BitKey()
     {
         // Act
-        var key = _keyGenerator.GenerateHmacKey();
+        var key = keyGenerator.GenerateHmacKey();
 
         // Assert
         Assert.Equal(32, key.Length); // 256 bits = 32 bytes
@@ -25,7 +25,7 @@ public class KeyGeneratorTests
     public void GenerateHmacKey_WithCustomSize_ReturnsCorrectSize()
     {
         // Act
-        var key512 = _keyGenerator.GenerateHmacKey(512);
+        var key512 = keyGenerator.GenerateHmacKey(512);
 
         // Assert
         Assert.Equal(64, key512.Length); // 512 bits = 64 bytes
@@ -35,8 +35,8 @@ public class KeyGeneratorTests
     public void GenerateHmacKey_MultipleCallsProduceDifferentKeys()
     {
         // Act
-        var key1 = _keyGenerator.GenerateHmacKey();
-        var key2 = _keyGenerator.GenerateHmacKey();
+        var key1 = keyGenerator.GenerateHmacKey();
+        var key2 = keyGenerator.GenerateHmacKey();
 
         // Assert
         Assert.NotEqual(key1, key2);
@@ -46,16 +46,16 @@ public class KeyGeneratorTests
     public void GenerateHmacKey_WithInvalidSize_ThrowsArgumentException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => _keyGenerator.GenerateHmacKey(0));
-        Assert.Throws<ArgumentException>(() => _keyGenerator.GenerateHmacKey(-1));
-        Assert.Throws<ArgumentException>(() => _keyGenerator.GenerateHmacKey(7)); // Not multiple of 8
+        Assert.Throws<ArgumentException>(() => keyGenerator.GenerateHmacKey(0));
+        Assert.Throws<ArgumentException>(() => keyGenerator.GenerateHmacKey(-1));
+        Assert.Throws<ArgumentException>(() => keyGenerator.GenerateHmacKey(7)); // Not multiple of 8
     }
 
     [Fact]
     public void GenerateRsaKeyPair_WithDefaultSize_Returns2048BitKeys()
     {
         // Act
-        var (privateKey, publicKey) = _keyGenerator.GenerateRsaKeyPair();
+        var (privateKey, publicKey) = keyGenerator.GenerateRsaKeyPair();
 
         // Assert
         Assert.NotNull(privateKey);
@@ -73,7 +73,7 @@ public class KeyGeneratorTests
     public void GenerateRsaKeyPair_WithCustomSize_ReturnsCorrectSize()
     {
         // Act
-        var (privateKey, publicKey) = _keyGenerator.GenerateRsaKeyPair(4096);
+        var (privateKey, publicKey) = keyGenerator.GenerateRsaKeyPair(4096);
 
         // Assert
         using var rsa = RSA.Create();
@@ -86,7 +86,7 @@ public class KeyGeneratorTests
     {
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _keyGenerator.GenerateRsaKeyPair(1024));
+            keyGenerator.GenerateRsaKeyPair(1024));
 
         Assert.Contains("2048", exception.Message);
     }
@@ -95,7 +95,7 @@ public class KeyGeneratorTests
     public void GenerateRsaKeyPair_PublicKeyMatchesPrivateKey()
     {
         // Act
-        var (privateKey, publicKey) = _keyGenerator.GenerateRsaKeyPair();
+        var (privateKey, publicKey) = keyGenerator.GenerateRsaKeyPair();
 
         // Assert - Extract public key from private key and compare
         using var rsaPrivate = RSA.Create();
@@ -109,7 +109,7 @@ public class KeyGeneratorTests
     public void GenerateEcdsaKeyPair_ReturnsP256Keys()
     {
         // Act
-        var (privateKey, publicKey) = _keyGenerator.GenerateEcdsaKeyPair();
+        var (privateKey, publicKey) = keyGenerator.GenerateEcdsaKeyPair();
 
         // Assert
         Assert.NotNull(privateKey);
@@ -127,7 +127,7 @@ public class KeyGeneratorTests
     public void GenerateEcdsaKeyPair_PublicKeyMatchesPrivateKey()
     {
         // Act
-        var (privateKey, publicKey) = _keyGenerator.GenerateEcdsaKeyPair();
+        var (privateKey, publicKey) = keyGenerator.GenerateEcdsaKeyPair();
 
         // Assert
         using var ecdsaPrivate = ECDsa.Create();
@@ -141,7 +141,7 @@ public class KeyGeneratorTests
     public void GenerateEcdsaKeyPair_CanBeUsedForKeyBinding()
     {
         // Act - Key binding uses ECDSA keys
-        var (holderPrivateKey, holderPublicKey) = _keyGenerator.GenerateEcdsaKeyPair();
+        var (holderPrivateKey, holderPublicKey) = keyGenerator.GenerateEcdsaKeyPair();
 
         // Assert - Should be valid P-256 ECDSA keys
         using var ecdsa = ECDsa.Create();
@@ -156,8 +156,8 @@ public class KeyGeneratorTests
     public void GenerateEcdsaKeyPair_MultipleCallsProduceDifferentKeys()
     {
         // Act
-        var (privateKey1, publicKey1) = _keyGenerator.GenerateEcdsaKeyPair();
-        var (privateKey2, publicKey2) = _keyGenerator.GenerateEcdsaKeyPair();
+        var (privateKey1, publicKey1) = keyGenerator.GenerateEcdsaKeyPair();
+        var (privateKey2, publicKey2) = keyGenerator.GenerateEcdsaKeyPair();
 
         // Assert
         Assert.NotEqual(privateKey1, privateKey2);
@@ -168,8 +168,8 @@ public class KeyGeneratorTests
     public void GenerateRsaKeyPair_MultipleCallsProduceDifferentKeys()
     {
         // Act
-        var (privateKey1, publicKey1) = _keyGenerator.GenerateRsaKeyPair();
-        var (privateKey2, publicKey2) = _keyGenerator.GenerateRsaKeyPair();
+        var (privateKey1, publicKey1) = keyGenerator.GenerateRsaKeyPair();
+        var (privateKey2, publicKey2) = keyGenerator.GenerateRsaKeyPair();
 
         // Assert
         Assert.NotEqual(privateKey1, privateKey2);

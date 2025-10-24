@@ -16,8 +16,8 @@ namespace HeroSdJwt.Tests.Security;
 /// </summary>
 public class TimingAttackTests
 {
-    private const int SampleSize = 1000; // Number of iterations for statistical analysis
-    private const double MaxAcceptableVariance = 0.15; // 15% variance threshold
+    private const int sampleSize = 1000; // Number of iterations for statistical analysis
+    private const double maxAcceptableVariance = 0.15; // 15% variance threshold
 
     [Fact(Skip = "Timing test measures digest computation not comparison - needs refinement")]
     public void DigestComparison_UsesConstantTimeComparison()
@@ -37,7 +37,7 @@ public class TimingAttackTests
         var incorrectTimes = new List<long>();
         var sw = Stopwatch.StartNew();
 
-        for (int i = 0; i < SampleSize; i++)
+        for (int i = 0; i < sampleSize; i++)
         {
             // Measure correct digest validation
             sw.Restart();
@@ -60,8 +60,8 @@ public class TimingAttackTests
 
         // The timing difference should be minimal (within acceptable variance)
         // This indicates constant-time comparison is being used
-        Assert.True(relativeVariance < MaxAcceptableVariance,
-            $"Timing variance ({relativeVariance:P2}) exceeds threshold ({MaxAcceptableVariance:P2}). " +
+        Assert.True(relativeVariance < maxAcceptableVariance,
+            $"Timing variance ({relativeVariance:P2}) exceeds threshold ({maxAcceptableVariance:P2}). " +
             $"This may indicate a timing attack vulnerability. " +
             $"Correct avg: {correctAvg:F2} ticks, Incorrect avg: {incorrectAvg:F2} ticks");
     }
@@ -87,7 +87,7 @@ public class TimingAttackTests
         var lastByteTimes = new List<long>();
         var sw = Stopwatch.StartNew();
 
-        for (int i = 0; i < SampleSize; i++)
+        for (int i = 0; i < sampleSize; i++)
         {
             // Measure first byte difference
             sw.Restart();
@@ -109,7 +109,7 @@ public class TimingAttackTests
         var relativeVariance = timeDifference / Math.Max(firstByteAvg, lastByteAvg);
 
         // Position of difference should not affect timing (constant-time)
-        Assert.True(relativeVariance < MaxAcceptableVariance,
+        Assert.True(relativeVariance < maxAcceptableVariance,
             $"Timing variance ({relativeVariance:P2}) between first and last byte differences exceeds threshold. " +
             $"This indicates the comparison may not be truly constant-time. " +
             $"First byte avg: {firstByteAvg:F2} ticks, Last byte avg: {lastByteAvg:F2} ticks");
@@ -174,7 +174,7 @@ public class TimingAttackTests
         var incorrectTimes = new List<long>();
         var sw = Stopwatch.StartNew();
 
-        for (int i = 0; i < SampleSize; i++)
+        for (int i = 0; i < sampleSize; i++)
         {
             // Measure correct validation
             sw.Restart();
@@ -196,7 +196,7 @@ public class TimingAttackTests
         var relativeVariance = timeDifference / Math.Max(correctAvg, incorrectAvg);
 
         // Batch validation should also have consistent timing
-        Assert.True(relativeVariance < MaxAcceptableVariance,
+        Assert.True(relativeVariance < maxAcceptableVariance,
             $"Batch validation timing variance ({relativeVariance:P2}) exceeds threshold. " +
             $"Correct avg: {correctAvg:F2} ticks, Incorrect avg: {incorrectAvg:F2} ticks");
     }

@@ -11,7 +11,7 @@ namespace HeroSdJwt.Tests.Unit;
 /// </summary>
 public class JwkHelperTests
 {
-    private readonly IEcPublicKeyConverter _converter = new EcPublicKeyConverter();
+    private readonly IEcPublicKeyConverter converter = new EcPublicKeyConverter();
 
     [Fact]
     public void CreateEcPublicKeyJwk_WithValidP256Key_ReturnsCorrectJwk()
@@ -21,7 +21,7 @@ public class JwkHelperTests
         var publicKey = ecdsa.ExportSubjectPublicKeyInfo();
 
         // Act
-        var jwk = _converter.ToJwk(publicKey);
+        var jwk = converter.ToJwk(publicKey);
 
         // Assert
         Assert.Equal("EC", jwk["kty"]);
@@ -34,7 +34,7 @@ public class JwkHelperTests
     public void CreateEcPublicKeyJwk_WithNullKey_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => _converter.ToJwk(null!));
+        Assert.Throws<ArgumentNullException>(() => converter.ToJwk(null!));
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class JwkHelperTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _converter.ToJwk(invalidKey));
+            converter.ToJwk(invalidKey));
         Assert.Contains("Invalid ECDSA public key", exception.Message);
     }
 
@@ -58,7 +58,7 @@ public class JwkHelperTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _converter.ToJwk(publicKey));
+            converter.ToJwk(publicKey));
         Assert.Contains("P-256", exception.Message);
     }
 
@@ -70,7 +70,7 @@ public class JwkHelperTests
         var publicKey = ecdsa.ExportSubjectPublicKeyInfo();
 
         // Act
-        var jwk = _converter.ToJwk(publicKey);
+        var jwk = converter.ToJwk(publicKey);
 
         // Assert
         var x = jwk["x"].ToString()!;
@@ -104,7 +104,7 @@ public class JwkHelperTests
         var jwk = JsonDocument.Parse(jwkJson).RootElement;
 
         // Act
-        var publicKey = _converter.FromJwk(jwk);
+        var publicKey = converter.FromJwk(jwk);
 
         // Assert
         Assert.NotNull(publicKey);
@@ -131,7 +131,7 @@ public class JwkHelperTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _converter.FromJwk(jwk));
+            converter.FromJwk(jwk));
         Assert.Contains("kty", exception.Message);
     }
 
@@ -151,7 +151,7 @@ public class JwkHelperTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _converter.FromJwk(jwk));
+            converter.FromJwk(jwk));
         Assert.Contains("EC", exception.Message);
     }
 
@@ -171,7 +171,7 @@ public class JwkHelperTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _converter.FromJwk(jwk));
+            converter.FromJwk(jwk));
         Assert.Contains("P-256", exception.Message);
     }
 
@@ -190,7 +190,7 @@ public class JwkHelperTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _converter.FromJwk(jwk));
+            converter.FromJwk(jwk));
         Assert.Contains("x", exception.Message);
     }
 
@@ -209,7 +209,7 @@ public class JwkHelperTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _converter.FromJwk(jwk));
+            converter.FromJwk(jwk));
         Assert.Contains("y", exception.Message);
     }
 
@@ -229,7 +229,7 @@ public class JwkHelperTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _converter.FromJwk(jwk));
+            converter.FromJwk(jwk));
         Assert.Contains("base64url", exception.Message);
     }
 
@@ -250,7 +250,7 @@ public class JwkHelperTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _converter.FromJwk(jwk));
+            converter.FromJwk(jwk));
         Assert.Contains("32 bytes", exception.Message);
     }
 
@@ -262,12 +262,12 @@ public class JwkHelperTests
         var originalPublicKey = originalEcdsa.ExportSubjectPublicKeyInfo();
 
         // Act - Create JWK
-        var jwk = _converter.ToJwk(originalPublicKey);
+        var jwk = converter.ToJwk(originalPublicKey);
 
         // Act - Convert to JSON and parse back
         var jwkJson = JsonSerializer.Serialize(jwk);
         var jwkElement = JsonDocument.Parse(jwkJson).RootElement;
-        var parsedPublicKey = _converter.FromJwk(jwkElement);
+        var parsedPublicKey = converter.FromJwk(jwkElement);
 
         // Assert - Keys should be equivalent
         using var originalEcdsaForExport = ECDsa.Create();
@@ -297,7 +297,7 @@ public class JwkHelperTests
         var jwkElement = JsonDocument.Parse(jwkJson).RootElement;
 
         // Act
-        var publicKey = _converter.FromJwkObject(jwkElement);
+        var publicKey = converter.FromJwkObject(jwkElement);
 
         // Assert
         Assert.NotNull(publicKey);
@@ -317,7 +317,7 @@ public class JwkHelperTests
         };
 
         // Act
-        var publicKey = _converter.FromJwkObject(jwkDict);
+        var publicKey = converter.FromJwkObject(jwkDict);
 
         // Assert
         Assert.NotNull(publicKey);
@@ -332,7 +332,7 @@ public class JwkHelperTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _converter.FromJwkObject(invalidObject));
+            converter.FromJwkObject(invalidObject));
         Assert.Contains("JsonElement or Dictionary", exception.Message);
     }
 

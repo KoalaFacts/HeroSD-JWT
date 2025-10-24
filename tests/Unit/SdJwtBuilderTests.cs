@@ -13,13 +13,13 @@ namespace HeroSdJwt.Tests.Unit;
 /// </summary>
 public class SdJwtBuilderTests
 {
-    private readonly IKeyGenerator _keyGenerator = KeyGenerator.Instance;
+    private readonly IKeyGenerator keyGenerator = KeyGenerator.Instance;
 
     [Fact]
     public void Build_WithMinimalConfig_CreatesValidSdJwt()
     {
         // Arrange
-        var key = _keyGenerator.GenerateHmacKey();
+        var key = keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -43,7 +43,7 @@ public class SdJwtBuilderTests
     public void Build_WithIndividualClaims_CreatesValidSdJwt()
     {
         // Arrange
-        var key = _keyGenerator.GenerateHmacKey();
+        var key = keyGenerator.GenerateHmacKey();
 
         // Act
         var sdJwt = SdJwtBuilder.Create()
@@ -63,7 +63,7 @@ public class SdJwtBuilderTests
     public void Build_WithRsaSignature_CreatesValidSdJwt()
     {
         // Arrange
-        var (privateKey, _) = _keyGenerator.GenerateRsaKeyPair();
+        var (privateKey, _) = keyGenerator.GenerateRsaKeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
@@ -81,7 +81,7 @@ public class SdJwtBuilderTests
     public void Build_WithEcdsaSignature_CreatesValidSdJwt()
     {
         // Arrange
-        var (privateKey, _) = _keyGenerator.GenerateEcdsaKeyPair();
+        var (privateKey, _) = keyGenerator.GenerateEcdsaKeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
@@ -99,8 +99,8 @@ public class SdJwtBuilderTests
     public void Build_WithKeyBinding_IncludesCnfClaim()
     {
         // Arrange
-        var issuerKey = _keyGenerator.GenerateHmacKey();
-        var (_, holderPublicKey) = _keyGenerator.GenerateEcdsaKeyPair();
+        var issuerKey = keyGenerator.GenerateHmacKey();
+        var (_, holderPublicKey) = keyGenerator.GenerateEcdsaKeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
@@ -120,7 +120,7 @@ public class SdJwtBuilderTests
     public void Build_WithDecoys_CreatesExtraDigests()
     {
         // Arrange
-        var key = _keyGenerator.GenerateHmacKey();
+        var key = keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -145,7 +145,7 @@ public class SdJwtBuilderTests
     public void Build_WithoutClaims_ThrowsInvalidOperationException()
     {
         // Arrange
-        var key = _keyGenerator.GenerateHmacKey();
+        var key = keyGenerator.GenerateHmacKey();
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
@@ -183,7 +183,7 @@ public class SdJwtBuilderTests
     public void Build_WithCustomHashAlgorithm_UsesSha512()
     {
         // Arrange
-        var key = _keyGenerator.GenerateHmacKey();
+        var key = keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -210,8 +210,8 @@ public class SdJwtBuilderTests
     public void FluentAPI_CanChainAllMethods()
     {
         // Arrange
-        var key = _keyGenerator.GenerateHmacKey();
-        var (_, holderPublicKey) = _keyGenerator.GenerateEcdsaKeyPair();
+        var key = keyGenerator.GenerateHmacKey();
+        var (_, holderPublicKey) = keyGenerator.GenerateEcdsaKeyPair();
 
         // Act - Chain all methods to verify fluent interface
         var sdJwt = SdJwtBuilder.Create()
@@ -236,8 +236,8 @@ public class SdJwtBuilderTests
     public void SignWith_MultipleCallsOverridePrevious()
     {
         // Arrange
-        var hmacKey = _keyGenerator.GenerateHmacKey();
-        var (rsaKey, _) = _keyGenerator.GenerateRsaKeyPair();
+        var hmacKey = keyGenerator.GenerateHmacKey();
+        var (rsaKey, _) = keyGenerator.GenerateRsaKeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act - Call SignWithHmac then SignWithRsa (last one should win)
