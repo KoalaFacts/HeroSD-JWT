@@ -134,7 +134,7 @@ public class ArrayReconstructionEndToEndTests
     }
 
     [Fact]
-    public void Performance_ArrayReconstruction_CompletesUnder10ms()
+    public void Performance_ArrayReconstruction_CompletesUnder50ms()
     {
         // Arrange - Create array with 100 elements
         var signingKey = GenerateSecureTestKey();
