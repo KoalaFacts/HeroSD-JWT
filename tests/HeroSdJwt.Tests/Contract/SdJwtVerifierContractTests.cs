@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
@@ -36,7 +37,7 @@ public class SdJwtVerifierContractTests
         {
             ClockSkew = TimeSpan.FromMinutes(5)
         };
-        var verifier = new SdJwtVerifier(options);
+        var verifier = TestHelpers.CreateVerifier(options);
 
         // Act
         var result = verifier.VerifyPresentation(presentation, signingKey);
@@ -57,7 +58,7 @@ public class SdJwtVerifierContractTests
 
         var presentation = CreateValidPresentation(signingKey);
 
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act
         var result = verifier.TryVerifyPresentation(presentation, wrongKey);
@@ -85,7 +86,7 @@ public class SdJwtVerifierContractTests
             presentation = string.Join("~", parts);
         }
 
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act
         var result = verifier.TryVerifyPresentation(presentation, signingKey);
@@ -111,7 +112,7 @@ public class SdJwtVerifierContractTests
             { "exp", DateTimeOffset.UtcNow.AddHours(-1).ToUnixTimeSeconds() } // Expired 1 hour ago
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
@@ -125,7 +126,7 @@ public class SdJwtVerifierContractTests
         {
             ClockSkew = TimeSpan.FromMinutes(5) // Not enough to cover 1 hour expiry
         };
-        var verifier = new SdJwtVerifier(options);
+        var verifier = TestHelpers.CreateVerifier(options);
 
         // Act
         var result = verifier.TryVerifyPresentation(presentation, signingKey);
@@ -151,7 +152,7 @@ public class SdJwtVerifierContractTests
             { "nbf", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds() } // Valid 1 hour from now
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
@@ -165,7 +166,7 @@ public class SdJwtVerifierContractTests
         {
             ClockSkew = TimeSpan.FromMinutes(5) // Not enough to cover 1 hour future
         };
-        var verifier = new SdJwtVerifier(options);
+        var verifier = TestHelpers.CreateVerifier(options);
 
         // Act
         var result = verifier.TryVerifyPresentation(presentation, signingKey);
@@ -194,7 +195,7 @@ public class SdJwtVerifierContractTests
             { "exp", now.AddHours(1).ToUnixTimeSeconds() }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
@@ -208,7 +209,7 @@ public class SdJwtVerifierContractTests
         {
             ClockSkew = TimeSpan.FromMinutes(5)
         };
-        var verifier = new SdJwtVerifier(options);
+        var verifier = TestHelpers.CreateVerifier(options);
 
         // Act
         var result = verifier.VerifyPresentation(presentation, signingKey);
@@ -231,7 +232,7 @@ public class SdJwtVerifierContractTests
             { "age", 30 }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email", "age" },
@@ -241,7 +242,7 @@ public class SdJwtVerifierContractTests
 
         var presentation = sdJwt.ToCombinedFormat();
 
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act
         var result = verifier.VerifyPresentation(presentation, signingKey);
@@ -267,7 +268,7 @@ public class SdJwtVerifierContractTests
             { "iss", "https://issuer.example.com" }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             Array.Empty<string>(), // No selectively disclosable claims
@@ -277,7 +278,7 @@ public class SdJwtVerifierContractTests
 
         var presentation = sdJwt.ToCombinedFormat();
 
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act
         var result = verifier.VerifyPresentation(presentation, signingKey);
@@ -295,7 +296,7 @@ public class SdJwtVerifierContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
@@ -307,7 +308,7 @@ public class SdJwtVerifierContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act
         var result = verifier.TryVerifyPresentation(string.Empty, signingKey);
@@ -324,7 +325,7 @@ public class SdJwtVerifierContractTests
         // Arrange
         var signingKey = GenerateSecureTestKey();
         var presentation = CreateValidPresentation(signingKey);
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
@@ -336,7 +337,7 @@ public class SdJwtVerifierContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act - JWT with only 2 parts instead of 3
         var result = verifier.TryVerifyPresentation("header.payload~", signingKey);
@@ -352,7 +353,7 @@ public class SdJwtVerifierContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act - Invalid Base64URL characters
         var result = verifier.TryVerifyPresentation("invalid@#$.base64!~.signature~~", signingKey);
@@ -367,7 +368,7 @@ public class SdJwtVerifierContractTests
     public void TryVerifyPresentation_WithNoneAlgorithm_ReturnsAlgorithmConfusion()
     {
         // Arrange
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var signingKey = GenerateSecureTestKey();
 
         // Create a JWT with "none" algorithm (algorithm confusion attack)
@@ -389,11 +390,11 @@ public class SdJwtVerifierContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Create a valid JWT part
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(claims, Array.Empty<string>(), signingKey, HashAlgorithm.Sha256);
 
         // Add 101 fake disclosures (exceeds max of 100)
@@ -426,7 +427,7 @@ public class SdJwtVerifierContractTests
             { "age", 30 }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email", "age" },
@@ -442,7 +443,7 @@ public class SdJwtVerifierContractTests
         }
         var presentation = string.Join("~", parts);
 
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act
         var result = verifier.TryVerifyPresentation(presentation, signingKey);
@@ -465,7 +466,7 @@ public class SdJwtVerifierContractTests
             { "age", 30 }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email", "age" },
@@ -482,7 +483,7 @@ public class SdJwtVerifierContractTests
         }
         var presentation = string.Join("~", parts);
 
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act
         var result = verifier.VerifyPresentation(presentation, signingKey);
@@ -509,7 +510,7 @@ public class SdJwtVerifierContractTests
             presentation = string.Join("~", parts);
         }
 
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act
         var result = verifier.TryVerifyPresentation(presentation, signingKey);
@@ -532,7 +533,7 @@ public class SdJwtVerifierContractTests
             { "age", 30 }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email", "age" },
@@ -548,7 +549,7 @@ public class SdJwtVerifierContractTests
         }
         var presentation = string.Join("~", parts);
 
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Act
         var result = verifier.TryVerifyPresentation(presentation, signingKey);
@@ -571,7 +572,7 @@ public class SdJwtVerifierContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Create JWT with unsupported hash algorithm
         var header = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes("{\"alg\":\"HS256\",\"typ\":\"JWT\"}"));
@@ -604,7 +605,7 @@ public class SdJwtVerifierContractTests
             { "age", 30 }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" }, // Only email is selectively disclosable

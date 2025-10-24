@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
@@ -56,7 +57,7 @@ public class KeyRotationEndToEndTests
         KeyResolver resolver = kid => keys.GetValueOrDefault(kid);
 
         // Act - Verify both tokens work during overlap
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var resultV1 = verifier.TryVerifyPresentation(tokenWithV1.ToPresentation("email"), resolver);
         var resultV2 = verifier.TryVerifyPresentation(tokenWithV2.ToPresentation("role"), resolver);
 
@@ -99,7 +100,7 @@ public class KeyRotationEndToEndTests
         KeyResolver resolver = kid => keys.GetValueOrDefault(kid);
 
         // Act
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var resultV1 = verifier.TryVerifyPresentation(tokenWithV1.ToPresentation(), resolver);
         var resultV2 = verifier.TryVerifyPresentation(tokenWithV2.ToPresentation(), resolver);
 
@@ -136,7 +137,7 @@ public class KeyRotationEndToEndTests
         KeyResolver resolver = kid => keys.GetValueOrDefault(kid);
 
         // Act - Attempt to verify compromised token
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.TryVerifyPresentation(compromisedToken.ToPresentation("admin"), resolver);
 
         // Assert - Compromised token immediately fails
@@ -181,7 +182,7 @@ public class KeyRotationEndToEndTests
             .SignWithHmac(keyV3)
             .Build();
 
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Phase 1: All three keys active (v1, v2, v3 overlap)
         var keysPhase1 = new Dictionary<string, byte[]>

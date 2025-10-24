@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
@@ -41,13 +42,13 @@ public class ArrayReconstructionTests
 
         var selectiveClaims = elements.Select(e => $"degrees[{e.index}]").ToArray();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(claims, selectiveClaims, signingKey, HashAlgorithm.Sha256);
 
         // Create presentation revealing the specified array elements
         var presentation = sdJwt.ToPresentation(selectiveClaims);
 
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         return verifier.VerifyPresentation(presentation, signingKey);
     }
 
@@ -96,7 +97,7 @@ public class ArrayReconstructionTests
 
         // Present in out-of-order sequence
         var presentation = builder.ToPresentation("items[3]", "items[1]", "items[2]", "items[0]");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act

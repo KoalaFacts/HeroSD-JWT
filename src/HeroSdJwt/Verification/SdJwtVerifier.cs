@@ -28,30 +28,8 @@ public class SdJwtVerifier : ISdJwtVerifier
     private readonly IClaimValidator claimValidator;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SdJwtVerifier"/> class with default options.
-    /// </summary>
-    public SdJwtVerifier()
-        : this(new SdJwtVerificationOptions())
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SdJwtVerifier"/> class with specified options.
-    /// </summary>
-    /// <param name="options">Verification options.</param>
-    public SdJwtVerifier(SdJwtVerificationOptions options)
-        : this(
-            options,
-            new EcPublicKeyConverter(),
-            new SignatureValidator(),
-            new DigestValidator(),
-            new KeyBindingValidator(),
-            new ClaimValidator())
-    {
-    }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtVerifier"/> class with dependencies.
+    /// For simple usage: new SdJwtVerifier(new SdJwtVerificationOptions(), new EcPublicKeyConverter(), new SignatureValidator(), new DigestValidator(), new KeyBindingValidator(), new ClaimValidator())
     /// </summary>
     public SdJwtVerifier(
         SdJwtVerificationOptions options,

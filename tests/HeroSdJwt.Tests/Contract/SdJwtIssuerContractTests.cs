@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
 using System.Text.Json;
@@ -27,7 +28,7 @@ public class SdJwtIssuerContractTests
         var hashAlgorithm = HashAlgorithm.Sha256;
         var signingKey = GenerateMockSigningKey();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
 
         // Act
         var result = issuer.CreateSdJwt(claims, selectivelyDisclosableClaims, signingKey, hashAlgorithm);
@@ -55,7 +56,7 @@ public class SdJwtIssuerContractTests
         var hashAlgorithm = HashAlgorithm.Sha256;
         var signingKey = GenerateMockSigningKey();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
 
         // Act
         var result = issuer.CreateSdJwt(claims, selectivelyDisclosableClaims, signingKey, hashAlgorithm);
@@ -74,7 +75,7 @@ public class SdJwtIssuerContractTests
         var hashAlgorithm = HashAlgorithm.Sha256;
         var signingKey = GenerateMockSigningKey();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
@@ -89,7 +90,7 @@ public class SdJwtIssuerContractTests
         var selectivelyDisclosableClaims = new[] { "email" };
         var hashAlgorithm = HashAlgorithm.Sha256;
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
@@ -110,7 +111,7 @@ public class SdJwtIssuerContractTests
         var hashAlgorithm = HashAlgorithm.Sha384;
         var signingKey = GenerateMockSigningKey();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
 
         // Act
         var result = issuer.CreateSdJwt(claims, selectivelyDisclosableClaims, signingKey, hashAlgorithm);
@@ -137,7 +138,7 @@ public class SdJwtIssuerContractTests
         var hashAlgorithm = HashAlgorithm.Sha256;
         var signingKey = GenerateMockSigningKey();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
 
         // Act
         var result = issuer.CreateSdJwt(claims, selectivelyDisclosableClaims, signingKey, hashAlgorithm);

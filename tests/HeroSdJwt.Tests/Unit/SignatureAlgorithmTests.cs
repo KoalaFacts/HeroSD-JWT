@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
@@ -21,7 +22,7 @@ public class SignatureAlgorithmTests
     public void CreateSdJwt_WithHS256_CreatesValidJwt()
     {
         // Arrange
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var signingKey = new byte[32];
         RandomNumberGenerator.Fill(signingKey);
 
@@ -56,7 +57,7 @@ public class SignatureAlgorithmTests
     public void CreateSdJwt_WithRS256_CreatesValidJwt()
     {
         // Arrange
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
 
         // Generate RSA key pair (2048 bits minimum)
         using var rsa = RSA.Create(2048);
@@ -93,7 +94,7 @@ public class SignatureAlgorithmTests
     public void CreateSdJwt_WithES256_CreatesValidJwt()
     {
         // Arrange
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
 
         // Generate ECDSA key pair (P-256 curve)
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
@@ -130,8 +131,8 @@ public class SignatureAlgorithmTests
     public void EndToEnd_HS256_IssueAndVerify()
     {
         // Arrange
-        var issuer = new SdJwtIssuer();
-        var verifier = new SdJwtVerifier();
+        var issuer = TestHelpers.CreateIssuer();
+        var verifier = TestHelpers.CreateVerifier();
         var signingKey = new byte[32];
         RandomNumberGenerator.Fill(signingKey);
 
@@ -169,8 +170,8 @@ public class SignatureAlgorithmTests
     public void EndToEnd_RS256_IssueAndVerify()
     {
         // Arrange
-        var issuer = new SdJwtIssuer();
-        var verifier = new SdJwtVerifier();
+        var issuer = TestHelpers.CreateIssuer();
+        var verifier = TestHelpers.CreateVerifier();
 
         using var rsa = RSA.Create(2048);
         var privateKey = rsa.ExportPkcs8PrivateKey();
@@ -210,8 +211,8 @@ public class SignatureAlgorithmTests
     public void EndToEnd_ES256_IssueAndVerify()
     {
         // Arrange
-        var issuer = new SdJwtIssuer();
-        var verifier = new SdJwtVerifier();
+        var issuer = TestHelpers.CreateIssuer();
+        var verifier = TestHelpers.CreateVerifier();
 
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var privateKey = ecdsa.ExportPkcs8PrivateKey();
@@ -251,7 +252,7 @@ public class SignatureAlgorithmTests
     public void CreateSdJwt_WithRS256AndSmallKey_ThrowsArgumentException()
     {
         // Arrange
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
 
         // Generate weak RSA key (1024 bits - below minimum)
         using var rsa = RSA.Create(1024);
@@ -278,7 +279,7 @@ public class SignatureAlgorithmTests
     public void CreateSdJwt_WithES256AndWrongCurve_ThrowsArgumentException()
     {
         // Arrange
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
 
         // Generate ECDSA key with wrong curve (P-384 instead of P-256)
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP384);
@@ -305,8 +306,8 @@ public class SignatureAlgorithmTests
     public void VerifyPresentation_RS256WithWrongPublicKey_FailsVerification()
     {
         // Arrange
-        var issuer = new SdJwtIssuer();
-        var verifier = new SdJwtVerifier();
+        var issuer = TestHelpers.CreateIssuer();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Issuer's key pair
         using var issuerRsa = RSA.Create(2048);
@@ -347,8 +348,8 @@ public class SignatureAlgorithmTests
     public void VerifyPresentation_ES256WithWrongPublicKey_FailsVerification()
     {
         // Arrange
-        var issuer = new SdJwtIssuer();
-        var verifier = new SdJwtVerifier();
+        var issuer = TestHelpers.CreateIssuer();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Issuer's key pair
         using var issuerEcdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
@@ -389,7 +390,7 @@ public class SignatureAlgorithmTests
     public void CreateSdJwt_DefaultAlgorithm_UsesHS256()
     {
         // Arrange
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var signingKey = new byte[32];
         RandomNumberGenerator.Fill(signingKey);
 

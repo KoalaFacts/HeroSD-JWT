@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Presentation;
@@ -69,7 +70,7 @@ public class ObjectReconstructionTests
             .Build();
 
         var presentation = builder.ToPresentation("data.level1.level2.level3.level4.level5.level6.level7.level8.level9.level10");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -107,7 +108,7 @@ public class ObjectReconstructionTests
             .Build();
 
         var presentation = builder.ToPresentation("address.street", "address.city");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act - call multiple times
@@ -148,7 +149,7 @@ public class ObjectReconstructionTests
 
         // Present in different order than defined
         var presentation = builder.ToPresentation("person.city", "person.name", "person.email", "person.age");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act

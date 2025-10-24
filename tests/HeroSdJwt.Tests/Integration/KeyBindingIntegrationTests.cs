@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Presentation;
@@ -31,7 +32,7 @@ public class KeyBindingIntegrationTests
             { "email", "user@example.com" }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },

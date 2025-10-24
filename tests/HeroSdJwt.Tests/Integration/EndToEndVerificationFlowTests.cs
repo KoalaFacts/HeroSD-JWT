@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Presentation;
@@ -35,7 +36,7 @@ public class EndToEndVerificationFlowTests
             { "address", "123 Main St" }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email", "age", "address" }, // All are selectively disclosable
@@ -49,7 +50,7 @@ public class EndToEndVerificationFlowTests
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Verify - Verifier validates the presentation
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentationString, signingKey);
 
         // Assert
@@ -75,7 +76,7 @@ public class EndToEndVerificationFlowTests
             { "credit_score", 750 }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email", "age", "ssn", "credit_score" },
@@ -89,7 +90,7 @@ public class EndToEndVerificationFlowTests
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Verify
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentationString, signingKey);
 
         // Assert
@@ -115,7 +116,7 @@ public class EndToEndVerificationFlowTests
             { "exp", now.AddHours(1).ToUnixTimeSeconds() }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
@@ -129,7 +130,7 @@ public class EndToEndVerificationFlowTests
 
         // Act
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) };
-        var verifier = new SdJwtVerifier(options);
+        var verifier = TestHelpers.CreateVerifier(options);
         var result = verifier.VerifyPresentation(presentationString, signingKey);
 
         // Assert
@@ -149,7 +150,7 @@ public class EndToEndVerificationFlowTests
             { "exp", now.AddHours(-1).ToUnixTimeSeconds() } // Expired 1 hour ago
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
@@ -162,7 +163,7 @@ public class EndToEndVerificationFlowTests
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Act
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.TryVerifyPresentation(presentationString, signingKey);
 
         // Assert
@@ -182,7 +183,7 @@ public class EndToEndVerificationFlowTests
             { "age", 30 }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email", "age" },
@@ -205,7 +206,7 @@ public class EndToEndVerificationFlowTests
         }
 
         // Act
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.TryVerifyPresentation(presentationString, signingKey);
 
         // Assert
@@ -226,7 +227,7 @@ public class EndToEndVerificationFlowTests
             { "email", "user@example.com" }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
@@ -239,7 +240,7 @@ public class EndToEndVerificationFlowTests
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Act - Verify with wrong key
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.TryVerifyPresentation(presentationString, wrongKey);
 
         // Assert
@@ -262,7 +263,7 @@ public class EndToEndVerificationFlowTests
         foreach (var algorithm in algorithms)
         {
             // Arrange
-            var issuer = new SdJwtIssuer();
+            var issuer = TestHelpers.CreateIssuer();
             var sdJwt = issuer.CreateSdJwt(
                 claims,
                 new[] { "email" },
@@ -275,7 +276,7 @@ public class EndToEndVerificationFlowTests
             var presentationString = presenter.FormatPresentation(presentation);
 
             // Act
-            var verifier = new SdJwtVerifier();
+            var verifier = TestHelpers.CreateVerifier();
             var result = verifier.VerifyPresentation(presentationString, signingKey);
 
             // Assert
@@ -295,7 +296,7 @@ public class EndToEndVerificationFlowTests
             { "aud", "https://verifier.example.com" }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             Array.Empty<string>(), // No selectively disclosable claims
@@ -308,7 +309,7 @@ public class EndToEndVerificationFlowTests
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Act
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentationString, signingKey);
 
         // Assert
@@ -328,7 +329,7 @@ public class EndToEndVerificationFlowTests
             { "email", "user@example.com" }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
@@ -345,7 +346,7 @@ public class EndToEndVerificationFlowTests
         {
             ExpectedIssuer = "https://issuer.example.com"
         };
-        var verifier = new SdJwtVerifier(options);
+        var verifier = TestHelpers.CreateVerifier(options);
         var result = verifier.VerifyPresentation(presentationString, signingKey);
 
         // Assert
@@ -364,7 +365,7 @@ public class EndToEndVerificationFlowTests
             { "email", "user@example.com" }
         };
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
@@ -381,7 +382,7 @@ public class EndToEndVerificationFlowTests
         {
             ExpectedIssuer = "https://wrong-issuer.example.com"
         };
-        var verifier = new SdJwtVerifier(options);
+        var verifier = TestHelpers.CreateVerifier(options);
         var result = verifier.TryVerifyPresentation(presentationString, signingKey);
 
         // Assert

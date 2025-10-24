@@ -14,7 +14,7 @@ namespace HeroSdJwt.Issuance;
 /// <summary>
 /// Creates SD-JWTs with selectively disclosable claims.
 /// </summary>
-public class SdJwtIssuer
+public class SdJwtIssuer : ISdJwtIssuer
 {
     private readonly IDisclosureGenerator disclosureGenerator;
     private readonly IDigestCalculator digestCalculator;
@@ -22,15 +22,8 @@ public class SdJwtIssuer
     private readonly IJwtSigner jwtSigner;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SdJwtIssuer"/> class.
-    /// </summary>
-    public SdJwtIssuer()
-        : this(new DisclosureGenerator(), new DigestCalculator(), new EcPublicKeyConverter(), new JwtSigner())
-    {
-    }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtIssuer"/> class with dependencies.
+    /// For simple usage: new SdJwtIssuer(new DisclosureGenerator(), new DigestCalculator(), new EcPublicKeyConverter(), new JwtSigner())
     /// </summary>
     public SdJwtIssuer(
         IDisclosureGenerator disclosureGenerator,
@@ -151,7 +144,7 @@ public class SdJwtIssuer
         // disclosing information about the End-User."
         if (decoyDigestCount > 0)
         {
-            var decoyGenerator = new DecoyDigestGenerator();
+            var decoyGenerator = new DecoyDigestGenerator(digestCalculator);
             var decoyDigests = decoyGenerator.GenerateDecoyDigests(decoyDigestCount, hashAlgorithm);
             digests = decoyGenerator.InterleaveDecoys(digests, decoyDigests);
         }

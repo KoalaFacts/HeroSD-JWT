@@ -66,6 +66,10 @@ var presentation = sdJwt.ToPresentation("email");
 Selectively disclose nested properties with full JSONPath-style syntax:
 
 ```csharp
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.KeyBinding;
+using HeroSdJwt.Verification;
+
 // Create SD-JWT with nested object claims
 var sdJwt = SdJwtBuilder.Create()
     .WithClaim("sub", "user-456")
@@ -85,7 +89,13 @@ var sdJwt = SdJwtBuilder.Create()
 var presentation = sdJwt.ToPresentation("address.street", "address.geo.lat");
 
 // Verifier receives and verifies
-var verifier = new SdJwtVerifier();
+var verifier = new SdJwtVerifier(
+    new SdJwtVerificationOptions(),
+    new EcPublicKeyConverter(),
+    new SignatureValidator(),
+    new DigestValidator(),
+    new KeyBindingValidator(),
+    new ClaimValidator());
 var result = verifier.VerifyPresentation(presentation, key);
 
 // Automatically reconstruct the nested object structure
@@ -168,8 +178,10 @@ var sdJwt = SdJwtBuilder.Create()
 Implement a key resolver to dynamically select verification keys based on the `kid` parameter:
 
 ```csharp
-using HeroSdJwt.Verification;
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
 
 // Set up key resolver with multiple keys
 var keys = new Dictionary<string, byte[]>
@@ -183,7 +195,13 @@ var keys = new Dictionary<string, byte[]>
 KeyResolver resolver = keyId => keys.GetValueOrDefault(keyId);
 
 // Verify presentation using key resolver
-var verifier = new SdJwtVerifier();
+var verifier = new SdJwtVerifier(
+    new SdJwtVerificationOptions(),
+    new EcPublicKeyConverter(),
+    new SignatureValidator(),
+    new DigestValidator(),
+    new KeyBindingValidator(),
+    new ClaimValidator());
 var result = verifier.TryVerifyPresentation(presentation, resolver);
 
 if (result.IsValid)
@@ -257,10 +275,14 @@ var result = verifier.TryVerifyPresentation(
 For advanced scenarios, use the low-level API:
 
 ```csharp
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Issuance;
-using HeroSdJwt.Common;
 
-var issuer = new SdJwtIssuer();
+var issuer = new SdJwtIssuer(
+    new DisclosureGenerator(),
+    new DigestCalculator(),
+    new EcPublicKeyConverter(),
+    new JwtSigner());
 var claims = new Dictionary<string, object>
 {
     ["sub"] = "user-123",
@@ -346,6 +368,8 @@ string presentationString = presentation.ToCombinedFormat();
 ### 3. Verifier: Verify Presentation
 
 ```csharp
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Verification;
 
 // Parse presentation string
@@ -354,7 +378,13 @@ var jwt = parts[0];
 var disclosures = parts[1..^1]; // All parts between JWT and key binding
 
 // Verify presentation
-var verifier = new SdJwtVerifier();
+var verifier = new SdJwtVerifier(
+    new SdJwtVerificationOptions(),
+    new EcPublicKeyConverter(),
+    new SignatureValidator(),
+    new DigestValidator(),
+    new KeyBindingValidator(),
+    new ClaimValidator());
 var verificationKey = new byte[32]; // Same key used for signing (HS256)
 
 // Option 1: Throws exception on failure (recommended for most cases)

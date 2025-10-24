@@ -293,13 +293,10 @@ public class DecoyDigestGeneratorTests
     }
 
     /// <summary>
-    /// Helper method to create DecoyDigestGenerator instance using reflection
-    /// since it's an internal class.
+    /// Helper method to create DecoyDigestGenerator instance.
     /// </summary>
-    private static dynamic CreateGenerator()
+    private static DecoyDigestGenerator CreateGenerator()
     {
-        var assembly = typeof(SdJwtIssuer).Assembly;
-        var type = assembly.GetType("HeroSdJwt.Issuance.DecoyDigestGenerator");
-        return Activator.CreateInstance(type!)!;
+        return new DecoyDigestGenerator(new DigestCalculator());
     }
 }

@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
@@ -130,7 +131,7 @@ public class SdJwtPresenterContractTests
     // Helper method to create a test SD-JWT
     private static SdJwt CreateTestSdJwt()
     {
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var claims = new Dictionary<string, object>
         {
             { "sub", "user123" },

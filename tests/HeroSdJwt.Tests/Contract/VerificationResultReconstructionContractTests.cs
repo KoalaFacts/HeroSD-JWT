@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
@@ -41,13 +42,13 @@ public class VerificationResultReconstructionContractTests
 
         var selectiveClaims = elements.Select(e => $"degrees[{e.index}]").ToArray();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(claims, selectiveClaims, signingKey, HashAlgorithm.Sha256);
 
         // Create presentation revealing the specified array elements
         var presentation = sdJwt.ToPresentation(selectiveClaims);
 
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         return verifier.VerifyPresentation(presentation, signingKey);
     }
 
@@ -80,13 +81,13 @@ public class VerificationResultReconstructionContractTests
 
         var selectiveClaims = properties.Select(p => p.path).ToArray();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(claims, selectiveClaims, signingKey, HashAlgorithm.Sha256);
 
         // Create presentation revealing the specified nested properties
         var presentation = sdJwt.ToPresentation(selectiveClaims);
 
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         return verifier.VerifyPresentation(presentation, signingKey);
     }
 
@@ -119,7 +120,7 @@ public class VerificationResultReconstructionContractTests
             .Build();
 
         var presentation = builder.ToPresentation();
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -184,7 +185,7 @@ public class VerificationResultReconstructionContractTests
             .Build();
 
         var presentation = builder.ToPresentation("mixed[0]", "mixed[1]", "mixed[2]");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -237,7 +238,7 @@ public class VerificationResultReconstructionContractTests
         // Arrange
         var signingKey = GenerateSecureTestKey();
         var invalidPresentation = "invalid.presentation.string";
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.TryVerifyPresentation(invalidPresentation, signingKey);
 
         // Act & Assert
@@ -279,7 +280,7 @@ public class VerificationResultReconstructionContractTests
             .Build();
 
         var presentation = builder.ToPresentation();
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -370,7 +371,7 @@ public class VerificationResultReconstructionContractTests
             .Build();
 
         var presentation = builder.ToPresentation("data.str", "data.num", "data.flag");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -423,7 +424,7 @@ public class VerificationResultReconstructionContractTests
         // Arrange
         var signingKey = GenerateSecureTestKey();
         var invalidPresentation = "invalid.presentation.string";
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.TryVerifyPresentation(invalidPresentation, signingKey);
 
         // Act & Assert
@@ -452,7 +453,7 @@ public class VerificationResultReconstructionContractTests
             .Build();
 
         var presentation = builder.ToPresentation("email");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -517,7 +518,7 @@ public class VerificationResultReconstructionContractTests
             .Build();
 
         var presentation = builder.ToPresentation("email", "degrees[0]", "address.street");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -549,7 +550,7 @@ public class VerificationResultReconstructionContractTests
             .Build();
 
         var presentation = builder.ToPresentation("email", "name");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -581,7 +582,7 @@ public class VerificationResultReconstructionContractTests
         // Arrange
         var signingKey = GenerateSecureTestKey();
         var invalidPresentation = "invalid.presentation.string";
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.TryVerifyPresentation(invalidPresentation, signingKey);
 
         // Act & Assert

@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
@@ -31,7 +32,7 @@ public class KeyBindingEndToEndTests
         var holderPublicKey = holderEcdsa.ExportSubjectPublicKeyInfo();
 
         // Step 1: Issuer creates SD-JWT with cnf claim
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var audience = "https://verifier.example.com";
         var claims = new Dictionary<string, object>
         {
@@ -124,7 +125,7 @@ public class KeyBindingEndToEndTests
             ExpectedAudience = audience,
             ExpectedNonce = nonce
         };
-        var verifier = new SdJwtVerifier(verificationOptions);
+        var verifier = TestHelpers.CreateVerifier(verificationOptions);
 
         // Act
         var result = verifier.VerifyPresentation(
@@ -151,7 +152,7 @@ public class KeyBindingEndToEndTests
         var holderPrivateKey = holderEcdsa.ExportECPrivateKey();
         var holderPublicKey = holderEcdsa.ExportSubjectPublicKeyInfo();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
         var sdJwt = issuer.CreateSdJwt(
             claims,
@@ -185,7 +186,7 @@ public class KeyBindingEndToEndTests
             ExpectedAudience = "https://verifier.example.com",  // Expected audience
             ExpectedNonce = "nonce123"
         };
-        var verifier = new SdJwtVerifier(verificationOptions);
+        var verifier = TestHelpers.CreateVerifier(verificationOptions);
 
         // Act
         var result = verifier.TryVerifyPresentation(
@@ -208,7 +209,7 @@ public class KeyBindingEndToEndTests
         var holderPrivateKey = holderEcdsa.ExportECPrivateKey();
         var holderPublicKey = holderEcdsa.ExportSubjectPublicKeyInfo();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
         var sdJwt = issuer.CreateSdJwt(
             claims,
@@ -243,7 +244,7 @@ public class KeyBindingEndToEndTests
             ExpectedAudience = audience,
             ExpectedNonce = "expected_nonce"  // Expected nonce
         };
-        var verifier = new SdJwtVerifier(verificationOptions);
+        var verifier = TestHelpers.CreateVerifier(verificationOptions);
 
         // Act
         var result = verifier.TryVerifyPresentation(
@@ -270,7 +271,7 @@ public class KeyBindingEndToEndTests
         using var attackerEcdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var attackerPrivateKey = attackerEcdsa.ExportECPrivateKey();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
         var sdJwt = issuer.CreateSdJwt(
             claims,
@@ -307,7 +308,7 @@ public class KeyBindingEndToEndTests
             ExpectedAudience = audience,
             ExpectedNonce = nonce
         };
-        var verifier = new SdJwtVerifier(verificationOptions);
+        var verifier = TestHelpers.CreateVerifier(verificationOptions);
 
         // Act
         var result = verifier.TryVerifyPresentation(
@@ -329,7 +330,7 @@ public class KeyBindingEndToEndTests
         using var holderEcdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var holderPublicKey = holderEcdsa.ExportSubjectPublicKeyInfo();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
         var sdJwt = issuer.CreateSdJwt(
             claims,
@@ -347,7 +348,7 @@ public class KeyBindingEndToEndTests
         {
             RequireKeyBinding = true  // Key binding required but not provided
         };
-        var verifier = new SdJwtVerifier(verificationOptions);
+        var verifier = TestHelpers.CreateVerifier(verificationOptions);
 
         // Act
         var result = verifier.TryVerifyPresentation(
@@ -369,7 +370,7 @@ public class KeyBindingEndToEndTests
         using var holderEcdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var holderPrivateKey = holderEcdsa.ExportECPrivateKey();
 
-        var issuer = new SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
         var sdJwt = issuer.CreateSdJwt(
             claims,
@@ -400,7 +401,7 @@ public class KeyBindingEndToEndTests
         {
             RequireKeyBinding = true
         };
-        var verifier = new SdJwtVerifier(verificationOptions);
+        var verifier = TestHelpers.CreateVerifier(verificationOptions);
 
         // Act
         var result = verifier.TryVerifyPresentation(

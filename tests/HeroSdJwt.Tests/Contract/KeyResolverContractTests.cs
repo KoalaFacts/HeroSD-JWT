@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
@@ -40,7 +41,7 @@ public class KeyResolverContractTests
         KeyResolver resolver = kid => keys.GetValueOrDefault(kid);
 
         // Act
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var presentation = sdJwt.ToPresentation("email"); // Reveal the selective claim
 
         // First verify it works with direct key (baseline test)
@@ -73,7 +74,7 @@ public class KeyResolverContractTests
         KeyResolver resolver = kid => null;
 
         // Act & Assert
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var exception = Assert.Throws<SdJwtException>(() =>
             verifier.VerifyPresentation(sdJwt.ToPresentation(), resolver));
 
@@ -98,7 +99,7 @@ public class KeyResolverContractTests
         KeyResolver resolver = kid => null;
 
         // Act
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.TryVerifyPresentation(sdJwt.ToPresentation(), resolver);
 
         // Assert
@@ -124,7 +125,7 @@ public class KeyResolverContractTests
         KeyResolver resolver = kid => throw new InvalidOperationException("Should not be called");
 
         // Act - Should use fallback key since no kid in JWT
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(sdJwt.ToPresentation(), resolver, fallbackKey: hmacKey);
 
         // Assert
@@ -145,7 +146,7 @@ public class KeyResolverContractTests
             .Build();
 
         // Act & Assert
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var exception = Assert.Throws<SdJwtException>(() =>
             verifier.VerifyPresentation(sdJwt.ToPresentation(), keyResolver: null, fallbackKey: null));
 
@@ -169,7 +170,7 @@ public class KeyResolverContractTests
         KeyResolver resolver = kid => throw new InvalidOperationException("Database error");
 
         // Act & Assert
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var exception = Assert.Throws<SdJwtException>(() =>
             verifier.VerifyPresentation(sdJwt.ToPresentation(), resolver));
 
@@ -193,7 +194,7 @@ public class KeyResolverContractTests
         KeyResolver resolver = kid => throw new InvalidOperationException("Database error");
 
         // Act
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.TryVerifyPresentation(sdJwt.ToPresentation(), resolver);
 
         // Assert
@@ -240,7 +241,7 @@ public class KeyResolverContractTests
         KeyResolver resolver = kid => keys.GetValueOrDefault(kid);
 
         // Act - Verify each JWT uses correct key
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result1 = verifier.VerifyPresentation(sdJwt1.ToPresentation(), resolver);
         var result2 = verifier.VerifyPresentation(sdJwt2.ToPresentation(), resolver);
         var result3 = verifier.VerifyPresentation(sdJwt3.ToPresentation(), resolver);
@@ -269,7 +270,7 @@ public class KeyResolverContractTests
         KeyResolver resolver = kid => key2;
 
         // Act & Assert
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var exception = Assert.Throws<SdJwtException>(() =>
             verifier.VerifyPresentation(sdJwt.ToPresentation(), resolver));
 
@@ -320,7 +321,7 @@ public class KeyResolverContractTests
         KeyResolver resolver = kid => kid == keyId ? verificationKey : null;
 
         // Act
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(sdJwt.ToPresentation(), resolver);
 
         // Assert
@@ -340,7 +341,7 @@ public class KeyResolverContractTests
             .Build();
 
         // Act - Null resolver but with fallback (backward compat)
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(sdJwt.ToPresentation(), keyResolver: null, fallbackKey: hmacKey);
 
         // Assert

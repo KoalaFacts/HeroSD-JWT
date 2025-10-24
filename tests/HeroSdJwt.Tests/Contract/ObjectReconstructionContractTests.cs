@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
@@ -38,7 +39,7 @@ public class ObjectReconstructionContractTests
             .Build();
 
         var presentation = sdJwt.ToPresentation("address.street", "address.city");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -73,7 +74,7 @@ public class ObjectReconstructionContractTests
             .Build();
 
         var presentation = sdJwt.ToPresentation("address.street", "address.geo.lat", "address.geo.lon");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -114,7 +115,7 @@ public class ObjectReconstructionContractTests
             .Build();
 
         var presentation = sdJwt.ToPresentation("profile.name", "profile.age", "profile.verified", "profile.score");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -153,7 +154,7 @@ public class ObjectReconstructionContractTests
             .Build();
 
         var presentation = sdJwt.ToPresentation("address.street");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -183,7 +184,7 @@ public class ObjectReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.TryVerifyPresentation("invalid.presentation.string", signingKey);
 
         // Act & Assert
@@ -209,7 +210,7 @@ public class ObjectReconstructionContractTests
             .Build();
 
         var presentation = sdJwt.ToPresentation("address.street", "address.city", "contact.email");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -242,7 +243,7 @@ public class ObjectReconstructionContractTests
             .Build();
 
         var presentation = sdJwt.ToPresentation("email", "name", "address.street");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -271,7 +272,7 @@ public class ObjectReconstructionContractTests
             .Build();
 
         var presentation = sdJwt.ToPresentation("email", "name");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act
@@ -306,7 +307,7 @@ public class ObjectReconstructionContractTests
         var presentation = sdJwt.ToPresentation("address.street", "address.city", "address.geo.lat", "address.geo.lon");
 
         // Verifier validates and reconstructs
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Discover reconstructible claims

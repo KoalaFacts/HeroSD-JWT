@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
@@ -23,7 +24,7 @@ public class NestedDisclosureIntegrationTests
     {
         this.signingKey = new byte[32];
         RandomNumberGenerator.Fill(this.signingKey);
-        this.issuer = new SdJwtIssuer();
+        this.issuer = TestHelpers.CreateIssuer();
     }
 
     [Fact]

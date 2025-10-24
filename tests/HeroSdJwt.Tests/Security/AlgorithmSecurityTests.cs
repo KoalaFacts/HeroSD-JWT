@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
@@ -17,7 +18,7 @@ public class AlgorithmSecurityTests
     public void VerifyPresentation_WithNoneAlgorithm_ThrowsAlgorithmConfusionException()
     {
         // Arrange
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Create a JWT with "none" algorithm
         // Header: {"alg":"none","typ":"JWT"}
@@ -43,7 +44,7 @@ public class AlgorithmSecurityTests
     public void VerifyPresentation_WithNoneAlgorithmUppercase_ThrowsAlgorithmConfusionException()
     {
         // Arrange
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Create a JWT with "NONE" algorithm (uppercase variant)
         // Header: {"alg":"NONE","typ":"JWT"}
@@ -65,7 +66,7 @@ public class AlgorithmSecurityTests
     public void VerifyPresentation_WithUnsupportedAlgorithm_ThrowsAlgorithmNotSupportedException()
     {
         // Arrange
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Create a JWT with an unsupported algorithm (e.g., "HS384")
         // Header: {"alg":"HS384","typ":"JWT"}
@@ -87,7 +88,7 @@ public class AlgorithmSecurityTests
     public void VerifyPresentation_WithMissingAlgorithm_ThrowsSdJwtException()
     {
         // Arrange
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Create a JWT header without "alg" claim
         // Header: {"typ":"JWT"}
@@ -109,7 +110,7 @@ public class AlgorithmSecurityTests
     public void VerifyPresentation_RejectsAlgorithmSwitching()
     {
         // Arrange
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // This test validates that the verifier doesn't accept a JWT
         // signed with one algorithm but claiming another in the header
@@ -139,7 +140,7 @@ public class AlgorithmSecurityTests
     public void VerifyPresentation_WithHashAlgorithmMismatch_Fails()
     {
         // Arrange
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
 
         // Create a presentation where JWT claims sha-256 but disclosures use sha-512
         // This should be detected and rejected
@@ -168,7 +169,7 @@ public class AlgorithmSecurityTests
     public void CreateSdJwt_NeverUsesNoneAlgorithm()
     {
         // Arrange
-        var issuer = new Issuance.SdJwtIssuer();
+        var issuer = TestHelpers.CreateIssuer();
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
         var selectiveClaims = Array.Empty<string>();
         var signingKey = new byte[32];

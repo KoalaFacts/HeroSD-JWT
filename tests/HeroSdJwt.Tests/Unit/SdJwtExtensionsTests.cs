@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
@@ -61,7 +62,7 @@ public class SdJwtExtensionsTests
         var presentation = sdJwt.ToPresentation("email");
 
         // Act
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, key);
 
         // Assert
@@ -92,7 +93,7 @@ public class SdJwtExtensionsTests
         var presentation = sdJwt.ToPresentationWithAllClaims();
 
         // Assert
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, key);
 
         Assert.True(result.IsValid);
@@ -174,7 +175,7 @@ public class SdJwtExtensionsTests
             .ToPresentation("email"); // Extension method
 
         // Assert
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, key);
 
         Assert.True(result.IsValid);

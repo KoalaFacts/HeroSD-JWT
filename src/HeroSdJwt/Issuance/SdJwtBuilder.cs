@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Models;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 using SignatureAlgorithm = HeroSdJwt.Primitives.SignatureAlgorithm;
@@ -180,7 +181,11 @@ public class SdJwtBuilder
         if (signingKey == null)
             throw new InvalidOperationException("Signing key must be set. Call SignWithHmac(), SignWithRsa(), or SignWithEcdsa().");
 
-        var issuer = new SdJwtIssuer();
+        var issuer = new SdJwtIssuer(
+            new DisclosureGenerator(),
+            new DigestCalculator(),
+            new EcPublicKeyConverter(),
+            new JwtSigner());
         return issuer.CreateSdJwt(
             claims,
             selectiveClaims,

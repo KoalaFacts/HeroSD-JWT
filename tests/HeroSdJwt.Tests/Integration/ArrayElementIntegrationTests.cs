@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
@@ -26,8 +27,8 @@ public class ArrayElementIntegrationTests
         this.signingKey = new byte[32];
         RandomNumberGenerator.Fill(this.signingKey);
 
-        this.issuer = new SdJwtIssuer();
-        this.verifier = new SdJwtVerifier();
+        this.issuer = TestHelpers.CreateIssuer();
+        this.verifier = TestHelpers.CreateVerifier();
     }
 
     [Fact]

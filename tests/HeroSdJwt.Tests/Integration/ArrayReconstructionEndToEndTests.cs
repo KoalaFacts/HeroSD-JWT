@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
@@ -44,7 +45,7 @@ public class ArrayReconstructionEndToEndTests
         var presentation = sdJwt.ToPresentation("degrees[0]", "degrees[1]", "degrees[2]");
 
         // Verifier validates and reconstructs
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         var degrees = result.GetDisclosedArray("degrees");
@@ -84,7 +85,7 @@ public class ArrayReconstructionEndToEndTests
         var presentation = sdJwt.ToPresentation("address.street", "address.city", "address.geo.lat", "address.geo.lon");
 
         // Verifier validates and reconstructs
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         var address = result.GetDisclosedObject("address");
@@ -121,7 +122,7 @@ public class ArrayReconstructionEndToEndTests
         var presentation = sdJwt.ToPresentation("email", "degrees[0]", "address.street");
 
         // Verifier validates and discovers
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         var reconstructible = result.GetReconstructibleClaims();
@@ -156,7 +157,7 @@ public class ArrayReconstructionEndToEndTests
             .Build();
 
         var presentation = sdJwt.ToPresentation(Enumerable.Range(0, 100).Select(i => $"items[{i}]").ToArray());
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act - Measure reconstruction time
@@ -218,7 +219,7 @@ public class ArrayReconstructionEndToEndTests
             .Build();
 
         var presentation = sdJwt.ToPresentation("data.level1.level2.level3.level4.level5.level6.level7.level8.level9.level10");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act - Reconstruct deeply nested object

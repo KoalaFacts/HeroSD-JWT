@@ -1,3 +1,4 @@
+using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
@@ -39,7 +40,7 @@ public class ClaimDiscoveryTests
             .Build();
 
         var presentation = builder.ToPresentation("degrees[0]", "address.street");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act - call multiple times
@@ -76,7 +77,7 @@ public class ClaimDiscoveryTests
             .Build();
 
         var presentation = builder.ToPresentation("degrees[0]", "certifications[0]", "certifications[1]", "address.street", "contact.email");
-        var verifier = new SdJwtVerifier();
+        var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
         // Act

@@ -14,15 +14,8 @@ public class DecoyDigestGenerator : IDecoyDigestGenerator
     private readonly IDigestCalculator digestCalculator;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DecoyDigestGenerator"/> class.
-    /// </summary>
-    public DecoyDigestGenerator()
-        : this(new DigestCalculator())
-    {
-    }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="DecoyDigestGenerator"/> class with dependencies.
+    /// For simple usage: new DecoyDigestGenerator(new DigestCalculator())
     /// </summary>
     /// <param name="digestCalculator">The digest calculator to use.</param>
     public DecoyDigestGenerator(IDigestCalculator digestCalculator)
