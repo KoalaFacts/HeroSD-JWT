@@ -103,50 +103,26 @@ jobs:
           EOF
           echo "Release notes generated"
 
-      - name: Create draft release with packages
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ inputs.version }}
-          name: Release v${{ inputs.version }}
-          body_path: release-notes.md
-          files: |
-            src/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg
-            src/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg
-          draft: true  # Create as draft first to avoid race condition
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Verify packages were uploaded to release
+      - name: Create GitHub Release
         run: |
-          echo "Waiting for packages to be attached to release..."
-          sleep 5  # Give GitHub API time to process
+          echo "Creating release v${{ inputs.version }}..."
 
-          # Verify both packages exist in the release assets
-          gh release view v${{ inputs.version }} --json assets --jq '.assets[].name' > assets.txt
+          # Create release directly (not draft) with packages
+          # This will trigger the publish-nuget workflow immediately
+          gh release create v${{ inputs.version }} \
+            --title "Release v${{ inputs.version }}" \
+            --notes-file release-notes.md \
+            src/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg \
+            src/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg
 
-          if ! grep -q "HeroSD-JWT.${{ inputs.version }}.nupkg" assets.txt; then
-            echo "Error: Main package not found in release assets"
-            cat assets.txt
-            exit 1
-          fi
-
-          if ! grep -q "HeroSD-JWT.${{ inputs.version }}.snupkg" assets.txt; then
-            echo "Error: Symbol package not found in release assets"
-            cat assets.txt
-            exit 1
-          fi
-
-          echo "✅ Both packages verified in release assets:"
-          cat assets.txt
+          echo "✅ Release created and published!"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish release (triggers publish-nuget workflow)
+      - name: Verify release was created
         run: |
-          echo "Publishing release v${{ inputs.version }}..."
-          gh release edit v${{ inputs.version }} --draft=false
-          echo "✅ Release published! This will trigger the publish-nuget workflow."
+          echo "Verifying release v${{ inputs.version }}..."
+          gh release view v${{ inputs.version }} --json assets --jq '.assets[].name'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

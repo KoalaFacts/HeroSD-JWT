@@ -1,8 +1,12 @@
 name: Publish to NuGet
 
 on:
-  release:
-    types: [published]
+  # Trigger when create-release workflow completes successfully
+  workflow_run:
+    workflows: ["Create Release"]
+    types: [completed]
+    branches: [main]
+  # Keep manual trigger for emergency republishing
   workflow_dispatch:
     inputs:
       version:
@@ -27,6 +31,8 @@ env:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Only run if create-release workflow succeeded (or if manually triggered)
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     environment:
       name: production
       url: https://www.nuget.org/packages/HeroSD-JWT
@@ -38,16 +44,23 @@ jobs:
       - name: Determine version and tag
         id: version
         run: |
-          if [ "${{ github.event_name }}" == "release" ]; then
-            TAG="${{ github.event.release.tag_name }}"
+          if [ "${{ github.event_name }}" == "workflow_run" ]; then
+            # Get the latest release tag when triggered by create-release workflow
+            TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
             VERSION="${TAG#v}"  # Remove 'v' prefix if present
-          else
+            echo "Detected latest release: $TAG"
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             VERSION="${{ inputs.version }}"
             TAG="v$VERSION"
+          else
+            echo "Error: Unexpected event type: ${{ github.event_name }}"
+            exit 1
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
           echo "Publishing version: $VERSION (tag: $TAG)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate version format
         run: |
