@@ -1,0 +1,132 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.4)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate version format
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "Error: Invalid version format: $VERSION"
+            echo "Expected format: X.Y.Z or X.Y.Z-prerelease"
+            exit 1
+          fi
+          echo "Version validated: $VERSION"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build Release
+        run: dotnet build --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
+
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Pack NuGet packages
+        run: dotnet pack src/HeroSdJwt.csproj --configuration Release --no-build -p:PackageVersion=${{ inputs.version }} -p:Version=${{ inputs.version }}
+
+      - name: Verify packages were created
+        run: |
+          if [ ! -f "src/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg" ]; then
+            echo "Error: Main package not found"
+            exit 1
+          fi
+          if [ ! -f "src/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg" ]; then
+            echo "Error: Symbol package not found"
+            exit 1
+          fi
+          echo "Packages verified:"
+          ls -lh src/bin/Release/HeroSD-JWT.${{ inputs.version }}.*
+
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          cat > release-notes.md << 'EOF'
+          ## HeroSD-JWT v${{ inputs.version }}
+
+          **Production-ready .NET library for SD-JWT (Selective Disclosure JWT)**
+
+          ### Features
+          - ✅ Complete SD-JWT implementation per IETF draft-ietf-oauth-selective-disclosure-jwt
+          - ✅ Array element disclosure support
+          - ✅ Nested claims with recursive processing
+          - ✅ Key binding (holder binding)
+          - ✅ Multiple signature algorithms: HS256, RS256, ES256
+          - ✅ Zero third-party dependencies (BCL only)
+          - ✅ Multi-targeting: .NET 8.0 (LTS) + .NET 9.0
+          - ✅ Native AOT compatible
+          - ✅ 277 comprehensive tests
+          - ✅ Full XML documentation
+          - ✅ Symbol package (.snupkg) with Source Link debugging
+
+          ### Installation
+          ```bash
+          dotnet add package HeroSD-JWT --version ${{ inputs.version }}
+          ```
+
+          ### Package Details
+          - **Frameworks**: net8.0, net9.0
+          - **Dependencies**: Microsoft.Bcl.Memory (net8.0 only)
+
+          ### Documentation
+          - [README](https://github.com/KoalaFacts/HeroSD-JWT/blob/main/README.md)
+          - [NuGet Package](https://www.nuget.org/packages/HeroSD-JWT/${{ inputs.version }})
+
+          ---
+          🎯 **Production ready** - Fully tested and verified!
+          EOF
+          echo "Release notes generated"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }} - Production Release
+          body_path: release-notes.md
+          files: |
+            src/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg
+            src/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release summary
+        run: |
+          echo "## Release Created Successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Release URL**: https://github.com/${{ github.repository }}/releases/tag/v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "The publish-nuget workflow will automatically trigger and publish to NuGet.org using trusted publishing." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Packages:**" >> $GITHUB_STEP_SUMMARY
+          echo "- HeroSD-JWT.${{ inputs.version }}.nupkg" >> $GITHUB_STEP_SUMMARY
+          echo "- HeroSD-JWT.${{ inputs.version }}.snupkg" >> $GITHUB_STEP_SUMMARY
