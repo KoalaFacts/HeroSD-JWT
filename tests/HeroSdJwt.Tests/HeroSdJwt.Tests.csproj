@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\HeroSdJwt.csproj" />
+    <ProjectReference Include="..\..\src\HeroSdJwt\HeroSdJwt.csproj" />
   </ItemGroup>
 
 </Project>

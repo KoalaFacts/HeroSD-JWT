@@ -49,20 +49,20 @@ jobs:
         run: dotnet test --configuration Release --no-build --verbosity normal
 
       - name: Pack NuGet packages
-        run: dotnet pack src/HeroSdJwt.csproj --configuration Release --no-build -p:PackageVersion=${{ inputs.version }} -p:Version=${{ inputs.version }}
+        run: dotnet pack src/HeroSdJwt/HeroSdJwt.csproj --configuration Release --no-build -p:PackageVersion=${{ inputs.version }} -p:Version=${{ inputs.version }}
 
       - name: Verify packages were created
         run: |
-          if [ ! -f "src/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg" ]; then
+          if [ ! -f "src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg" ]; then
             echo "Error: Main package not found"
             exit 1
           fi
-          if [ ! -f "src/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg" ]; then
+          if [ ! -f "src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg" ]; then
             echo "Error: Symbol package not found"
             exit 1
           fi
           echo "Packages verified:"
-          ls -lh src/bin/Release/HeroSD-JWT.${{ inputs.version }}.*
+          ls -lh src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.*
 
       - name: Generate release notes
         id: release-notes
@@ -112,8 +112,8 @@ jobs:
           gh release create v${{ inputs.version }} \
             --title "Release v${{ inputs.version }}" \
             --notes-file release-notes.md \
-            src/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg \
-            src/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg
+            src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg \
+            src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg
 
           echo "✅ Release created and published!"
         env:
