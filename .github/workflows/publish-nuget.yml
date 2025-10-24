@@ -32,6 +32,9 @@ jobs:
       url: https://www.nuget.org/packages/HeroSD-JWT
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Determine version and tag
         id: version
         run: |
