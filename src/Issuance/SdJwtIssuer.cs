@@ -154,8 +154,7 @@ public class SdJwtIssuer
                 modifiedClaims,
                 nestedClaims,
                 hashAlgorithm,
-                disclosures,
-                digests);
+                disclosures);
         }
 
         // Step 2: Process array elements and generate their disclosures

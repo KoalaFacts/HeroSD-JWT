@@ -12,10 +12,10 @@ namespace HeroSdJwt.Presentation;
 /// </summary>
 internal class DisclosureClaimPathMapper
 {
-    private readonly DigestCalculator _digestCalculator = new();
+    private readonly DigestCalculator digestCalculator = new();
 
     // Security: Maximum nesting depth to prevent stack overflow attacks
-    private const int MaxNestingDepth = 10;
+    private const int maxNestingDepth = 10;
 
     /// <summary>
     /// Builds a mapping from user-friendly claim paths to disclosure indices.
@@ -41,7 +41,7 @@ internal class DisclosureClaimPathMapper
         var digestToIndex = new Dictionary<string, int>();
         for (int i = 0; i < sdJwt.Disclosures.Count; i++)
         {
-            var digest = _digestCalculator.ComputeDigest(sdJwt.Disclosures[i], sdJwt.HashAlgorithm);
+            var digest = digestCalculator.ComputeDigest(sdJwt.Disclosures[i], sdJwt.HashAlgorithm);
             digestToIndex[digest] = i;
         }
 

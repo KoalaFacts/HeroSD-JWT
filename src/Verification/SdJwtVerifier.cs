@@ -16,8 +16,8 @@ namespace HeroSdJwt.Verification;
 /// </summary>
 public class SdJwtVerifier
 {
-    private readonly SdJwtVerificationOptions _options;
-    private readonly IEcPublicKeyConverter _ecPublicKeyConverter;
+    private readonly SdJwtVerificationOptions options;
+    private readonly IEcPublicKeyConverter ecPublicKeyConverter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtVerifier"/> class with default options.
@@ -43,8 +43,8 @@ public class SdJwtVerifier
     {
         ArgumentNullException.ThrowIfNull(options);
         options.Validate();
-        _options = options;
-        _ecPublicKeyConverter = ecPublicKeyConverter;
+        this.options = options;
+        this.ecPublicKeyConverter = ecPublicKeyConverter;
     }
 
     /// <summary>
@@ -132,10 +132,10 @@ public class SdJwtVerifier
         var errorDetails = new List<string>();
 
         // Validate presentation size to prevent DoS attacks
-        if (presentation.Length > Core.Constants.MaxJwtSizeBytes)
+        if (presentation.Length > Constants.MaxJwtSizeBytes)
         {
             errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add($"Presentation exceeds maximum allowed size of {Core.Constants.MaxJwtSizeBytes} bytes");
+            errorDetails.Add($"Presentation exceeds maximum allowed size of {Constants.MaxJwtSizeBytes} bytes");
             return new VerificationResult(errors, string.Join("; ", errorDetails));
         }
 
@@ -151,7 +151,7 @@ public class SdJwtVerifier
         var jwt = parts[0];
 
         // Validate JWT size
-        if (jwt.Length > Core.Constants.MaxJwtSizeBytes / 2)
+        if (jwt.Length > Constants.MaxJwtSizeBytes / 2)
         {
             errors.Add(ErrorCode.InvalidInput);
             errorDetails.Add("JWT component exceeds reasonable size limit");
@@ -166,10 +166,10 @@ public class SdJwtVerifier
         {
             if (!string.IsNullOrWhiteSpace(parts[i]))
             {
-                if (disclosures.Count >= Core.Constants.MaxDisclosures)
+                if (disclosures.Count >= Constants.MaxDisclosures)
                 {
                     errors.Add(ErrorCode.InvalidInput);
-                    errorDetails.Add($"Too many disclosures: exceeds maximum of {Core.Constants.MaxDisclosures}");
+                    errorDetails.Add($"Too many disclosures: exceeds maximum of {Constants.MaxDisclosures}");
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
 
@@ -226,7 +226,7 @@ public class SdJwtVerifier
         }
 
         // Step 3: Validate temporal claims (exp, nbf, iat)
-        bool claimsValid = ClaimValidator.ValidateTemporalClaims(payload, _options);
+        bool claimsValid = ClaimValidator.ValidateTemporalClaims(payload, options);
         if (!claimsValid)
         {
             errors.Add(ErrorCode.TokenExpired);
@@ -234,14 +234,14 @@ public class SdJwtVerifier
         }
 
         // Validate issuer if configured
-        if (!ClaimValidator.ValidateIssuer(payload, _options.ExpectedIssuer))
+        if (!ClaimValidator.ValidateIssuer(payload, options.ExpectedIssuer))
         {
             errors.Add(ErrorCode.InvalidInput);
             errorDetails.Add("Issuer validation failed");
         }
 
         // Validate audience if configured
-        if (!ClaimValidator.ValidateAudience(payload, _options.ExpectedAudience))
+        if (!ClaimValidator.ValidateAudience(payload, options.ExpectedAudience))
         {
             errors.Add(ErrorCode.InvalidInput);
             errorDetails.Add("Audience validation failed");
@@ -328,7 +328,7 @@ public class SdJwtVerifier
                 else if (jwkElement.ValueKind == JsonValueKind.Object)
                 {
                     // RFC 7800 format: proper JWK with kty, crv, x, y
-                    holderPublicKey = _ecPublicKeyConverter.FromJwk(jwkElement);
+                    holderPublicKey = ecPublicKeyConverter.FromJwk(jwkElement);
                 }
                 else
                 {
@@ -392,8 +392,8 @@ public class SdJwtVerifier
                 keyBindingJwt,
                 holderPublicKey,
                 sdJwtHash,
-                _options.ExpectedAudience,
-                _options.ExpectedNonce);
+                options.ExpectedAudience,
+                options.ExpectedNonce);
 
             if (!keyBindingValid)
             {
@@ -401,7 +401,7 @@ public class SdJwtVerifier
                 errorDetails.Add("Key binding JWT validation failed");
             }
         }
-        else if (_options.RequireKeyBinding)
+        else if (options.RequireKeyBinding)
         {
             // Key binding is required but not present
             errors.Add(ErrorCode.InvalidInput);

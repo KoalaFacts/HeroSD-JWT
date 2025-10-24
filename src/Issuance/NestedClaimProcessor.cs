@@ -10,16 +10,16 @@ namespace HeroSdJwt.Issuance;
 /// </summary>
 internal class NestedClaimProcessor
 {
-    private readonly DisclosureGenerator _disclosureGenerator;
-    private readonly DigestCalculator _digestCalculator;
+    private readonly DisclosureGenerator disclosureGenerator;
+    private readonly DigestCalculator digestCalculator;
 
     // Security: Maximum nesting depth to prevent stack overflow attacks
-    private const int MaxNestingDepth = 10;
+    private const int maxNestingDepth = 10;
 
     public NestedClaimProcessor(DisclosureGenerator disclosureGenerator, DigestCalculator digestCalculator)
     {
-        _disclosureGenerator = disclosureGenerator;
-        _digestCalculator = digestCalculator;
+        this.disclosureGenerator = disclosureGenerator;
+        this.digestCalculator = digestCalculator;
     }
 
     /// <summary>
@@ -29,14 +29,12 @@ internal class NestedClaimProcessor
     /// <param name="nestedClaimPaths">Parsed paths for nested claims (e.g., "address.city")</param>
     /// <param name="hashAlgorithm">Hash algorithm for digests</param>
     /// <param name="disclosures">Output list for generated disclosures</param>
-    /// <param name="digests">Output list for computed digests (only top-level)</param>
     /// <returns>Modified claims dictionary with nested _sd arrays</returns>
     public Dictionary<string, object> ProcessNestedClaims(
         Dictionary<string, object> claims,
         List<ClaimPath> nestedClaimPaths,
         HashAlgorithm hashAlgorithm,
-        List<string> disclosures,
-        List<string> digests)
+        List<string> disclosures)
     {
         if (nestedClaimPaths.Count == 0)
         {
@@ -97,9 +95,9 @@ internal class NestedClaimProcessor
         int depth = 0)
     {
         // Security: Prevent stack overflow with deeply nested structures
-        if (depth > MaxNestingDepth)
+        if (depth > maxNestingDepth)
         {
-            throw new ArgumentException($"Maximum nesting depth of {MaxNestingDepth} exceeded. This may indicate a malformed or malicious JSON structure.");
+            throw new ArgumentException($"Maximum nesting depth of {maxNestingDepth} exceeded. This may indicate a malformed or malicious JSON structure.");
         }
         var result = new Dictionary<string, object>();
         var sdDigests = new List<string>();
@@ -167,11 +165,11 @@ internal class NestedClaimProcessor
                 }
 
                 // Generate disclosure for this property (with potentially modified nested value)
-                var disclosure = _disclosureGenerator.GenerateDisclosure(propertyName, valueToDisclose);
+                var disclosure = disclosureGenerator.GenerateDisclosure(propertyName, valueToDisclose);
                 disclosures.Add(disclosure);
 
                 // Compute digest
-                var digest = _digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
+                var digest = digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
                 sdDigests.Add(digest);
 
                 // Don't add this property to the result object - it's now hidden in disclosure
