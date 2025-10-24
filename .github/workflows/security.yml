@@ -19,42 +19,9 @@ permissions:
   security-events: write
 
 jobs:
-  codeql-analysis:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'csharp' ]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-          queries: security-extended,security-and-quality
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-          cache: false  # Disabled until packages.lock.json is generated
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:${{ matrix.language }}"
+  # CodeQL analysis disabled - using GitHub default CodeQL setup instead
+  # The default setup automatically scans on push/PR and provides the same security analysis
+  # Re-enable this job only if you disable default CodeQL in repository settings
 
   nuget-audit:
     name: NuGet Security Audit
@@ -129,7 +96,7 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [codeql-analysis, nuget-audit, secret-scanning]
+    needs: [nuget-audit, secret-scanning]
     if: always()
 
     steps:
@@ -140,15 +107,14 @@ jobs:
           echo "Security scans completed on $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Comprehensive Security Scan Results" >> $GITHUB_STEP_SUMMARY
-          echo "- CodeQL Analysis: ${{ needs.codeql-analysis.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- CodeQL Analysis: Managed by GitHub default setup" >> $GITHUB_STEP_SUMMARY
           echo "- NuGet Audit: ${{ needs.nuget-audit.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Secret Scanning: ${{ needs.secret-scanning.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> **Note**: Dependency review for PRs is handled in the CI workflow." >> $GITHUB_STEP_SUMMARY
+          echo "> **Note**: CodeQL analysis runs automatically via GitHub default setup. Dependency review for PRs is handled in the CI workflow." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ "${{ needs.codeql-analysis.result }}" != "success" ] || \
-             [ "${{ needs.nuget-audit.result }}" != "success" ] || \
+          if [ "${{ needs.nuget-audit.result }}" != "success" ] || \
              [ "${{ needs.secret-scanning.result }}" != "success" ]; then
             echo "**Some security checks failed. Please review the results above.**" >> $GITHUB_STEP_SUMMARY
           else
