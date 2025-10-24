@@ -13,8 +13,8 @@
     <!-- Package Metadata -->
     <PackageId>HeroSD-JWT</PackageId>
 
-    <!-- Version: Update before each release. CI overrides this with -p:Version during official releases. -->
-    <Version>1.0.3</Version>
+    <!-- Version: Placeholder for local builds. CI overrides this with -p:Version=${{ inputs.version }} during releases. -->
+    <Version>1.0.0</Version>
 
     <Authors>KoalaFacts</Authors>
     <Company>KoalaFacts</Company>
@@ -30,15 +30,9 @@
     <PackageIcon>icon.png</PackageIcon>
     <Copyright>Copyright (c) 2025 KoalaFacts</Copyright>
 
-    <!-- Release Notes: MUST be updated before each release. CI uses this value (does NOT override). -->
-    <PackageReleaseNotes>
-Version 1.0.3:
-- Fixed nested array disclosure issue
-- Improved verification performance
-- Updated to support .NET 9.0
-
-See full changelog: https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG.md
-    </PackageReleaseNotes>
+    <!-- Release Notes: CI auto-generates from CHANGELOG.md via -p:PackageReleaseNotes during releases.
+         For local builds, this provides a fallback URL to the releases page. -->
+    <PackageReleaseNotes>See release notes: https://github.com/KoalaFacts/HeroSD-JWT/releases</PackageReleaseNotes>
 
     <!-- Source Link for debugging -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

@@ -48,8 +48,40 @@ jobs:
       - name: Run tests
         run: dotnet test --configuration Release --no-build --verbosity normal
 
+      - name: Extract release notes from CHANGELOG
+        id: extract-notes
+        run: |
+          VERSION="${{ inputs.version }}"
+
+          # Extract the section for this version from CHANGELOG.md
+          # Find lines between ## [VERSION] and the next ## heading
+          NOTES=$(sed -n "/## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '$ d' | tail -n +2)
+
+          if [ -z "$NOTES" ]; then
+            echo "Warning: No changelog entry found for version $VERSION"
+            NOTES="See release notes: https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v$VERSION"
+          else
+            # Add link to full changelog at the end
+            NOTES="$NOTES
+
+See full changelog: https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG.md"
+          fi
+
+          # Save to multiline environment variable
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "$NOTES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+          echo "Release notes extracted from CHANGELOG.md"
+
       - name: Pack NuGet packages
-        run: dotnet pack src/HeroSdJwt/HeroSdJwt.csproj --configuration Release --no-build -p:PackageVersion=${{ inputs.version }} -p:Version=${{ inputs.version }}
+        run: |
+          dotnet pack src/HeroSdJwt/HeroSdJwt.csproj \
+            --configuration Release \
+            --no-build \
+            -p:PackageVersion=${{ inputs.version }} \
+            -p:Version=${{ inputs.version }} \
+            -p:PackageReleaseNotes="${{ env.RELEASE_NOTES }}"
 
       - name: Verify packages were created
         run: |
