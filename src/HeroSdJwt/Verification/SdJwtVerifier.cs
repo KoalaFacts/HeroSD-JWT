@@ -18,7 +18,7 @@ namespace HeroSdJwt.Verification;
 /// Implements security measures including constant-time comparison, algorithm confusion prevention,
 /// and timing attack resistance.
 /// </summary>
-public class SdJwtVerifier
+public class SdJwtVerifier : ISdJwtVerifier
 {
     private readonly SdJwtVerificationOptions options;
     private readonly IEcPublicKeyConverter ecPublicKeyConverter;

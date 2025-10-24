@@ -1,4 +1,5 @@
 using HeroSdJwt.Cryptography;
+using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Verification;
 using HeroSdJwt.Primitives;
@@ -24,6 +25,7 @@ public class KeyResolverContractTests
 
         var sdJwt = SdJwtBuilder.Create()
             .WithClaim("sub", "user-123")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithClaim("email", "alice@example.com")
             .MakeSelective("email")
             .WithKeyId(keyId)
@@ -39,11 +41,18 @@ public class KeyResolverContractTests
 
         // Act
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentation(sdJwt.ToString(), resolver);
+        var presentation = sdJwt.ToPresentation("email"); // Reveal the selective claim
+
+        // First verify it works with direct key (baseline test)
+        var directResult = verifier.TryVerifyPresentation(presentation, hmacKey);
+        Assert.True(directResult.IsValid, $"Baseline verification failed: {string.Join(", ", directResult.Errors)}");
+
+        // Now test with key resolver
+        var result = verifier.TryVerifyPresentation(presentation, resolver);
 
         // Assert
-        Assert.True(result.IsValid);
-        Assert.NotEmpty(result.DisclosedClaims);
+        Assert.True(result.IsValid, $"Verification failed with errors: {string.Join(", ", result.Errors)}");
+        Assert.Equal("alice@example.com", result.DisclosedClaims["email"].GetString());
     }
 
     [Fact]
@@ -55,6 +64,7 @@ public class KeyResolverContractTests
 
         var sdJwt = SdJwtBuilder.Create()
             .WithClaim("sub", "user-123")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId(keyId)
             .SignWithHmac(hmacKey)
             .Build();
@@ -65,10 +75,10 @@ public class KeyResolverContractTests
         // Act & Assert
         var verifier = new SdJwtVerifier();
         var exception = Assert.Throws<SdJwtException>(() =>
-            verifier.VerifyPresentation(sdJwt.ToString(), resolver));
+            verifier.VerifyPresentation(sdJwt.ToPresentation(), resolver));
 
         Assert.Equal(ErrorCode.KeyIdNotFound, exception.ErrorCode);
-        Assert.Contains("not found", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("could not find", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -80,6 +90,7 @@ public class KeyResolverContractTests
 
         var sdJwt = SdJwtBuilder.Create()
             .WithClaim("sub", "user-123")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId(keyId)
             .SignWithHmac(hmacKey)
             .Build();
@@ -88,7 +99,7 @@ public class KeyResolverContractTests
 
         // Act
         var verifier = new SdJwtVerifier();
-        var result = verifier.TryVerifyPresentation(sdJwt.ToString(), resolver);
+        var result = verifier.TryVerifyPresentation(sdJwt.ToPresentation(), resolver);
 
         // Assert
         Assert.False(result.IsValid);
@@ -104,6 +115,7 @@ public class KeyResolverContractTests
         var sdJwt = SdJwtBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("email", "alice@example.com")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .MakeSelective("email")
             .SignWithHmac(hmacKey)
             .Build();
@@ -113,7 +125,7 @@ public class KeyResolverContractTests
 
         // Act - Should use fallback key since no kid in JWT
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentation(sdJwt.ToString(), resolver, fallbackKey: hmacKey);
+        var result = verifier.VerifyPresentation(sdJwt.ToPresentation(), resolver, fallbackKey: hmacKey);
 
         // Assert
         Assert.True(result.IsValid);
@@ -127,6 +139,7 @@ public class KeyResolverContractTests
 
         var sdJwt = SdJwtBuilder.Create()
             .WithClaim("sub", "user-123")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v1")
             .SignWithHmac(hmacKey)
             .Build();
@@ -134,7 +147,7 @@ public class KeyResolverContractTests
         // Act & Assert
         var verifier = new SdJwtVerifier();
         var exception = Assert.Throws<SdJwtException>(() =>
-            verifier.VerifyPresentation(sdJwt.ToString(), keyResolver: null, fallbackKey: null));
+            verifier.VerifyPresentation(sdJwt.ToPresentation(), keyResolver: null, fallbackKey: null));
 
         Assert.Equal(ErrorCode.KeyResolverMissing, exception.ErrorCode);
     }
@@ -147,6 +160,7 @@ public class KeyResolverContractTests
 
         var sdJwt = SdJwtBuilder.Create()
             .WithClaim("sub", "user-123")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v1")
             .SignWithHmac(hmacKey)
             .Build();
@@ -157,7 +171,7 @@ public class KeyResolverContractTests
         // Act & Assert
         var verifier = new SdJwtVerifier();
         var exception = Assert.Throws<SdJwtException>(() =>
-            verifier.VerifyPresentation(sdJwt.ToString(), resolver));
+            verifier.VerifyPresentation(sdJwt.ToPresentation(), resolver));
 
         Assert.Equal(ErrorCode.KeyResolverFailed, exception.ErrorCode);
         Assert.Contains("resolver", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -171,6 +185,7 @@ public class KeyResolverContractTests
 
         var sdJwt = SdJwtBuilder.Create()
             .WithClaim("sub", "user-123")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v1")
             .SignWithHmac(hmacKey)
             .Build();
@@ -179,7 +194,7 @@ public class KeyResolverContractTests
 
         // Act
         var verifier = new SdJwtVerifier();
-        var result = verifier.TryVerifyPresentation(sdJwt.ToString(), resolver);
+        var result = verifier.TryVerifyPresentation(sdJwt.ToPresentation(), resolver);
 
         // Assert
         Assert.False(result.IsValid);
@@ -196,18 +211,21 @@ public class KeyResolverContractTests
 
         var sdJwt1 = SdJwtBuilder.Create()
             .WithClaim("sub", "user-1")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v1")
             .SignWithHmac(key1)
             .Build();
 
         var sdJwt2 = SdJwtBuilder.Create()
             .WithClaim("sub", "user-2")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v2")
             .SignWithHmac(key2)
             .Build();
 
         var sdJwt3 = SdJwtBuilder.Create()
             .WithClaim("sub", "user-3")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v3")
             .SignWithHmac(key3)
             .Build();
@@ -223,9 +241,9 @@ public class KeyResolverContractTests
 
         // Act - Verify each JWT uses correct key
         var verifier = new SdJwtVerifier();
-        var result1 = verifier.VerifyPresentation(sdJwt1.ToString(), resolver);
-        var result2 = verifier.VerifyPresentation(sdJwt2.ToString(), resolver);
-        var result3 = verifier.VerifyPresentation(sdJwt3.ToString(), resolver);
+        var result1 = verifier.VerifyPresentation(sdJwt1.ToPresentation(), resolver);
+        var result2 = verifier.VerifyPresentation(sdJwt2.ToPresentation(), resolver);
+        var result3 = verifier.VerifyPresentation(sdJwt3.ToPresentation(), resolver);
 
         // Assert - All should verify successfully
         Assert.True(result1.IsValid);
@@ -242,6 +260,7 @@ public class KeyResolverContractTests
 
         var sdJwt = SdJwtBuilder.Create()
             .WithClaim("sub", "user-123")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v1")
             .SignWithHmac(key1)
             .Build();
@@ -252,7 +271,7 @@ public class KeyResolverContractTests
         // Act & Assert
         var verifier = new SdJwtVerifier();
         var exception = Assert.Throws<SdJwtException>(() =>
-            verifier.VerifyPresentation(sdJwt.ToString(), resolver));
+            verifier.VerifyPresentation(sdJwt.ToPresentation(), resolver));
 
         Assert.Equal(ErrorCode.InvalidSignature, exception.ErrorCode);
     }
@@ -286,6 +305,7 @@ public class KeyResolverContractTests
 
         var builder = SdJwtBuilder.Create()
             .WithClaim("sub", "user-123")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId(keyId);
 
         var sdJwt = algorithmName switch
@@ -301,7 +321,7 @@ public class KeyResolverContractTests
 
         // Act
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentation(sdJwt.ToString(), resolver);
+        var result = verifier.VerifyPresentation(sdJwt.ToPresentation(), resolver);
 
         // Assert
         Assert.True(result.IsValid);
@@ -315,12 +335,13 @@ public class KeyResolverContractTests
 
         var sdJwt = SdJwtBuilder.Create()
             .WithClaim("sub", "user-123")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .SignWithHmac(hmacKey)
             .Build();
 
         // Act - Null resolver but with fallback (backward compat)
         var verifier = new SdJwtVerifier();
-        var result = verifier.VerifyPresentation(sdJwt.ToString(), keyResolver: null, fallbackKey: hmacKey);
+        var result = verifier.VerifyPresentation(sdJwt.ToPresentation(), keyResolver: null, fallbackKey: hmacKey);
 
         // Assert
         Assert.True(result.IsValid);
