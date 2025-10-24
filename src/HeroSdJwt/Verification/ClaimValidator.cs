@@ -6,7 +6,7 @@ namespace HeroSdJwt.Verification;
 /// <summary>
 /// Validates JWT claims including temporal claims (exp, nbf, iat).
 /// </summary>
-internal static class ClaimValidator
+public class ClaimValidator : IClaimValidator
 {
     /// <summary>
     /// Validates temporal claims in a JWT payload with optional clock skew tolerance.
@@ -16,7 +16,7 @@ internal static class ClaimValidator
     /// <param name="currentTime">Optional current time for testing; uses UtcNow if null.</param>
     /// <returns>True if all temporal claims are valid; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when payload or options is null.</exception>
-    public static bool ValidateTemporalClaims(
+    public bool ValidateTemporalClaims(
         JsonElement payload,
         SdJwtVerificationOptions options,
         DateTimeOffset? currentTime = null)
@@ -82,7 +82,7 @@ internal static class ClaimValidator
     /// <param name="payload">The decoded JWT payload.</param>
     /// <param name="expectedIssuer">The expected issuer value.</param>
     /// <returns>True if issuer matches or expectedIssuer is null; otherwise, false.</returns>
-    public static bool ValidateIssuer(JsonElement payload, string? expectedIssuer)
+    public bool ValidateIssuer(JsonElement payload, string? expectedIssuer)
     {
         if (string.IsNullOrWhiteSpace(expectedIssuer))
         {
@@ -104,7 +104,7 @@ internal static class ClaimValidator
     /// <param name="payload">The decoded JWT payload.</param>
     /// <param name="expectedAudience">The expected audience value.</param>
     /// <returns>True if audience matches or expectedAudience is null; otherwise, false.</returns>
-    public static bool ValidateAudience(JsonElement payload, string? expectedAudience)
+    public bool ValidateAudience(JsonElement payload, string? expectedAudience)
     {
         if (string.IsNullOrWhiteSpace(expectedAudience))
         {

@@ -328,7 +328,7 @@ public class SdJwtVerifierContractTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            verifier.TryVerifyPresentation(presentation, null!));
+            verifier.TryVerifyPresentation(presentation, (byte[])null!));
     }
 
     [Fact]

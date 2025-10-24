@@ -5,7 +5,7 @@ using Xunit;
 namespace HeroSdJwt.Tests.Unit.Verification;
 
 /// <summary>
-/// Unit tests for ClaimValidator.
+/// Unit tests for new ClaimValidator().
 /// Tests temporal claim validation (exp, nbf, iat) and issuer/audience validation.
 /// </summary>
 public class ClaimValidatorTests
@@ -25,7 +25,7 @@ public class ClaimValidatorTests
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) };
 
         // Act
-        var result = ClaimValidator.ValidateTemporalClaims(payload, options, now);
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options, now);
 
         // Assert
         Assert.True(result, "Valid temporal claims should pass validation");
@@ -44,7 +44,7 @@ public class ClaimValidatorTests
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) };
 
         // Act
-        var result = ClaimValidator.ValidateTemporalClaims(payload, options, now);
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options, now);
 
         // Assert
         Assert.False(result, "Expired token should fail validation");
@@ -63,7 +63,7 @@ public class ClaimValidatorTests
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) }; // 5 min tolerance
 
         // Act
-        var result = ClaimValidator.ValidateTemporalClaims(payload, options, now);
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options, now);
 
         // Assert
         Assert.True(result, "Token expired within clock skew should pass validation");
@@ -82,7 +82,7 @@ public class ClaimValidatorTests
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) };
 
         // Act
-        var result = ClaimValidator.ValidateTemporalClaims(payload, options, now);
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options, now);
 
         // Assert
         Assert.False(result, "Not-yet-valid token should fail validation");
@@ -101,7 +101,7 @@ public class ClaimValidatorTests
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) }; // 5 min tolerance
 
         // Act
-        var result = ClaimValidator.ValidateTemporalClaims(payload, options, now);
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options, now);
 
         // Assert
         Assert.True(result, "Token not-yet-valid within clock skew should pass validation");
@@ -115,7 +115,7 @@ public class ClaimValidatorTests
         var options = new SdJwtVerificationOptions();
 
         // Act
-        var result = ClaimValidator.ValidateTemporalClaims(payload, options);
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options);
 
         // Assert
         Assert.True(result, "Token without temporal claims should pass validation");
@@ -129,7 +129,7 @@ public class ClaimValidatorTests
         var options = new SdJwtVerificationOptions();
 
         // Act
-        var result = ClaimValidator.ValidateTemporalClaims(payload, options);
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options);
 
         // Assert
         Assert.False(result, "Invalid exp format should fail validation");
@@ -143,7 +143,7 @@ public class ClaimValidatorTests
         var options = new SdJwtVerificationOptions();
 
         // Act
-        var result = ClaimValidator.ValidateTemporalClaims(payload, options);
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options);
 
         // Assert
         Assert.False(result, "Invalid nbf format should fail validation");
@@ -157,7 +157,7 @@ public class ClaimValidatorTests
         var options = new SdJwtVerificationOptions();
 
         // Act
-        var result = ClaimValidator.ValidateTemporalClaims(payload, options);
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options);
 
         // Assert
         Assert.False(result, "Invalid iat format should fail validation");
@@ -176,7 +176,7 @@ public class ClaimValidatorTests
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.Zero };
 
         // Act
-        var result = ClaimValidator.ValidateTemporalClaims(payload, options, now);
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options, now);
 
         // Assert
         Assert.False(result, "With zero clock skew, even 1 second expiry should fail");
@@ -190,7 +190,7 @@ public class ClaimValidatorTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            ClaimValidator.ValidateTemporalClaims(payload, null!));
+            new ClaimValidator().ValidateTemporalClaims(payload, null!));
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public class ClaimValidatorTests
         var expectedIssuer = "https://issuer.example.com";
 
         // Act
-        var result = ClaimValidator.ValidateIssuer(payload, expectedIssuer);
+        var result = new ClaimValidator().ValidateIssuer(payload, expectedIssuer);
 
         // Assert
         Assert.True(result, "Matching issuer should pass validation");
@@ -215,7 +215,7 @@ public class ClaimValidatorTests
         var expectedIssuer = "https://different.example.com";
 
         // Act
-        var result = ClaimValidator.ValidateIssuer(payload, expectedIssuer);
+        var result = new ClaimValidator().ValidateIssuer(payload, expectedIssuer);
 
         // Assert
         Assert.False(result, "Non-matching issuer should fail validation");
@@ -228,7 +228,7 @@ public class ClaimValidatorTests
         var payload = CreatePayload(new { iss = "https://issuer.example.com" });
 
         // Act
-        var result = ClaimValidator.ValidateIssuer(payload, null);
+        var result = new ClaimValidator().ValidateIssuer(payload, null);
 
         // Assert
         Assert.True(result, "Null expected issuer should skip validation");
@@ -242,7 +242,7 @@ public class ClaimValidatorTests
         var expectedIssuer = "https://issuer.example.com";
 
         // Act
-        var result = ClaimValidator.ValidateIssuer(payload, expectedIssuer);
+        var result = new ClaimValidator().ValidateIssuer(payload, expectedIssuer);
 
         // Assert
         Assert.False(result, "Missing iss claim should fail validation when issuer expected");
@@ -256,7 +256,7 @@ public class ClaimValidatorTests
         var expectedIssuer = "https://issuer.example.com"; // Different case
 
         // Act
-        var result = ClaimValidator.ValidateIssuer(payload, expectedIssuer);
+        var result = new ClaimValidator().ValidateIssuer(payload, expectedIssuer);
 
         // Assert
         Assert.False(result, "Issuer validation should be case-sensitive");
@@ -270,7 +270,7 @@ public class ClaimValidatorTests
         var expectedAudience = "https://api.example.com";
 
         // Act
-        var result = ClaimValidator.ValidateAudience(payload, expectedAudience);
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudience);
 
         // Assert
         Assert.True(result, "Matching audience string should pass validation");
@@ -287,7 +287,7 @@ public class ClaimValidatorTests
         var expectedAudience = "https://api2.example.com";
 
         // Act
-        var result = ClaimValidator.ValidateAudience(payload, expectedAudience);
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudience);
 
         // Assert
         Assert.True(result, "Matching audience in array should pass validation");
@@ -301,7 +301,7 @@ public class ClaimValidatorTests
         var expectedAudience = "https://different.example.com";
 
         // Act
-        var result = ClaimValidator.ValidateAudience(payload, expectedAudience);
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudience);
 
         // Assert
         Assert.False(result, "Non-matching audience should fail validation");
@@ -318,7 +318,7 @@ public class ClaimValidatorTests
         var expectedAudience = "https://api3.example.com";
 
         // Act
-        var result = ClaimValidator.ValidateAudience(payload, expectedAudience);
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudience);
 
         // Assert
         Assert.False(result, "Expected audience not in array should fail validation");
@@ -331,7 +331,7 @@ public class ClaimValidatorTests
         var payload = CreatePayload(new { aud = "https://api.example.com" });
 
         // Act
-        var result = ClaimValidator.ValidateAudience(payload, null);
+        var result = new ClaimValidator().ValidateAudience(payload, null);
 
         // Assert
         Assert.True(result, "Null expected audience should skip validation");
@@ -345,7 +345,7 @@ public class ClaimValidatorTests
         var expectedAudience = "https://api.example.com";
 
         // Act
-        var result = ClaimValidator.ValidateAudience(payload, expectedAudience);
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudience);
 
         // Assert
         Assert.False(result, "Missing aud claim should fail validation when audience expected");
@@ -359,7 +359,7 @@ public class ClaimValidatorTests
         var expectedAudience = "https://api.example.com"; // Different case
 
         // Act
-        var result = ClaimValidator.ValidateAudience(payload, expectedAudience);
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudience);
 
         // Assert
         Assert.False(result, "Audience validation should be case-sensitive");
@@ -373,7 +373,7 @@ public class ClaimValidatorTests
         var expectedAudience = "https://api.example.com";
 
         // Act
-        var result = ClaimValidator.ValidateAudience(payload, expectedAudience);
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudience);
 
         // Assert
         Assert.False(result, "Invalid aud format should fail validation");

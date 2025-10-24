@@ -25,6 +25,7 @@ public class SdJwtVerifier
     private readonly ISignatureValidator signatureValidator;
     private readonly IDigestValidator digestValidator;
     private readonly IKeyBindingValidator keyBindingValidator;
+    private readonly IClaimValidator claimValidator;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtVerifier"/> class with default options.
@@ -44,7 +45,8 @@ public class SdJwtVerifier
             new EcPublicKeyConverter(),
             new SignatureValidator(),
             new DigestValidator(),
-            new KeyBindingValidator())
+            new KeyBindingValidator(),
+            new ClaimValidator())
     {
     }
 
@@ -56,12 +58,14 @@ public class SdJwtVerifier
         IEcPublicKeyConverter ecPublicKeyConverter,
         ISignatureValidator signatureValidator,
         IDigestValidator digestValidator,
-        IKeyBindingValidator keyBindingValidator)
+        IKeyBindingValidator keyBindingValidator,
+        IClaimValidator claimValidator)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(signatureValidator);
         ArgumentNullException.ThrowIfNull(digestValidator);
         ArgumentNullException.ThrowIfNull(keyBindingValidator);
+        ArgumentNullException.ThrowIfNull(claimValidator);
 
         options.Validate();
         this.options = options;
@@ -69,6 +73,7 @@ public class SdJwtVerifier
         this.signatureValidator = signatureValidator;
         this.digestValidator = digestValidator;
         this.keyBindingValidator = keyBindingValidator;
+        this.claimValidator = claimValidator;
     }
 
     /// <summary>
@@ -142,6 +147,192 @@ public class SdJwtVerifier
         {
             return new VerificationResult(ErrorCode.InvalidInput, $"Verification failed: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Verifies an SD-JWT presentation using key resolution.
+    /// Throws exceptions on validation failures.
+    /// </summary>
+    /// <param name="presentation">The combined SD-JWT presentation string (JWT~disclosure1~disclosure2~...~keyBinding).</param>
+    /// <param name="keyResolver">Delegate to resolve key IDs to verification keys.</param>
+    /// <param name="fallbackKey">Optional fallback key when JWT has no 'kid' parameter (backward compatibility).</param>
+    /// <param name="expectedHashAlgorithm">Optional expected hash algorithm for disclosure digests.</param>
+    /// <returns>Verification result with validation status and disclosed claims.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when presentation is null.</exception>
+    /// <exception cref="SdJwtException">Thrown when validation fails.</exception>
+    public VerificationResult VerifyPresentation(
+        string presentation,
+        Primitives.KeyResolver? keyResolver,
+        byte[]? fallbackKey = null,
+        HashAlgorithm? expectedHashAlgorithm = null)
+    {
+        ArgumentNullException.ThrowIfNull(presentation);
+
+        var result = VerifyPresentationInternalWithResolver(presentation, keyResolver, fallbackKey, expectedHashAlgorithm);
+
+        if (!result.IsValid)
+        {
+            var primaryError = result.Errors.FirstOrDefault();
+            throw new SdJwtException("SD-JWT verification failed", primaryError);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Attempts to verify an SD-JWT presentation using key resolution without throwing exceptions.
+    /// Returns a result object with validation status and errors.
+    /// Follows the standard .NET Try* pattern (similar to TryParse, TryGetValue).
+    /// </summary>
+    /// <param name="presentation">The combined SD-JWT presentation string.</param>
+    /// <param name="keyResolver">Delegate to resolve key IDs to verification keys.</param>
+    /// <param name="fallbackKey">Optional fallback key when JWT has no 'kid' parameter.</param>
+    /// <param name="expectedHashAlgorithm">Optional expected hash algorithm.</param>
+    /// <returns>Verification result with validation status, errors, and disclosed claims.</returns>
+    public VerificationResult TryVerifyPresentation(
+        string presentation,
+        Primitives.KeyResolver? keyResolver,
+        byte[]? fallbackKey = null,
+        HashAlgorithm? expectedHashAlgorithm = null)
+    {
+        ArgumentNullException.ThrowIfNull(presentation);
+
+        try
+        {
+            return VerifyPresentationInternalWithResolver(presentation, keyResolver, fallbackKey, expectedHashAlgorithm);
+        }
+        catch (AlgorithmConfusionException ex)
+        {
+            return new VerificationResult(ErrorCode.AlgorithmConfusion, ex.Message);
+        }
+        catch (AlgorithmNotSupportedException ex)
+        {
+            return new VerificationResult(ErrorCode.UnsupportedAlgorithm, ex.Message);
+        }
+        catch (SdJwtException ex)
+        {
+            return new VerificationResult(ex.ErrorCode, $"Verification failed: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            return new VerificationResult(ErrorCode.InvalidInput, $"Verification failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Internal verification logic with key resolver support.
+    /// </summary>
+    private VerificationResult VerifyPresentationInternalWithResolver(
+        string presentation,
+        Primitives.KeyResolver? keyResolver,
+        byte[]? fallbackKey,
+        HashAlgorithm? expectedHashAlgorithm)
+    {
+        var errors = new List<ErrorCode>();
+        var errorDetails = new List<string>();
+
+        // Validate presentation size to prevent DoS attacks
+        if (presentation.Length > Constants.MaxJwtSizeBytes)
+        {
+            errors.Add(ErrorCode.InvalidInput);
+            errorDetails.Add($"Presentation exceeds maximum allowed size of {Constants.MaxJwtSizeBytes} bytes");
+            return new VerificationResult(errors, string.Join("; ", errorDetails));
+        }
+
+        // Parse presentation into parts: JWT~disclosure1~disclosure2~...~keyBinding
+        var parts = presentation.Split('~');
+        if (parts.Length < 2)
+        {
+            errors.Add(ErrorCode.InvalidInput);
+            errorDetails.Add("Invalid presentation format: expected at least JWT and empty slots");
+            return new VerificationResult(errors, string.Join("; ", errorDetails));
+        }
+
+        var jwt = parts[0];
+
+        // Step 1: Extract kid from JWT header and resolve to verification key
+        byte[] verificationKey;
+        try
+        {
+            // Parse JWT header to check for kid
+            var jwtParts = jwt.Split('.');
+            if (jwtParts.Length != 3)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("Invalid JWT format");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            var headerJson = Base64UrlEncoder.DecodeString(jwtParts[0]);
+            var header = JsonDocument.Parse(headerJson).RootElement;
+
+            // Check if kid is present
+            if (header.TryGetProperty("kid", out var kidElement) && kidElement.ValueKind == JsonValueKind.String)
+            {
+                var keyId = kidElement.GetString();
+
+                if (string.IsNullOrWhiteSpace(keyId))
+                {
+                    throw new SdJwtException("JWT header contains empty 'kid' claim", ErrorCode.InvalidInput);
+                }
+
+                // Use resolver
+                if (keyResolver == null)
+                {
+                    throw new SdJwtException(
+                        "JWT contains 'kid' parameter but no key resolver was provided",
+                        ErrorCode.KeyResolverMissing);
+                }
+
+                try
+                {
+                    verificationKey = keyResolver(keyId)!;
+                    if (verificationKey == null)
+                    {
+                        throw new SdJwtException(
+                            $"Key resolver could not find key for kid '{keyId}'",
+                            ErrorCode.KeyIdNotFound);
+                    }
+                }
+                catch (SdJwtException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    throw new SdJwtException(
+                        $"Key resolver threw an exception while resolving kid '{keyId}': {ex.Message}",
+                        ErrorCode.KeyResolverFailed,
+                        ex);
+                }
+            }
+            else
+            {
+                // No kid - use fallback
+                if (fallbackKey == null)
+                {
+                    throw new SdJwtException(
+                        "JWT has no 'kid' parameter and no fallback key was provided",
+                        ErrorCode.KeyResolverMissing);
+                }
+
+                verificationKey = fallbackKey;
+            }
+        }
+        catch (SdJwtException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            errors.Add(ErrorCode.InvalidInput);
+            errorDetails.Add($"Failed to parse JWT header: {ex.Message}");
+            return new VerificationResult(errors, string.Join("; ", errorDetails));
+        }
+
+        // Step 2: Delegate to existing internal method with resolved key
+        // This handles signature verification, temporal claims, disclosures, key binding, etc.
+        return VerifyPresentationInternal(presentation, verificationKey, expectedHashAlgorithm);
     }
 
     /// <summary>
@@ -250,7 +441,7 @@ public class SdJwtVerifier
         }
 
         // Step 3: Validate temporal claims (exp, nbf, iat)
-        bool claimsValid = ClaimValidator.ValidateTemporalClaims(payload, options);
+        bool claimsValid = claimValidator.ValidateTemporalClaims(payload, options);
         if (!claimsValid)
         {
             errors.Add(ErrorCode.TokenExpired);
@@ -258,14 +449,14 @@ public class SdJwtVerifier
         }
 
         // Validate issuer if configured
-        if (!ClaimValidator.ValidateIssuer(payload, options.ExpectedIssuer))
+        if (!claimValidator.ValidateIssuer(payload, options.ExpectedIssuer))
         {
             errors.Add(ErrorCode.InvalidInput);
             errorDetails.Add("Issuer validation failed");
         }
 
         // Validate audience if configured
-        if (!ClaimValidator.ValidateAudience(payload, options.ExpectedAudience))
+        if (!claimValidator.ValidateAudience(payload, options.ExpectedAudience))
         {
             errors.Add(ErrorCode.InvalidInput);
             errorDetails.Add("Audience validation failed");

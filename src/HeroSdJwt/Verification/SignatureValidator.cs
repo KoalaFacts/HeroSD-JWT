@@ -191,6 +191,96 @@ public class SignatureValidator : ISignatureValidator
     }
 
     /// <summary>
+    /// Verifies the signature of a JWT using key resolution.
+    /// Extracts the 'kid' (key ID) from JWT header and uses the resolver to obtain the verification key.
+    /// </summary>
+    /// <param name="jwt">The JWT in format: header.payload.signature</param>
+    /// <param name="keyResolver">Delegate to resolve key IDs to verification keys. Called only if JWT contains 'kid'.</param>
+    /// <param name="fallbackKey">Optional fallback key to use when JWT has no 'kid' parameter (backward compatibility).</param>
+    /// <returns>True if signature is valid; otherwise, false.</returns>
+    /// <exception cref="SdJwtException">Thrown when JWT contains kid but resolver returns null (KeyIdNotFound), or when kid is present but no resolver/fallback provided (KeyResolverMissing), or when resolver throws an exception (KeyResolverFailed).</exception>
+    public bool VerifyJwtSignature(string jwt, Primitives.KeyResolver? keyResolver, byte[]? fallbackKey = null)
+    {
+        ArgumentNullException.ThrowIfNull(jwt);
+
+        // Parse JWT to extract header
+        var parts = jwt.Split('.');
+        if (parts.Length != 3)
+        {
+            throw new SdJwtException(
+                "Invalid JWT format: expected 3 parts separated by dots",
+                ErrorCode.InvalidInput);
+        }
+
+        var headerBase64 = parts[0];
+
+        // Decode and parse header
+        var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
+        var header = JsonDocument.Parse(headerJson).RootElement;
+
+        // Check if kid is present in header
+        byte[] verificationKey;
+        if (header.TryGetProperty("kid", out var kidElement) && kidElement.ValueKind == JsonValueKind.String)
+        {
+            var keyId = kidElement.GetString();
+
+            if (string.IsNullOrWhiteSpace(keyId))
+            {
+                throw new SdJwtException(
+                    "JWT header contains empty 'kid' claim",
+                    ErrorCode.InvalidInput);
+            }
+
+            // Kid is present - must use resolver
+            if (keyResolver == null)
+            {
+                throw new SdJwtException(
+                    "JWT contains 'kid' parameter but no key resolver was provided",
+                    ErrorCode.KeyResolverMissing);
+            }
+
+            // Resolve key ID to verification key
+            try
+            {
+                verificationKey = keyResolver(keyId)!;
+
+                if (verificationKey == null)
+                {
+                    throw new SdJwtException(
+                        $"Key resolver could not find key for kid '{keyId}'",
+                        ErrorCode.KeyIdNotFound);
+                }
+            }
+            catch (SdJwtException)
+            {
+                throw; // Re-throw our exceptions
+            }
+            catch (Exception ex)
+            {
+                throw new SdJwtException(
+                    $"Key resolver threw an exception while resolving kid '{keyId}': {ex.Message}",
+                    ErrorCode.KeyResolverFailed,
+                    ex);
+            }
+        }
+        else
+        {
+            // No kid present - use fallback key
+            if (fallbackKey == null)
+            {
+                throw new SdJwtException(
+                    "JWT has no 'kid' parameter and no fallback key was provided",
+                    ErrorCode.KeyResolverMissing);
+            }
+
+            verificationKey = fallbackKey;
+        }
+
+        // Verify signature using resolved/fallback key
+        return VerifyJwtSignature(jwt, verificationKey);
+    }
+
+    /// <summary>
     /// Checks if an algorithm is supported for signature verification.
     /// </summary>
     private static bool IsSupportedAlgorithm(string algorithm)
