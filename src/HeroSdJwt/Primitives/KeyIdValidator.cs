@@ -5,7 +5,7 @@ namespace HeroSdJwt.Primitives;
 /// </summary>
 internal static class KeyIdValidator
 {
-    private const int MaxKeyIdLength = 256;
+    private const int maxKeyIdLength = 256;
 
     /// <summary>
     /// Validates a key identifier meets RFC 7515 and application requirements.
@@ -21,9 +21,9 @@ internal static class KeyIdValidator
         if (string.IsNullOrWhiteSpace(keyId))
             throw new ArgumentException("Key ID cannot be empty or whitespace", nameof(keyId));
 
-        if (keyId.Length > MaxKeyIdLength)
+        if (keyId.Length > maxKeyIdLength)
             throw new ArgumentException(
-                $"Key ID length ({keyId.Length}) exceeds maximum allowed ({MaxKeyIdLength})",
+                $"Key ID length ({keyId.Length}) exceeds maximum allowed ({maxKeyIdLength})",
                 nameof(keyId));
 
         // Check for non-printable characters (ASCII 32-126 are printable)
