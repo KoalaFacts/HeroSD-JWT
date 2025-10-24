@@ -42,13 +42,13 @@ public class TimingAttackTests
         {
             // Measure correct digest validation
             sw.Restart();
-            DigestValidator.ValidateDigest(disclosure, correctDigest, HashAlgorithm.Sha256);
+            new DigestValidator().ValidateDigest(disclosure, correctDigest, HashAlgorithm.Sha256);
             sw.Stop();
             correctTimes.Add(sw.ElapsedTicks);
 
             // Measure incorrect digest validation
             sw.Restart();
-            DigestValidator.ValidateDigest(disclosure, wrongDigest, HashAlgorithm.Sha256);
+            new DigestValidator().ValidateDigest(disclosure, wrongDigest, HashAlgorithm.Sha256);
             sw.Stop();
             incorrectTimes.Add(sw.ElapsedTicks);
         }
@@ -92,13 +92,13 @@ public class TimingAttackTests
         {
             // Measure first byte difference
             sw.Restart();
-            DigestValidator.ValidateDigest(disclosure, firstByteDigest, HashAlgorithm.Sha256);
+            new DigestValidator().ValidateDigest(disclosure, firstByteDigest, HashAlgorithm.Sha256);
             sw.Stop();
             firstByteTimes.Add(sw.ElapsedTicks);
 
             // Measure last byte difference
             sw.Restart();
-            DigestValidator.ValidateDigest(disclosure, lastByteDigest, HashAlgorithm.Sha256);
+            new DigestValidator().ValidateDigest(disclosure, lastByteDigest, HashAlgorithm.Sha256);
             sw.Stop();
             lastByteTimes.Add(sw.ElapsedTicks);
         }
@@ -179,13 +179,13 @@ public class TimingAttackTests
         {
             // Measure correct validation
             sw.Restart();
-            DigestValidator.ValidateAllDigests(disclosures, correctDigests, HashAlgorithm.Sha256);
+            new DigestValidator().ValidateAllDigests(disclosures, correctDigests, HashAlgorithm.Sha256);
             sw.Stop();
             correctTimes.Add(sw.ElapsedTicks);
 
             // Measure incorrect validation
             sw.Restart();
-            DigestValidator.ValidateAllDigests(disclosures, wrongDigests, HashAlgorithm.Sha256);
+            new DigestValidator().ValidateAllDigests(disclosures, wrongDigests, HashAlgorithm.Sha256);
             sw.Stop();
             incorrectTimes.Add(sw.ElapsedTicks);
         }

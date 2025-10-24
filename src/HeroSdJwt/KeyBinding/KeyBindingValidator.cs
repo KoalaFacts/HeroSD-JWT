@@ -10,8 +10,27 @@ namespace HeroSdJwt.KeyBinding;
 /// <summary>
 /// Validates key binding JWTs to prove holder possession of private key.
 /// </summary>
-internal static class KeyBindingValidator
+public class KeyBindingValidator : IKeyBindingValidator
 {
+    private readonly TimeProvider timeProvider;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="KeyBindingValidator"/> class.
+    /// </summary>
+    public KeyBindingValidator()
+        : this(TimeProvider.System)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="KeyBindingValidator"/> class with dependencies.
+    /// </summary>
+    /// <param name="timeProvider">The time provider for temporal validation.</param>
+    public KeyBindingValidator(TimeProvider timeProvider)
+    {
+        this.timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+    }
+
     /// <summary>
     /// Validates a key binding JWT against the holder's public key.
     /// </summary>
@@ -21,7 +40,7 @@ internal static class KeyBindingValidator
     /// <param name="expectedAudience">The expected audience.</param>
     /// <param name="expectedNonce">The expected nonce.</param>
     /// <returns>True if valid; otherwise, false.</returns>
-    public static bool ValidateKeyBinding(
+    public bool ValidateKeyBinding(
         string keyBindingJwt,
         byte[] holderPublicKey,
         string expectedSdJwtHash,
@@ -105,7 +124,7 @@ internal static class KeyBindingValidator
             }
 
             var iat = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds);
-            var now = DateTimeOffset.UtcNow;
+            var now = timeProvider.GetUtcNow();
 
             // Reject if KB-JWT is too old (replay attack prevention)
             var maxAge = TimeSpan.FromSeconds(Constants.MaxKeyBindingJwtAgeSeconds);

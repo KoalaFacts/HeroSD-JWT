@@ -10,8 +10,27 @@ namespace HeroSdJwt.KeyBinding;
 /// Generates key binding JWTs for SD-JWT presentations.
 /// Key binding proves the holder controls the private key referenced in the SD-JWT.
 /// </summary>
-public class KeyBindingGenerator
+public class KeyBindingGenerator : IKeyBindingGenerator
 {
+    private readonly TimeProvider timeProvider;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="KeyBindingGenerator"/> class.
+    /// </summary>
+    public KeyBindingGenerator()
+        : this(TimeProvider.System)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="KeyBindingGenerator"/> class with dependencies.
+    /// </summary>
+    /// <param name="timeProvider">The time provider for timestamp generation.</param>
+    internal KeyBindingGenerator(TimeProvider timeProvider)
+    {
+        this.timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+    }
+
     /// <summary>
     /// Creates a key binding JWT signed with the holder's private key.
     /// </summary>
@@ -35,13 +54,13 @@ public class KeyBindingGenerator
         // Encode header and payload using AOT-compatible serialization
         var headerJson = SerializeKeyBindingHeader();
         var payloadJson = SerializeKeyBindingPayload(
-            DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            timeProvider.GetUtcNow().ToUnixTimeSeconds(),
             audience,
             nonce,
             sdJwtHash);
 
-        var headerBase64 = Base64UrlEncode(headerJson);
-        var payloadBase64 = Base64UrlEncode(payloadJson);
+        var headerBase64 = Base64UrlEncoder.Encode(headerJson);
+        var payloadBase64 = Base64UrlEncoder.Encode(payloadJson);
 
         // Sign with holder's private key
         var signingInput = $"{headerBase64}.{payloadBase64}";
@@ -68,26 +87,15 @@ public class KeyBindingGenerator
             HashAlgorithmName.SHA256
         );
 
-        var signatureBase64 = Base64UrlEncode(signature);
+        var signatureBase64 = Base64UrlEncoder.Encode(signature);
         return $"{signingInput}.{signatureBase64}";
-    }
-
-    private static string Base64UrlEncode(string input)
-    {
-        var bytes = System.Text.Encoding.UTF8.GetBytes(input);
-        return Base64UrlEncoder.Encode(bytes);
-    }
-
-    private static string Base64UrlEncode(byte[] input)
-    {
-        return Base64UrlEncoder.Encode(input);
     }
 
     /// <summary>
     /// Serializes the key binding JWT header using Utf8JsonWriter for AOT compatibility.
     /// Format: {"alg":"ES256","typ":"kb+jwt"}
     /// </summary>
-    private static string SerializeKeyBindingHeader()
+    private string SerializeKeyBindingHeader()
     {
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer))
@@ -106,7 +114,7 @@ public class KeyBindingGenerator
     /// Serializes the key binding JWT payload using Utf8JsonWriter for AOT compatibility.
     /// Format: {"iat":timestamp,"aud":"...","nonce":"...","sd_hash":"..."}
     /// </summary>
-    private static string SerializeKeyBindingPayload(long iat, string aud, string nonce, string sdHash)
+    private string SerializeKeyBindingPayload(long iat, string aud, string nonce, string sdHash)
     {
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer))

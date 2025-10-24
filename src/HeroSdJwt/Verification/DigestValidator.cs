@@ -8,8 +8,27 @@ namespace HeroSdJwt.Verification;
 /// <summary>
 /// Validates disclosure digests using constant-time comparison to prevent timing attacks.
 /// </summary>
-internal static class DigestValidator
+public class DigestValidator : IDigestValidator
 {
+    private readonly IDigestCalculator digestCalculator;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DigestValidator"/> class.
+    /// </summary>
+    public DigestValidator()
+        : this(new DigestCalculator())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DigestValidator"/> class with a digest calculator.
+    /// </summary>
+    /// <param name="digestCalculator">The digest calculator to use.</param>
+    public DigestValidator(IDigestCalculator digestCalculator)
+    {
+        this.digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
+    }
+
     /// <summary>
     /// Validates that a disclosure's computed digest matches the expected digest.
     /// Uses constant-time comparison via CryptographicOperations.FixedTimeEquals to prevent timing attacks.
@@ -19,13 +38,12 @@ internal static class DigestValidator
     /// <param name="algorithm">The hash algorithm to use for digest computation.</param>
     /// <returns>True if the computed digest matches the expected digest; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when disclosure or expectedDigest is null.</exception>
-    public static bool ValidateDigest(string disclosure, Digest expectedDigest, HashAlgorithm algorithm)
+    public bool ValidateDigest(string disclosure, Digest expectedDigest, HashAlgorithm algorithm)
     {
         ArgumentNullException.ThrowIfNull(disclosure);
 
         // Compute the digest for the given disclosure
-        var calculator = new DigestCalculator();
-        var computedDigestValue = calculator.ComputeDigest(disclosure, algorithm);
+        var computedDigestValue = digestCalculator.ComputeDigest(disclosure, algorithm);
         var computedDigest = new Digest(computedDigestValue, algorithm);
 
         // Use constant-time comparison from Digest.Equals (which uses CryptographicOperations.FixedTimeEquals)
@@ -39,7 +57,7 @@ internal static class DigestValidator
     /// <param name="expectedDigests">The list of expected digests from the JWT payload.</param>
     /// <param name="algorithm">The hash algorithm to use.</param>
     /// <returns>True if all disclosures have matching digests; otherwise, false.</returns>
-    public static bool ValidateAllDigests(
+    public bool ValidateAllDigests(
         IReadOnlyList<string> disclosures,
         IReadOnlyList<Digest> expectedDigests,
         HashAlgorithm algorithm)
@@ -48,12 +66,11 @@ internal static class DigestValidator
         ArgumentNullException.ThrowIfNull(expectedDigests);
 
         // Compute digests for all disclosures
-        var calculator = new DigestCalculator();
         var computedDigests = new List<Digest>();
 
         foreach (var disclosure in disclosures)
         {
-            var digestValue = calculator.ComputeDigest(disclosure, algorithm);
+            var digestValue = digestCalculator.ComputeDigest(disclosure, algorithm);
             computedDigests.Add(new Digest(digestValue, algorithm));
         }
 

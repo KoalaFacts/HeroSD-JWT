@@ -10,8 +10,9 @@ namespace HeroSdJwt.Verification;
 /// <summary>
 /// Validates JWT signatures using cryptographic verification.
 /// </summary>
-internal static class SignatureValidator
+public class SignatureValidator : ISignatureValidator
 {
+
     /// <summary>
     /// Verifies the signature of a JWT.
     /// </summary>
@@ -22,7 +23,7 @@ internal static class SignatureValidator
     /// <exception cref="AlgorithmConfusionException">Thrown when algorithm is "none" or case variant.</exception>
     /// <exception cref="AlgorithmNotSupportedException">Thrown when algorithm is not supported.</exception>
     /// <exception cref="SdJwtException">Thrown when JWT format is invalid.</exception>
-    public static bool VerifyJwtSignature(string jwt, byte[] publicKey)
+    public bool VerifyJwtSignature(string jwt, byte[] publicKey)
     {
         ArgumentNullException.ThrowIfNull(jwt);
         ArgumentNullException.ThrowIfNull(publicKey);

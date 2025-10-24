@@ -10,12 +10,30 @@ namespace HeroSdJwt.Presentation;
 /// by analyzing the JWT structure and matching disclosure digests.
 /// Per SD-JWT spec, the holder must maintain this mapping for presentation creation.
 /// </summary>
-internal class DisclosureClaimPathMapper
+public class DisclosureClaimPathMapper : IDisclosureClaimPathMapper
 {
-    private readonly DigestCalculator digestCalculator = new();
+    private readonly IDigestCalculator digestCalculator;
+    private readonly IDisclosureParser disclosureParser;
 
     // Security: Maximum nesting depth to prevent stack overflow attacks
     private const int maxNestingDepth = 10;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DisclosureClaimPathMapper"/> class.
+    /// </summary>
+    public DisclosureClaimPathMapper()
+        : this(new DigestCalculator(), new DisclosureParser())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DisclosureClaimPathMapper"/> class with dependencies.
+    /// </summary>
+    public DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisclosureParser disclosureParser)
+    {
+        this.digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
+        this.disclosureParser = disclosureParser ?? throw new ArgumentNullException(nameof(disclosureParser));
+    }
 
     /// <summary>
     /// Builds a mapping from user-friendly claim paths to disclosure indices.
@@ -115,7 +133,7 @@ internal class DisclosureClaimPathMapper
                 if (digestToIndex.TryGetValue(digest, out var disclosureIndex))
                 {
                     // Parse the disclosure to get the claim name and value
-                    var disclosure = DisclosureParser.Parse(disclosures[disclosureIndex]);
+                    var disclosure = disclosureParser.Parse(disclosures[disclosureIndex]);
                     if (disclosure.ClaimName != null)
                     {
                         // Build the full path: currentPath + claim name
@@ -161,7 +179,7 @@ internal class DisclosureClaimPathMapper
                     mapping[arrayPath] = disclosureIndex;
 
                     // Recursively process the array element value
-                    var disclosure = DisclosureParser.Parse(disclosures[disclosureIndex]);
+                    var disclosure = disclosureParser.Parse(disclosures[disclosureIndex]);
                     ProcessElement(disclosure.ClaimValue, arrayPath, digestToIndex, disclosures, mapping);
                 }
             }

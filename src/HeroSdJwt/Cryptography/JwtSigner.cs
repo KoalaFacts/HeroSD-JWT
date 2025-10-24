@@ -11,8 +11,9 @@ namespace HeroSdJwt.Cryptography;
 /// Creates and signs JWTs using various signature algorithms.
 /// Supports HS256, RS256, and ES256 per RFC 7518.
 /// </summary>
-internal static class JwtSigner
+public class JwtSigner : IJwtSigner
 {
+
     /// <summary>
     /// Creates a signed JWT with the specified payload and algorithm.
     /// </summary>
@@ -20,7 +21,7 @@ internal static class JwtSigner
     /// <param name="signingKey">Signing key (format depends on algorithm).</param>
     /// <param name="algorithm">Signature algorithm to use.</param>
     /// <returns>Signed JWT in format: header.payload.signature</returns>
-    public static string CreateJwt(
+    public string CreateJwt(
         Dictionary<string, object> payload,
         byte[] signingKey,
         SignatureAlgorithm algorithm)

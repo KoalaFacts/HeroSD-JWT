@@ -9,8 +9,9 @@ namespace HeroSdJwt.Issuance;
 /// Calculates cryptographic digests of disclosure documents.
 /// Digest = Base64url(Hash(disclosure))
 /// </summary>
-public class DigestCalculator
+public class DigestCalculator : IDigestCalculator
 {
+
     /// <summary>
     /// Computes the digest of a disclosure using the specified hash algorithm.
     /// </summary>

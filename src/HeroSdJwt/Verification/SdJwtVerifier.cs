@@ -22,12 +22,15 @@ public class SdJwtVerifier
 {
     private readonly SdJwtVerificationOptions options;
     private readonly IEcPublicKeyConverter ecPublicKeyConverter;
+    private readonly ISignatureValidator signatureValidator;
+    private readonly IDigestValidator digestValidator;
+    private readonly IKeyBindingValidator keyBindingValidator;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtVerifier"/> class with default options.
     /// </summary>
     public SdJwtVerifier()
-        : this(new SdJwtVerificationOptions(), new EcPublicKeyConverter())
+        : this(new SdJwtVerificationOptions())
     {
     }
 
@@ -36,19 +39,36 @@ public class SdJwtVerifier
     /// </summary>
     /// <param name="options">Verification options.</param>
     public SdJwtVerifier(SdJwtVerificationOptions options)
-        : this(options, new EcPublicKeyConverter())
+        : this(
+            options,
+            new EcPublicKeyConverter(),
+            new SignatureValidator(),
+            new DigestValidator(),
+            new KeyBindingValidator())
     {
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtVerifier"/> class with dependencies.
     /// </summary>
-    internal SdJwtVerifier(SdJwtVerificationOptions options, IEcPublicKeyConverter ecPublicKeyConverter)
+    public SdJwtVerifier(
+        SdJwtVerificationOptions options,
+        IEcPublicKeyConverter ecPublicKeyConverter,
+        ISignatureValidator signatureValidator,
+        IDigestValidator digestValidator,
+        IKeyBindingValidator keyBindingValidator)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(signatureValidator);
+        ArgumentNullException.ThrowIfNull(digestValidator);
+        ArgumentNullException.ThrowIfNull(keyBindingValidator);
+
         options.Validate();
         this.options = options;
         this.ecPublicKeyConverter = ecPublicKeyConverter;
+        this.signatureValidator = signatureValidator;
+        this.digestValidator = digestValidator;
+        this.keyBindingValidator = keyBindingValidator;
     }
 
     /// <summary>
@@ -185,7 +205,7 @@ public class SdJwtVerifier
         bool signatureValid = false;
         try
         {
-            signatureValid = SignatureValidator.VerifyJwtSignature(jwt, publicKey);
+            signatureValid = signatureValidator.VerifyJwtSignature(jwt, publicKey);
         }
         catch (AlgorithmConfusionException)
         {
@@ -293,7 +313,7 @@ public class SdJwtVerifier
 
         if (disclosures.Count > 0 && expectedDigests.Count > 0)
         {
-            bool digestsValid = DigestValidator.ValidateAllDigests(disclosures, expectedDigests, algorithm);
+            bool digestsValid = digestValidator.ValidateAllDigests(disclosures, expectedDigests, algorithm);
             if (!digestsValid)
             {
                 errors.Add(ErrorCode.DigestMismatch);
@@ -392,7 +412,7 @@ public class SdJwtVerifier
             }
 
             // Validate key binding JWT
-            bool keyBindingValid = KeyBindingValidator.ValidateKeyBinding(
+            bool keyBindingValid = keyBindingValidator.ValidateKeyBinding(
                 keyBindingJwt,
                 holderPublicKey,
                 sdJwtHash,

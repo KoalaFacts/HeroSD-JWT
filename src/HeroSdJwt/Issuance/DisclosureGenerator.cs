@@ -11,8 +11,9 @@ namespace HeroSdJwt.Issuance;
 /// Generates disclosure documents with cryptographically secure salts.
 /// Supports both object property and array element disclosures.
 /// </summary>
-public class DisclosureGenerator
+public class DisclosureGenerator : IDisclosureGenerator
 {
+
     /// <summary>
     /// Generates a base64url-encoded disclosure for an object property (3-element format).
     /// Format: Base64url(JSON([salt, claim_name, claim_value]))

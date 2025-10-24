@@ -11,6 +11,25 @@ namespace HeroSdJwt.Issuance;
 /// </summary>
 internal class DecoyDigestGenerator
 {
+    private readonly IDigestCalculator digestCalculator;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DecoyDigestGenerator"/> class.
+    /// </summary>
+    public DecoyDigestGenerator()
+        : this(new DigestCalculator())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DecoyDigestGenerator"/> class with dependencies.
+    /// </summary>
+    /// <param name="digestCalculator">The digest calculator to use.</param>
+    internal DecoyDigestGenerator(DigestCalculator digestCalculator)
+    {
+        this.digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
+    }
+
     /// <summary>
     /// Generates the specified number of decoy digests using cryptographically secure random data.
     /// Per spec recommendation: "create the decoy digests by hashing over a cryptographically secure random number"
@@ -31,7 +50,6 @@ internal class DecoyDigestGenerator
         }
 
         var decoys = new List<string>(count);
-        var digestCalculator = new DigestCalculator();
 
         for (int i = 0; i < count; i++)
         {

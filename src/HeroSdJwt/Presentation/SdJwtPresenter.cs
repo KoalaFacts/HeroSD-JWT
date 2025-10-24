@@ -6,8 +6,27 @@ namespace HeroSdJwt.Presentation;
 /// <summary>
 /// Creates presentations from SD-JWTs by selecting which claims to disclose.
 /// </summary>
-public class SdJwtPresenter
+public class SdJwtPresenter : ISdJwtPresenter
 {
+    private readonly IDisclosureClaimPathMapper claimPathMapper;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SdJwtPresenter"/> class.
+    /// </summary>
+    public SdJwtPresenter()
+        : this(new DisclosureClaimPathMapper())
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SdJwtPresenter"/> class with dependencies.
+    /// </summary>
+    /// <param name="claimPathMapper">The claim path mapper to use.</param>
+    public SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper)
+    {
+        this.claimPathMapper = claimPathMapper ?? throw new ArgumentNullException(nameof(claimPathMapper));
+    }
+
     /// <summary>
     /// Creates a presentation with the specified selected claims.
     /// </summary>
@@ -27,8 +46,7 @@ public class SdJwtPresenter
 
         // Build claim path mapping by analyzing JWT structure
         // This is computed on-demand per SD-JWT spec: "it is up to the Holder how to maintain the mapping"
-        var mapper = new DisclosureClaimPathMapper();
-        var claimPathToIndex = mapper.BuildClaimPathMapping(sdJwt);
+        var claimPathToIndex = claimPathMapper.BuildClaimPathMapping(sdJwt);
 
         // Select disclosures based on requested claim paths
         // Also include parent disclosures for nested paths (e.g., for "address.geo.lat", include "address.geo")

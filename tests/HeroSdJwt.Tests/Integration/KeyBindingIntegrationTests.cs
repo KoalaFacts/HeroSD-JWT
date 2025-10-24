@@ -53,7 +53,7 @@ public class KeyBindingIntegrationTests
         );
 
         // Act - Validate key binding
-        var isValid = KeyBindingValidator.ValidateKeyBinding(
+        var isValid = new KeyBindingValidator().ValidateKeyBinding(
             keyBindingJwt,
             holderPublicKey,
             sdJwtHash,
@@ -85,7 +85,7 @@ public class KeyBindingIntegrationTests
         );
 
         // Act - Validate with wrong public key
-        var isValid = KeyBindingValidator.ValidateKeyBinding(
+        var isValid = new KeyBindingValidator().ValidateKeyBinding(
             keyBindingJwt,
             wrongPublicKey,
             sdJwtHash

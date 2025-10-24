@@ -10,7 +10,7 @@ namespace HeroSdJwt.Cryptography;
 /// Converts between ECDSA public keys and JSON Web Key (JWK) format per RFC 7517.
 /// Handles P-256 elliptic curve keys for SD-JWT key binding.
 /// </summary>
-internal class EcPublicKeyConverter : IEcPublicKeyConverter
+public class EcPublicKeyConverter : IEcPublicKeyConverter
 {
     /// <summary>
     /// Converts an ECDSA public key to JWK (JSON Web Key) format.

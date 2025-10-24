@@ -10,13 +10,13 @@ namespace HeroSdJwt.Issuance;
 /// </summary>
 internal class NestedClaimProcessor
 {
-    private readonly DisclosureGenerator disclosureGenerator;
-    private readonly DigestCalculator digestCalculator;
+    private readonly IDisclosureGenerator disclosureGenerator;
+    private readonly IDigestCalculator digestCalculator;
 
     // Security: Maximum nesting depth to prevent stack overflow attacks
     private const int maxNestingDepth = 10;
 
-    public NestedClaimProcessor(DisclosureGenerator disclosureGenerator, DigestCalculator digestCalculator)
+    public NestedClaimProcessor(IDisclosureGenerator disclosureGenerator, IDigestCalculator digestCalculator)
     {
         this.disclosureGenerator = disclosureGenerator;
         this.digestCalculator = digestCalculator;

@@ -23,7 +23,7 @@ public class SignatureValidatorTests
         var jwt = CreateSignedJwt("HS256", key, new { sub = "user123" });
 
         // Act
-        var result = SignatureValidator.VerifyJwtSignature(jwt, key);
+        var result = new SignatureValidator().VerifyJwtSignature(jwt, key);
 
         // Assert
         Assert.True(result, "Valid HS256 signature should verify successfully");
@@ -38,7 +38,7 @@ public class SignatureValidatorTests
         var jwt = CreateSignedJwt("HS256", key, new { sub = "user123" });
 
         // Act
-        var result = SignatureValidator.VerifyJwtSignature(jwt, wrongKey);
+        var result = new SignatureValidator().VerifyJwtSignature(jwt, wrongKey);
 
         // Assert
         Assert.False(result, "Invalid HS256 signature should fail verification");
@@ -54,7 +54,7 @@ public class SignatureValidatorTests
         var jwt = CreateSignedJwt("RS256", privateKey, new { sub = "user123" }, useRsa: true);
 
         // Act
-        var result = SignatureValidator.VerifyJwtSignature(jwt, publicKey);
+        var result = new SignatureValidator().VerifyJwtSignature(jwt, publicKey);
 
         // Assert
         Assert.True(result, "Valid RS256 signature should verify successfully");
@@ -71,7 +71,7 @@ public class SignatureValidatorTests
         var jwt = CreateSignedJwt("RS256", privateKey, new { sub = "user123" }, useRsa: true);
 
         // Act
-        var result = SignatureValidator.VerifyJwtSignature(jwt, wrongPublicKey);
+        var result = new SignatureValidator().VerifyJwtSignature(jwt, wrongPublicKey);
 
         // Assert
         Assert.False(result, "Invalid RS256 signature should fail verification");
@@ -88,7 +88,7 @@ public class SignatureValidatorTests
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>
-            SignatureValidator.VerifyJwtSignature(jwt, publicKey));
+            new SignatureValidator().VerifyJwtSignature(jwt, publicKey));
         Assert.Contains("2048", exception.Message);
         Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
     }
@@ -103,7 +103,7 @@ public class SignatureValidatorTests
         var jwt = CreateSignedJwt("ES256", privateKey, new { sub = "user123" }, useEcdsa: true);
 
         // Act
-        var result = SignatureValidator.VerifyJwtSignature(jwt, publicKey);
+        var result = new SignatureValidator().VerifyJwtSignature(jwt, publicKey);
 
         // Assert
         Assert.True(result, "Valid ES256 signature should verify successfully");
@@ -120,7 +120,7 @@ public class SignatureValidatorTests
         var jwt = CreateSignedJwt("ES256", privateKey, new { sub = "user123" }, useEcdsa: true);
 
         // Act
-        var result = SignatureValidator.VerifyJwtSignature(jwt, wrongPublicKey);
+        var result = new SignatureValidator().VerifyJwtSignature(jwt, wrongPublicKey);
 
         // Assert
         Assert.False(result, "Invalid ES256 signature should fail verification");
@@ -137,7 +137,7 @@ public class SignatureValidatorTests
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>
-            SignatureValidator.VerifyJwtSignature(jwt, publicKey));
+            new SignatureValidator().VerifyJwtSignature(jwt, publicKey));
         Assert.Contains("P-256", exception.Message);
         Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
     }
@@ -151,7 +151,7 @@ public class SignatureValidatorTests
 
         // Act & Assert
         var exception = Assert.Throws<AlgorithmConfusionException>(() =>
-            SignatureValidator.VerifyJwtSignature(jwt, key));
+            new SignatureValidator().VerifyJwtSignature(jwt, key));
         Assert.Contains("none", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -169,7 +169,7 @@ public class SignatureValidatorTests
 
             // Act & Assert
             Assert.Throws<AlgorithmConfusionException>(() =>
-                SignatureValidator.VerifyJwtSignature(jwt, key));
+                new SignatureValidator().VerifyJwtSignature(jwt, key));
         }
     }
 
@@ -182,7 +182,7 @@ public class SignatureValidatorTests
 
         // Act & Assert
         var exception = Assert.Throws<AlgorithmNotSupportedException>(() =>
-            SignatureValidator.VerifyJwtSignature(jwt, key));
+            new SignatureValidator().VerifyJwtSignature(jwt, key));
         Assert.Contains("HS512", exception.Message);
     }
 
@@ -195,7 +195,7 @@ public class SignatureValidatorTests
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>
-            SignatureValidator.VerifyJwtSignature(malformedJwt, key));
+            new SignatureValidator().VerifyJwtSignature(malformedJwt, key));
         Assert.Contains("3 parts", exception.Message);
         Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
     }
@@ -216,7 +216,7 @@ public class SignatureValidatorTests
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>
-            SignatureValidator.VerifyJwtSignature(jwt, key));
+            new SignatureValidator().VerifyJwtSignature(jwt, key));
         Assert.Contains("alg", exception.Message);
         Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
     }
@@ -230,7 +230,7 @@ public class SignatureValidatorTests
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>
-            SignatureValidator.VerifyJwtSignature(jwt, key));
+            new SignatureValidator().VerifyJwtSignature(jwt, key));
         Assert.Contains("empty", exception.Message);
         Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
     }
@@ -243,7 +243,7 @@ public class SignatureValidatorTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            SignatureValidator.VerifyJwtSignature(null!, key));
+            new SignatureValidator().VerifyJwtSignature(null!, key));
     }
 
     [Fact]
@@ -255,7 +255,7 @@ public class SignatureValidatorTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            SignatureValidator.VerifyJwtSignature(jwt, null!));
+            new SignatureValidator().VerifyJwtSignature(jwt, null!));
     }
 
     [Fact]
@@ -271,7 +271,7 @@ public class SignatureValidatorTests
         var tamperedJwt = $"{parts[0]}.{tamperedPayload}.{parts[2]}";
 
         // Act
-        var result = SignatureValidator.VerifyJwtSignature(tamperedJwt, key);
+        var result = new SignatureValidator().VerifyJwtSignature(tamperedJwt, key);
 
         // Assert
         Assert.False(result, "Tampered payload should fail signature verification");
@@ -290,7 +290,7 @@ public class SignatureValidatorTests
         var tamperedJwt = $"{tamperedHeader}.{parts[1]}.{parts[2]}";
 
         // Act
-        var result = SignatureValidator.VerifyJwtSignature(tamperedJwt, key);
+        var result = new SignatureValidator().VerifyJwtSignature(tamperedJwt, key);
 
         // Assert
         Assert.False(result, "Tampered header should fail signature verification");

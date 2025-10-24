@@ -49,7 +49,7 @@ public class ArrayElementDisclosureTests
         var disclosure = generator.GenerateArrayElementDisclosure(value);
 
         // Act
-        var parsed = DisclosureParser.Parse(disclosure);
+        var parsed = new DisclosureParser().Parse(disclosure);
 
         // Assert
         Assert.True(parsed.IsArrayElement);
@@ -67,7 +67,7 @@ public class ArrayElementDisclosureTests
         var disclosure = generator.GenerateDisclosure("email", value);
 
         // Act
-        var parsed = DisclosureParser.Parse(disclosure);
+        var parsed = new DisclosureParser().Parse(disclosure);
 
         // Assert
         Assert.False(parsed.IsArrayElement);
@@ -86,7 +86,7 @@ public class ArrayElementDisclosureTests
 
         // Act & Assert
         var exception = Assert.Throws<MalformedDisclosureException>(() =>
-            DisclosureParser.Parse(encoded));
+            new DisclosureParser().Parse(encoded));
 
         Assert.Contains("2 elements", exception.Message);
         Assert.Contains("3 elements", exception.Message);
@@ -101,7 +101,7 @@ public class ArrayElementDisclosureTests
         var disclosure = generator.GenerateArrayElementDisclosure(value);
 
         // Act
-        var claimName = DisclosureParser.GetClaimName(disclosure);
+        var claimName = new DisclosureParser().GetClaimName(disclosure);
 
         // Assert
         Assert.Null(claimName);
@@ -189,7 +189,7 @@ public class ArrayElementDisclosureTests
 
         // Act
         var disclosure = generator.GenerateArrayElementDisclosure(complexValue);
-        var parsed = DisclosureParser.Parse(disclosure);
+        var parsed = new DisclosureParser().Parse(disclosure);
 
         // Assert
         Assert.True(parsed.IsArrayElement);

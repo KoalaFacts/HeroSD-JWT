@@ -16,26 +16,32 @@ namespace HeroSdJwt.Issuance;
 /// </summary>
 public class SdJwtIssuer
 {
-    private readonly DisclosureGenerator disclosureGenerator;
-    private readonly DigestCalculator digestCalculator;
+    private readonly IDisclosureGenerator disclosureGenerator;
+    private readonly IDigestCalculator digestCalculator;
     private readonly IEcPublicKeyConverter ecPublicKeyConverter;
+    private readonly IJwtSigner jwtSigner;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtIssuer"/> class.
     /// </summary>
     public SdJwtIssuer()
-        : this(new DisclosureGenerator(), new DigestCalculator(), new EcPublicKeyConverter())
+        : this(new DisclosureGenerator(), new DigestCalculator(), new EcPublicKeyConverter(), new JwtSigner())
     {
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtIssuer"/> class with dependencies.
     /// </summary>
-    internal SdJwtIssuer(DisclosureGenerator disclosureGenerator, DigestCalculator digestCalculator, IEcPublicKeyConverter ecPublicKeyConverter)
+    public SdJwtIssuer(
+        IDisclosureGenerator disclosureGenerator,
+        IDigestCalculator digestCalculator,
+        IEcPublicKeyConverter ecPublicKeyConverter,
+        IJwtSigner jwtSigner)
     {
-        this.disclosureGenerator = disclosureGenerator;
-        this.digestCalculator = digestCalculator;
-        this.ecPublicKeyConverter = ecPublicKeyConverter;
+        this.disclosureGenerator = disclosureGenerator ?? throw new ArgumentNullException(nameof(disclosureGenerator));
+        this.digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
+        this.ecPublicKeyConverter = ecPublicKeyConverter ?? throw new ArgumentNullException(nameof(ecPublicKeyConverter));
+        this.jwtSigner = jwtSigner ?? throw new ArgumentNullException(nameof(jwtSigner));
     }
 
     /// <summary>
@@ -288,7 +294,7 @@ public class SdJwtIssuer
         }
 
         // Step 3: Create JWT using the specified signature algorithm
-        var jwt = JwtSigner.CreateJwt(payload, signingKey, signatureAlgorithm);
+        var jwt = jwtSigner.CreateJwt(payload, signingKey, signatureAlgorithm);
 
         // Step 4: Create SdJwt object
         return new SdJwt(jwt, disclosures, hashAlgorithm);

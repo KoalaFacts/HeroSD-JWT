@@ -8,8 +8,9 @@ namespace HeroSdJwt.Presentation;
 /// <summary>
 /// Parses disclosure documents from base64url-encoded format.
 /// </summary>
-internal static class DisclosureParser
+public class DisclosureParser : IDisclosureParser
 {
+
     /// <summary>
     /// Parses a base64url-encoded disclosure and extracts the disclosure information.
     /// Supports both formats:
@@ -18,7 +19,7 @@ internal static class DisclosureParser
     /// </summary>
     /// <param name="base64UrlDisclosure">The base64url-encoded disclosure.</param>
     /// <returns>The Disclosure object.</returns>
-    public static Disclosure Parse(string base64UrlDisclosure)
+    public Disclosure Parse(string base64UrlDisclosure)
     {
         ArgumentNullException.ThrowIfNull(base64UrlDisclosure);
 
@@ -71,7 +72,7 @@ internal static class DisclosureParser
     /// </summary>
     /// <param name="base64UrlDisclosure">The base64url-encoded disclosure.</param>
     /// <returns>The claim name, or null for array elements.</returns>
-    public static string? GetClaimName(string base64UrlDisclosure)
+    public string? GetClaimName(string base64UrlDisclosure)
     {
         var disclosure = Parse(base64UrlDisclosure);
         return disclosure.ClaimName;

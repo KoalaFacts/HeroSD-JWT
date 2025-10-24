@@ -33,7 +33,7 @@ public class DigestValidatorTests
         var expectedDigest = new Digest(digestValue, HashAlgorithm.Sha256);
 
         // Act
-        var result = DigestValidator.ValidateDigest(disclosure, expectedDigest, HashAlgorithm.Sha256);
+        var result = new DigestValidator().ValidateDigest(disclosure, expectedDigest, HashAlgorithm.Sha256);
 
         // Assert
         Assert.True(result, "Digest validation should succeed for matching digest");
@@ -50,7 +50,7 @@ public class DigestValidatorTests
         var wrongDigest = new Digest(wrongDigestValue, HashAlgorithm.Sha256);
 
         // Act
-        var result = DigestValidator.ValidateDigest(disclosure, wrongDigest, HashAlgorithm.Sha256);
+        var result = new DigestValidator().ValidateDigest(disclosure, wrongDigest, HashAlgorithm.Sha256);
 
         // Assert
         Assert.False(result, "Digest validation should fail for non-matching digest");
@@ -64,7 +64,7 @@ public class DigestValidatorTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            DigestValidator.ValidateDigest(null!, digest, HashAlgorithm.Sha256));
+            new DigestValidator().ValidateDigest(null!, digest, HashAlgorithm.Sha256));
     }
 
     [Fact]
@@ -80,8 +80,8 @@ public class DigestValidatorTests
         var sha384Digest = new Digest(sha384DigestValue, HashAlgorithm.Sha384);
 
         // Act
-        var sha256Result = DigestValidator.ValidateDigest(disclosure, sha256Digest, HashAlgorithm.Sha256);
-        var sha384Result = DigestValidator.ValidateDigest(disclosure, sha384Digest, HashAlgorithm.Sha384);
+        var sha256Result = new DigestValidator().ValidateDigest(disclosure, sha256Digest, HashAlgorithm.Sha256);
+        var sha384Result = new DigestValidator().ValidateDigest(disclosure, sha384Digest, HashAlgorithm.Sha384);
 
         // Assert
         Assert.True(sha256Result, "SHA-256 digest should validate correctly");
@@ -102,7 +102,7 @@ public class DigestValidatorTests
         var expectedDigests = new[] { digest1, digest2 };
 
         // Act
-        var result = DigestValidator.ValidateAllDigests(disclosures, expectedDigests, HashAlgorithm.Sha256);
+        var result = new DigestValidator().ValidateAllDigests(disclosures, expectedDigests, HashAlgorithm.Sha256);
 
         // Assert
         Assert.True(result, "All digests should validate successfully");
@@ -123,7 +123,7 @@ public class DigestValidatorTests
         var expectedDigests = new[] { digest1, wrongDigest2 };
 
         // Act
-        var result = DigestValidator.ValidateAllDigests(disclosures, expectedDigests, HashAlgorithm.Sha256);
+        var result = new DigestValidator().ValidateAllDigests(disclosures, expectedDigests, HashAlgorithm.Sha256);
 
         // Assert
         Assert.False(result, "Validation should fail when one digest doesn't match");
@@ -137,7 +137,7 @@ public class DigestValidatorTests
         var expectedDigests = Array.Empty<Digest>();
 
         // Act
-        var result = DigestValidator.ValidateAllDigests(disclosures, expectedDigests, HashAlgorithm.Sha256);
+        var result = new DigestValidator().ValidateAllDigests(disclosures, expectedDigests, HashAlgorithm.Sha256);
 
         // Assert
         Assert.True(result, "Validation should succeed with empty lists");
@@ -151,7 +151,7 @@ public class DigestValidatorTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            DigestValidator.ValidateAllDigests(null!, expectedDigests, HashAlgorithm.Sha256));
+            new DigestValidator().ValidateAllDigests(null!, expectedDigests, HashAlgorithm.Sha256));
     }
 
     [Fact]
@@ -162,7 +162,7 @@ public class DigestValidatorTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            DigestValidator.ValidateAllDigests(disclosures, null!, HashAlgorithm.Sha256));
+            new DigestValidator().ValidateAllDigests(disclosures, null!, HashAlgorithm.Sha256));
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public class DigestValidatorTests
         var expectedDigests = new[] { digest2, digest1 };
 
         // Act
-        var result = DigestValidator.ValidateAllDigests(disclosures, expectedDigests, HashAlgorithm.Sha256);
+        var result = new DigestValidator().ValidateAllDigests(disclosures, expectedDigests, HashAlgorithm.Sha256);
 
         // Assert
         Assert.True(result, "Digest validation should be order-independent");
@@ -202,7 +202,7 @@ public class DigestValidatorTests
         var expectedDigests = new[] { digest1, digest2 };
 
         // Act
-        var result = DigestValidator.ValidateAllDigests(disclosures, expectedDigests, HashAlgorithm.Sha256);
+        var result = new DigestValidator().ValidateAllDigests(disclosures, expectedDigests, HashAlgorithm.Sha256);
 
         // Assert
         Assert.True(result, "Validation should succeed with fewer disclosures than expected (selective disclosure)");
