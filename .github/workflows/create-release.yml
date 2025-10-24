@@ -103,7 +103,7 @@ jobs:
           EOF
           echo "Release notes generated"
 
-      - name: Create GitHub Release
+      - name: Create draft release with packages
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ inputs.version }}
@@ -112,10 +112,43 @@ jobs:
           files: |
             src/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg
             src/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg
-          draft: false
+          draft: true  # Create as draft first to avoid race condition
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify packages were uploaded to release
+        run: |
+          echo "Waiting for packages to be attached to release..."
+          sleep 5  # Give GitHub API time to process
+
+          # Verify both packages exist in the release assets
+          gh release view v${{ inputs.version }} --json assets --jq '.assets[].name' > assets.txt
+
+          if ! grep -q "HeroSD-JWT.${{ inputs.version }}.nupkg" assets.txt; then
+            echo "Error: Main package not found in release assets"
+            cat assets.txt
+            exit 1
+          fi
+
+          if ! grep -q "HeroSD-JWT.${{ inputs.version }}.snupkg" assets.txt; then
+            echo "Error: Symbol package not found in release assets"
+            cat assets.txt
+            exit 1
+          fi
+
+          echo "✅ Both packages verified in release assets:"
+          cat assets.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish release (triggers publish-nuget workflow)
+        run: |
+          echo "Publishing release v${{ inputs.version }}..."
+          gh release edit v${{ inputs.version }} --draft=false
+          echo "✅ Release published! This will trigger the publish-nuget workflow."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Release summary
         run: |
