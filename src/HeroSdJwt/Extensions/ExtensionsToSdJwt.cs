@@ -6,7 +6,7 @@ namespace HeroSdJwt.Extensions;
 /// <summary>
 /// Extension methods to simplify common SD-JWT operations.
 /// </summary>
-public static class SdJwtExtensions
+public static class ExtensionsToSdJwt
 {
     /// <summary>
     /// Creates a presentation string from an SD-JWT, revealing specific claims.
