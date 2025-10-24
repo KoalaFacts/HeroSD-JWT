@@ -115,11 +115,11 @@ The workflow uses a `production` environment for additional security and control
 This is the fully automated method with changelog generation:
 
 1. **Update Version**:
-   - Update `<Version>` in `src/HeroSdJwt.csproj`
+   - Update `<Version>` in `src/HeroSdJwt/HeroSdJwt.csproj`
    - Update `<PackageReleaseNotes>` if needed
    - Commit changes:
      ```bash
-     git add src/HeroSdJwt.csproj
+     git add src/HeroSdJwt/HeroSdJwt.csproj
      git commit -m "chore: bump version to 1.0.0"
      git push origin main
      ```
@@ -171,7 +171,7 @@ For emergency or local testing, you'll need a temporary API key:
 
 ```bash
 # Build the package
-dotnet pack src/HeroSdJwt.csproj --configuration Release --output ./nupkg
+dotnet pack src/HeroSdJwt/HeroSdJwt.csproj --configuration Release --output ./nupkg
 
 # Publish to NuGet.org (requires API key from https://www.nuget.org/account/apikeys)
 dotnet nuget push ./nupkg/HeroSD-JWT.1.0.0.nupkg \
@@ -198,8 +198,8 @@ After publishing, verify the package:
 
 Before each release, update:
 
-1. **Version in `.csproj`**: Update `<Version>1.0.0</Version>` in `src/HeroSdJwt.csproj`
-2. **Release Notes**: Update `<PackageReleaseNotes>` in `src/HeroSdJwt.csproj`
+1. **Version in `.csproj`**: Update `<Version>1.0.0</Version>` in `src/HeroSdJwt/HeroSdJwt.csproj`
+2. **Release Notes**: Update `<PackageReleaseNotes>` in `src/HeroSdJwt/HeroSdJwt.csproj`
 3. **CHANGELOG.md**: Add entry for the new version
 4. **README.md**: Update version badges if applicable
 
@@ -209,7 +209,7 @@ Before each release, update:
 
 If you get "Package already exists" error:
 - You cannot replace an existing version on NuGet.org
-- Bump the version number in `src/HeroSdJwt.csproj`
+- Bump the version number in `src/HeroSdJwt/HeroSdJwt.csproj`
 - Rebuild and republish
 
 ### Authentication Fails (Trusted Publishing)

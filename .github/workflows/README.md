@@ -57,9 +57,9 @@ Commits are automatically categorized by prefix:
 **How to create a release**:
 
 ```bash
-# 1. Update version in src/HeroSdJwt.csproj
+# 1. Update version in src/HeroSdJwt/HeroSdJwt.csproj
 # 2. Commit your changes
-git add src/HeroSdJwt.csproj
+git add src/HeroSdJwt/HeroSdJwt.csproj
 git commit -m "chore: bump version to 1.2.0"
 
 # 3. Create and push tag
