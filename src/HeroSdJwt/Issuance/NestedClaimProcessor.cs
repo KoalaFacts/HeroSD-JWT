@@ -116,7 +116,7 @@ internal class NestedClaimProcessor
             var firstNestedProperty = path.PathComponents[1];
             if (!pathsByProperty.ContainsKey(firstNestedProperty))
             {
-                pathsByProperty[firstNestedProperty] = new List<ClaimPath>();
+                pathsByProperty[firstNestedProperty] = [];
             }
             pathsByProperty[firstNestedProperty].Add(path);
         }

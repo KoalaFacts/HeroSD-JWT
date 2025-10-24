@@ -31,12 +31,13 @@ namespace HeroSdJwt.Issuance;
 public class SdJwtBuilder
 {
     private Dictionary<string, object>? claims;
-    private List<string> selectiveClaims = new();
+    private readonly List<string> selectiveClaims = [];
     private byte[]? signingKey;
     private HashAlgorithm hashAlgorithm = HashAlgorithm.Sha256;
     private SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
     private byte[]? holderPublicKey;
     private int decoyDigestCount = 0;
+    private string? keyId;
 
     /// <summary>
     /// Creates a new builder instance.
@@ -60,7 +61,7 @@ public class SdJwtBuilder
     /// <param name="value">Claim value.</param>
     public SdJwtBuilder WithClaim(string name, object value)
     {
-        claims ??= new Dictionary<string, object>();
+        claims ??= [];
         claims[name] = value;
         return this;
     }
@@ -152,6 +153,21 @@ public class SdJwtBuilder
     }
 
     /// <summary>
+    /// Sets the key identifier (kid) to include in the JWT header.
+    /// Enables key rotation by identifying which key was used to sign the JWT.
+    /// Per RFC 7515 Section 4.1.4.
+    /// </summary>
+    /// <param name="keyId">The key identifier string (1-256 printable ASCII characters).</param>
+    /// <returns>The builder instance for method chaining.</returns>
+    /// <exception cref="ArgumentException">Thrown when keyId is empty, exceeds 256 characters, or contains non-printable characters.</exception>
+    public SdJwtBuilder WithKeyId(string keyId)
+    {
+        Primitives.KeyIdValidator.Validate(keyId);
+        this.keyId = keyId;
+        return this;
+    }
+
+    /// <summary>
     /// Builds the SD-JWT with the configured options.
     /// </summary>
     /// <returns>The created SD-JWT.</returns>
@@ -172,6 +188,7 @@ public class SdJwtBuilder
             hashAlgorithm,
             signatureAlgorithm,
             holderPublicKey,
-            decoyDigestCount);
+            decoyDigestCount,
+            keyId);
     }
 }

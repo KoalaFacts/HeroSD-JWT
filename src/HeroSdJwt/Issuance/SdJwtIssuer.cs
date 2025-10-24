@@ -54,6 +54,7 @@ public class SdJwtIssuer
     /// <param name="signatureAlgorithm">The signature algorithm for JWT signing (default: HS256).</param>
     /// <param name="holderPublicKey">Optional holder public key for key binding (cnf claim).</param>
     /// <param name="decoyDigestCount">Number of decoy digests to add for privacy protection (default: 0). Per SD-JWT spec section 4.2.5, decoy digests prevent claim enumeration.</param>
+    /// <param name="keyId">Optional key identifier (kid) to include in JWT header for key rotation support (RFC 7515 Section 4.1.4).</param>
     /// <returns>The created SD-JWT.</returns>
     public SdJwt CreateSdJwt(
         Dictionary<string, object> claims,
@@ -62,12 +63,13 @@ public class SdJwtIssuer
         HashAlgorithm hashAlgorithm,
         SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256,
         byte[]? holderPublicKey = null,
-        int decoyDigestCount = 0)
+        int decoyDigestCount = 0,
+        string? keyId = null)
     {
         ArgumentNullException.ThrowIfNull(claims);
         ArgumentNullException.ThrowIfNull(signingKey);
 
-        var selectiveClaimsList = selectivelyDisclosableClaims?.ToList() ?? new List<string>();
+        var selectiveClaimsList = selectivelyDisclosableClaims?.ToList() ?? [];
 
         // Parse claim specifications to separate simple claims from array elements
         var parsedClaims = selectiveClaimsList.Select(ClaimPath.Parse).ToList();
@@ -105,7 +107,7 @@ public class SdJwtIssuer
                 // Track array element for later processing
                 if (!arrayElementsToDisclose.ContainsKey(claimPath.BaseName))
                 {
-                    arrayElementsToDisclose[claimPath.BaseName] = new HashSet<int>();
+                    arrayElementsToDisclose[claimPath.BaseName] = [];
                 }
                 arrayElementsToDisclose[claimPath.BaseName].Add(claimPath.ArrayIndex!.Value);
             }
@@ -294,7 +296,7 @@ public class SdJwtIssuer
         }
 
         // Step 3: Create JWT using the specified signature algorithm
-        var jwt = jwtSigner.CreateJwt(payload, signingKey, signatureAlgorithm);
+        var jwt = jwtSigner.CreateJwt(payload, signingKey, signatureAlgorithm, keyId);
 
         // Step 4: Create SdJwt object
         return new SdJwt(jwt, disclosures, hashAlgorithm);

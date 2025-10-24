@@ -106,7 +106,7 @@ public class DisclosureClaimPathMapper : IDisclosureClaimPathMapper
             if (property.Name == "_sd" && property.Value.ValueKind == JsonValueKind.Array)
             {
                 // Found _sd array - collect digests
-                sdDigests = new List<string>();
+                sdDigests = [];
                 foreach (var digest in property.Value.EnumerateArray())
                 {
                     if (digest.ValueKind == JsonValueKind.String)

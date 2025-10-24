@@ -20,11 +20,13 @@ public class JwtSigner : IJwtSigner
     /// <param name="payload">JWT payload claims.</param>
     /// <param name="signingKey">Signing key (format depends on algorithm).</param>
     /// <param name="algorithm">Signature algorithm to use.</param>
+    /// <param name="keyId">Optional key identifier to include in JWT header (RFC 7515 'kid' parameter).</param>
     /// <returns>Signed JWT in format: header.payload.signature</returns>
     public string CreateJwt(
         Dictionary<string, object> payload,
         byte[] signingKey,
-        SignatureAlgorithm algorithm)
+        SignatureAlgorithm algorithm,
+        string? keyId = null)
     {
         ArgumentNullException.ThrowIfNull(payload);
         ArgumentNullException.ThrowIfNull(signingKey);
@@ -43,6 +45,12 @@ public class JwtSigner : IJwtSigner
             { "alg", algName },
             { "typ", "JWT" }
         };
+
+        // Add key ID if provided (RFC 7515 Section 4.1.4)
+        if (!string.IsNullOrWhiteSpace(keyId))
+        {
+            header["kid"] = keyId;
+        }
 
         // Encode header and payload using AOT-compatible serialization
         var headerJson = SerializeDictionary(header);

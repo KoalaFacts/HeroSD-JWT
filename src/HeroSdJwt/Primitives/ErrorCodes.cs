@@ -65,5 +65,36 @@ public enum ErrorCode
     /// <summary>
     /// Hash algorithm specified in '_sd_alg' claim does not match expected algorithm.
     /// </summary>
-    HashAlgorithmMismatch
+    HashAlgorithmMismatch,
+
+    /// <summary>
+    /// Key ID is empty or contains only whitespace.
+    /// </summary>
+    KeyIdEmpty,
+
+    /// <summary>
+    /// Key ID exceeds the maximum allowed length of 256 characters.
+    /// </summary>
+    KeyIdTooLong,
+
+    /// <summary>
+    /// Key ID contains non-printable characters.
+    /// Only printable ASCII characters (32-126) are allowed.
+    /// </summary>
+    KeyIdInvalidCharacters,
+
+    /// <summary>
+    /// The specified key ID was not found by the key resolver.
+    /// </summary>
+    KeyIdNotFound,
+
+    /// <summary>
+    /// No key resolver was configured but the JWT contains a key ID.
+    /// </summary>
+    KeyResolverMissing,
+
+    /// <summary>
+    /// The key resolver threw an exception while attempting to resolve a key ID.
+    /// </summary>
+    KeyResolverFailed
 }
