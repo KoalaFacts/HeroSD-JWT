@@ -107,7 +107,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ inputs.version }}
-          name: v${{ inputs.version }} - Production Release
+          name: Release v${{ inputs.version }}
           body_path: release-notes.md
           files: |
             src/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg
