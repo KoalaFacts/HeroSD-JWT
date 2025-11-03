@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.7] - 2025-01-25
+## [1.0.7] - 2025-11-03
 
 ### Added
 - 📚 **Comprehensive documentation** in `docs/` directory:
