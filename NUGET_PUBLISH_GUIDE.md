@@ -1,132 +1,252 @@
-# Quick Guide: Publishing HeroSD-JWT to NuGet.org
+# Publishing HeroSD-JWT to NuGet.org with Trusted Publishing
+
+## Overview
+
+This project uses **NuGet Trusted Publishing** with OIDC authentication - the most secure way to publish NuGet packages. No long-lived API keys are needed!
 
 ## Current Status
-- ✅ Package version: **1.0.0** (ready in src/HeroSdJwt.csproj)
-- ✅ Workflow improved: Builds packages directly (more reliable)
-- ⚠️ Setup required: NuGet.org Trusted Publishing + GitHub configuration
+- ✅ Package version: **1.0.5** (published)
+- ✅ Workflow configured: Builds, tests, and publishes automatically
+- ✅ Uses Trusted Publishing: `NuGet/login@v1` with OIDC
 
-## Option 1: Trusted Publishing (Recommended - Most Secure)
+## How Trusted Publishing Works
 
-### Prerequisites Setup (One-time, ~10 minutes)
-
-#### Step 1: Configure NuGet.org Trusted Publishing
-1. Go to https://www.nuget.org/ and sign in
-2. Click your username (top-right) → **Trusted Publishing**
-3. Click **Create new policy** and fill in:
-   - **Repository Owner**: `KoalaFacts`
-   - **Repository Name**: `HeroSD-JWT`
-   - **Workflow File**: `publish-nuget.yml`
-   - **Environment**: `production`
-4. Click **Create**
-   - Status will show "Temporarily Active" for 7 days
-   - Becomes permanent after first successful publish
-
-#### Step 2: Add GitHub Secret
-1. Go to https://github.com/KoalaFacts/HeroSD-JWT/settings/secrets/actions
-2. Click **New repository secret**
-3. Add:
-   - **Name**: `NUGET_USERNAME`
-   - **Value**: Your NuGet.org username (NOT email!)
-4. Click **Add secret**
-
-#### Step 3: Create GitHub Environment
-1. Go to https://github.com/KoalaFacts/HeroSD-JWT/settings/environments
-2. Click **New environment**
-3. Name: `production` (must match exactly)
-4. Configure protection rules (recommended):
-   - ✅ **Required reviewers**: Add yourself for manual approval
-   - ✅ **Deployment branches**: Select "Selected branches" → Add `main`
-5. Click **Save protection rules**
-
-### Publishing
-
-Once setup is complete, you can publish in two ways:
-
-#### Method A: Automated (via Git Tag)
-```bash
-git tag -a v1.0.0 -m "Release v1.0.0"
-git push origin v1.0.0
 ```
-The workflow will automatically trigger and publish to NuGet.org.
+GitHub Actions (OIDC token)
+    ↓
+NuGet/login@v1 action
+    ↓
+NuGet.org (exchanges OIDC token for temporary 1-hour API key)
+    ↓
+dotnet nuget push (uses temporary key)
+    ↓
+✅ Package Published!
+```
 
-#### Method B: Manual Trigger
-1. Go to https://github.com/KoalaFacts/HeroSD-JWT/actions/workflows/publish-nuget.yml
-2. Click **Run workflow**
-3. Optionally enter version (or leave blank to use version from .csproj)
-4. Click **Run workflow**
-5. If required reviewers are configured, approve the deployment
+**Security Benefits:**
+- ✅ No long-lived API keys to manage or rotate
+- ✅ Temporary keys expire automatically (1 hour)
+- ✅ Fine-grained access control tied to specific repository/workflow
+- ✅ Better audit trail
 
 ---
 
-## Option 2: API Key Method (Quick Start - Less Secure)
+## One-Time Setup (Required)
 
-If you want to publish quickly without Trusted Publishing setup:
+### Step 1: Configure NuGet.org Trusted Publishing Policy
 
-### Step 1: Get NuGet API Key
-1. Go to https://www.nuget.org/account/apikeys
-2. Click **Create**
-3. Settings:
-   - **Key Name**: HeroSD-JWT Publishing
-   - **Package Owner**: Select your account
-   - **Glob Pattern**: HeroSD-JWT
-   - **Scopes**: Check "Push new packages and package versions"
-   - **Expiration**: Set an expiration date (e.g., 365 days)
-4. Click **Create**
-5. **Copy the API key** (shown only once!)
+1. **Sign in to NuGet.org**: https://www.nuget.org/
+2. **Navigate to Trusted Publishing**:
+   - Click your username (top-right)
+   - Select **Trusted Publishing**
+3. **Create new policy**:
+   - Click **Create new policy**
+   - Fill in these **exact** values:
+     ```
+     Repository Owner:    KoalaFacts
+     Repository Name:     HeroSD-JWT
+     Workflow File:       publish-nuget.yml
+     Environment:         production
+     ```
+   - Click **Create**
 
-### Step 2: Add GitHub Secret
-1. Go to https://github.com/KoalaFacts/HeroSD-JWT/settings/secrets/actions
+**Policy Status:**
+- Shows "Temporarily Active" for 7 days
+- Becomes permanently active after first successful publish
+- Expires if unused within 7 days (can recreate)
+
+### Step 2: Add GitHub Secret (NUGET_USERNAME)
+
+1. Go to: https://github.com/KoalaFacts/HeroSD-JWT/settings/secrets/actions
 2. Click **New repository secret**
-3. Add:
-   - **Name**: `NUGET_API_KEY`
-   - **Value**: Paste the API key from Step 1
+3. Add secret:
+   - **Name**: `NUGET_USERNAME`
+   - **Value**: Your NuGet.org **username** (NOT email)
+     - Find it at top-right when logged into NuGet.org
 4. Click **Add secret**
 
-### Step 3: Create Simple Workflow
-I can create a simpler workflow file that uses the API key instead of Trusted Publishing.
+**Why this secret?**
+- Only used for the `NuGet/login@v1` action
+- Not a sensitive credential (just your public username)
+- Helps the action identify which NuGet account to use
 
-Would you like me to create this alternative workflow?
+### Step 3: Create GitHub Production Environment
+
+1. Go to: https://github.com/KoalaFacts/HeroSD-JWT/settings/environments
+2. Click **New environment**
+3. Name: `production` (must match exactly)
+4. **(Recommended)** Configure protection rules:
+   - ✅ **Required reviewers**: Add yourself
+     - Provides manual approval gate before publishing
+   - ✅ **Deployment branches**: Select "Selected branches"
+     - Add `main` (only main branch can publish)
+   - ⏱️ **Wait timer** (optional): Add delay if desired
+5. Click **Save protection rules**
+
+**Why use an environment?**
+- Prevents accidental publishing from feature branches
+- Requires manual approval (if reviewers configured)
+- Matches the Trusted Publishing policy on NuGet.org
+- Provides audit trail of all production deployments
+
+---
+
+## Publishing a New Version
+
+### Method 1: Automated (via Create Release Workflow)
+
+This is the **recommended** automated approach:
+
+1. **Bump version** in `src/HeroSdJwt.csproj`:
+   ```xml
+   <Version>1.0.6</Version>
+   ```
+
+2. **Commit and push to main**:
+   ```bash
+   git add src/HeroSdJwt.csproj
+   git commit -m "chore: bump version to 1.0.6"
+   git push origin main
+   ```
+
+3. **Create and push Git tag**:
+   ```bash
+   git tag -a v1.0.6 -m "Release v1.0.6"
+   git push origin v1.0.6
+   ```
+
+4. **Automated process**:
+   - `create-release.yml` workflow triggers on tag push
+   - Generates changelog from git commits
+   - Creates GitHub release with notes
+   - `publish-nuget.yml` triggers automatically via `workflow_run`
+   - Builds, tests, and publishes to NuGet.org
+
+5. **Approve deployment** (if required reviewers configured):
+   - Check GitHub Actions tab
+   - Review and approve the production deployment
+
+**Pro tip:** Use conventional commits for better changelogs:
+```bash
+git commit -m "feat: add new feature"
+git commit -m "fix: resolve bug"
+git commit -m "docs: update documentation"
+```
+
+### Method 2: Manual Trigger (Emergency/Testing)
+
+For manual publishing or republishing:
+
+1. Go to: https://github.com/KoalaFacts/HeroSD-JWT/actions/workflows/publish-nuget.yml
+2. Click **Run workflow**
+3. (Optional) Enter version number
+   - Leave blank to use version from `.csproj`
+4. Click **Run workflow**
+5. Approve deployment if prompted
 
 ---
 
 ## Verification After Publishing
 
-1. Check NuGet.org: https://www.nuget.org/packages/HeroSD-JWT
-2. Test installation:
-   ```bash
-   dotnet new console -n TestHeroSdJwt
-   cd TestHeroSdJwt
-   dotnet add package HeroSD-JWT --version 1.0.0
-   dotnet restore
-   ```
+### Check NuGet.org
+- Package page: https://www.nuget.org/packages/HeroSD-JWT
+- Should show your new version within 5-10 minutes
+
+### Test Installation
+```bash
+dotnet new console -n TestHeroSdJwt
+cd TestHeroSdJwt
+dotnet add package HeroSD-JWT --version 1.0.6
+dotnet restore
+```
+
+### Verify Package Provenance
+- GitHub automatically generates package provenance attestations
+- Visible in workflow artifacts and on NuGet.org
 
 ---
 
 ## Troubleshooting
 
 ### "Authentication failed" with Trusted Publishing
-- Verify the Trusted Publishing policy exists on NuGet.org
-- Check that `NUGET_USERNAME` is your NuGet username (not email)
-- Ensure the `production` environment exists in GitHub
+
+**Check NuGet.org policy:**
+- Go to https://www.nuget.org/ → Username → Trusted Publishing
+- Verify policy exists with correct values:
+  - Owner: `KoalaFacts`
+  - Repo: `HeroSD-JWT`
+  - Workflow: `publish-nuget.yml`
+  - Environment: `production`
+- Policy status should be "Active" or "Temporarily Active"
+
+**Check GitHub secret:**
+- Settings → Secrets and variables → Actions
+- Verify `NUGET_USERNAME` exists
+- Must be your NuGet.org **username**, not email
+- No typos or extra spaces
+
+**Check GitHub environment:**
+- Settings → Environments
+- Environment named `production` must exist
+- If using protection rules, ensure deployment is approved
+
+**Check workflow permissions:**
+- Workflow has `id-token: write` permission (already configured)
 
 ### "Package already exists"
-- You cannot replace versions on NuGet.org
-- Bump the version in `src/HeroSdJwt.csproj`
-- Rebuild and republish
+
+You cannot replace an existing version on NuGet.org:
+1. Bump version in `src/HeroSdJwt.csproj`
+2. Create new release with new version
+
+### "Tests failed in CI"
+
+Workflow runs tests before publishing:
+1. Check GitHub Actions logs for specific errors
+2. Run tests locally: `dotnet test --configuration Release`
+3. Fix issues and push again
 
 ### Workflow doesn't trigger
-- Ensure you're pushing to the correct repository: https://github.com/KoalaFacts/HeroSD-JWT
-- Check you have permissions to trigger workflows
+
+**For automatic trigger (workflow_run):**
+- `create-release.yml` must complete successfully first
+- Check that tag was pushed to main branch
+- Verify `workflow_run` trigger in `publish-nuget.yml`
+
+**For manual trigger:**
+- Ensure you have workflow trigger permissions
+- Check repository settings allow workflow dispatch
 
 ---
 
-## What Changed in the Workflow
+## Best Practices
 
-I improved the publish workflow to:
-- ✅ Build packages directly (instead of downloading from releases)
-- ✅ Run tests before publishing
-- ✅ Better error handling and package validation
-- ✅ Works with manual trigger (no version tag required)
-- ✅ More detailed output and summaries
+1. ✅ **Use Trusted Publishing** - Most secure, no API keys
+2. ✅ **Always run tests** - Workflow automatically tests before publishing
+3. ✅ **Use semantic versioning** - Follow [semver.org](https://semver.org/)
+4. ✅ **Tag releases** - Always create Git tags for releases
+5. ✅ **Conventional commits** - Better automated changelogs
+6. ✅ **Environment protection** - Use required reviewers for manual approval
+7. ✅ **Symbol packages** - Workflow publishes `.snupkg` for debugging
+8. ✅ **Package provenance** - Automatically generated for supply chain security
 
-The old workflow had a complex dependency chain (CI → Release → Publish) that could fail. The new workflow is simpler and more reliable.
+---
+
+## Version History
+
+- **v1.0.5** - Latest published version
+- **v1.0.4** - Previous versions
+- **v1.0.3**
+- **v1.0.1**
+- **v1.0.0** - Initial release
+
+**Next version should be:** `v1.0.6` or higher
+
+---
+
+## Useful Links
+
+- **NuGet Package**: https://www.nuget.org/packages/HeroSD-JWT
+- **Trusted Publishing Docs**: https://learn.microsoft.com/en-us/nuget/nuget-org/publish-a-package#trusted-publishing
+- **GitHub Actions**: https://github.com/KoalaFacts/HeroSD-JWT/actions
+- **Issues**: https://github.com/KoalaFacts/HeroSD-JWT/issues

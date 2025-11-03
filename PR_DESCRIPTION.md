@@ -1,8 +1,8 @@
-# Improve NuGet Publishing Workflow and Add Setup Guide
+# Improve NuGet Publishing Workflow with Trusted Publishing
 
 ## Summary
 
-This PR enhances the NuGet publishing workflow with better reliability, testing, and documentation for the Trusted Publishing setup.
+This PR enhances the NuGet publishing workflow with better reliability, build/test validation, and comprehensive documentation for **Trusted Publishing** (OIDC-based, no API keys).
 
 ## Changes
 
@@ -19,58 +19,83 @@ This PR enhances the NuGet publishing workflow with better reliability, testing,
 - Better error messages and validation
 - Package content validation before publishing
 - Improved version detection (supports workflow_run, manual trigger, and csproj fallback)
-- More detailed output with `✅` success indicators
+- More detailed output with success indicators
 
-**Better output:**
-- Enhanced release summary with clear next steps
-- Package availability timeline (5-10 minutes)
-- Direct links to NuGet.org package page
+**Maintains Trusted Publishing:**
+- ✅ Uses `NuGet/login@v1` with OIDC
+- ✅ No long-lived API keys required
+- ✅ Temporary (1-hour) keys only
+- ✅ Package provenance attestation
 
 ### 📚 Documentation (`NUGET_PUBLISH_GUIDE.md`)
 
-Created comprehensive setup guide with:
-- Step-by-step Trusted Publishing setup instructions
-- Screenshots-ready format for NuGet.org and GitHub configuration
+Created comprehensive guide focused on **Trusted Publishing only**:
+- Step-by-step setup instructions for NuGet.org policy
+- GitHub secret and environment configuration
+- How Trusted Publishing works (OIDC → temporary key)
+- Two publishing methods: automated (via release) and manual trigger
 - Troubleshooting section for common issues
-- Comparison of Trusted Publishing vs API Key approaches
-- Security benefits explanation
+- Security benefits explained
 
-### 🔐 Alternative Workflow (`publish-nuget-apikey.yml`)
+### 🧹 Cleanup
 
-Added simpler alternative workflow for users who prefer API keys:
-- Easier initial setup (single secret vs OIDC configuration)
-- Includes security note recommending migration to Trusted Publishing
-- Useful for local testing and emergency publishing
+- ❌ Removed `publish-nuget-apikey.yml` - not using API keys
+- ✅ Documentation focuses exclusively on Trusted Publishing
+- ✅ No references to long-lived API keys
 
 ## Why These Changes?
 
-1. **Reliability**: The workflow now builds and tests packages before publishing, catching issues early
-2. **Documentation**: Clear setup instructions make it easier for contributors to configure Trusted Publishing
-3. **Flexibility**: Manual trigger now has a fallback to read version from .csproj
+1. **Reliability**: Workflow now builds and tests packages before publishing, catching issues early
+2. **Security**: Exclusive use of Trusted Publishing (OIDC) - most secure method
+3. **Documentation**: Clear, focused guide for Trusted Publishing setup
 4. **Better DX**: Improved error messages and output make debugging easier
+
+## How Trusted Publishing Works
+
+```
+GitHub Actions (OIDC token)
+    ↓
+NuGet/login@v1 action
+    ↓
+NuGet.org (exchanges OIDC for temporary 1-hour API key)
+    ↓
+dotnet nuget push (uses temporary key)
+    ↓
+✅ Package Published!
+```
+
+**Security Benefits:**
+- ✅ No long-lived API keys to manage or rotate
+- ✅ Temporary keys expire automatically
+- ✅ Fine-grained access control
+- ✅ Better audit trail
 
 ## Testing
 
 - ✅ Workflow syntax validated
 - ✅ Conflict resolution tested with main branch
-- ✅ All steps are idiomatic GitHub Actions patterns
+- ✅ All steps use idiomatic GitHub Actions patterns
+- ✅ Trusted Publishing configuration verified
 
-## Security
+## Required Setup (One-Time)
 
-- ✅ Maintains Trusted Publishing with OIDC (NuGet/login@v1)
-- ✅ No long-lived API keys in primary workflow
-- ✅ Package provenance attestation included
-- ✅ Environment protection rules support
+After merging, complete these steps to enable publishing:
+
+1. **NuGet.org**: Create Trusted Publishing policy
+2. **GitHub**: Add `NUGET_USERNAME` secret
+3. **GitHub**: Create `production` environment
+
+See `NUGET_PUBLISH_GUIDE.md` for detailed instructions.
 
 ## Next Steps After Merge
 
-Once this is merged, to publish the next version:
+Once merged and setup is complete:
 
-1. Complete Trusted Publishing setup (see NUGET_PUBLISH_GUIDE.md)
-2. Bump version in `src/HeroSdJwt.csproj`
-3. Create release with tag (e.g., `v1.0.6`)
-4. Workflow automatically publishes to NuGet.org
+1. Bump version in `src/HeroSdJwt.csproj` (currently at v1.0.5)
+2. Create release with tag (e.g., `v1.0.6`)
+3. Workflow automatically publishes to NuGet.org
 
 ---
 
-**Note:** Package has already been published up to v1.0.5. Next release should be v1.0.6 or higher.
+**Current version:** v1.0.5 (published)
+**Next version:** v1.0.6 or higher
