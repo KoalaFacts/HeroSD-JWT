@@ -44,4 +44,22 @@ public class KeyGenerator : IKeyGenerator
         var publicKey = ecdsa.ExportSubjectPublicKeyInfo();
         return (privateKey, publicKey);
     }
+
+    /// <inheritdoc/>
+    public (byte[] privateKey, byte[] publicKey) GenerateEd25519KeyPair()
+    {
+#if NET9_0_OR_GREATER
+        // Ed25519 support is available in .NET 9.0+
+        using var ed25519 = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
+        if (ed25519 == null)
+            throw new PlatformNotSupportedException("Ed25519 algorithm is not available on this platform");
+
+        var privateKey = ed25519.ExportPkcs8PrivateKey();
+        var publicKey = ed25519.ExportSubjectPublicKeyInfo();
+        return (privateKey, publicKey);
+#else
+        throw new PlatformNotSupportedException(
+            "Ed25519 key generation requires .NET 9.0 or later. Current target framework does not support Ed25519.");
+#endif
+    }
 }

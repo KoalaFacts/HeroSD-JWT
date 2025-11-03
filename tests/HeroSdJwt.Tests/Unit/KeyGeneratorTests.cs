@@ -175,4 +175,61 @@ public class KeyGeneratorTests
         Assert.NotEqual(privateKey1, privateKey2);
         Assert.NotEqual(publicKey1, publicKey2);
     }
+
+#if NET9_0_OR_GREATER
+    [Fact]
+    public void GenerateEd25519KeyPair_ReturnsValidKeys()
+    {
+        // Act
+        var (privateKey, publicKey) = keyGenerator.GenerateEd25519KeyPair();
+
+        // Assert
+        Assert.NotNull(privateKey);
+        Assert.NotNull(publicKey);
+        Assert.NotEmpty(privateKey);
+        Assert.NotEmpty(publicKey);
+
+        // Verify key can be imported
+        using var ed25519 = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
+        Assert.NotNull(ed25519);
+        ed25519!.ImportPkcs8PrivateKey(privateKey, out _);
+    }
+
+    [Fact]
+    public void GenerateEd25519KeyPair_PublicKeyMatchesPrivateKey()
+    {
+        // Act
+        var (privateKey, publicKey) = keyGenerator.GenerateEd25519KeyPair();
+
+        // Assert - Extract public key from private key and compare
+        using var ed25519Private = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
+        Assert.NotNull(ed25519Private);
+        ed25519Private!.ImportPkcs8PrivateKey(privateKey, out _);
+        var derivedPublicKey = ed25519Private.ExportSubjectPublicKeyInfo();
+
+        Assert.Equal(publicKey, derivedPublicKey);
+    }
+
+    [Fact]
+    public void GenerateEd25519KeyPair_MultipleCallsProduceDifferentKeys()
+    {
+        // Act
+        var (privateKey1, publicKey1) = keyGenerator.GenerateEd25519KeyPair();
+        var (privateKey2, publicKey2) = keyGenerator.GenerateEd25519KeyPair();
+
+        // Assert
+        Assert.NotEqual(privateKey1, privateKey2);
+        Assert.NotEqual(publicKey1, publicKey2);
+    }
+#else
+    [Fact]
+    public void GenerateEd25519KeyPair_ThrowsPlatformNotSupportedOnNet8()
+    {
+        // Act & Assert
+        var exception = Assert.Throws<PlatformNotSupportedException>(() =>
+            keyGenerator.GenerateEd25519KeyPair());
+
+        Assert.Contains(".NET 9.0", exception.Message);
+    }
+#endif
 }
