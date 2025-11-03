@@ -11,7 +11,7 @@ on:
     inputs:
       version:
         description: 'Package version (e.g., 1.0.0)'
-        required: true
+        required: false
         type: string
 
 # Prevent concurrent publishes
@@ -40,8 +40,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Determine version and tag
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Determine version
         id: version
         run: |
           if [ "${{ github.event_name }}" == "workflow_run" ]; then
@@ -49,12 +56,13 @@ jobs:
             TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
             VERSION="${TAG#v}"  # Remove 'v' prefix if present
             echo "Detected latest release: $TAG"
-          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          elif [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
             TAG="v$VERSION"
           else
-            echo "Error: Unexpected event type: ${{ github.event_name }}"
-            exit 1
+            # Extract from csproj
+            VERSION=$(grep '<Version>' src/HeroSdJwt.csproj | sed 's/.*<Version>\(.*\)<\/Version>.*/\1/')
+            TAG="v$VERSION"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
@@ -72,23 +80,28 @@ jobs:
           fi
           echo "Version format validated: $VERSION"
 
-      - name: Download packages from release
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Pack NuGet packages
         run: |
-          echo "Downloading packages from release ${{ steps.version.outputs.TAG }}..."
-
-          # Create packages directory
           mkdir -p ./packages
+          dotnet pack src/HeroSdJwt.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./packages \
+            /p:PackageVersion=${{ steps.version.outputs.VERSION }} \
+            /p:IncludeSymbols=true \
+            /p:SymbolPackageFormat=snupkg
 
-          # Download all .nupkg and .snupkg files from the release
-          gh release download ${{ steps.version.outputs.TAG }} \
-            --pattern '*.nupkg' \
-            --pattern '*.snupkg' \
-            --dir ./packages
-
-          echo "Downloaded packages:"
+          echo "Created packages:"
           ls -lh ./packages/
-        env:
-          GH_TOKEN: ${{ github.token }}
 
       - name: Validate package contents
         run: |
@@ -96,7 +109,7 @@ jobs:
           for pkg in ./packages/*.nupkg; do
             if [ -f "$pkg" ]; then
               echo "=== $pkg ==="
-              unzip -l "$pkg" || true
+              unzip -l "$pkg" | head -50 || true
             fi
           done
 
@@ -115,12 +128,18 @@ jobs:
 
       - name: Publish to NuGet.org using Trusted Publishing
         run: |
-          dotnet nuget push "./packages/*.nupkg" \
-            --source https://api.nuget.org/v3/index.json \
-            --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} \
-            --skip-duplicate
+          for pkg in ./packages/*.nupkg; do
+            if [[ "$pkg" != *".symbols."* ]]; then
+              echo "Publishing $pkg..."
+              dotnet nuget push "$pkg" \
+                --source https://api.nuget.org/v3/index.json \
+                --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} \
+                --skip-duplicate
+            fi
+          done
 
       - name: Upload package artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages-v${{ steps.version.outputs.VERSION }}
@@ -130,8 +149,9 @@ jobs:
           retention-days: 90
 
       - name: Create release summary
+        if: success()
         run: |
-          echo "## NuGet Package Published" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ NuGet Package Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Package**: https://www.nuget.org/packages/HeroSD-JWT/${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
@@ -141,3 +161,7 @@ jobs:
           echo '```bash' >> $GITHUB_STEP_SUMMARY
           echo "dotnet add package HeroSD-JWT --version ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "- Package will be available on NuGet.org within 5-10 minutes" >> $GITHUB_STEP_SUMMARY
+          echo "- Verify at: https://www.nuget.org/packages/HeroSD-JWT" >> $GITHUB_STEP_SUMMARY

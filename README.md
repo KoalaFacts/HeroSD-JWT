@@ -1,12 +1,49 @@
 # HeroSD-JWT
 
+[![NuGet Version](https://img.shields.io/nuget/v/HeroSD-JWT.svg?style=flat-square&logo=nuget&label=NuGet)](https://www.nuget.org/packages/HeroSD-JWT/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/HeroSD-JWT.svg?style=flat-square&logo=nuget&label=Downloads)](https://www.nuget.org/packages/HeroSD-JWT/)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/KoalaFacts/HeroSD-JWT/dotnet.yml?branch=main&style=flat-square&logo=github&label=Build)](https://github.com/KoalaFacts/HeroSD-JWT/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0-512BD4?style=flat-square&logo=.net)](https://dotnet.microsoft.com/)
+[![C#](https://img.shields.io/badge/C%23-12.0-239120?style=flat-square&logo=c-sharp)](https://docs.microsoft.com/en-us/dotnet/csharp/)
+[![AOT Compatible](https://img.shields.io/badge/AOT-Compatible-blue?style=flat-square)](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)
+[![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero-green?style=flat-square)](https://www.nuget.org/packages/HeroSD-JWT/)
+[![GitHub Stars](https://img.shields.io/github/stars/KoalaFacts/HeroSD-JWT?style=flat-square&logo=github)](https://github.com/KoalaFacts/HeroSD-JWT/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/KoalaFacts/HeroSD-JWT?style=flat-square&logo=github)](https://github.com/KoalaFacts/HeroSD-JWT/issues)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
+
 A .NET library implementing SD-JWT (Selective Disclosure for JSON Web Tokens) according to the IETF [draft-ietf-oauth-selective-disclosure-jwt](https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/) specification.
 
 ## Overview
 
 SD-JWT enables privacy-preserving credential sharing by allowing holders to selectively disclose only necessary claims to verifiers, while cryptographically proving the disclosed claims are authentic and unmodified.
 
-**Key Features**:
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+  - [Simple API](#-simple-api-recommended)
+  - [Nested Object Disclosure](#-nested-object-selective-disclosure)
+  - [Array Element Disclosure](#-array-element-selective-disclosure)
+  - [Signature Algorithms](#-different-signature-algorithms)
+  - [Advanced API](#-advanced-api-full-control)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Security](#security)
+- [Requirements](#requirements)
+- [Native AOT and Trimming](#native-aot-and-trimming-compatibility)
+- [Testing](#testing)
+- [Performance](#performance)
+- [Roadmap](#roadmap)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+- [References](#references)
+- [Support](#support)
+
+## Key Features
 - ✅ Create SD-JWTs with selectively disclosable claims
 - ✅ **Nested object selective disclosure** - Full support for nested properties like `address.street`, `address.geo.lat` (multi-level nesting)
 - ✅ **Array element selective disclosure** - Syntax like `degrees[1]` for individual array elements
@@ -551,15 +588,31 @@ Current test coverage: **277 passing tests** across:
 - [ ] **Performance benchmarks** - Systematic benchmarking suite
 - [ ] **NuGet package publishing** - Production-ready release
 
+## Documentation
+
+Comprehensive documentation is available in the [docs/](docs/) directory:
+
+- **[Getting Started Guide](docs/getting-started.md)** - Installation and first steps
+- **[Examples](docs/examples.md)** - Detailed code examples for various scenarios
+- **[Security Best Practices](docs/security.md)** - Important security considerations
+- **[API Reference](docs/api-reference.md)** - Complete API documentation
+
 ## Contributing
 
-Contributions are welcome! Please follow these guidelines:
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
-1. Write tests first (TDD)
-2. Ensure all tests pass
-3. Follow .NET naming conventions
-4. Add XML documentation for public APIs
-5. No third-party dependencies (BCL only)
+Quick overview:
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Write tests first (TDD)
+4. Ensure all tests pass (`dotnet test`)
+5. Follow .NET naming conventions
+6. Add XML documentation for public APIs
+7. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+8. Push to the branch (`git push origin feature/amazing-feature`)
+9. Open a Pull Request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more details on code style, testing, and the review process.
 
 ## License
 
@@ -569,8 +622,8 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 - **Specification**: [IETF draft-ietf-oauth-selective-disclosure-jwt](https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/)
 - **Repository**: https://github.com/KoalaFacts/HeroSD-JWT
-- **Quick Start**: See [specs/001-sd-jwt-library/quickstart.md](specs/001-sd-jwt-library/quickstart.md)
-- **Implementation Plan**: See [specs/001-sd-jwt-library/plan.md](specs/001-sd-jwt-library/plan.md)
+- **NuGet Package**: https://www.nuget.org/packages/HeroSD-JWT
+- **RFC 7800**: [Proof-of-Possession Key Semantics for JWTs](https://www.rfc-editor.org/rfc/rfc7800.html)
 
 ## Support
 
@@ -581,4 +634,4 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 **Status**: ✅ Production Ready - All features complete
 
-**Version**: 1.0.0 (stable release)
+**Version**: 1.0.7
