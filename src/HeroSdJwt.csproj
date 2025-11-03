@@ -12,7 +12,7 @@
 
     <!-- Package Metadata -->
     <PackageId>HeroSD-JWT</PackageId>
-    <Version>1.0.3</Version>
+    <Version>1.0.7</Version>
     <Authors>KoalaFacts</Authors>
     <Company>KoalaFacts</Company>
     <Product>HeroSD-JWT</Product>
@@ -28,7 +28,7 @@
     <Copyright>Copyright (c) 2025 KoalaFacts</Copyright>
 
     <!-- Release Notes -->
-    <PackageReleaseNotes>Initial v1.0.0 release with full SD-JWT support including array elements, nested claims, key binding, and RS256/ES256 algorithms.</PackageReleaseNotes>
+    <PackageReleaseNotes>v1.0.7 - Comprehensive documentation update with getting started guide, examples, security best practices, and API reference. Fixed GitHub username references and added contribution guidelines.</PackageReleaseNotes>
 
     <!-- Source Link for debugging -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
