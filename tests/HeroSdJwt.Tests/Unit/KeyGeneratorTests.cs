@@ -190,9 +190,8 @@ public class KeyGeneratorTests
         Assert.NotEmpty(publicKey);
 
         // Verify key can be imported
-        using var ed25519 = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
-        Assert.NotNull(ed25519);
-        ed25519!.ImportPkcs8PrivateKey(privateKey, out _);
+        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
+        ed25519.ImportPkcs8PrivateKey(privateKey, out _);
     }
 
     [Fact]
@@ -202,9 +201,8 @@ public class KeyGeneratorTests
         var (privateKey, publicKey) = keyGenerator.GenerateEd25519KeyPair();
 
         // Assert - Extract public key from private key and compare
-        using var ed25519Private = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
-        Assert.NotNull(ed25519Private);
-        ed25519Private!.ImportPkcs8PrivateKey(privateKey, out _);
+        using var ed25519Private = System.Security.Cryptography.Ed25519.Create();
+        ed25519Private.ImportPkcs8PrivateKey(privateKey, out _);
         var derivedPublicKey = ed25519Private.ExportSubjectPublicKeyInfo();
 
         Assert.Equal(publicKey, derivedPublicKey);

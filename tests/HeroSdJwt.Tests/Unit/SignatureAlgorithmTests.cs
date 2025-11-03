@@ -423,9 +423,8 @@ public class SignatureAlgorithmTests
         var issuer = TestHelpers.CreateIssuer();
 
         // Generate Ed25519 key pair
-        using var ed25519 = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
-        Assert.NotNull(ed25519);
-        var privateKey = ed25519!.ExportPkcs8PrivateKey();
+        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
+        var privateKey = ed25519.ExportPkcs8PrivateKey();
 
         var claims = new Dictionary<string, object>
         {
@@ -461,9 +460,8 @@ public class SignatureAlgorithmTests
         var issuer = TestHelpers.CreateIssuer();
         var verifier = TestHelpers.CreateVerifier();
 
-        using var ed25519 = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
-        Assert.NotNull(ed25519);
-        var privateKey = ed25519!.ExportPkcs8PrivateKey();
+        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
+        var privateKey = ed25519.ExportPkcs8PrivateKey();
         var publicKey = ed25519.ExportSubjectPublicKeyInfo();
 
         var claims = new Dictionary<string, object>
@@ -504,14 +502,12 @@ public class SignatureAlgorithmTests
         var verifier = TestHelpers.CreateVerifier();
 
         // Issuer's key pair
-        using var issuerEd25519 = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
-        Assert.NotNull(issuerEd25519);
-        var issuerPrivateKey = issuerEd25519!.ExportPkcs8PrivateKey();
+        using var issuerEd25519 = System.Security.Cryptography.Ed25519.Create();
+        var issuerPrivateKey = issuerEd25519.ExportPkcs8PrivateKey();
 
         // Attacker's key pair
-        using var attackerEd25519 = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
-        Assert.NotNull(attackerEd25519);
-        var attackerPublicKey = attackerEd25519!.ExportSubjectPublicKeyInfo();
+        using var attackerEd25519 = System.Security.Cryptography.Ed25519.Create();
+        var attackerPublicKey = attackerEd25519.ExportSubjectPublicKeyInfo();
 
         var claims = new Dictionary<string, object>
         {

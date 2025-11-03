@@ -159,46 +159,16 @@ public class JwtSigner : IJwtSigner
 #if NET9_0_OR_GREATER
         try
         {
-            using var ed25519 = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
-            if (ed25519 == null)
-            {
-                throw new PlatformNotSupportedException(
-                    "Ed25519 algorithm is not available on this platform");
-            }
-
+            using var ed25519 = System.Security.Cryptography.Ed25519.Create();
             ed25519.ImportPkcs8PrivateKey(privateKeyBytes, out _);
 
-            // Ed25519 provides its own signature method without needing a separate hash
-            // The SignData method handles the signing internally
-            var signMethod = ed25519.GetType().GetMethod("SignData", new[] { typeof(byte[]) });
-            if (signMethod == null)
-            {
-                throw new InvalidOperationException("SignData method not found on Ed25519 algorithm");
-            }
-
-            var signature = signMethod.Invoke(ed25519, new object[] { data }) as byte[];
-            if (signature == null)
-            {
-                throw new InvalidOperationException("Ed25519 signing returned null signature");
-            }
-
-            return signature;
+            // Ed25519 signs data directly without needing a separate hash algorithm
+            return ed25519.SignData(data);
         }
         catch (CryptographicException ex)
         {
             throw new ArgumentException(
                 "Invalid Ed25519 private key format. Expected PKCS#8 PrivateKeyInfo format.",
-                nameof(privateKeyBytes),
-                ex);
-        }
-        catch (PlatformNotSupportedException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new ArgumentException(
-                "Failed to sign data with Ed25519. Ensure the key is a valid Ed25519 private key.",
                 nameof(privateKeyBytes),
                 ex);
         }

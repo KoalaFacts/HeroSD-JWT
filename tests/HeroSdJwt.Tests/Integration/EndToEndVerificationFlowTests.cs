@@ -394,9 +394,8 @@ public class EndToEndVerificationFlowTests
     public void CompleteFlow_WithEdDSA_IssueToVerify_Succeeds()
     {
         // Arrange - Create Ed25519 key pair
-        using var ed25519 = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
-        Assert.NotNull(ed25519);
-        var privateKey = ed25519!.ExportPkcs8PrivateKey();
+        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
+        var privateKey = ed25519.ExportPkcs8PrivateKey();
         var publicKey = ed25519.ExportSubjectPublicKeyInfo();
 
         var claims = new Dictionary<string, object>
@@ -438,9 +437,8 @@ public class EndToEndVerificationFlowTests
     public void CompleteFlow_WithEdDSA_UsingBuilder_Succeeds()
     {
         // Arrange - Create Ed25519 key pair
-        using var ed25519 = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
-        Assert.NotNull(ed25519);
-        var privateKey = ed25519!.ExportPkcs8PrivateKey();
+        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
+        var privateKey = ed25519.ExportPkcs8PrivateKey();
         var publicKey = ed25519.ExportSubjectPublicKeyInfo();
 
         var claims = new Dictionary<string, object>

@@ -305,38 +305,15 @@ public class SignatureValidator : ISignatureValidator
 #if NET9_0_OR_GREATER
         try
         {
-            using var ed25519 = System.Security.Cryptography.AsymmetricAlgorithm.Create("Ed25519");
-            if (ed25519 == null)
-            {
-                throw new PlatformNotSupportedException(
-                    "Ed25519 algorithm is not available on this platform");
-            }
-
+            using var ed25519 = System.Security.Cryptography.Ed25519.Create();
             ed25519.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
 
-            // Ed25519 provides its own verification method
-            // The VerifyData method handles the verification internally
-            var verifyMethod = ed25519.GetType().GetMethod("VerifyData", new[] { typeof(byte[]), typeof(byte[]) });
-            if (verifyMethod == null)
-            {
-                throw new InvalidOperationException("VerifyData method not found on Ed25519 algorithm");
-            }
-
-            var result = verifyMethod.Invoke(ed25519, new object[] { data, signature });
-            if (result is bool isValid)
-            {
-                return isValid;
-            }
-
-            throw new InvalidOperationException("Ed25519 verification returned unexpected result type");
+            // Ed25519 verifies data directly without needing a separate hash algorithm
+            return ed25519.VerifyData(data, signature);
         }
         catch (SdJwtException)
         {
             throw; // Re-throw our validation exceptions
-        }
-        catch (PlatformNotSupportedException)
-        {
-            throw;
         }
         catch (CryptographicException)
         {
