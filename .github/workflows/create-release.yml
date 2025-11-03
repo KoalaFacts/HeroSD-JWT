@@ -48,21 +48,53 @@ jobs:
       - name: Run tests
         run: dotnet test --configuration Release --no-build --verbosity normal
 
+      - name: Extract release notes from CHANGELOG
+        id: extract-notes
+        run: |
+          VERSION="${{ inputs.version }}"
+
+          # Extract the section for this version from CHANGELOG.md
+          # Find lines between ## [VERSION] and the next ## heading
+          NOTES=$(sed -n "/## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '$ d' | tail -n +2)
+
+          if [ -z "$NOTES" ]; then
+            echo "Warning: No changelog entry found for version $VERSION"
+            NOTES="See release notes: https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v$VERSION"
+          else
+            # Add link to full changelog at the end
+            NOTES="$NOTES
+
+See full changelog: https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG.md"
+          fi
+
+          # Save to multiline environment variable
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "$NOTES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+          echo "Release notes extracted from CHANGELOG.md"
+
       - name: Pack NuGet packages
-        run: dotnet pack src/HeroSdJwt.csproj --configuration Release --no-build -p:PackageVersion=${{ inputs.version }} -p:Version=${{ inputs.version }}
+        run: |
+          dotnet pack src/HeroSdJwt/HeroSdJwt.csproj \
+            --configuration Release \
+            --no-build \
+            -p:PackageVersion=${{ inputs.version }} \
+            -p:Version=${{ inputs.version }} \
+            -p:PackageReleaseNotes="${{ env.RELEASE_NOTES }}"
 
       - name: Verify packages were created
         run: |
-          if [ ! -f "src/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg" ]; then
+          if [ ! -f "src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg" ]; then
             echo "Error: Main package not found"
             exit 1
           fi
-          if [ ! -f "src/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg" ]; then
+          if [ ! -f "src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg" ]; then
             echo "Error: Symbol package not found"
             exit 1
           fi
           echo "Packages verified:"
-          ls -lh src/bin/Release/HeroSD-JWT.${{ inputs.version }}.*
+          ls -lh src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.*
 
       - name: Generate release notes
         id: release-notes
@@ -112,8 +144,8 @@ jobs:
           gh release create v${{ inputs.version }} \
             --title "Release v${{ inputs.version }}" \
             --notes-file release-notes.md \
-            src/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg \
-            src/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg
+            src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg \
+            src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg
 
           echo "✅ Release created and published!"
         env:

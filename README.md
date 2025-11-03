@@ -48,6 +48,7 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
 - ✅ **Nested object selective disclosure** - Full support for nested properties like `address.street`, `address.geo.lat` (multi-level nesting)
 - ✅ **Array element selective disclosure** - Syntax like `degrees[1]` for individual array elements
 - ✅ **Array & Object Reconstruction API** - Automatically reconstruct hierarchical structures from disclosed claims
+- ✅ **JWT Key Rotation Support** - RFC 7515 compliant `kid` parameter with key resolver pattern for secure key management
 - ✅ **Key binding (proof of possession)** - RFC 7800 compliant with temporal validation
 - ✅ **Decoy digests** - Privacy protection against claim enumeration
 - ✅ Holder-controlled claim disclosure
@@ -102,6 +103,10 @@ var presentation = sdJwt.ToPresentation("email");
 Selectively disclose nested properties with full JSONPath-style syntax:
 
 ```csharp
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.KeyBinding;
+using HeroSdJwt.Verification;
+
 // Create SD-JWT with nested object claims
 var sdJwt = SdJwtBuilder.Create()
     .WithClaim("sub", "user-456")
@@ -121,7 +126,13 @@ var sdJwt = SdJwtBuilder.Create()
 var presentation = sdJwt.ToPresentation("address.street", "address.geo.lat");
 
 // Verifier receives and verifies
-var verifier = new SdJwtVerifier();
+var verifier = new SdJwtVerifier(
+    new SdJwtVerificationOptions(),
+    new EcPublicKeyConverter(),
+    new SignatureValidator(),
+    new DigestValidator(),
+    new KeyBindingValidator(),
+    new ClaimValidator());
 var result = verifier.VerifyPresentation(presentation, key);
 
 // Automatically reconstruct the nested object structure
@@ -177,15 +188,138 @@ var sdJwt = SdJwtBuilder.Create()
     .Build();
 ```
 
+### 🔄 JWT Key Rotation Support
+
+HeroSD-JWT supports JWT key rotation using the `kid` (key ID) parameter per RFC 7515 Section 4.1.4. This enables secure key management practices including regular key rotation, emergency revocation, and multi-key deployments.
+
+#### Issuing SD-JWTs with Key IDs
+
+Add a key identifier when creating SD-JWTs:
+
+```csharp
+var keyGen = KeyGenerator.Instance;
+var key = keyGen.GenerateHmacKey();
+
+// Issue SD-JWT with key ID
+var sdJwt = SdJwtBuilder.Create()
+    .WithClaim("sub", "user-123")
+    .WithClaim("email", "alice@example.com")
+    .MakeSelective("email")
+    .WithKeyId("key-2024-10")  // Add key identifier
+    .SignWithHmac(key)
+    .Build();
+```
+
+#### Verifying SD-JWTs with Key Resolver
+
+Implement a key resolver to dynamically select verification keys based on the `kid` parameter:
+
+```csharp
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.KeyBinding;
+using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
+
+// Set up key resolver with multiple keys
+var keys = new Dictionary<string, byte[]>
+{
+    ["key-2024-09"] = oldKey,
+    ["key-2024-10"] = currentKey,
+    ["key-2024-11"] = newKey
+};
+
+// Create resolver delegate
+KeyResolver resolver = keyId => keys.GetValueOrDefault(keyId);
+
+// Verify presentation using key resolver
+var verifier = new SdJwtVerifier(
+    new SdJwtVerificationOptions(),
+    new EcPublicKeyConverter(),
+    new SignatureValidator(),
+    new DigestValidator(),
+    new KeyBindingValidator(),
+    new ClaimValidator());
+var result = verifier.TryVerifyPresentation(presentation, resolver);
+
+if (result.IsValid)
+{
+    // Access disclosed claims
+    var email = result.DisclosedClaims["email"].GetString();
+}
+```
+
+#### Key Rotation Workflow
+
+Typical key rotation lifecycle (30-day overlap period):
+
+```csharp
+// Day 1-15: Only key-v1 active
+var keysPhase1 = new Dictionary<string, byte[]>
+{
+    ["key-v1"] = keyV1
+};
+
+// Day 15-30: Both keys active (overlap period)
+var keysPhase2 = new Dictionary<string, byte[]>
+{
+    ["key-v1"] = keyV1,  // Old key still valid
+    ["key-v2"] = keyV2   // New key added
+};
+// Start issuing new tokens with key-v2, but both still verify
+
+// Day 30+: Only key-v2 active (old key removed)
+var keysPhase3 = new Dictionary<string, byte[]>
+{
+    ["key-v2"] = keyV2   // Only new key remains
+};
+// Old tokens with key-v1 now fail verification
+```
+
+#### Emergency Key Revocation
+
+Immediately revoke a compromised key:
+
+```csharp
+// Before: Both keys active
+var keys = new Dictionary<string, byte[]>
+{
+    ["compromised-key"] = compromisedKey,
+    ["emergency-key"] = emergencyKey
+};
+
+// After: Immediately remove compromised key
+keys.Remove("compromised-key");
+
+// All tokens issued with compromised-key now fail verification immediately
+KeyResolver resolver = keyId => keys.GetValueOrDefault(keyId);
+```
+
+#### Backward Compatibility
+
+Tokens without `kid` parameter work seamlessly with a fallback key:
+
+```csharp
+// Verify tokens with or without kid
+var result = verifier.TryVerifyPresentation(
+    presentation,
+    keyResolver: resolver,
+    fallbackKey: legacyKey  // Used when JWT has no 'kid'
+);
+```
+
 ### 🔧 Advanced API (Full Control)
 
 For advanced scenarios, use the low-level API:
 
 ```csharp
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Issuance;
-using HeroSdJwt.Common;
 
-var issuer = new SdJwtIssuer();
+var issuer = new SdJwtIssuer(
+    new DisclosureGenerator(),
+    new DigestCalculator(),
+    new EcPublicKeyConverter(),
+    new JwtSigner());
 var claims = new Dictionary<string, object>
 {
     ["sub"] = "user-123",
@@ -271,6 +405,8 @@ string presentationString = presentation.ToCombinedFormat();
 ### 3. Verifier: Verify Presentation
 
 ```csharp
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Verification;
 
 // Parse presentation string
@@ -279,7 +415,13 @@ var jwt = parts[0];
 var disclosures = parts[1..^1]; // All parts between JWT and key binding
 
 // Verify presentation
-var verifier = new SdJwtVerifier();
+var verifier = new SdJwtVerifier(
+    new SdJwtVerificationOptions(),
+    new EcPublicKeyConverter(),
+    new SignatureValidator(),
+    new DigestValidator(),
+    new KeyBindingValidator(),
+    new ClaimValidator());
 var verificationKey = new byte[32]; // Same key used for signing (HS256)
 
 // Option 1: Throws exception on failure (recommended for most cases)

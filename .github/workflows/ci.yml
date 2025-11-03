@@ -158,7 +158,7 @@ jobs:
 
     - name: Pack
       run: |
-        dotnet pack src/HeroSdJwt.csproj \
+        dotnet pack src/HeroSdJwt/HeroSdJwt.csproj \
           --configuration Release \
           --no-build \
           --output ./artifacts \

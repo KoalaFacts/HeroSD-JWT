@@ -110,7 +110,7 @@ dotnet build --configuration Release
 
 #### 2. Update Version Number
 
-Edit `src/HeroSdJwt.csproj`:
+Edit `src/HeroSdJwt/HeroSdJwt.csproj`:
 
 ```xml
 <PropertyGroup>
@@ -149,7 +149,7 @@ Add entry at the top:
 #### 4. Commit Version Bump
 
 ```bash
-git add src/HeroSdJwt.csproj CHANGELOG.md
+git add src/HeroSdJwt/HeroSdJwt.csproj CHANGELOG.md
 git commit -m "chore: bump version to 1.1.0
 
 - Update version to 1.1.0 in project file
@@ -282,7 +282,7 @@ Before creating any release, verify:
 - [ ] Backwards compatibility verified (if applicable)
 
 ### Version Management
-- [ ] Version number updated in `src/HeroSdJwt.csproj`
+- [ ] Version number updated in `src/HeroSdJwt/HeroSdJwt.csproj`
 - [ ] Package release notes updated in `.csproj`
 - [ ] Git tag created with proper naming (v1.x.x)
 - [ ] Tag message includes summary of changes
@@ -756,7 +756,7 @@ git checkout main && git pull
 dotnet test --configuration Release
 dotnet build --configuration Release
 
-# Update version in src/HeroSdJwt.csproj
+# Update version in src/HeroSdJwt/HeroSdJwt.csproj
 # Update CHANGELOG.md
 
 # Commit changes
