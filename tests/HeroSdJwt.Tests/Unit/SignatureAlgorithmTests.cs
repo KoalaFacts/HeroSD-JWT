@@ -414,4 +414,126 @@ public class SignatureAlgorithmTests
         Assert.True(header.TryGetProperty("alg", out var alg));
         Assert.Equal("HS256", alg.GetString());
     }
+
+#if NET9_0_OR_GREATER
+    [Fact]
+    public void CreateSdJwt_WithEdDSA_CreatesValidJwt()
+    {
+        // Arrange
+        var issuer = TestHelpers.CreateIssuer();
+
+        // Generate Ed25519 key pair
+        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
+        var privateKey = ed25519.ExportPkcs8PrivateKey();
+
+        var claims = new Dictionary<string, object>
+        {
+            ["sub"] = "user-ed25519",
+            ["email"] = "user@example.com"
+        };
+
+        // Act
+        var sdJwt = issuer.CreateSdJwt(
+            claims,
+            new[] { "email" },
+            privateKey,
+            HashAlgorithm.Sha256,
+            SignatureAlgorithm.EdDSA);
+
+        // Assert
+        Assert.NotNull(sdJwt);
+        Assert.NotEmpty(sdJwt.Jwt);
+
+        // Decode header to verify algorithm
+        var parts = sdJwt.Jwt.Split('.');
+        var headerJson = Base64UrlEncoder.DecodeString(parts[0]);
+        var header = JsonDocument.Parse(headerJson).RootElement;
+
+        Assert.True(header.TryGetProperty("alg", out var alg));
+        Assert.Equal("EdDSA", alg.GetString());
+    }
+
+    [Fact]
+    public void EndToEnd_EdDSA_IssueAndVerify()
+    {
+        // Arrange
+        var issuer = TestHelpers.CreateIssuer();
+        var verifier = TestHelpers.CreateVerifier();
+
+        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
+        var privateKey = ed25519.ExportPkcs8PrivateKey();
+        var publicKey = ed25519.ExportSubjectPublicKeyInfo();
+
+        var claims = new Dictionary<string, object>
+        {
+            ["sub"] = "user-ed25519",
+            ["name"] = "David",
+            ["email"] = "david@example.com"
+        };
+
+        // Act - Issue
+        var sdJwt = issuer.CreateSdJwt(
+            claims,
+            new[] { "name", "email" },
+            privateKey,
+            HashAlgorithm.Sha256,
+            SignatureAlgorithm.EdDSA);
+
+        // Create presentation string
+        var presentation = sdJwt.ToCombinedFormat();
+
+        // Act - Verify
+        var result = verifier.VerifyPresentation(
+            presentation,
+            publicKey);
+
+        // Assert
+        Assert.True(result.IsValid);
+        Assert.Empty(result.Errors);
+        Assert.Contains("name", result.DisclosedClaims.Keys);
+        Assert.Contains("email", result.DisclosedClaims.Keys);
+    }
+
+    [Fact]
+    public void VerifyPresentation_EdDSAWithWrongPublicKey_FailsVerification()
+    {
+        // Arrange
+        var issuer = TestHelpers.CreateIssuer();
+        var verifier = TestHelpers.CreateVerifier();
+
+        // Issuer's key pair
+        using var issuerEd25519 = System.Security.Cryptography.Ed25519.Create();
+        var issuerPrivateKey = issuerEd25519.ExportPkcs8PrivateKey();
+
+        // Attacker's key pair
+        using var attackerEd25519 = System.Security.Cryptography.Ed25519.Create();
+        var attackerPublicKey = attackerEd25519.ExportSubjectPublicKeyInfo();
+
+        var claims = new Dictionary<string, object>
+        {
+            ["sub"] = "user-123",
+            ["email"] = "user@example.com"
+        };
+
+        // Issue with issuer's key
+        var sdJwt = issuer.CreateSdJwt(
+            claims,
+            new[] { "email" },
+            issuerPrivateKey,
+            HashAlgorithm.Sha256,
+            SignatureAlgorithm.EdDSA);
+
+        // Create presentation string
+        var presentation = sdJwt.ToCombinedFormat();
+
+        // Act - Verify with attacker's public key
+        var result = verifier.TryVerifyPresentation(
+            presentation,
+            attackerPublicKey);
+
+        // Assert
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidSignature, result.Errors);
+    }
+#endif
 }

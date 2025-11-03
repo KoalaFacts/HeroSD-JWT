@@ -72,7 +72,7 @@ public class SignatureValidator : ISignatureValidator
         if (!IsSupportedAlgorithm(algorithm))
         {
             throw new AlgorithmNotSupportedException(
-                $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, RS256, ES256");
+                $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, RS256, ES256, EdDSA");
         }
 
         // Construct the signing input (header.payload)
@@ -88,6 +88,7 @@ public class SignatureValidator : ISignatureValidator
             "HS256" => VerifyHmacSha256(signingInputBytes, signatureBytes, publicKey),
             "RS256" => VerifyRsa256(signingInputBytes, signatureBytes, publicKey),
             "ES256" => VerifyEcdsa256(signingInputBytes, signatureBytes, publicKey),
+            "EdDSA" => VerifyEd25519(signingInputBytes, signatureBytes, publicKey),
             _ => throw new AlgorithmNotSupportedException($"Algorithm '{algorithm}' verification not implemented")
         };
     }
@@ -290,7 +291,48 @@ public class SignatureValidator : ISignatureValidator
             "HS256" => true,
             "RS256" => true,
             "ES256" => true,
+            "EdDSA" => true,
             _ => false
         };
+    }
+
+    /// <summary>
+    /// Verifies an EdDSA signature using Ed25519 curve.
+    /// Note: Ed25519 support requires .NET 9.0 or later.
+    /// </summary>
+    private static bool VerifyEd25519(byte[] data, byte[] signature, byte[] publicKeyBytes)
+    {
+#if NET9_0_OR_GREATER
+        try
+        {
+            using var ed25519 = System.Security.Cryptography.Ed25519.Create();
+            ed25519.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+
+            // Ed25519 verifies data directly without needing a separate hash algorithm
+            return ed25519.VerifyData(data, signature);
+        }
+        catch (SdJwtException)
+        {
+            throw; // Re-throw our validation exceptions
+        }
+        catch (CryptographicException)
+        {
+            // Signature verification failed - legitimate cryptographic failure
+            return false;
+        }
+        catch (ArgumentException)
+        {
+            // Invalid key format
+            return false;
+        }
+        catch
+        {
+            // Other unexpected errors - fail safely
+            return false;
+        }
+#else
+        throw new PlatformNotSupportedException(
+            "Ed25519 verification requires .NET 9.0 or later. Current target framework does not support Ed25519.");
+#endif
     }
 }

@@ -37,6 +37,7 @@ public class JwtSigner : IJwtSigner
             SignatureAlgorithm.HS256 => "HS256",
             SignatureAlgorithm.RS256 => "RS256",
             SignatureAlgorithm.ES256 => "ES256",
+            SignatureAlgorithm.EdDSA => "EdDSA",
             _ => throw new ArgumentException($"Unsupported algorithm: {algorithm}", nameof(algorithm))
         };
 
@@ -69,6 +70,7 @@ public class JwtSigner : IJwtSigner
             SignatureAlgorithm.HS256 => SignHmacSha256(signingInputBytes, signingKey),
             SignatureAlgorithm.RS256 => SignRsa256(signingInputBytes, signingKey),
             SignatureAlgorithm.ES256 => SignEcdsa256(signingInputBytes, signingKey),
+            SignatureAlgorithm.EdDSA => SignEd25519(signingInputBytes, signingKey),
             _ => throw new ArgumentException($"Algorithm {algorithm} not implemented", nameof(algorithm))
         };
 
@@ -145,6 +147,35 @@ public class JwtSigner : IJwtSigner
                 nameof(privateKeyBytes),
                 ex);
         }
+    }
+
+    /// <summary>
+    /// Signs data using EdDSA with Ed25519 curve (asymmetric).
+    /// Key must be in PKCS#8 PrivateKeyInfo format.
+    /// Note: Ed25519 support requires .NET 9.0 or later.
+    /// </summary>
+    private static byte[] SignEd25519(byte[] data, byte[] privateKeyBytes)
+    {
+#if NET9_0_OR_GREATER
+        try
+        {
+            using var ed25519 = System.Security.Cryptography.Ed25519.Create();
+            ed25519.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+
+            // Ed25519 signs data directly without needing a separate hash algorithm
+            return ed25519.SignData(data);
+        }
+        catch (CryptographicException ex)
+        {
+            throw new ArgumentException(
+                "Invalid Ed25519 private key format. Expected PKCS#8 PrivateKeyInfo format.",
+                nameof(privateKeyBytes),
+                ex);
+        }
+#else
+        throw new PlatformNotSupportedException(
+            "Ed25519 signing requires .NET 9.0 or later. Current target framework does not support Ed25519.");
+#endif
     }
 
     /// <summary>

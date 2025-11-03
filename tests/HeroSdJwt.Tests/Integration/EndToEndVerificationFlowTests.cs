@@ -388,4 +388,84 @@ public class EndToEndVerificationFlowTests
         // Assert
         Assert.False(result.IsValid, "Verification with wrong issuer should fail");
     }
+
+#if NET9_0_OR_GREATER
+    [Fact]
+    public void CompleteFlow_WithEdDSA_IssueToVerify_Succeeds()
+    {
+        // Arrange - Create Ed25519 key pair
+        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
+        var privateKey = ed25519.ExportPkcs8PrivateKey();
+        var publicKey = ed25519.ExportSubjectPublicKeyInfo();
+
+        var claims = new Dictionary<string, object>
+        {
+            { "sub", "user-ed25519" },
+            { "email", "user@example.com" },
+            { "name", "Test User" },
+            { "role", "admin" }
+        };
+
+        // Act - Issue with EdDSA
+        var issuer = TestHelpers.CreateIssuer();
+        var sdJwt = issuer.CreateSdJwt(
+            claims,
+            new[] { "email", "name", "role" },
+            privateKey,
+            HashAlgorithm.Sha256,
+            SignatureAlgorithm.EdDSA
+        );
+
+        // Create presentation
+        var presenter = new SdJwtPresenter();
+        var presentation = presenter.CreatePresentation(sdJwt, new[] { "email", "role" });
+        var presentationString = presenter.FormatPresentation(presentation);
+
+        // Verify with EdDSA public key
+        var verifier = TestHelpers.CreateVerifier();
+        var result = verifier.VerifyPresentation(presentationString, publicKey);
+
+        // Assert
+        Assert.True(result.IsValid, "EdDSA verification should succeed");
+        Assert.Empty(result.Errors);
+        Assert.Contains("email", result.DisclosedClaims.Keys);
+        Assert.Contains("role", result.DisclosedClaims.Keys);
+        Assert.DoesNotContain("name", result.DisclosedClaims.Keys); // Not disclosed
+    }
+
+    [Fact]
+    public void CompleteFlow_WithEdDSA_UsingBuilder_Succeeds()
+    {
+        // Arrange - Create Ed25519 key pair
+        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
+        var privateKey = ed25519.ExportPkcs8PrivateKey();
+        var publicKey = ed25519.ExportSubjectPublicKeyInfo();
+
+        var claims = new Dictionary<string, object>
+        {
+            { "sub", "user123" },
+            { "email", "user@example.com" },
+            { "department", "Engineering" }
+        };
+
+        // Act - Use builder with Ed25519
+        var sdJwt = SdJwtBuilder.Create()
+            .WithClaims(claims)
+            .MakeSelective("email", "department")
+            .SignWithEd25519(privateKey)
+            .Build();
+
+        // Create presentation
+        var presentation = sdJwt.ToPresentation("email");
+
+        // Verify
+        var verifier = TestHelpers.CreateVerifier();
+        var result = verifier.VerifyPresentation(presentation, publicKey);
+
+        // Assert
+        Assert.True(result.IsValid, "EdDSA builder flow should succeed");
+        Assert.Contains("email", result.DisclosedClaims.Keys);
+        Assert.DoesNotContain("department", result.DisclosedClaims.Keys);
+    }
+#endif
 }
