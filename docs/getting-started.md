@@ -29,7 +29,7 @@ Install-Package HeroSD-JWT
 Add this to your `.csproj` file:
 
 ```xml
-<PackageReference Include="HeroSD-JWT" Version="1.0.3" />
+<PackageReference Include="HeroSD-JWT" Version="1.0.6" />
 ```
 
 ## Your First SD-JWT

@@ -492,4 +492,4 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 **Status**: ✅ Production Ready - All features complete
 
-**Version**: 1.0.3
+**Version**: 1.0.6
