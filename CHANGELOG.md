@@ -49,6 +49,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.7] - 2025-01-25
+
+### Added
+- 📚 **Comprehensive documentation** in `docs/` directory:
+  - `getting-started.md` - Installation and first steps guide
+  - `examples.md` - Detailed code examples for various scenarios
+  - `security.md` - Security best practices and considerations
+  - `api-reference.md` - Complete API documentation
+  - `README.md` - Documentation index
+- 📝 **CONTRIBUTING.md** - Detailed contribution guidelines
+- 🎨 **Enhanced README badges** - Added 11 status badges with shields.io integration
+
+### Changed
+- 🔧 Fixed GitHub username references (BeingCiteable → KoalaFacts) across all documentation
+- 🔧 Updated README with table of contents for better navigation
+- 🔧 Enhanced Contributing section in README with step-by-step guide
+
+### Fixed
+- 📄 Fixed LICENSE copyright holder
+- 🔗 Fixed broken documentation references in README
+
+---
+
 ## [Unreleased]
 
 ### Planned
@@ -56,5 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sample projects and tutorials
 - Additional hash algorithm support (SHA3)
 
+[1.0.7]: https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.0.7
 [1.0.0]: https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.0.0
-[Unreleased]: https://github.com/KoalaFacts/HeroSD-JWT/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/KoalaFacts/HeroSD-JWT/compare/v1.0.7...HEAD
