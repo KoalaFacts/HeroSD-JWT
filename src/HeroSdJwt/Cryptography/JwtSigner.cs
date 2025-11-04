@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using HeroSdJwt.Encoding;
+using HeroSdJwt.Internal.Ed25519;
 using HeroSdJwt.Primitives;
 
 namespace HeroSdJwt.Cryptography;
@@ -37,6 +38,7 @@ public class JwtSigner : IJwtSigner
             SignatureAlgorithm.HS256 => "HS256",
             SignatureAlgorithm.RS256 => "RS256",
             SignatureAlgorithm.ES256 => "ES256",
+            SignatureAlgorithm.EdDSA => "EdDSA",
             _ => throw new ArgumentException($"Unsupported algorithm: {algorithm}", nameof(algorithm))
         };
 
@@ -69,6 +71,7 @@ public class JwtSigner : IJwtSigner
             SignatureAlgorithm.HS256 => SignHmacSha256(signingInputBytes, signingKey),
             SignatureAlgorithm.RS256 => SignRsa256(signingInputBytes, signingKey),
             SignatureAlgorithm.ES256 => SignEcdsa256(signingInputBytes, signingKey),
+            SignatureAlgorithm.EdDSA => SignEdDsa(signingInputBytes, signingKey),
             _ => throw new ArgumentException($"Algorithm {algorithm} not implemented", nameof(algorithm))
         };
 
@@ -145,6 +148,24 @@ public class JwtSigner : IJwtSigner
                 nameof(privateKeyBytes),
                 ex);
         }
+    }
+
+    /// <summary>
+    /// Signs data using EdDSA with Ed25519 curve (asymmetric).
+    /// Key must be a 64-byte expanded Ed25519 private key.
+    /// </summary>
+    private static byte[] SignEdDsa(byte[] data, byte[] privateKeyBytes)
+    {
+        if (privateKeyBytes.Length != 64)
+        {
+            throw new ArgumentException(
+                $"Ed25519 private key must be 64 bytes (expanded format). Provided key is {privateKeyBytes.Length} bytes.",
+                nameof(privateKeyBytes));
+        }
+
+        var signature = new byte[64];
+        Ed25519Operations.crypto_sign(signature, 0, data, 0, data.Length, privateKeyBytes, 0);
+        return signature;
     }
 
     /// <summary>

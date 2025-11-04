@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
+using HeroSdJwt.Internal.Ed25519;
 using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 
 namespace HeroSdJwt.Verification;
@@ -72,7 +73,7 @@ public class SignatureValidator : ISignatureValidator
         if (!IsSupportedAlgorithm(algorithm))
         {
             throw new AlgorithmNotSupportedException(
-                $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, RS256, ES256");
+                $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, RS256, ES256, EdDSA");
         }
 
         // Construct the signing input (header.payload)
@@ -88,6 +89,7 @@ public class SignatureValidator : ISignatureValidator
             "HS256" => VerifyHmacSha256(signingInputBytes, signatureBytes, publicKey),
             "RS256" => VerifyRsa256(signingInputBytes, signatureBytes, publicKey),
             "ES256" => VerifyEcdsa256(signingInputBytes, signatureBytes, publicKey),
+            "EdDSA" => VerifyEdDsa(signingInputBytes, signatureBytes, publicKey),
             _ => throw new AlgorithmNotSupportedException($"Algorithm '{algorithm}' verification not implemented")
         };
     }
@@ -281,6 +283,40 @@ public class SignatureValidator : ISignatureValidator
     }
 
     /// <summary>
+    /// Verifies an EdDSA signature using Ed25519.
+    /// </summary>
+    private static bool VerifyEdDsa(byte[] data, byte[] signature, byte[] publicKeyBytes)
+    {
+        try
+        {
+            // Validate key size
+            if (publicKeyBytes.Length != 32)
+            {
+                throw new SdJwtException(
+                    $"Ed25519 public key must be 32 bytes. Provided key is {publicKeyBytes.Length} bytes.",
+                    ErrorCode.InvalidInput);
+            }
+
+            // Validate signature size
+            if (signature.Length != 64)
+            {
+                return false; // Invalid signature length
+            }
+
+            return Ed25519Operations.crypto_sign_verify(signature, 0, data, 0, data.Length, publicKeyBytes, 0);
+        }
+        catch (SdJwtException)
+        {
+            throw; // Re-throw our validation exceptions
+        }
+        catch
+        {
+            // Any other error - fail safely
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Checks if an algorithm is supported for signature verification.
     /// </summary>
     private static bool IsSupportedAlgorithm(string algorithm)
@@ -290,6 +326,7 @@ public class SignatureValidator : ISignatureValidator
             "HS256" => true,
             "RS256" => true,
             "ES256" => true,
+            "EdDSA" => true,
             _ => false
         };
     }

@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using HeroSdJwt.Internal.Ed25519;
 
 namespace HeroSdJwt.Cryptography;
 
@@ -43,5 +44,21 @@ public class KeyGenerator : IKeyGenerator
         var privateKey = ecdsa.ExportPkcs8PrivateKey();
         var publicKey = ecdsa.ExportSubjectPublicKeyInfo();
         return (privateKey, publicKey);
+    }
+
+    /// <inheritdoc/>
+    public (byte[] privateKey, byte[] publicKey) GenerateEd25519KeyPair()
+    {
+        // Generate a random 32-byte seed
+        var seed = new byte[32];
+        RandomNumberGenerator.Fill(seed);
+
+        // Generate Ed25519 key pair from seed
+        var publicKey = new byte[32];
+        var expandedPrivateKey = new byte[64];
+
+        Ed25519Operations.crypto_sign_keypair(publicKey, 0, expandedPrivateKey, 0, seed, 0);
+
+        return (expandedPrivateKey, publicKey);
     }
 }

@@ -23,5 +23,13 @@ public enum SignatureAlgorithm
     /// Requires EC private key for signing, public key for verification.
     /// Uses secp256r1 (NIST P-256) curve.
     /// </summary>
-    ES256
+    ES256,
+
+    /// <summary>
+    /// EdDSA using Ed25519 curve (asymmetric key).
+    /// Requires Ed25519 private key for signing, public key for verification.
+    /// Provides 128-bit security with smaller keys and faster performance than RSA.
+    /// Per RFC 8037.
+    /// </summary>
+    EdDSA
 }
