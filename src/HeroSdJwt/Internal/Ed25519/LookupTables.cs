@@ -19,8 +19,8 @@ internal static partial class LookupTables
     /// Value: 37095705934669439343138083508754565189542113879843219016388785533085940283555
     /// </summary>
     internal static readonly FieldElement d = new FieldElement(
-        -10913610, 13857413, -15372611, 6949391, 114729,
-        -8787816, -6275908, -3247719, -18696448, -12055116
+        56195235, 13857412, 51736253, 6949390, 114729,
+        24766616, 60832955, 30306712, 48412415, 21499315
     );
 
     /// <summary>
@@ -30,18 +30,19 @@ internal static partial class LookupTables
     /// Used in converting P3 to Cached form.
     /// </summary>
     internal static readonly FieldElement d2 = new FieldElement(
-        -21827239, -5839606, -30745221, 13898782, 229458,
-        15978800, -12551817, -6495438, 29715968, 9444199
+        45281625, 27714825, 36363642, 13898781, 229458,
+        15978800, 54557047, 27058993, 29715967, 9444199
     );
 
     /// <summary>
     /// sqrt(-1) in GF(2^255-19).
     ///
     /// Used for point decompression (recovering x from y).
+    /// Value: 2^((p-1)/4) mod p where p = 2^255-19
     /// </summary>
     internal static readonly FieldElement sqrtm1 = new FieldElement(
-        -32595792, -7943725, 9377950, 3500415, 12389472,
-        -272473, -25146209, -2005654, 326686, 11406482
+        34513072, 25610706, 9377949, 3500415, 12389472,
+        33281959, 41962654, 31548777, 326685, 11406482
     );
 
     /// <summary>
