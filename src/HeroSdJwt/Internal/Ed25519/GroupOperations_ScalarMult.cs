@@ -26,9 +26,27 @@ internal static partial class GroupOperations
         // Start with the identity element
         ge_p3_0(out h);
 
-        // Get the standard Ed25519 base point from precomputed values
-        // This is more efficient and reliable than decoding from compressed form
-        GroupElementP3 basePoint = LookupTables.GetBasePoint();
+        // Ed25519 base point in compressed form (y-coordinate with sign bit)
+        // RFC 8032: y = 4/5 mod p, with positive x
+        byte[] basePointCompressed = new byte[32]
+        {
+            0x58, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
+            0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
+            0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66,
+            0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x66
+        };
+
+        // Decompress the base point
+        // Note: ge_frombytes_negate_vartime negates, so we negate back
+        GroupElementP3 basePoint;
+        if (!ge_frombytes_negate_vartime(out basePoint, basePointCompressed, 0))
+        {
+            throw new InvalidOperationException("Failed to decompress base point");
+        }
+
+        // Negate back to get the actual base point (not its negative)
+        FieldOperations.fe_neg(out basePoint.X, ref basePoint.X);
+        FieldOperations.fe_neg(out basePoint.T, ref basePoint.T);
 
         // Perform scalar multiplication using double-and-add
         // Process scalar from most significant bit to least significant

@@ -168,7 +168,7 @@ public class Ed25519Rfc8032Tests
     {
         var seed1 = HexToBytes("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
         var seed2 = HexToBytes("4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb");
-        var message = HexToBytes("test");
+        var message = HexToBytes("74657374"); // "test" in hex
 
         var (publicKey1, expandedPrivateKey1) = Ed25519.KeyPairFromSeed(seed1);
         var (publicKey2, _) = Ed25519.KeyPairFromSeed(seed2);
