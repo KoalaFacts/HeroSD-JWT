@@ -21,18 +21,18 @@ internal static partial class FieldOperations
     /// Basic claim: q = floor(2^(-255)(h + 19 2^(-25)h9 + 2^(-1))).
     ///
     /// Proof:
-    ///   Have |h|<=p so |q|<=1 so |19^2 2^(-255) q|<1/4.
-    ///   Also have |h-2^230 h9|<2^230 so |19 2^(-255)(h-2^230 h9)|<1/4.
+    ///   Have |h| less-than-or-equal p so |q| less-than-or-equal 1 so |19^2 2^(-255) q| less-than 1/4.
+    ///   Also have |h-2^230 h9| less-than 2^230 so |19 2^(-255)(h-2^230 h9)| less-than 1/4.
     ///
     ///   Write y=2^(-1)-19^2 2^(-255)q-19 2^(-255)(h-2^230 h9).
-    ///   Then 0<y<1.
+    ///   Then 0 less-than y less-than 1.
     ///
     ///   Write r=h-pq.
-    ///   Have 0<=r<=p-1=2^255-20.
-    ///   Thus 0<=r+19(2^-255)r<r+19(2^-255)2^255<=2^255-1.
+    ///   Have 0 less-than-or-equal r less-than-or-equal p-1=2^255-20.
+    ///   Thus 0 less-than-or-equal r+19(2^-255)r less-than r+19(2^-255)2^255 less-than-or-equal 2^255-1.
     ///
     ///   Write x=r+19(2^-255)r+y.
-    ///   Then 0<x<2^255 so floor(2^(-255)x) = 0 so floor(q+2^(-255)x) = q.
+    ///   Then 0 less-than x less-than 2^255 so floor(2^(-255)x) = 0 so floor(q+2^(-255)x) = q.
     ///
     ///   Have q+2^(-255)x = 2^(-255)(h + 19 2^(-25) h9 + 2^(-1))
     ///   so floor(2^(-255)(h + 19 2^(-25) h9 + 2^(-1))) = q.
