@@ -95,6 +95,26 @@ public class SdJwtBuilderTests
         Assert.NotEmpty(sdJwt.Jwt);
     }
 
+#if NET9_0_OR_GREATER
+    [Fact]
+    public void Build_WithEd25519Signature_CreatesValidSdJwt()
+    {
+        // Arrange
+        var (privateKey, _) = keyGenerator.GenerateEd25519KeyPair();
+        var claims = new Dictionary<string, object> { ["sub"] = "user123" };
+
+        // Act
+        var sdJwt = SdJwtBuilder.Create()
+            .WithClaims(claims)
+            .SignWithEd25519(privateKey)
+            .Build();
+
+        // Assert
+        Assert.NotNull(sdJwt);
+        Assert.NotEmpty(sdJwt.Jwt);
+    }
+#endif
+
     [Fact]
     public void Build_WithKeyBinding_IncludesCnfClaim()
     {

@@ -116,6 +116,19 @@ public class SdJwtBuilder
     }
 
     /// <summary>
+    /// Signs the SD-JWT with EdDSA using Ed25519 curve.
+    /// Requires a private key in PKCS#8 format.
+    /// Note: Ed25519 support requires .NET 9.0 or later.
+    /// </summary>
+    /// <param name="privateKey">Ed25519 private key in PKCS#8 format.</param>
+    public SdJwtBuilder SignWithEd25519(byte[] privateKey)
+    {
+        signingKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
+        signatureAlgorithm = SignatureAlgorithm.EdDSA;
+        return this;
+    }
+
+    /// <summary>
     /// Sets the hash algorithm for disclosure digests.
     /// Default is SHA-256, which is recommended by the SD-JWT specification.
     /// </summary>
@@ -179,7 +192,7 @@ public class SdJwtBuilder
             throw new InvalidOperationException("Claims must be set. Call WithClaims() or WithClaim().");
 
         if (signingKey == null)
-            throw new InvalidOperationException("Signing key must be set. Call SignWithHmac(), SignWithRsa(), or SignWithEcdsa().");
+            throw new InvalidOperationException("Signing key must be set. Call SignWithHmac(), SignWithRsa(), SignWithEcdsa(), or SignWithEd25519().");
 
         var issuer = new SdJwtIssuer(
             new DisclosureGenerator(),

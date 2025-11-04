@@ -62,15 +62,16 @@ jobs:
             NOTES="See release notes: https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v$VERSION"
           else
             # Add link to full changelog at the end
-            NOTES="$NOTES
+            NOTES="${NOTES}
 
-See full changelog: https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG.md"
+          See full changelog: https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG.md"
           fi
 
-          # Save to multiline environment variable
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          # Save to multiline environment variable using delimiter
+          delimiter="$(openssl rand -hex 8)"
+          echo "RELEASE_NOTES<<${delimiter}" >> $GITHUB_ENV
           echo "$NOTES" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "${delimiter}" >> $GITHUB_ENV
 
           echo "Release notes extracted from CHANGELOG.md"
 
@@ -99,7 +100,7 @@ See full changelog: https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG
       - name: Generate release notes
         id: release-notes
         run: |
-          cat > release-notes.md << 'EOF'
+          cat > release-notes.md << EOF
           ## HeroSD-JWT v${{ inputs.version }}
 
           **Production-ready .NET library for SD-JWT (Selective Disclosure JWT)**

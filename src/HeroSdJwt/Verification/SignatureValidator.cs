@@ -330,4 +330,44 @@ public class SignatureValidator : ISignatureValidator
             _ => false
         };
     }
+
+    /// <summary>
+    /// Verifies an EdDSA signature using Ed25519 curve.
+    /// Note: Ed25519 support requires .NET 9.0 or later.
+    /// </summary>
+    private static bool VerifyEd25519(byte[] data, byte[] signature, byte[] publicKeyBytes)
+    {
+#if NET9_0_OR_GREATER
+        try
+        {
+            using var ed25519 = System.Security.Cryptography.Ed25519.Create();
+            ed25519.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+
+            // Ed25519 verifies data directly without needing a separate hash algorithm
+            return ed25519.VerifyData(data, signature);
+        }
+        catch (SdJwtException)
+        {
+            throw; // Re-throw our validation exceptions
+        }
+        catch (CryptographicException)
+        {
+            // Signature verification failed - legitimate cryptographic failure
+            return false;
+        }
+        catch (ArgumentException)
+        {
+            // Invalid key format
+            return false;
+        }
+        catch
+        {
+            // Other unexpected errors - fail safely
+            return false;
+        }
+#else
+        throw new PlatformNotSupportedException(
+            "Ed25519 verification requires .NET 9.0 or later. Current target framework does not support Ed25519.");
+#endif
+    }
 }
