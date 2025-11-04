@@ -1,0 +1,36 @@
+Ed25519 Implementation Attribution
+===================================
+
+This directory contains an Ed25519 implementation ported from Chaos.NaCl.
+
+Original Source: https://github.com/CodesInChaos/Chaos.NaCl
+License: Public Domain
+
+---
+
+CHAOS.NACL LICENSE
+==================
+
+Public domain
+
+Components:
+
+- C# port and code: Christian Winnerlein (CodesInChaos) - public domain
+- Curve25519 and Ed25519: Dan Bernstein - public domain (Ref10 from SUPERCOP)
+- SHA512: Christian Winnerlein - public domain, written directly from specification
+
+The Ed25519 code was written by Dan Bernstein (djb) and is public domain.
+From Ref10 in SUPERCOP.
+
+---
+
+MODIFICATIONS FOR HEROSD-JWT
+=============================
+
+This port includes the following modifications:
+- Namespace changed from Chaos.NaCl.Internal.Ed25519Ref10 to HeroSdJwt.Internal.Ed25519
+- Uses System.Security.Cryptography.SHA512 instead of custom SHA512 implementation
+- Adapted to work with PKCS#8 key formats for interoperability
+- Minor style adjustments to match HeroSD-JWT code conventions
+
+All cryptographic operations remain unchanged from the original implementation.
