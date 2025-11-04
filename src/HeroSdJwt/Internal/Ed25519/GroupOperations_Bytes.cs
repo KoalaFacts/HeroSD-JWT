@@ -89,7 +89,8 @@ internal static partial class GroupOperations
         FieldOperations.fe_sq(out u, ref h.Y);
 
         // Compute v = dy^2
-        FieldOperations.fe_mul(out v, ref u, ref LookupTables.d);
+        var d = LookupTables.d;
+        FieldOperations.fe_mul(out v, ref u, ref d);
 
         // Compute u = y^2-1
         FieldOperations.fe_sub(out u, ref u, ref h.Z);
@@ -131,7 +132,8 @@ internal static partial class GroupOperations
             FieldOperations.fe_add(out check, ref vxx, ref u);
             if (!check.IsNonZero())
             {
-                FieldOperations.fe_mul(out h.X, ref h.X, ref LookupTables.sqrtm1);
+                var sqrtm1 = LookupTables.sqrtm1;
+                FieldOperations.fe_mul(out h.X, ref h.X, ref sqrtm1);
             }
             else
             {

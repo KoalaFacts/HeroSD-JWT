@@ -70,7 +70,8 @@ internal static partial class GroupOperations
         FieldOperations.fe_add(out r.YplusX, ref p.Y, ref p.X);
         FieldOperations.fe_sub(out r.YminusX, ref p.Y, ref p.X);
         FieldOperations.fe_copy(out r.Z, ref p.Z);
-        FieldOperations.fe_mul(out r.T2d, ref p.T, ref LookupTables.d2);
+        var d2 = LookupTables.d2;
+        FieldOperations.fe_mul(out r.T2d, ref p.T, ref d2);
     }
 
     /// <summary>
