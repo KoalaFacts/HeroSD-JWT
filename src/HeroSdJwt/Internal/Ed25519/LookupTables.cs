@@ -43,4 +43,32 @@ internal static partial class LookupTables
         -32595792, -7943725, 9377950, 3500415, 12389472,
         -272473, -25146209, -2005654, 326686, 11406482
     );
+
+    /// <summary>
+    /// Ed25519 base point B in extended coordinates (X:Y:Z:T).
+    /// This is the standard generator point from RFC 8032.
+    /// B has y-coordinate = 4/5 mod p and positive x-coordinate.
+    /// </summary>
+    internal static GroupElementP3 GetBasePoint()
+    {
+        return new GroupElementP3
+        {
+            X = new FieldElement(
+                -14297830, -7645148, 16144683, -16471763, 27570974,
+                -2696100, -26142465, 8378389, 20764389, 8758491
+            ),
+            Y = new FieldElement(
+                -26843541, -6710886, 13421773, -13421773, 26843546,
+                6710886, -13421773, 13421773, -26843546, -6710886
+            ),
+            Z = new FieldElement(
+                1, 0, 0, 0, 0,
+                0, 0, 0, 0, 0
+            ),
+            T = new FieldElement(
+                28827062, -6116119, -27349572, 244363, 8635006,
+                11264893, 19351346, 13413597, 16611511, -6414980
+            )
+        };
+    }
 }

@@ -26,50 +26,9 @@ internal static partial class GroupOperations
         // Start with the identity element
         ge_p3_0(out h);
 
-        // Base point (generator) of Ed25519
-        // This is the standard Ed25519 base point from RFC 8032
-        GroupElementP3 basePoint;
-        byte[] basePointBytes = new byte[32];
-
-        // Ed25519 base point y-coordinate (little-endian)
-        // y = 4/5 mod p (standard Ed25519 base point)
-        basePointBytes[0] = 0x58;
-        basePointBytes[1] = 0x66;
-        basePointBytes[2] = 0x66;
-        basePointBytes[3] = 0x66;
-        basePointBytes[4] = 0x66;
-        basePointBytes[5] = 0x66;
-        basePointBytes[6] = 0x66;
-        basePointBytes[7] = 0x66;
-        basePointBytes[8] = 0x66;
-        basePointBytes[9] = 0x66;
-        basePointBytes[10] = 0x66;
-        basePointBytes[11] = 0x66;
-        basePointBytes[12] = 0x66;
-        basePointBytes[13] = 0x66;
-        basePointBytes[14] = 0x66;
-        basePointBytes[15] = 0x66;
-        basePointBytes[16] = 0x66;
-        basePointBytes[17] = 0x66;
-        basePointBytes[18] = 0x66;
-        basePointBytes[19] = 0x66;
-        basePointBytes[20] = 0x66;
-        basePointBytes[21] = 0x66;
-        basePointBytes[22] = 0x66;
-        basePointBytes[23] = 0x66;
-        basePointBytes[24] = 0x66;
-        basePointBytes[25] = 0x66;
-        basePointBytes[26] = 0x66;
-        basePointBytes[27] = 0x66;
-        basePointBytes[28] = 0x66;
-        basePointBytes[29] = 0x66;
-        basePointBytes[30] = 0x66;
-        basePointBytes[31] = 0x66;
-
-        if (!ge_frombytes_negate_vartime(out basePoint, basePointBytes, 0))
-        {
-            throw new InvalidOperationException("Failed to decode Ed25519 base point");
-        }
+        // Get the standard Ed25519 base point from precomputed values
+        // This is more efficient and reliable than decoding from compressed form
+        GroupElementP3 basePoint = LookupTables.GetBasePoint();
 
         // Perform scalar multiplication using double-and-add
         // Process scalar from most significant bit to least significant
