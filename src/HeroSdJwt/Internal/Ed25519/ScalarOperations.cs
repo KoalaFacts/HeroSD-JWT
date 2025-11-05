@@ -190,6 +190,7 @@ internal static class ScalarOperations
         s3 -= s12 * 997805;
         s4 += s12 * 136657;
         s5 -= s12 * 683901;
+        s12 = 0;
 
         carry0 = s0 >> 21; s1 += carry0; s0 -= carry0 << 21;
         carry1 = s1 >> 21; s2 += carry1; s1 -= carry1 << 21;
@@ -461,6 +462,7 @@ internal static class ScalarOperations
         s3 -= s12 * 997805;
         s4 += s12 * 136657;
         s5 -= s12 * 683901;
+        s12 = 0;
 
         carry0 = s0 >> 21; s1 += carry0; s0 -= carry0 << 21;
         carry1 = s1 >> 21; s2 += carry1; s1 -= carry1 << 21;
@@ -481,6 +483,7 @@ internal static class ScalarOperations
         s3 -= s12 * 997805;
         s4 += s12 * 136657;
         s5 -= s12 * 683901;
+        s12 = 0;
 
         carry0 = s0 >> 21; s1 += carry0; s0 -= carry0 << 21;
         carry1 = s1 >> 21; s2 += carry1; s1 -= carry1 << 21;
