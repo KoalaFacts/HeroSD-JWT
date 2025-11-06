@@ -36,6 +36,7 @@ For developers contributing code to HeroSD-JWT:
 For package maintainers managing releases and publishing:
 
 - **[Publishing Guide](maintainers/publishing-guide.md)** - Complete guide for publishing NuGet packages, versioning strategy, and release workflow
+- **[Versioning Policy](maintainers/versioning-policy.md)** - Semantic versioning strategy, API stability guarantees, and breaking change management
 
 ### 📚 Governance & Standards
 
@@ -45,6 +46,7 @@ For package maintainers managing releases and publishing:
 
 - **[Main README](../README.md)** - Project overview and quick start
 - **[CHANGELOG](../CHANGELOG.md)** - Version history and changes
+- **[SECURITY](../SECURITY.md)** - Vulnerability disclosure policy and security contact
 - **[CONTRIBUTING](../CONTRIBUTING.md)** - How to contribute to the project
 - **[LICENSE](../LICENSE)** - MIT License details
 
@@ -85,8 +87,9 @@ For package maintainers managing releases and publishing:
 
 ### For Maintainers
 1. Follow the [Publishing Guide](maintainers/publishing-guide.md) for releases
-2. Review [Documentation Governance](maintainers/documentation-governance.md) for standards
-3. Check [Production Readiness](operations/production-readiness.md) for improvement tracking
+2. Review [Versioning Policy](maintainers/versioning-policy.md) for API stability guarantees
+3. Review [Documentation Governance](maintainers/documentation-governance.md) for standards
+4. Check [Production Readiness](operations/production-readiness.md) for improvement tracking
 
 ---
 
@@ -114,6 +117,7 @@ docs/
 │
 └── maintainers/                       # 🔧 MAINTAINER DOCUMENTATION
     ├── publishing-guide.md            # Publishing and release workflow
+    ├── versioning-policy.md           # Versioning and API stability policy
     └── documentation-governance.md    # Documentation standards
 ```
 
