@@ -101,7 +101,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: matrix.os == 'ubuntu-latest' && matrix.dotnet-version == '9.0.x'
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         files: 'TestResults/**/coverage.cobertura.xml'
         fail_ci_if_error: false
