@@ -1,4 +1,8 @@
+using System.Diagnostics;
 using HeroSdJwt.Models;
+using HeroSdJwt.Observability;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Constants = HeroSdJwt.Primitives.Constants;
 
 namespace HeroSdJwt.Presentation;
@@ -9,12 +13,14 @@ namespace HeroSdJwt.Presentation;
 public class SdJwtPresenter : ISdJwtPresenter
 {
     private readonly IDisclosureClaimPathMapper claimPathMapper;
+    private readonly ILogger<SdJwtPresenter> logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtPresenter"/> class.
     /// </summary>
-    public SdJwtPresenter()
-        : this(new DisclosureClaimPathMapper())
+    /// <param name="logger">Optional logger for observability. If null, logging is disabled.</param>
+    public SdJwtPresenter(ILogger<SdJwtPresenter>? logger = null)
+        : this(new DisclosureClaimPathMapper(), logger)
     {
     }
 
@@ -22,9 +28,11 @@ public class SdJwtPresenter : ISdJwtPresenter
     /// Initializes a new instance of the <see cref="SdJwtPresenter"/> class with dependencies.
     /// </summary>
     /// <param name="claimPathMapper">The claim path mapper to use.</param>
-    public SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper)
+    /// <param name="logger">Optional logger for observability. If null, logging is disabled.</param>
+    public SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper, ILogger<SdJwtPresenter>? logger = null)
     {
         this.claimPathMapper = claimPathMapper ?? throw new ArgumentNullException(nameof(claimPathMapper));
+        this.logger = logger ?? NullLogger<SdJwtPresenter>.Instance;
     }
 
     /// <summary>
@@ -43,6 +51,19 @@ public class SdJwtPresenter : ISdJwtPresenter
         ArgumentNullException.ThrowIfNull(selectedClaimNames);
 
         var selectedClaimsList = selectedClaimNames.ToList();
+
+        // Start distributed tracing activity
+        using var activity = HeroSdJwtActivitySource.Instance.StartActivity("SdJwt.Present");
+        activity?.SetTag(HeroSdJwtActivitySource.Tags.Operation, "present");
+        activity?.SetTag(HeroSdJwtActivitySource.Tags.ClaimCount, selectedClaimsList.Count);
+
+        // Start performance measurement
+        var stopwatch = Stopwatch.StartNew();
+
+        try
+        {
+            // Log presentation start
+            logger.LogPresentationStarted(selectedClaimsList.Count);
 
         // Build claim path mapping by analyzing JWT structure
         // This is computed on-demand per SD-JWT spec: "it is up to the Holder how to maintain the mapping"
@@ -99,15 +120,48 @@ public class SdJwtPresenter : ISdJwtPresenter
             }
         }
 
-        // Convert indices to actual disclosures
-        var selectedDisclosures = selectedDisclosureIndices
-            .OrderBy(i => i) // Maintain order for consistency
-            .Select(i => sdJwt.Disclosures[i])
-            .ToList();
+            // Convert indices to actual disclosures
+            var selectedDisclosures = selectedDisclosureIndices
+                .OrderBy(i => i) // Maintain order for consistency
+                .Select(i => sdJwt.Disclosures[i])
+                .ToList();
 
-        // Use provided key binding JWT, or fall back to the one in sdJwt
-        var finalKeyBindingJwt = keyBindingJwt ?? sdJwt.KeyBindingJwt;
-        return new SdJwtPresentation(sdJwt.Jwt, selectedDisclosures, finalKeyBindingJwt);
+            // Use provided key binding JWT, or fall back to the one in sdJwt
+            var finalKeyBindingJwt = keyBindingJwt ?? sdJwt.KeyBindingJwt;
+            var presentation = new SdJwtPresentation(sdJwt.Jwt, selectedDisclosures, finalKeyBindingJwt);
+
+            // Stop performance measurement
+            stopwatch.Stop();
+
+            // Log successful presentation
+            logger.LogPresentationCompleted(selectedDisclosures.Count);
+
+            // Record metrics
+            HeroSdJwtMetrics.PresentationCount.Add(1);
+            HeroSdJwtMetrics.PresentationDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
+
+            // Set activity tags for successful completion
+            activity?.SetTag(HeroSdJwtActivitySource.Tags.DisclosureCount, selectedDisclosures.Count);
+            activity?.SetStatus(ActivityStatusCode.Ok);
+
+            return presentation;
+        }
+        catch (Exception ex)
+        {
+            // Stop performance measurement
+            stopwatch.Stop();
+
+            // Log error
+            logger.LogPresentationFailed(ex, ex.Message);
+
+            // Set activity error status
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddTag("error.type", ex.GetType().FullName);
+            activity?.AddTag("error.message", ex.Message);
+
+            // Re-throw the exception
+            throw;
+        }
     }
 
     /// <summary>
