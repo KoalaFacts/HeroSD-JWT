@@ -1023,7 +1023,7 @@ az traffic-manager endpoint update \
 
 ## Troubleshooting
 
-See the comprehensive [Troubleshooting Guide](TROUBLESHOOTING.md) for detailed problem resolution.
+See the comprehensive [Troubleshooting Guide](troubleshooting.md) for detailed problem resolution.
 
 ### Quick Reference
 

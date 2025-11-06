@@ -1270,9 +1270,9 @@ curl https://api.example.com/metrics | grep sdjwt
 Congratulations! You've successfully deployed HeroSD-JWT to production.
 
 **Next steps:**
-1. Set up monitoring dashboards (see [OPERATIONS.md](OPERATIONS.md))
+1. Set up monitoring dashboards (see [operations.md](operations.md))
 2. Configure alerts for critical metrics
-3. Review [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues
+3. Review [troubleshooting.md](troubleshooting.md) for common issues
 4. Implement your key rotation schedule
 5. Document your deployment-specific configurations
 
