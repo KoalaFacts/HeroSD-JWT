@@ -8,6 +8,12 @@ Welcome to the HeroSD-JWT documentation! This directory contains comprehensive g
 - **[Getting Started Guide](getting-started.md)** - Installation and first steps with HeroSD-JWT
 - **[Examples](examples.md)** - Detailed code examples for various scenarios
 
+### Production Operations
+- **[Operations Guide](OPERATIONS.md)** - **NEW!** Comprehensive production operations manual covering deployment architecture, configuration management, monitoring, performance tuning, security hardening, high availability, and disaster recovery
+- **[Deployment Guide](DEPLOYMENT.md)** - **NEW!** Step-by-step deployment instructions for Docker, Kubernetes, Azure, AWS, IIS, and CI/CD integration
+- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - **NEW!** Detailed problem resolution for verification failures, performance issues, authentication problems, key management, and observability
+- **[Observability](OBSERVABILITY.md)** - **NEW!** Complete guide to logging, metrics, distributed tracing, and monitoring with Prometheus, Grafana, Application Insights, and Serilog
+
 ### In-Depth Guides
 - **[Security Best Practices](security.md)** - Important security considerations and recommendations
 - **[API Reference](api-reference.md)** - Complete API documentation
@@ -16,24 +22,41 @@ Welcome to the HeroSD-JWT documentation! This directory contains comprehensive g
 - **[Main README](../README.md)** - Project overview and quick start
 - **[CHANGELOG](../CHANGELOG.md)** - Version history and changes
 - **[CONTRIBUTING](../CONTRIBUTING.md)** - How to contribute to the project
+- **[Production Readiness Analysis](../PRODUCTION_READINESS_ANALYSIS.md)** - Comprehensive production readiness assessment and roadmap
 - **[LICENSE](../LICENSE)** - MIT License details
 
 ## Quick Links
 
 ### For New Users
 1. Read the [Getting Started Guide](getting-started.md)
-2. Try the basic examples
+2. Try the basic examples from [Examples](examples.md)
 3. Review [Security Best Practices](security.md)
+
+### For Production Deployment
+1. Review [Production Readiness Analysis](../PRODUCTION_READINESS_ANALYSIS.md) to understand requirements
+2. Follow the [Deployment Guide](DEPLOYMENT.md) for your platform
+3. Set up [Observability](OBSERVABILITY.md) (logging, metrics, tracing)
+4. Configure monitoring using the [Operations Guide](OPERATIONS.md)
+5. Keep [Troubleshooting Guide](TROUBLESHOOTING.md) handy for issue resolution
 
 ### For Developers
 1. Explore detailed [Examples](examples.md)
 2. Reference the [API Documentation](api-reference.md)
 3. Check [Security Best Practices](security.md)
+4. Implement [Observability](OBSERVABILITY.md) for production visibility
+
+### For Operations Teams
+1. Start with the [Operations Guide](OPERATIONS.md) for comprehensive operational procedures
+2. Use the [Deployment Guide](DEPLOYMENT.md) for infrastructure setup
+3. Configure monitoring dashboards from [Observability](OBSERVABILITY.md)
+4. Follow runbooks in the [Operations Guide](OPERATIONS.md)
+5. Refer to [Troubleshooting Guide](TROUBLESHOOTING.md) when issues arise
 
 ### For Contributors
 1. Read [CONTRIBUTING.md](../CONTRIBUTING.md)
 2. Review the [API Reference](api-reference.md)
 3. Run the test suite
+4. Check [Production Readiness Analysis](../PRODUCTION_READINESS_ANALYSIS.md) for planned improvements
 
 ## Documentation Sections
 
