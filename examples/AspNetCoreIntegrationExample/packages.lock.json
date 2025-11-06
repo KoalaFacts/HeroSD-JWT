@@ -4,18 +4,18 @@
     "net9.0": {
       "Microsoft.AspNetCore.OpenApi": {
         "type": "Direct",
-        "requested": "[9.0.0, )",
-        "resolved": "9.0.0",
-        "contentHash": "FqUK5j1EOPNuFT7IafltZQ3cakqhSwVzH5ZW1MhZDe4pPXs9sJ2M5jom1Omsu+mwF2tNKKlRAzLRHQTZzbd+6Q==",
+        "requested": "[9.0.10, )",
+        "resolved": "9.0.10",
+        "contentHash": "yAv5EDEi0Nkk75Vhxh6ppuXd/QIO8hzjGpAt/fGInMZWIX/mVwZ1IM50YFIWeLCVM8KDj0oFPQdcLeQ+9hEJsw==",
         "dependencies": {
           "Microsoft.OpenApi": "1.6.17"
         }
       },
       "Scalar.AspNetCore": {
         "type": "Direct",
-        "requested": "[1.2.42, )",
-        "resolved": "1.2.42",
-        "contentHash": "knBM37CHGmB/S8hksuWH59/qYk3bhhSUTKPaCc0IgbrHO6hSfRVP8py1cuvq88klpbHmSljRgQ5xXaBlrcdZ2w=="
+        "requested": "[2.10.1, )",
+        "resolved": "2.10.1",
+        "contentHash": "G0lG8iDaxhGa5+m5BsG6oW+6VV1XOZPQmHTpRriYZEQpzg9gQMBzR5sFKxiun8BUEdpYzf9NRv9Y/0NOjb+iZQ=="
       },
       "Microsoft.Extensions.Configuration.Abstractions": {
         "type": "Transitive",

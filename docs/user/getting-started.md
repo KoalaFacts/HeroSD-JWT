@@ -159,7 +159,7 @@ var result = verifier.VerifyPresentation(presentation, ecPublic);
 - [Examples](examples.md) - More detailed examples
 - [Security Best Practices](security.md) - Security considerations
 - [API Reference](api-reference.md) - Complete API documentation
-- [README](../README.md) - Full feature list and overview
+- [README](../../README.md) - Full feature list and overview
 
 ## Need Help?
 

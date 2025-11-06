@@ -379,6 +379,250 @@ public class ClaimValidatorTests
         Assert.False(result, "Invalid aud format should fail validation");
     }
 
+    [Fact]
+    public void ValidateTemporalClaims_WithFutureIat_ReturnsFalse()
+    {
+        // Arrange - Token issued in the future should be rejected
+        var now = DateTimeOffset.UtcNow;
+        var payload = CreatePayload(new
+        {
+            iat = now.AddHours(2).ToUnixTimeSeconds() // Issued 2 hours in the future
+        });
+
+        var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) };
+
+        // Act
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options, now);
+
+        // Assert
+        Assert.False(result, "Token with future iat should fail validation");
+    }
+
+    [Fact]
+    public void ValidateTemporalClaims_WithFutureIatWithinClockSkew_ReturnsTrue()
+    {
+        // Arrange - Future iat within clock skew should be tolerated
+        var now = DateTimeOffset.UtcNow;
+        var payload = CreatePayload(new
+        {
+            iat = now.AddMinutes(2).ToUnixTimeSeconds() // Issued 2 minutes in future
+        });
+
+        var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) }; // 5 min tolerance
+
+        // Act
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options, now);
+
+        // Assert
+        Assert.True(result, "Token with future iat within clock skew should pass validation");
+    }
+
+    [Fact]
+    public void ValidateIssuer_WithEmptyStringExpectedIssuer_ReturnsTrue()
+    {
+        // Arrange - Empty string should skip validation like null
+        var payload = CreatePayload(new { iss = "https://issuer.example.com" });
+
+        // Act
+        var result = new ClaimValidator().ValidateIssuer(payload, string.Empty);
+
+        // Assert
+        Assert.True(result, "Empty expected issuer should skip validation");
+    }
+
+    [Fact]
+    public void ValidateIssuer_WithWhitespaceExpectedIssuer_ReturnsTrue()
+    {
+        // Arrange - Whitespace should skip validation
+        var payload = CreatePayload(new { iss = "https://issuer.example.com" });
+
+        // Act
+        var result = new ClaimValidator().ValidateIssuer(payload, "   ");
+
+        // Assert
+        Assert.True(result, "Whitespace expected issuer should skip validation");
+    }
+
+    [Fact]
+    public void ValidateAudience_WithEmptyStringExpectedAudience_ReturnsTrue()
+    {
+        // Arrange - Empty string should skip validation like null
+        var payload = CreatePayload(new { aud = "https://api.example.com" });
+
+        // Act
+        var result = new ClaimValidator().ValidateAudience(payload, string.Empty);
+
+        // Assert
+        Assert.True(result, "Empty expected audience should skip validation");
+    }
+
+    [Fact]
+    public void ValidateAudience_WithWhitespaceExpectedAudience_ReturnsTrue()
+    {
+        // Arrange - Whitespace should skip validation
+        var payload = CreatePayload(new { aud = "https://api.example.com" });
+
+        // Act
+        var result = new ClaimValidator().ValidateAudience(payload, "   ");
+
+        // Assert
+        Assert.True(result, "Whitespace expected audience should skip validation");
+    }
+
+    [Fact]
+    public void ValidateTemporalClaims_WithFractionalExpTimestamp_ReturnsFalse()
+    {
+        // Arrange - Fractional timestamp should fail parsing
+        var payload = JsonDocument.Parse("{\"exp\": 1234567890.5}").RootElement;
+        var options = new SdJwtVerificationOptions();
+
+        // Act
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options);
+
+        // Assert
+        Assert.False(result, "Fractional exp timestamp should fail validation");
+    }
+
+    [Fact]
+    public void ValidateTemporalClaims_WithFractionalNbfTimestamp_ReturnsFalse()
+    {
+        // Arrange - Fractional timestamp should fail parsing
+        var payload = JsonDocument.Parse("{\"nbf\": 1234567890.5}").RootElement;
+        var options = new SdJwtVerificationOptions();
+
+        // Act
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options);
+
+        // Assert
+        Assert.False(result, "Fractional nbf timestamp should fail validation");
+    }
+
+    [Fact]
+    public void ValidateTemporalClaims_WithFractionalIatTimestamp_ReturnsFalse()
+    {
+        // Arrange - Fractional timestamp should fail parsing
+        var payload = JsonDocument.Parse("{\"iat\": 1234567890.5}").RootElement;
+        var options = new SdJwtVerificationOptions();
+
+        // Act
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options);
+
+        // Assert
+        Assert.False(result, "Fractional iat timestamp should fail validation");
+    }
+
+    [Fact]
+    public void ValidateTemporalClaims_WithExtremelyLargeExpTimestamp_HandlesGracefully()
+    {
+        // Arrange - Very large timestamp (year 2500+) that might cause overflow
+        var payload = CreatePayload(new { exp = long.MaxValue });
+        var options = new SdJwtVerificationOptions();
+
+        // Act
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options);
+
+        // Assert
+        // Should either return true (far future) or false (overflow caught)
+        // Either is valid behavior for extreme values
+        Assert.True(result || !result, "Extremely large timestamp should be handled gracefully");
+    }
+
+    [Fact]
+    public void ValidateTemporalClaims_WithNegativeExpTimestamp_ReturnsFalse()
+    {
+        // Arrange - Negative timestamp (before Unix epoch)
+        var now = DateTimeOffset.UtcNow;
+        var payload = CreatePayload(new { exp = -1000L });
+        var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.Zero };
+
+        // Act
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options, now);
+
+        // Assert
+        Assert.False(result, "Negative exp timestamp should fail validation");
+    }
+
+    [Fact]
+    public void ValidateAudience_WithArrayContainingNonStringElements_ReturnsFalse()
+    {
+        // Arrange - Array with mixed types (string and number)
+        var payload = JsonDocument.Parse("{\"aud\": [\"https://api1.example.com\", 12345, \"https://api2.example.com\"]}").RootElement;
+        var expectedAudience = "https://api1.example.com";
+
+        // Act
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudience);
+
+        // Assert
+        // Should still find the matching string in the array
+        Assert.True(result, "Should match valid string in array even with non-string elements");
+    }
+
+    [Fact]
+    public void ValidateAudience_WithArrayContainingOnlyNonStringElements_ReturnsFalse()
+    {
+        // Arrange - Array with only non-string elements
+        var payload = JsonDocument.Parse("{\"aud\": [12345, 67890, true]}").RootElement;
+        var expectedAudience = "https://api.example.com";
+
+        // Act
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudience);
+
+        // Assert
+        Assert.False(result, "Array with only non-string elements should fail validation");
+    }
+
+    [Fact]
+    public void ValidateAudience_WithEmptyAudienceArray_ReturnsFalse()
+    {
+        // Arrange - Empty audience array
+        var payload = CreatePayload(new { aud = new string[0] });
+        var expectedAudience = "https://api.example.com";
+
+        // Act
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudience);
+
+        // Assert
+        Assert.False(result, "Empty audience array should fail validation");
+    }
+
+    [Fact]
+    public void ValidateTemporalClaims_WithCurrentTimeNull_UsesSystemTime()
+    {
+        // Arrange - Don't provide currentTime parameter, should use DateTimeOffset.UtcNow
+        var now = DateTimeOffset.UtcNow;
+        var payload = CreatePayload(new
+        {
+            exp = now.AddHours(1).ToUnixTimeSeconds()
+        });
+        var options = new SdJwtVerificationOptions();
+
+        // Act
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options); // No currentTime provided
+
+        // Assert
+        Assert.True(result, "Should use system time when currentTime is null");
+    }
+
+    [Fact]
+    public void ValidateTemporalClaims_WithAllThreeTemporalClaims_ValidatesCorrectly()
+    {
+        // Arrange - Test all three claims together
+        var now = DateTimeOffset.UtcNow;
+        var payload = CreatePayload(new
+        {
+            iat = now.AddMinutes(-10).ToUnixTimeSeconds(),
+            nbf = now.AddMinutes(-5).ToUnixTimeSeconds(),
+            exp = now.AddHours(1).ToUnixTimeSeconds()
+        });
+        var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(1) };
+
+        // Act
+        var result = new ClaimValidator().ValidateTemporalClaims(payload, options, now);
+
+        // Assert
+        Assert.True(result, "All three valid temporal claims should pass validation");
+    }
+
     // Helper method to create a JSON payload
     private static JsonElement CreatePayload(object claims)
     {

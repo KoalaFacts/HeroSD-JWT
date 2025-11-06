@@ -44,14 +44,14 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
     /// Extracts the SD-JWT from the Authorization header, verifies it, and creates a ClaimsPrincipal.
     /// </summary>
     /// <returns>An <see cref="AuthenticateResult"/> indicating success or failure.</returns>
-    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
+    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         // Extract token from Authorization header
         string? token = ExtractTokenFromHeader();
         if (token == null)
         {
             Logger.LogDebug("No SD-JWT token found in Authorization header");
-            return AuthenticateResult.NoResult();
+            return Task.FromResult(AuthenticateResult.NoResult());
         }
 
         try
@@ -80,7 +80,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
             {
                 // This should never happen due to options validation, but handle defensively
                 Logger.LogError("No key resolver or fallback key configured");
-                return AuthenticateResult.Fail("Authentication configuration error: no key configured");
+                return Task.FromResult(AuthenticateResult.Fail("Authentication configuration error: no key configured"));
             }
 
             if (!result.IsValid)
@@ -90,7 +90,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
                     string.Join(", ", result.Errors),
                     result.ErrorDetails);
 
-                return AuthenticateResult.Fail($"SD-JWT verification failed: {result.ErrorDetails}");
+                return Task.FromResult(AuthenticateResult.Fail($"SD-JWT verification failed: {result.ErrorDetails}"));
             }
 
             // Map both JWT payload claims and disclosed claims to ClaimsPrincipal
@@ -114,12 +114,12 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
                 "SD-JWT authentication succeeded for user with {ClaimCount} disclosed claims",
                 result.DisclosedClaims.Count);
 
-            return AuthenticateResult.Success(ticket);
+            return Task.FromResult(AuthenticateResult.Success(ticket));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Exception occurred during SD-JWT authentication");
-            return AuthenticateResult.Fail($"Authentication error: {ex.Message}");
+            return Task.FromResult(AuthenticateResult.Fail($"Authentication error: {ex.Message}"));
         }
     }
 

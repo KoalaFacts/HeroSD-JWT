@@ -32,10 +32,10 @@ jobs:
           echo "Version validated: $VERSION"
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '9.0.x'
 
@@ -62,9 +62,7 @@ jobs:
             NOTES="See release notes: https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v$VERSION"
           else
             # Add link to full changelog at the end
-            NOTES="${NOTES}
-
-          See full changelog: https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG.md"
+            NOTES="${NOTES}"$'\n\n'"See full changelog: https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG.md"
           fi
 
           # Save to multiline environment variable using delimiter
