@@ -13,9 +13,9 @@
       },
       "Scalar.AspNetCore": {
         "type": "Direct",
-        "requested": "[1.2.42, )",
-        "resolved": "1.2.42",
-        "contentHash": "knBM37CHGmB/S8hksuWH59/qYk3bhhSUTKPaCc0IgbrHO6hSfRVP8py1cuvq88klpbHmSljRgQ5xXaBlrcdZ2w=="
+        "requested": "[2.10.1, )",
+        "resolved": "2.10.1",
+        "contentHash": "G0lG8iDaxhGa5+m5BsG6oW+6VV1XOZPQmHTpRriYZEQpzg9gQMBzR5sFKxiun8BUEdpYzf9NRv9Y/0NOjb+iZQ=="
       },
       "Microsoft.Extensions.Configuration.Abstractions": {
         "type": "Transitive",
