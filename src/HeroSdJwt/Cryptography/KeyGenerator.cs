@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using HeroSdJwt.Internal.Ed25519;
 
 namespace HeroSdJwt.Cryptography;
 
@@ -48,15 +49,16 @@ public class KeyGenerator : IKeyGenerator
     /// <inheritdoc/>
     public (byte[] privateKey, byte[] publicKey) GenerateEd25519KeyPair()
     {
-#if NET9_0_OR_GREATER
-        // Ed25519 support is available in .NET 9.0+
-        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
-        var privateKey = ed25519.ExportPkcs8PrivateKey();
-        var publicKey = ed25519.ExportSubjectPublicKeyInfo();
-        return (privateKey, publicKey);
-#else
-        throw new PlatformNotSupportedException(
-            "Ed25519 key generation requires .NET 9.0 or later. Current target framework does not support Ed25519.");
-#endif
+        // Generate a random 32-byte seed
+        var seed = new byte[32];
+        RandomNumberGenerator.Fill(seed);
+
+        // Generate Ed25519 key pair from seed
+        var publicKey = new byte[32];
+        var expandedPrivateKey = new byte[64];
+
+        Ed25519Operations.crypto_sign_keypair(publicKey, 0, expandedPrivateKey, 0, seed, 0);
+
+        return (expandedPrivateKey, publicKey);
     }
 }

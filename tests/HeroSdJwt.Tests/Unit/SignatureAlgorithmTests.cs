@@ -1,4 +1,5 @@
 using HeroSdJwt.Tests;
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
@@ -415,16 +416,15 @@ public class SignatureAlgorithmTests
         Assert.Equal("HS256", alg.GetString());
     }
 
-#if NET9_0_OR_GREATER
     [Fact]
     public void CreateSdJwt_WithEdDSA_CreatesValidJwt()
     {
         // Arrange
         var issuer = TestHelpers.CreateIssuer();
 
-        // Generate Ed25519 key pair
-        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
-        var privateKey = ed25519.ExportPkcs8PrivateKey();
+        // Generate Ed25519 key pair using internal implementation
+        var keyGenerator = new KeyGenerator();
+        var (privateKey, _) = keyGenerator.GenerateEd25519KeyPair();
 
         var claims = new Dictionary<string, object>
         {
@@ -460,9 +460,8 @@ public class SignatureAlgorithmTests
         var issuer = TestHelpers.CreateIssuer();
         var verifier = TestHelpers.CreateVerifier();
 
-        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
-        var privateKey = ed25519.ExportPkcs8PrivateKey();
-        var publicKey = ed25519.ExportSubjectPublicKeyInfo();
+        var keyGenerator = new KeyGenerator();
+        var (privateKey, publicKey) = keyGenerator.GenerateEd25519KeyPair();
 
         var claims = new Dictionary<string, object>
         {
@@ -502,12 +501,11 @@ public class SignatureAlgorithmTests
         var verifier = TestHelpers.CreateVerifier();
 
         // Issuer's key pair
-        using var issuerEd25519 = System.Security.Cryptography.Ed25519.Create();
-        var issuerPrivateKey = issuerEd25519.ExportPkcs8PrivateKey();
+        var keyGenerator = new KeyGenerator();
+        var (issuerPrivateKey, _) = keyGenerator.GenerateEd25519KeyPair();
 
         // Attacker's key pair
-        using var attackerEd25519 = System.Security.Cryptography.Ed25519.Create();
-        var attackerPublicKey = attackerEd25519.ExportSubjectPublicKeyInfo();
+        var (_, attackerPublicKey) = keyGenerator.GenerateEd25519KeyPair();
 
         var claims = new Dictionary<string, object>
         {
@@ -535,5 +533,4 @@ public class SignatureAlgorithmTests
         Assert.False(result.IsValid);
         Assert.Contains(ErrorCode.InvalidSignature, result.Errors);
     }
-#endif
 }

@@ -1,4 +1,6 @@
 using HeroSdJwt.Cryptography;
+using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
 using System.Security.Cryptography;
 using Xunit;
 
@@ -176,7 +178,6 @@ public class KeyGeneratorTests
         Assert.NotEqual(publicKey1, publicKey2);
     }
 
-#if NET9_0_OR_GREATER
     [Fact]
     public void GenerateEd25519KeyPair_ReturnsValidKeys()
     {
@@ -189,23 +190,36 @@ public class KeyGeneratorTests
         Assert.NotEmpty(privateKey);
         Assert.NotEmpty(publicKey);
 
-        // Verify key can be imported
-        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
-        ed25519.ImportPkcs8PrivateKey(privateKey, out _);
+        // Verify key sizes are correct for Ed25519
+        // Private key is expanded (64 bytes), public key is raw (32 bytes)
+        Assert.Equal(64, privateKey.Length);  // Expanded private key
+        Assert.Equal(32, publicKey.Length);   // Raw public key
     }
 
     [Fact]
-    public void GenerateEd25519KeyPair_PublicKeyMatchesPrivateKey()
+    public void GenerateEd25519KeyPair_KeysCanSignAndVerify()
     {
-        // Act
+        // Act - Generate keys
         var (privateKey, publicKey) = keyGenerator.GenerateEd25519KeyPair();
 
-        // Assert - Extract public key from private key and compare
-        using var ed25519Private = System.Security.Cryptography.Ed25519.Create();
-        ed25519Private.ImportPkcs8PrivateKey(privateKey, out _);
-        var derivedPublicKey = ed25519Private.ExportSubjectPublicKeyInfo();
+        // Use the keys to sign and verify via an issuer
+        var issuer = TestHelpers.CreateIssuer();
+        var claims = new Dictionary<string, object> { ["sub"] = "test" };
 
-        Assert.Equal(publicKey, derivedPublicKey);
+        // Should not throw
+        var sdJwt = issuer.CreateSdJwt(
+            claims,
+            Array.Empty<string>(),
+            privateKey,
+            HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+            SignatureAlgorithm.EdDSA);
+
+        // Verify the signature
+        var verifier = TestHelpers.CreateVerifier();
+        var result = verifier.VerifyPresentation(sdJwt.ToCombinedFormat(), publicKey);
+
+        // Assert
+        Assert.True(result.IsValid, "Generated keys should produce valid signatures");
     }
 
     [Fact]
@@ -219,15 +233,4 @@ public class KeyGeneratorTests
         Assert.NotEqual(privateKey1, privateKey2);
         Assert.NotEqual(publicKey1, publicKey2);
     }
-#else
-    [Fact]
-    public void GenerateEd25519KeyPair_ThrowsPlatformNotSupportedOnNet8()
-    {
-        // Act & Assert
-        var exception = Assert.Throws<PlatformNotSupportedException>(() =>
-            keyGenerator.GenerateEd25519KeyPair());
-
-        Assert.Contains(".NET 9.0", exception.Message);
-    }
-#endif
 }

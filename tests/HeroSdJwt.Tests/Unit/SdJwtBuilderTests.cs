@@ -95,7 +95,6 @@ public class SdJwtBuilderTests
         Assert.NotEmpty(sdJwt.Jwt);
     }
 
-#if NET9_0_OR_GREATER
     [Fact]
     public void Build_WithEd25519Signature_CreatesValidSdJwt()
     {
@@ -113,7 +112,6 @@ public class SdJwtBuilderTests
         Assert.NotNull(sdJwt);
         Assert.NotEmpty(sdJwt.Jwt);
     }
-#endif
 
     [Fact]
     public void Build_WithKeyBinding_IncludesCnfClaim()

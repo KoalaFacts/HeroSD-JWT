@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using HeroSdJwt.Encoding;
+using HeroSdJwt.Internal.Ed25519;
 using HeroSdJwt.Primitives;
 
 namespace HeroSdJwt.Cryptography;
@@ -70,7 +71,7 @@ public class JwtSigner : IJwtSigner
             SignatureAlgorithm.HS256 => SignHmacSha256(signingInputBytes, signingKey),
             SignatureAlgorithm.RS256 => SignRsa256(signingInputBytes, signingKey),
             SignatureAlgorithm.ES256 => SignEcdsa256(signingInputBytes, signingKey),
-            SignatureAlgorithm.EdDSA => SignEd25519(signingInputBytes, signingKey),
+            SignatureAlgorithm.EdDSA => SignEdDsa(signingInputBytes, signingKey),
             _ => throw new ArgumentException($"Algorithm {algorithm} not implemented", nameof(algorithm))
         };
 
@@ -151,31 +152,20 @@ public class JwtSigner : IJwtSigner
 
     /// <summary>
     /// Signs data using EdDSA with Ed25519 curve (asymmetric).
-    /// Key must be in PKCS#8 PrivateKeyInfo format.
-    /// Note: Ed25519 support requires .NET 9.0 or later.
+    /// Key must be a 64-byte expanded Ed25519 private key.
     /// </summary>
-    private static byte[] SignEd25519(byte[] data, byte[] privateKeyBytes)
+    private static byte[] SignEdDsa(byte[] data, byte[] privateKeyBytes)
     {
-#if NET9_0_OR_GREATER
-        try
-        {
-            using var ed25519 = System.Security.Cryptography.Ed25519.Create();
-            ed25519.ImportPkcs8PrivateKey(privateKeyBytes, out _);
-
-            // Ed25519 signs data directly without needing a separate hash algorithm
-            return ed25519.SignData(data);
-        }
-        catch (CryptographicException ex)
+        if (privateKeyBytes.Length != 64)
         {
             throw new ArgumentException(
-                "Invalid Ed25519 private key format. Expected PKCS#8 PrivateKeyInfo format.",
-                nameof(privateKeyBytes),
-                ex);
+                $"Ed25519 private key must be 64 bytes (expanded format). Provided key is {privateKeyBytes.Length} bytes.",
+                nameof(privateKeyBytes));
         }
-#else
-        throw new PlatformNotSupportedException(
-            "Ed25519 signing requires .NET 9.0 or later. Current target framework does not support Ed25519.");
-#endif
+
+        var signature = new byte[64];
+        Ed25519Operations.crypto_sign(signature, 0, data, 0, data.Length, privateKeyBytes, 0);
+        return signature;
     }
 
     /// <summary>

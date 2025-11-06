@@ -29,6 +29,6 @@ public interface IKeyGenerator
     /// <summary>
     /// Generates an Ed25519 key pair for EdDSA.
     /// </summary>
-    /// <returns>Tuple of (privateKey, publicKey) in PKCS#8 and SubjectPublicKeyInfo formats.</returns>
+    /// <returns>Tuple of (privateKey, publicKey). PrivateKey is 64-byte expanded key, publicKey is 32-byte raw key.</returns>
     (byte[] privateKey, byte[] publicKey) GenerateEd25519KeyPair();
 }

@@ -28,7 +28,8 @@ public enum SignatureAlgorithm
     /// <summary>
     /// EdDSA using Ed25519 curve (asymmetric key).
     /// Requires Ed25519 private key for signing, public key for verification.
-    /// Uses Curve25519 (EdDSA signature algorithm).
+    /// Provides 128-bit security with smaller keys and faster performance than RSA.
+    /// Per RFC 8037.
     /// </summary>
     EdDSA
 }

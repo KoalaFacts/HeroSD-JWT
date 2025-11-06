@@ -1,4 +1,5 @@
 using HeroSdJwt.Tests;
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Presentation;
@@ -389,14 +390,12 @@ public class EndToEndVerificationFlowTests
         Assert.False(result.IsValid, "Verification with wrong issuer should fail");
     }
 
-#if NET9_0_OR_GREATER
     [Fact]
     public void CompleteFlow_WithEdDSA_IssueToVerify_Succeeds()
     {
-        // Arrange - Create Ed25519 key pair
-        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
-        var privateKey = ed25519.ExportPkcs8PrivateKey();
-        var publicKey = ed25519.ExportSubjectPublicKeyInfo();
+        // Arrange - Create Ed25519 key pair using internal implementation
+        var keyGenerator = new KeyGenerator();
+        var (privateKey, publicKey) = keyGenerator.GenerateEd25519KeyPair();
 
         var claims = new Dictionary<string, object>
         {
@@ -436,10 +435,9 @@ public class EndToEndVerificationFlowTests
     [Fact]
     public void CompleteFlow_WithEdDSA_UsingBuilder_Succeeds()
     {
-        // Arrange - Create Ed25519 key pair
-        using var ed25519 = System.Security.Cryptography.Ed25519.Create();
-        var privateKey = ed25519.ExportPkcs8PrivateKey();
-        var publicKey = ed25519.ExportSubjectPublicKeyInfo();
+        // Arrange - Create Ed25519 key pair using internal implementation
+        var keyGenerator = new KeyGenerator();
+        var (privateKey, publicKey) = keyGenerator.GenerateEd25519KeyPair();
 
         var claims = new Dictionary<string, object>
         {
@@ -467,5 +465,4 @@ public class EndToEndVerificationFlowTests
         Assert.Contains("email", result.DisclosedClaims.Keys);
         Assert.DoesNotContain("department", result.DisclosedClaims.Keys);
     }
-#endif
 }

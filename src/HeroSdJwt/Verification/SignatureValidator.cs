@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
+using HeroSdJwt.Internal.Ed25519;
 using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 
 namespace HeroSdJwt.Verification;
@@ -88,7 +89,7 @@ public class SignatureValidator : ISignatureValidator
             "HS256" => VerifyHmacSha256(signingInputBytes, signatureBytes, publicKey),
             "RS256" => VerifyRsa256(signingInputBytes, signatureBytes, publicKey),
             "ES256" => VerifyEcdsa256(signingInputBytes, signatureBytes, publicKey),
-            "EdDSA" => VerifyEd25519(signingInputBytes, signatureBytes, publicKey),
+            "EdDSA" => VerifyEdDsa(signingInputBytes, signatureBytes, publicKey),
             _ => throw new AlgorithmNotSupportedException($"Algorithm '{algorithm}' verification not implemented")
         };
     }
@@ -282,6 +283,40 @@ public class SignatureValidator : ISignatureValidator
     }
 
     /// <summary>
+    /// Verifies an EdDSA signature using Ed25519.
+    /// </summary>
+    private static bool VerifyEdDsa(byte[] data, byte[] signature, byte[] publicKeyBytes)
+    {
+        try
+        {
+            // Validate key size
+            if (publicKeyBytes.Length != 32)
+            {
+                throw new SdJwtException(
+                    $"Ed25519 public key must be 32 bytes. Provided key is {publicKeyBytes.Length} bytes.",
+                    ErrorCode.InvalidInput);
+            }
+
+            // Validate signature size
+            if (signature.Length != 64)
+            {
+                return false; // Invalid signature length
+            }
+
+            return Ed25519Operations.crypto_sign_verify(signature, 0, data, 0, data.Length, publicKeyBytes, 0);
+        }
+        catch (SdJwtException)
+        {
+            throw; // Re-throw our validation exceptions
+        }
+        catch
+        {
+            // Any other error - fail safely
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Checks if an algorithm is supported for signature verification.
     /// </summary>
     private static bool IsSupportedAlgorithm(string algorithm)
@@ -296,43 +331,4 @@ public class SignatureValidator : ISignatureValidator
         };
     }
 
-    /// <summary>
-    /// Verifies an EdDSA signature using Ed25519 curve.
-    /// Note: Ed25519 support requires .NET 9.0 or later.
-    /// </summary>
-    private static bool VerifyEd25519(byte[] data, byte[] signature, byte[] publicKeyBytes)
-    {
-#if NET9_0_OR_GREATER
-        try
-        {
-            using var ed25519 = System.Security.Cryptography.Ed25519.Create();
-            ed25519.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-
-            // Ed25519 verifies data directly without needing a separate hash algorithm
-            return ed25519.VerifyData(data, signature);
-        }
-        catch (SdJwtException)
-        {
-            throw; // Re-throw our validation exceptions
-        }
-        catch (CryptographicException)
-        {
-            // Signature verification failed - legitimate cryptographic failure
-            return false;
-        }
-        catch (ArgumentException)
-        {
-            // Invalid key format
-            return false;
-        }
-        catch
-        {
-            // Other unexpected errors - fail safely
-            return false;
-        }
-#else
-        throw new PlatformNotSupportedException(
-            "Ed25519 verification requires .NET 9.0 or later. Current target framework does not support Ed25519.");
-#endif
-    }
 }
