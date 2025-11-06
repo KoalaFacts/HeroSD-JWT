@@ -109,32 +109,27 @@ Or manually trigger:
 
 ---
 
-### 4. Security Scanning Workflow (`security.yml`)
+### 4. Security Scanning Workflow (`scan-security.yml`)
 
-**Trigger**: Push to main/develop, PRs, Weekly schedule (Monday 00:00 UTC), Manual
+**Trigger**: Push to main/develop, Weekly schedule (Monday 00:00 UTC), Manual
 
 **Purpose**: Automated security scanning and vulnerability detection
 
 **Jobs**:
-- `codeql-analysis`: Static code analysis for security vulnerabilities
-- `dependency-review`: Reviews dependency changes in PRs (blocks unsafe dependencies)
 - `nuget-audit`: Scans NuGet packages for known vulnerabilities
-- `secret-scanning`: Detects accidentally committed secrets
 - `security-summary`: Aggregates security scan results
 
 **Key Features**:
-- ✅ CodeQL static analysis (security-extended queries)
-- ✅ Dependency vulnerability scanning
-- ✅ License compliance checking (blocks GPL, AGPL)
-- ✅ Secret detection with TruffleHog
+- ✅ CodeQL static analysis via GitHub default setup
+- ✅ NuGet dependency vulnerability scanning
+- ✅ Secret detection via GitHub default secret scanning
 - ✅ Weekly scheduled scans
-- ✅ Automatic PR comments with findings
+- ✅ Dependency review for PRs (handled in CI workflow)
 
 **What gets scanned**:
-- Source code for security vulnerabilities (SQL injection, XSS, etc.)
-- NuGet dependencies for CVEs
-- License compliance (rejects GPL, AGPL)
-- Secrets in code (API keys, tokens, passwords)
+- Source code for security vulnerabilities (via GitHub CodeQL default setup)
+- NuGet dependencies for CVEs (dotnet list package --vulnerable)
+- Secrets in code (via GitHub default secret scanning)
 
 ---
 
