@@ -1,33 +1,29 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
-    <RootNamespace>HeroSdJwt</RootNamespace>
+    <RootNamespace>HeroSdJwt.AspNetCore</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
-    <!-- AOT Compatibility -->
-    <IsAotCompatible>true</IsAotCompatible>
-
     <!-- Package Metadata -->
-    <PackageId>HeroSD-JWT</PackageId>
+    <PackageId>HeroSD-JWT.AspNetCore</PackageId>
 
     <!-- Version: Placeholder for local builds. CI overrides this with -p:Version=${{ inputs.version }} during releases. -->
     <Version>1.0.0</Version>
 
     <Authors>KoalaFacts</Authors>
     <Company>KoalaFacts</Company>
-    <Product>HeroSD-JWT</Product>
-    <Description>A production-ready .NET library implementing SD-JWT (Selective Disclosure for JSON Web Tokens) according to IETF draft-ietf-oauth-selective-disclosure-jwt. Supports array element disclosure, nested claims, key binding, and multiple signature algorithms (HS256, RS256, ES256). Zero third-party dependencies - uses only .NET BCL.</Description>
-    <PackageTags>sd-jwt;selective-disclosure;jwt;verifiable-credentials;privacy;zero-knowledge;cryptography;security;json-web-token</PackageTags>
+    <Product>HeroSD-JWT.AspNetCore</Product>
+    <Description>ASP.NET Core integration for HeroSD-JWT. Provides authentication middleware, dependency injection extensions, and automatic JWT verification for ASP.NET Core applications using SD-JWT (Selective Disclosure for JSON Web Tokens).</Description>
+    <PackageTags>sd-jwt;aspnetcore;authentication;middleware;jwt;selective-disclosure;verifiable-credentials;security</PackageTags>
     <PackageProjectUrl>https://github.com/KoalaFacts/HeroSD-JWT</PackageProjectUrl>
     <RepositoryUrl>https://github.com/KoalaFacts/HeroSD-JWT</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <Copyright>Copyright (c) 2025 KoalaFacts</Copyright>
 
@@ -45,8 +41,20 @@
     <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="Microsoft.Bcl.Memory" Version="9.0.10" />
+  <!-- Project References -->
+  <ItemGroup>
+    <ProjectReference Include="..\HeroSdJwt\HeroSdJwt.csproj" />
+  </ItemGroup>
+
+  <!-- ASP.NET Core Dependencies -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!-- Additional Dependencies -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.0" />
   </ItemGroup>
 
   <!-- Source Link for debugging support -->
@@ -54,16 +62,9 @@
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 
-  <!-- Include README and icon in NuGet package -->
+  <!-- Include icon in NuGet package -->
   <ItemGroup>
-    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
-
-  <!-- Expose internal classes to test project and AspNetCore integration -->
-  <ItemGroup>
-    <InternalsVisibleTo Include="HeroSdJwt.Tests" />
-    <InternalsVisibleTo Include="HeroSdJwt.AspNetCore" />
   </ItemGroup>
 
 </Project>
