@@ -6,14 +6,14 @@ Welcome to the HeroSD-JWT documentation! This directory contains comprehensive g
 
 ## Documentation Index
 
-### 👤 User Documentation (`user/`)
+### 👤 User Documentation (`users/`)
 
 For developers using HeroSD-JWT in their applications:
 
-- **[Getting Started Guide](user/getting-started.md)** - Installation and first steps with HeroSD-JWT
-- **[Examples](user/examples.md)** - Detailed code examples for various scenarios
-- **[API Reference](user/api-reference.md)** - Complete API documentation
-- **[Security Best Practices](user/security.md)** - Important security considerations and recommendations
+- **[Getting Started Guide](users/getting-started.md)** - Installation and first steps with HeroSD-JWT
+- **[Examples](users/examples.md)** - Detailed code examples for various scenarios
+- **[API Reference](users/api-reference.md)** - Complete API documentation
+- **[Security Best Practices](users/security.md)** - Important security considerations and recommendations
 
 ### 🚀 Operations Documentation (`operations/`)
 
@@ -39,7 +39,7 @@ For package maintainers managing releases and publishing:
 
 ### 📚 Governance & Standards
 
-- **[Documentation Governance](DOCUMENTATION_GOVERNANCE.md)** - Standards and conventions for documentation
+- **[Documentation Governance](maintainers/documentation-governance.md)** - Standards and conventions for documentation
 
 ### 📋 Project Resources
 
@@ -53,9 +53,9 @@ For package maintainers managing releases and publishing:
 ## Quick Links
 
 ### For New Users
-1. Read the [Getting Started Guide](user/getting-started.md)
-2. Try the basic examples from [Examples](user/examples.md)
-3. Review [Security Best Practices](user/security.md)
+1. Read the [Getting Started Guide](users/getting-started.md)
+2. Try the basic examples from [Examples](users/examples.md)
+3. Review [Security Best Practices](users/security.md)
 
 ### For Production Deployment
 1. Review [Production Readiness](operations/production-readiness.md) to understand requirements
@@ -65,9 +65,9 @@ For package maintainers managing releases and publishing:
 5. Keep [Troubleshooting Guide](operations/troubleshooting.md) handy for issue resolution
 
 ### For Developers
-1. Explore detailed [Examples](user/examples.md)
-2. Reference the [API Documentation](user/api-reference.md)
-3. Check [Security Best Practices](user/security.md)
+1. Explore detailed [Examples](users/examples.md)
+2. Reference the [API Documentation](users/api-reference.md)
+3. Check [Security Best Practices](users/security.md)
 4. Implement [Observability](operations/observability.md) for production visibility
 
 ### For Operations Teams
@@ -79,13 +79,13 @@ For package maintainers managing releases and publishing:
 
 ### For Contributors
 1. Read [CONTRIBUTING.md](../CONTRIBUTING.md)
-2. Review the [API Reference](user/api-reference.md)
+2. Review the [API Reference](users/api-reference.md)
 3. Run the test suite
 4. Check [Roadmap](contributors/roadmap.md) for planned improvements
 
 ### For Maintainers
 1. Follow the [Publishing Guide](maintainers/publishing-guide.md) for releases
-2. Review [Documentation Governance](DOCUMENTATION_GOVERNANCE.md) for standards
+2. Review [Documentation Governance](maintainers/documentation-governance.md) for standards
 3. Check [Production Readiness](operations/production-readiness.md) for improvement tracking
 
 ---
@@ -96,7 +96,7 @@ For package maintainers managing releases and publishing:
 docs/
 ├── README.md                          # This file - documentation hub
 │
-├── user/                              # 👤 USER DOCUMENTATION
+├── users/                             # 👤 USER DOCUMENTATION
 │   ├── getting-started.md             # Installation and quick start
 │   ├── examples.md                    # Code examples
 │   ├── api-reference.md               # API documentation
@@ -112,10 +112,9 @@ docs/
 ├── contributors/                      # 🛠️ CONTRIBUTOR DOCUMENTATION
 │   └── roadmap.md                     # Future improvements
 │
-├── maintainers/                       # 🔧 MAINTAINER DOCUMENTATION
-│   └── publishing-guide.md            # Publishing and release workflow
-│
-└── DOCUMENTATION_GOVERNANCE.md        # Documentation standards
+└── maintainers/                       # 🔧 MAINTAINER DOCUMENTATION
+    ├── publishing-guide.md            # Publishing and release workflow
+    └── documentation-governance.md    # Documentation standards
 ```
 
 ---
@@ -133,7 +132,7 @@ docs/
 
 Found an issue or want to improve the documentation? Contributions are welcome!
 
-1. Review [Documentation Governance](DOCUMENTATION_GOVERNANCE.md) for standards
+1. Review [Documentation Governance](maintainers/documentation-governance.md) for standards
 2. Follow naming conventions (lowercase-with-dashes.md)
 3. Place docs in appropriate audience folder
 4. Update this README.md if adding new files

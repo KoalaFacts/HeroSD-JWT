@@ -240,7 +240,7 @@ examples/SerilogExample/
 
 ## 📖 Further Reading
 
-- [HeroSD-JWT Observability Guide](../../docs/OBSERVABILITY.md)
+- [HeroSD-JWT Observability Guide](../../docs/operations/observability.md)
 - [Serilog Documentation](https://serilog.net/)
 - [.NET Metrics Documentation](https://learn.microsoft.com/en-us/dotnet/core/diagnostics/metrics)
 - [OpenTelemetry .NET](https://opentelemetry.io/docs/languages/net/)

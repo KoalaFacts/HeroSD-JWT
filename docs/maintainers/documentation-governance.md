@@ -66,7 +66,7 @@ HeroSD-JWT/
 ├── docs/
 │   ├── README.md                      # Documentation hub
 │   │
-│   ├── user/                          # 👤 USER DOCUMENTATION
+│   ├── users/                         # 👤 USER DOCUMENTATION
 │   │   ├── getting-started.md
 │   │   ├── examples.md
 │   │   ├── api-reference.md
@@ -104,7 +104,7 @@ HeroSD-JWT/
 
 | Audience | Folder | Purpose | Examples |
 |----------|--------|---------|----------|
-| **Users** | `docs/user/` | End-user documentation for consuming the library | Getting started, API reference, examples |
+| **Users** | `docs/users/` | End-user documentation for consuming the library | Getting started, API reference, examples |
 | **Operations** | `docs/operations/` | DevOps/SRE documentation for running in production | Deployment, monitoring, troubleshooting |
 | **Contributors** | `docs/contributors/` | Developer documentation for contributing code | Contributing guidelines, development setup |
 | **Maintainers** | `docs/maintainers/` | Core team documentation for publishing/releases | Publishing guide, release workflow |
@@ -133,12 +133,12 @@ HeroSD-JWT/
 
 ```
 ✅ CORRECT:
-docs/user/getting-started.md
+docs/users/getting-started.md
 docs/operations/deployment.md
 docs/contributors/contributing.md
 
 ❌ WRONG:
-docs/user/Getting-Started.md
+docs/users/Getting-Started.md
 docs/operations/DEPLOYMENT.md
 docs/contributors/CONTRIBUTING.md
 ```
@@ -166,7 +166,7 @@ Is it a GitHub-standard file (README, LICENSE, CHANGELOG)?
 └─ NO → Continue...
 
 Is it for end users of the library?
-├─ YES → docs/user/
+├─ YES → docs/users/
 └─ NO → Continue...
 
 Is it for DevOps/SRE operating in production?
@@ -194,7 +194,7 @@ Is it technical implementation notes?
 
 #### DO ✅
 
-- **Put user guides** in `docs/user/`
+- **Put user guides** in `docs/users/`
 - **Put deployment guides** in `docs/operations/`
 - **Put contributing guides** in `docs/contributors/`
 - **Put release workflows** in `docs/maintainers/`
@@ -204,7 +204,7 @@ Is it technical implementation notes?
 #### DON'T ❌
 
 - **Don't put user docs** in root (unless GitHub standard)
-- **Don't put operational docs** in `docs/user/`
+- **Don't put operational docs** in `docs/users/`
 - **Don't put contributor docs** in `docs/operations/`
 - **Don't create standalone release notes** (use GitHub Releases)
 - **Don't duplicate content** across files
@@ -215,7 +215,7 @@ Is it technical implementation notes?
 
 ### What to Include
 
-#### User Documentation (`docs/user/`)
+#### User Documentation (`docs/users/`)
 
 **Focus:** How to use the library
 
@@ -511,7 +511,7 @@ jobs:
 
 | Documentation Area | Owner | Backup |
 |--------------------|-------|--------|
-| docs/user/ | Lead Maintainer | Contributors |
+| docs/users/ | Lead Maintainer | Contributors |
 | docs/operations/ | DevOps Lead | Maintainers |
 | docs/contributors/ | Lead Maintainer | Contributors |
 | docs/maintainers/ | Lead Maintainer | Senior Contributors |
@@ -554,7 +554,7 @@ jobs:
 ```
 ✅ CORRECT:
 
-docs/user/getting-started.md
+docs/users/getting-started.md
 - Installation
 - Quick start
 - Next steps
@@ -588,7 +588,7 @@ docs/user-and-contributor-guide.md    # Mixed audiences
 
 ### Q: Where do I put a guide that applies to multiple audiences?
 
-**A:** Choose the **primary audience** and link from other relevant docs. Example: Security best practices go in `docs/user/security.md`, but link from `docs/operations/operations.md`.
+**A:** Choose the **primary audience** and link from other relevant docs. Example: Security best practices go in `docs/users/security.md`, but link from `docs/operations/operations.md`.
 
 ### Q: Can I use UPPERCASE.md for my new doc?
 
@@ -608,7 +608,7 @@ docs/user-and-contributor-guide.md    # Mixed audiences
 
 ### Q: Can I create a blog post or tutorial?
 
-**A:** External blog posts are great! Link to them from `docs/user/` but don't duplicate content.
+**A:** External blog posts are great! Link to them from `docs/users/` but don't duplicate content.
 
 ---
 
