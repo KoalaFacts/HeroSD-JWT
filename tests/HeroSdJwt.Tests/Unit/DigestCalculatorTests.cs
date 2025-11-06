@@ -162,6 +162,199 @@ public class DigestCalculatorTests
             calculator.ComputeDigest(string.Empty, algorithm));
     }
 
+    [Fact]
+    public void ComputeDigest_WithWhitespaceDisclosure_ThrowsArgumentException()
+    {
+        // Arrange
+        var calculator = new DigestCalculator();
+        var algorithm = HashAlgorithm.Sha256;
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() =>
+            calculator.ComputeDigest("   ", algorithm));
+
+        Assert.Contains("Disclosure cannot be empty or whitespace", exception.Message);
+    }
+
+    [Fact]
+    public void ComputeDigest_WithTabOnlyDisclosure_ThrowsArgumentException()
+    {
+        // Arrange
+        var calculator = new DigestCalculator();
+        var algorithm = HashAlgorithm.Sha256;
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            calculator.ComputeDigest("\t", algorithm));
+    }
+
+    [Fact]
+    public void ComputeDigest_WithNewlineOnlyDisclosure_ThrowsArgumentException()
+    {
+        // Arrange
+        var calculator = new DigestCalculator();
+        var algorithm = HashAlgorithm.Sha256;
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            calculator.ComputeDigest("\n", algorithm));
+    }
+
+    [Fact]
+    public void ComputeDigest_WithUnsupportedHashAlgorithm_ThrowsArgumentException()
+    {
+        // Arrange
+        var calculator = new DigestCalculator();
+        var disclosure = "WyJzYWx0IiwgImVtYWlsIiwgInVzZXJAZXhhbXBsZS5jb20iXQ";
+        var unsupportedAlgorithm = (HashAlgorithm)999; // Invalid enum value
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() =>
+            calculator.ComputeDigest(disclosure, unsupportedAlgorithm));
+
+        Assert.Contains("Unsupported hash algorithm", exception.Message);
+    }
+
+    [Fact]
+    public void ComputeDigest_DifferentAlgorithmsProduceDifferentDigests()
+    {
+        // Arrange
+        var calculator = new DigestCalculator();
+        var disclosure = "WyJzYWx0IiwgImVtYWlsIiwgInVzZXJAZXhhbXBsZS5jb20iXQ";
+
+        // Act
+        var sha256Digest = calculator.ComputeDigest(disclosure, HashAlgorithm.Sha256);
+        var sha384Digest = calculator.ComputeDigest(disclosure, HashAlgorithm.Sha384);
+        var sha512Digest = calculator.ComputeDigest(disclosure, HashAlgorithm.Sha512);
+
+        // Assert
+        Assert.NotEqual(sha256Digest, sha384Digest);
+        Assert.NotEqual(sha256Digest, sha512Digest);
+        Assert.NotEqual(sha384Digest, sha512Digest);
+    }
+
+    [Fact]
+    public void ComputeDigest_WithUnicodeCharacters_ProducesCorrectDigest()
+    {
+        // Arrange
+        var calculator = new DigestCalculator();
+        // Disclosure with Unicode characters (Japanese, emoji, etc.)
+        var disclosure = "WyJzYWx0IiwgIm5hbWUiLCAi5aSq6YOOIPCfjokg6J-V44K544OG44OQ44OzIl0"; // Contains UTF-8
+        var algorithm = HashAlgorithm.Sha256;
+
+        // Act
+        var digest = calculator.ComputeDigest(disclosure, algorithm);
+
+        // Assert
+        Assert.NotNull(digest);
+        Assert.NotEmpty(digest);
+
+        // Verify deterministic behavior
+        var digest2 = calculator.ComputeDigest(disclosure, algorithm);
+        Assert.Equal(digest, digest2);
+    }
+
+    [Fact]
+    public void ComputeDigest_WithSpecialCharacters_ProducesCorrectDigest()
+    {
+        // Arrange
+        var calculator = new DigestCalculator();
+        // Disclosure with special base64url characters
+        var disclosure = "abc-123_XYZ"; // Contains base64url-safe characters
+        var algorithm = HashAlgorithm.Sha256;
+
+        // Act
+        var digest = calculator.ComputeDigest(disclosure, algorithm);
+
+        // Assert
+        Assert.NotNull(digest);
+        Assert.NotEmpty(digest);
+
+        // Verify it's valid base64url (no +, /, =)
+        Assert.DoesNotContain("+", digest);
+        Assert.DoesNotContain("/", digest);
+        Assert.DoesNotContain("=", digest);
+    }
+
+    [Fact]
+    public void ComputeDigest_WithVeryLongDisclosure_ProducesCorrectDigest()
+    {
+        // Arrange
+        var calculator = new DigestCalculator();
+        // Create a very long disclosure (> 1KB)
+        var longDisclosure = new string('A', 2000);
+        var algorithm = HashAlgorithm.Sha256;
+
+        // Act
+        var digest = calculator.ComputeDigest(longDisclosure, algorithm);
+
+        // Assert
+        Assert.NotNull(digest);
+        // SHA-256 always produces 32 bytes regardless of input size
+        var digestBytes = ConvertFromBase64Url(digest);
+        Assert.Equal(32, digestBytes.Length);
+    }
+
+    [Fact]
+    public void ComputeDigest_WithSingleCharacterDisclosure_ProducesCorrectDigest()
+    {
+        // Arrange
+        var calculator = new DigestCalculator();
+        var disclosure = "A";
+        var algorithm = HashAlgorithm.Sha256;
+
+        // Act
+        var digest = calculator.ComputeDigest(disclosure, algorithm);
+
+        // Assert
+        Assert.NotNull(digest);
+        Assert.NotEmpty(digest);
+
+        // Verify deterministic
+        var digest2 = calculator.ComputeDigest(disclosure, algorithm);
+        Assert.Equal(digest, digest2);
+    }
+
+    [Fact]
+    public void ComputeDigest_AllAlgorithms_ProduceValidBase64Url()
+    {
+        // Arrange
+        var calculator = new DigestCalculator();
+        var disclosure = "WyJzYWx0IiwgImVtYWlsIiwgInVzZXJAZXhhbXBsZS5jb20iXQ";
+
+        // Act & Assert for each algorithm
+        foreach (var algorithm in new[] { HashAlgorithm.Sha256, HashAlgorithm.Sha384, HashAlgorithm.Sha512 })
+        {
+            var digest = calculator.ComputeDigest(disclosure, algorithm);
+
+            // Base64url should not contain +, /, or =
+            Assert.DoesNotContain("+", digest);
+            Assert.DoesNotContain("/", digest);
+            Assert.DoesNotContain("=", digest);
+
+            // Should be able to decode back
+            var digestBytes = ConvertFromBase64Url(digest);
+            Assert.NotEmpty(digestBytes);
+        }
+    }
+
+    [Fact]
+    public void ComputeDigest_SameDisclosureDifferentInstances_ProducesSameDigest()
+    {
+        // Arrange
+        var calculator1 = new DigestCalculator();
+        var calculator2 = new DigestCalculator();
+        var disclosure = "WyJzYWx0IiwgImVtYWlsIiwgInVzZXJAZXhhbXBsZS5jb20iXQ";
+        var algorithm = HashAlgorithm.Sha256;
+
+        // Act
+        var digest1 = calculator1.ComputeDigest(disclosure, algorithm);
+        var digest2 = calculator2.ComputeDigest(disclosure, algorithm);
+
+        // Assert
+        Assert.Equal(digest1, digest2);
+    }
+
     // Helper methods
     private static byte[] ConvertFromBase64Url(string base64Url)
     {
