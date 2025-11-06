@@ -1,101 +1,124 @@
 # HeroSD-JWT Documentation
 
-Welcome to the HeroSD-JWT documentation! This directory contains comprehensive guides and references for using the library.
+Welcome to the HeroSD-JWT documentation! This directory contains comprehensive guides and references organized by audience.
+
+---
 
 ## Documentation Index
 
-### Getting Started
-- **[Getting Started Guide](getting-started.md)** - Installation and first steps with HeroSD-JWT
-- **[Examples](examples.md)** - Detailed code examples for various scenarios
+### 👤 User Documentation (`user/`)
 
-### Production Operations
-- **[Operations Guide](OPERATIONS.md)** - **NEW!** Comprehensive production operations manual covering deployment architecture, configuration management, monitoring, performance tuning, security hardening, high availability, and disaster recovery
-- **[Deployment Guide](DEPLOYMENT.md)** - **NEW!** Step-by-step deployment instructions for Docker, Kubernetes, Azure, AWS, IIS, and CI/CD integration
-- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - **NEW!** Detailed problem resolution for verification failures, performance issues, authentication problems, key management, and observability
-- **[Observability](OBSERVABILITY.md)** - **NEW!** Complete guide to logging, metrics, distributed tracing, and monitoring with Prometheus, Grafana, Application Insights, and Serilog
+For developers using HeroSD-JWT in their applications:
 
-### In-Depth Guides
-- **[Security Best Practices](security.md)** - Important security considerations and recommendations
-- **[API Reference](api-reference.md)** - Complete API documentation
+- **[Getting Started Guide](user/getting-started.md)** - Installation and first steps with HeroSD-JWT
+- **[Examples](user/examples.md)** - Detailed code examples for various scenarios
+- **[API Reference](user/api-reference.md)** - Complete API documentation
+- **[Security Best Practices](user/security.md)** - Important security considerations and recommendations
 
-### Additional Resources
+### 🚀 Operations Documentation (`operations/`)
+
+For DevOps/SRE teams deploying and operating HeroSD-JWT in production:
+
+- **[Deployment Guide](operations/deployment.md)** - Step-by-step deployment instructions for Docker, Kubernetes, Azure, AWS, IIS, and CI/CD integration
+- **[Operations Guide](operations/operations.md)** - Comprehensive production operations manual covering deployment architecture, configuration management, monitoring, performance tuning, security hardening, high availability, and disaster recovery
+- **[Observability](operations/observability.md)** - Complete guide to logging, metrics, distributed tracing, and monitoring with Prometheus, Grafana, Application Insights, and Serilog
+- **[Troubleshooting Guide](operations/troubleshooting.md)** - Detailed problem resolution for verification failures, performance issues, authentication problems, key management, and observability
+- **[Production Readiness](operations/production-readiness.md)** - Comprehensive production readiness assessment and roadmap
+
+### 🛠️ Contributor Documentation (`contributors/`)
+
+For developers contributing code to HeroSD-JWT:
+
+- **[Roadmap](contributors/roadmap.md)** - Future improvements and architectural plans
+
+### 🔧 Maintainer Documentation (`maintainers/`)
+
+For package maintainers managing releases and publishing:
+
+- **[Publishing Guide](maintainers/publishing-guide.md)** - Complete guide for publishing NuGet packages, versioning strategy, and release workflow
+
+### 📚 Governance & Standards
+
+- **[Documentation Governance](DOCUMENTATION_GOVERNANCE.md)** - Standards and conventions for documentation
+
+### 📋 Project Resources
+
 - **[Main README](../README.md)** - Project overview and quick start
 - **[CHANGELOG](../CHANGELOG.md)** - Version history and changes
 - **[CONTRIBUTING](../CONTRIBUTING.md)** - How to contribute to the project
-- **[Production Readiness Analysis](../PRODUCTION_READINESS_ANALYSIS.md)** - Comprehensive production readiness assessment and roadmap
 - **[LICENSE](../LICENSE)** - MIT License details
+
+---
 
 ## Quick Links
 
 ### For New Users
-1. Read the [Getting Started Guide](getting-started.md)
-2. Try the basic examples from [Examples](examples.md)
-3. Review [Security Best Practices](security.md)
+1. Read the [Getting Started Guide](user/getting-started.md)
+2. Try the basic examples from [Examples](user/examples.md)
+3. Review [Security Best Practices](user/security.md)
 
 ### For Production Deployment
-1. Review [Production Readiness Analysis](../PRODUCTION_READINESS_ANALYSIS.md) to understand requirements
-2. Follow the [Deployment Guide](DEPLOYMENT.md) for your platform
-3. Set up [Observability](OBSERVABILITY.md) (logging, metrics, tracing)
-4. Configure monitoring using the [Operations Guide](OPERATIONS.md)
-5. Keep [Troubleshooting Guide](TROUBLESHOOTING.md) handy for issue resolution
+1. Review [Production Readiness](operations/production-readiness.md) to understand requirements
+2. Follow the [Deployment Guide](operations/deployment.md) for your platform
+3. Set up [Observability](operations/observability.md) (logging, metrics, tracing)
+4. Configure monitoring using the [Operations Guide](operations/operations.md)
+5. Keep [Troubleshooting Guide](operations/troubleshooting.md) handy for issue resolution
 
 ### For Developers
-1. Explore detailed [Examples](examples.md)
-2. Reference the [API Documentation](api-reference.md)
-3. Check [Security Best Practices](security.md)
-4. Implement [Observability](OBSERVABILITY.md) for production visibility
+1. Explore detailed [Examples](user/examples.md)
+2. Reference the [API Documentation](user/api-reference.md)
+3. Check [Security Best Practices](user/security.md)
+4. Implement [Observability](operations/observability.md) for production visibility
 
 ### For Operations Teams
-1. Start with the [Operations Guide](OPERATIONS.md) for comprehensive operational procedures
-2. Use the [Deployment Guide](DEPLOYMENT.md) for infrastructure setup
-3. Configure monitoring dashboards from [Observability](OBSERVABILITY.md)
-4. Follow runbooks in the [Operations Guide](OPERATIONS.md)
-5. Refer to [Troubleshooting Guide](TROUBLESHOOTING.md) when issues arise
+1. Start with the [Operations Guide](operations/operations.md) for comprehensive operational procedures
+2. Use the [Deployment Guide](operations/deployment.md) for infrastructure setup
+3. Configure monitoring dashboards from [Observability](operations/observability.md)
+4. Follow runbooks in the [Operations Guide](operations/operations.md)
+5. Refer to [Troubleshooting Guide](operations/troubleshooting.md) when issues arise
 
 ### For Contributors
 1. Read [CONTRIBUTING.md](../CONTRIBUTING.md)
-2. Review the [API Reference](api-reference.md)
+2. Review the [API Reference](user/api-reference.md)
 3. Run the test suite
-4. Check [Production Readiness Analysis](../PRODUCTION_READINESS_ANALYSIS.md) for planned improvements
+4. Check [Roadmap](contributors/roadmap.md) for planned improvements
 
-## Documentation Sections
+### For Maintainers
+1. Follow the [Publishing Guide](maintainers/publishing-guide.md) for releases
+2. Review [Documentation Governance](DOCUMENTATION_GOVERNANCE.md) for standards
+3. Check [Production Readiness](operations/production-readiness.md) for improvement tracking
 
-### Getting Started Guide
-- Prerequisites
-- Installation methods
-- Your first SD-JWT
-- Three-party model explanation
-- Signature algorithms overview
+---
 
-### Examples
-- Basic SD-JWT creation and verification
-- Nested object selective disclosure
-- Array element selective disclosure
-- Key binding (proof of possession)
-- Different signature algorithms
-- Error handling
-- Real-world scenarios:
-  - Driver's license
-  - Medical records
-  - Employee credentials
+## Documentation Structure
 
-### Security Best Practices
-- Built-in security features
-- Key management
-- Algorithm selection guidelines
-- Key binding implementation
-- Critical claims handling
-- Privacy considerations
-- Common security pitfalls
-- Security testing
+```
+docs/
+├── README.md                          # This file - documentation hub
+│
+├── user/                              # 👤 USER DOCUMENTATION
+│   ├── getting-started.md             # Installation and quick start
+│   ├── examples.md                    # Code examples
+│   ├── api-reference.md               # API documentation
+│   └── security.md                    # Security best practices
+│
+├── operations/                        # 🚀 OPERATIONAL DOCUMENTATION
+│   ├── deployment.md                  # Platform deployment guides
+│   ├── operations.md                  # Production operations manual
+│   ├── observability.md               # Logging, metrics, tracing
+│   ├── troubleshooting.md             # Problem resolution
+│   └── production-readiness.md        # Production readiness analysis
+│
+├── contributors/                      # 🛠️ CONTRIBUTOR DOCUMENTATION
+│   └── roadmap.md                     # Future improvements
+│
+├── maintainers/                       # 🔧 MAINTAINER DOCUMENTATION
+│   └── publishing-guide.md            # Publishing and release workflow
+│
+└── DOCUMENTATION_GOVERNANCE.md        # Documentation standards
+```
 
-### API Reference
-- Complete namespace documentation
-- Class and method references
-- Parameter descriptions
-- Code examples for each API
-- Extension methods
-- Type support details
+---
 
 ## External Resources
 
@@ -104,15 +127,21 @@ Welcome to the HeroSD-JWT documentation! This directory contains comprehensive g
 - **GitHub Repository**: https://github.com/KoalaFacts/HeroSD-JWT
 - **NuGet Package**: https://www.nuget.org/packages/HeroSD-JWT
 
+---
+
 ## Contributing to Documentation
 
 Found an issue or want to improve the documentation? Contributions are welcome!
 
-1. Fork the repository
-2. Make your changes
-3. Submit a pull request
+1. Review [Documentation Governance](DOCUMENTATION_GOVERNANCE.md) for standards
+2. Follow naming conventions (lowercase-with-dashes.md)
+3. Place docs in appropriate audience folder
+4. Update this README.md if adding new files
+5. Submit a pull request
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for more details.
+
+---
 
 ## Support
 
