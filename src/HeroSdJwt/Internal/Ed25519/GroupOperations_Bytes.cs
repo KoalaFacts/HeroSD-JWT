@@ -102,12 +102,13 @@ internal static partial class GroupOperations
         FieldOperations.fe_sq(out v3, ref v);
         FieldOperations.fe_mul(out v3, ref v3, ref v);
 
-        // Compute x^2 = uv^3
-        FieldOperations.fe_sq(out h.X, ref h.Y);
-        FieldOperations.fe_mul(out h.X, ref h.X, ref v3);
+        // Compute v^6 = (v^3)^2
+        FieldOperations.fe_sq(out h.X, ref v3);
 
-        // Compute x^2 = uv^7
+        // Compute v^7 = v^6 * v
         FieldOperations.fe_mul(out h.X, ref h.X, ref v);
+
+        // Compute uv^7
         FieldOperations.fe_mul(out h.X, ref h.X, ref u);
 
         // Compute x = (uv^7)^((q-5)/8)

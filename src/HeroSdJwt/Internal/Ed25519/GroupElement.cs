@@ -94,4 +94,11 @@ internal struct GroupElementPreComp
     internal FieldElement yplusx;
     internal FieldElement yminusx;
     internal FieldElement xy2d;
+
+    internal GroupElementPreComp(FieldElement yplusx, FieldElement yminusx, FieldElement xy2d)
+    {
+        this.yplusx = yplusx;
+        this.yminusx = yminusx;
+        this.xy2d = xy2d;
+    }
 }

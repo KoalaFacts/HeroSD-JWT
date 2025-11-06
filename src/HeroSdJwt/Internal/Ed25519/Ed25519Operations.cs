@@ -159,7 +159,8 @@ internal static class Ed25519Operations
         if (!GroupOperations.ge_frombytes_negate_vartime(out A, pk, pkoffset))
             return false;
 
-        // Negate A for the verification equation
+        // Negate A for the verification equation [s]B - [k]A = R
+        // We compute this as [s]B + [k](-A) using Shamir's trick
         FieldOperations.fe_neg(out A.X, ref A.X);
         FieldOperations.fe_neg(out A.T, ref A.T);
 

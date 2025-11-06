@@ -114,6 +114,16 @@ internal static partial class GroupOperations
     }
 
     /// <summary>
+    /// Sets a precomputed group element to the identity/neutral element.
+    /// </summary>
+    internal static void ge_precomp_0(out GroupElementPreComp h)
+    {
+        FieldOperations.fe_1(out h.yplusx);
+        FieldOperations.fe_1(out h.yminusx);
+        FieldOperations.fe_0(out h.xy2d);
+    }
+
+    /// <summary>
     /// Conditionally moves q to p based on bit b.
     /// If b == 1, p = q; if b == 0, p remains unchanged.
     /// Constant-time operation to prevent timing attacks.

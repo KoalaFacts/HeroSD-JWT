@@ -19,8 +19,8 @@ internal static partial class LookupTables
     /// Value: 37095705934669439343138083508754565189542113879843219016388785533085940283555
     /// </summary>
     internal static readonly FieldElement d = new FieldElement(
-        56195235, 13857412, 51736253, 6949390, 114729,
-        24766616, 60832955, 30306712, 48412415, 21499315
+        -10913610, 13857413, -15372611, 6949391, 114729,
+        -8787816, -6275908, -3247719, -18696448, -12055116
     );
 
     /// <summary>
@@ -30,8 +30,8 @@ internal static partial class LookupTables
     /// Used in converting P3 to Cached form.
     /// </summary>
     internal static readonly FieldElement d2 = new FieldElement(
-        45281625, 27714825, 36363642, 13898781, 229458,
-        15978800, 54557047, 27058993, 29715967, 9444199
+        -21827239, -5839606, -30745221, 13898782, 229458,
+        15978800, -12551817, -6495438, 29715968, 9444199
     );
 
     /// <summary>
@@ -41,34 +41,37 @@ internal static partial class LookupTables
     /// Value: 2^((p-1)/4) mod p where p = 2^255-19
     /// </summary>
     internal static readonly FieldElement sqrtm1 = new FieldElement(
-        34513072, 25610706, 9377949, 3500415, 12389472,
-        33281959, 41962654, 31548777, 326685, 11406482
+        -32595792, -7943725, 9377950, 3500415, 12389472,
+        -272473, -25146209, -2005654, 326686, 11406482
     );
 
     /// <summary>
     /// Ed25519 base point B in extended coordinates (X:Y:Z:T).
     /// This is the standard generator point from RFC 8032.
     /// B has y-coordinate = 4/5 mod p and positive x-coordinate.
+    ///
+    /// Coordinates from curve25519-dalek (u32 backend):
+    /// https://github.com/dalek-cryptography/curve25519-dalek/blob/main/curve25519-dalek/src/backend/serial/u32/constants.rs
     /// </summary>
     internal static GroupElementP3 GetBasePoint()
     {
         return new GroupElementP3
         {
             X = new FieldElement(
-                -14297830, -7645148, 16144683, -16471763, 27570974,
-                -2696100, -26142465, 8378389, 20764389, 8758491
+                52811034, 25909283, 16144682, 17082669, 27570973,
+                30858332, 40966398, 8378388, 20764389, 8758491
             ),
             Y = new FieldElement(
-                -26843541, -6710886, 13421773, -13421773, 26843546,
-                6710886, -13421773, 13421773, -26843546, -6710886
+                40265304, 26843545, 13421772, 20132659, 26843545,
+                6710886, 53687091, 13421772, 40265318, 26843545
             ),
             Z = new FieldElement(
                 1, 0, 0, 0, 0,
                 0, 0, 0, 0, 0
             ),
             T = new FieldElement(
-                28827062, -6116119, -27349572, 244363, 8635006,
-                11264893, 19351346, 13413597, 16611511, -6414980
+                28827043, 27438313, 39759291, 244362, 8635006,
+                11264893, 19351346, 13413597, 16611511, 27139452
             )
         };
     }

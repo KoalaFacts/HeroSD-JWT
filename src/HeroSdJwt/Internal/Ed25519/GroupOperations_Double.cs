@@ -48,8 +48,8 @@ internal static partial class GroupOperations
         // X3 = AA-Y3
         FieldOperations.fe_sub(out r.X, ref t0, ref r.Y);
 
-        // T3 = Y3-B
-        FieldOperations.fe_sub(out r.T, ref r.Y, ref r.T);
+        // T3 = B-Z3
+        FieldOperations.fe_sub(out r.T, ref r.T, ref r.Z);
     }
 
     /// <summary>
