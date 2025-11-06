@@ -93,7 +93,8 @@
       "HeroSD-JWT": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Bcl.Memory": "[9.0.10, )"
+          "Microsoft.Bcl.Memory": "[9.0.10, )",
+          "Microsoft.Extensions.Logging.Abstractions": "[9.0.0, )"
         }
       }
     },
@@ -176,7 +177,10 @@
         "contentHash": "dk9JPxTCIevS75HyEQ0E4OVAFhB2N+V9ShCXf8Q6FkUQZDkgLI12y679Nym1YqsiSysuQskT7Z+6nUf3yab6Vw=="
       },
       "HeroSD-JWT": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "[9.0.0, )"
+        }
       }
     }
   }

@@ -294,7 +294,8 @@
       "HeroSD-JWT": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Bcl.Memory": "[9.0.10, )"
+          "Microsoft.Bcl.Memory": "[9.0.10, )",
+          "Microsoft.Extensions.Logging.Abstractions": "[9.0.0, )"
         }
       },
       "HeroSD-JWT.AspNetCore": {
@@ -583,7 +584,10 @@
         }
       },
       "HeroSD-JWT": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "[9.0.0, )"
+        }
       },
       "HeroSD-JWT.AspNetCore": {
         "type": "Project",
