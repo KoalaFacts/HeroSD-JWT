@@ -32,6 +32,7 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
 - [Security](#security)
+- [API Stability & Versioning](#api-stability--versioning)
 - [Requirements](#requirements)
 - [Native AOT and Trimming](#native-aot-and-trimming-compatibility)
 - [Testing](#testing)
@@ -504,6 +505,51 @@ This library implements security best practices:
   - **HS256** (HMAC-SHA256) - Symmetric signing with HMAC
   - **RS256** (RSA-SHA256) - Asymmetric signing with RSA (minimum 2048 bits)
   - **ES256** (ECDSA-P256-SHA256) - Asymmetric signing with ECDSA (P-256 curve)
+
+### Security Policy
+
+For vulnerability reporting and security best practices, see:
+- **[SECURITY.md](SECURITY.md)** - Vulnerability disclosure policy and security contact
+- **[Security Guide](docs/users/security.md)** - Detailed security best practices and guidelines
+
+## API Stability & Versioning
+
+HeroSD-JWT follows strict **[Semantic Versioning 2.0.0](https://semver.org/)** with strong API stability guarantees:
+
+### Version Policy
+
+```
+MAJOR.MINOR.PATCH
+  │     │      └─── Bug fixes (backward-compatible)
+  │     └────────── New features (backward-compatible)
+  └──────────────── Breaking changes (requires migration)
+```
+
+### API Stability Guarantees
+
+✅ **Stable Public API** (guaranteed until next MAJOR version):
+- All public types, methods, and properties
+- Extension methods (`ToPresentation()`, `ToPresentationWithAllClaims()`)
+- Configuration types (`SdJwtVerificationOptions`, `SdJwtAuthenticationOptions`)
+- Error codes and exception types
+
+✅ **Binary Compatibility**:
+- MINOR and PATCH releases maintain binary compatibility
+- No recompilation required for updates within same MAJOR version
+
+✅ **Long-Term Support (LTS)**:
+- LTS versions supported for 12 months with security fixes
+- v1.x targets .NET 8.0 (LTS) - supported until November 2026
+
+### Breaking Change Policy
+
+**Deprecation Timeline:**
+1. API marked `[Obsolete]` for minimum 6 months
+2. Migration guide provided before removal
+3. Breaking changes bundled into MAJOR releases only
+
+**For detailed versioning policy, see:**
+- **[Versioning Policy](docs/maintainers/versioning-policy.md)** - Complete versioning strategy and deprecation process
 
 ## Requirements
 
