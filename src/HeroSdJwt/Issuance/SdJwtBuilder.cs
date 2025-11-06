@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Models;
+using Microsoft.Extensions.Logging;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 using SignatureAlgorithm = HeroSdJwt.Primitives.SignatureAlgorithm;
 
@@ -39,6 +40,7 @@ public class SdJwtBuilder
     private byte[]? holderPublicKey;
     private int decoyDigestCount = 0;
     private string? keyId;
+    private ILogger<SdJwtIssuer>? logger;
 
     /// <summary>
     /// Creates a new builder instance.
@@ -182,6 +184,17 @@ public class SdJwtBuilder
     }
 
     /// <summary>
+    /// Sets the logger for observability and diagnostics.
+    /// </summary>
+    /// <param name="logger">The logger instance. If null, logging is disabled.</param>
+    /// <returns>The builder instance for method chaining.</returns>
+    public SdJwtBuilder WithLogger(ILogger<SdJwtIssuer>? logger)
+    {
+        this.logger = logger;
+        return this;
+    }
+
+    /// <summary>
     /// Builds the SD-JWT with the configured options.
     /// </summary>
     /// <returns>The created SD-JWT.</returns>
@@ -198,7 +211,8 @@ public class SdJwtBuilder
             new DisclosureGenerator(),
             new DigestCalculator(),
             new EcPublicKeyConverter(),
-            new JwtSigner());
+            new JwtSigner(),
+            logger);
         return issuer.CreateSdJwt(
             claims,
             selectiveClaims,

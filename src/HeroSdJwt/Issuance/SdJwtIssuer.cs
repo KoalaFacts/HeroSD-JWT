@@ -1,9 +1,13 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Models;
+using HeroSdJwt.Observability;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Constants = HeroSdJwt.Primitives.Constants;
 using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
@@ -20,21 +24,29 @@ public class SdJwtIssuer : ISdJwtIssuer
     private readonly IDigestCalculator digestCalculator;
     private readonly IEcPublicKeyConverter ecPublicKeyConverter;
     private readonly IJwtSigner jwtSigner;
+    private readonly ILogger<SdJwtIssuer> logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtIssuer"/> class with dependencies.
     /// For simple usage: new SdJwtIssuer(new DisclosureGenerator(), new DigestCalculator(), new EcPublicKeyConverter(), new JwtSigner())
     /// </summary>
+    /// <param name="disclosureGenerator">The disclosure generator.</param>
+    /// <param name="digestCalculator">The digest calculator.</param>
+    /// <param name="ecPublicKeyConverter">The EC public key converter.</param>
+    /// <param name="jwtSigner">The JWT signer.</param>
+    /// <param name="logger">Optional logger for observability. If null, logging is disabled.</param>
     public SdJwtIssuer(
         IDisclosureGenerator disclosureGenerator,
         IDigestCalculator digestCalculator,
         IEcPublicKeyConverter ecPublicKeyConverter,
-        IJwtSigner jwtSigner)
+        IJwtSigner jwtSigner,
+        ILogger<SdJwtIssuer>? logger = null)
     {
         this.disclosureGenerator = disclosureGenerator ?? throw new ArgumentNullException(nameof(disclosureGenerator));
         this.digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
         this.ecPublicKeyConverter = ecPublicKeyConverter ?? throw new ArgumentNullException(nameof(ecPublicKeyConverter));
         this.jwtSigner = jwtSigner ?? throw new ArgumentNullException(nameof(jwtSigner));
+        this.logger = logger ?? NullLogger<SdJwtIssuer>.Instance;
     }
 
     /// <summary>
@@ -63,6 +75,26 @@ public class SdJwtIssuer : ISdJwtIssuer
         ArgumentNullException.ThrowIfNull(signingKey);
 
         var selectiveClaimsList = selectivelyDisclosableClaims?.ToList() ?? [];
+
+        // Start distributed tracing activity
+        using var activity = HeroSdJwtActivitySource.Instance.StartActivity("SdJwt.Issue");
+        activity?.SetTag(HeroSdJwtActivitySource.Tags.Operation, "issue");
+        activity?.SetTag(HeroSdJwtActivitySource.Tags.Algorithm, signatureAlgorithm.ToString());
+        activity?.SetTag(HeroSdJwtActivitySource.Tags.HashAlgorithm, hashAlgorithm.ToString());
+        activity?.SetTag(HeroSdJwtActivitySource.Tags.DecoyCount, decoyDigestCount);
+        activity?.SetTag(HeroSdJwtActivitySource.Tags.HasKeyBinding, holderPublicKey != null);
+        if (keyId != null)
+        {
+            activity?.SetTag(HeroSdJwtActivitySource.Tags.KeyId, keyId);
+        }
+
+        // Start performance measurement
+        var stopwatch = Stopwatch.StartNew();
+
+        try
+        {
+            // Log issuance start
+            logger.LogIssuanceStarted(claims.Count, selectiveClaimsList.Count, decoyDigestCount);
 
         // Parse claim specifications to separate simple claims from array elements
         var parsedClaims = selectiveClaimsList.Select(ClaimPath.Parse).ToList();
@@ -135,6 +167,9 @@ public class SdJwtIssuer : ISdJwtIssuer
                 // Compute digest
                 var digest = digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
                 digests.Add(digest);
+
+                // Log disclosure generation at debug level
+                logger.LogDisclosureGenerated(claimPath.BaseName);
             }
         }
 
@@ -147,6 +182,9 @@ public class SdJwtIssuer : ISdJwtIssuer
             var decoyGenerator = new DecoyDigestGenerator(digestCalculator);
             var decoyDigests = decoyGenerator.GenerateDecoyDigests(decoyDigestCount, hashAlgorithm);
             digests = decoyGenerator.InterleaveDecoys(digests, decoyDigests);
+
+            // Log decoy generation
+            logger.LogDecoysGenerated(decoyDigestCount);
         }
 
         // Step 1.5: Process nested claims and build objects with _sd arrays
@@ -288,11 +326,49 @@ public class SdJwtIssuer : ISdJwtIssuer
             };
         }
 
-        // Step 3: Create JWT using the specified signature algorithm
-        var jwt = jwtSigner.CreateJwt(payload, signingKey, signatureAlgorithm, keyId);
+            // Step 3: Create JWT using the specified signature algorithm
+            var jwt = jwtSigner.CreateJwt(payload, signingKey, signatureAlgorithm, keyId);
 
-        // Step 4: Create SdJwt object
-        return new SdJwt(jwt, disclosures, hashAlgorithm);
+            // Step 4: Create SdJwt object
+            var sdJwt = new SdJwt(jwt, disclosures, hashAlgorithm);
+
+            // Stop performance measurement
+            stopwatch.Stop();
+
+            // Log successful issuance
+            logger.LogIssuanceCompleted(disclosures.Count, signatureAlgorithm.ToString());
+
+            // Record metrics
+            HeroSdJwtMetrics.IssuanceCount.Add(1,
+                new KeyValuePair<string, object?>("algorithm", signatureAlgorithm.ToString()),
+                new KeyValuePair<string, object?>("hash_algorithm", hashAlgorithm.ToString()));
+            HeroSdJwtMetrics.IssuanceDuration.Record(stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("algorithm", signatureAlgorithm.ToString()));
+            HeroSdJwtMetrics.UpdateLastDisclosureCount(disclosures.Count);
+
+            // Set activity tags for successful completion
+            activity?.SetTag(HeroSdJwtActivitySource.Tags.DisclosureCount, disclosures.Count);
+            activity?.SetTag(HeroSdJwtActivitySource.Tags.ClaimCount, claims.Count);
+            activity?.SetStatus(ActivityStatusCode.Ok);
+
+            return sdJwt;
+        }
+        catch (Exception ex)
+        {
+            // Stop performance measurement
+            stopwatch.Stop();
+
+            // Log error
+            logger.LogIssuanceFailed(ex, ex.Message);
+
+            // Set activity error status
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddTag("error.type", ex.GetType().FullName);
+            activity?.AddTag("error.message", ex.Message);
+
+            // Re-throw the exception
+            throw;
+        }
     }
 
     /// <summary>

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -6,7 +7,10 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Models;
+using HeroSdJwt.Observability;
 using HeroSdJwt.Presentation;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Constants = HeroSdJwt.Primitives.Constants;
 using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
@@ -26,18 +30,27 @@ public class SdJwtVerifier : ISdJwtVerifier
     private readonly IDigestValidator digestValidator;
     private readonly IKeyBindingValidator keyBindingValidator;
     private readonly IClaimValidator claimValidator;
+    private readonly ILogger<SdJwtVerifier> logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtVerifier"/> class with dependencies.
     /// For simple usage: new SdJwtVerifier(new SdJwtVerificationOptions(), new EcPublicKeyConverter(), new SignatureValidator(), new DigestValidator(), new KeyBindingValidator(), new ClaimValidator())
     /// </summary>
+    /// <param name="options">Verification options.</param>
+    /// <param name="ecPublicKeyConverter">EC public key converter.</param>
+    /// <param name="signatureValidator">Signature validator.</param>
+    /// <param name="digestValidator">Digest validator.</param>
+    /// <param name="keyBindingValidator">Key binding validator.</param>
+    /// <param name="claimValidator">Claim validator.</param>
+    /// <param name="logger">Optional logger for observability. If null, logging is disabled.</param>
     public SdJwtVerifier(
         SdJwtVerificationOptions options,
         IEcPublicKeyConverter ecPublicKeyConverter,
         ISignatureValidator signatureValidator,
         IDigestValidator digestValidator,
         IKeyBindingValidator keyBindingValidator,
-        IClaimValidator claimValidator)
+        IClaimValidator claimValidator,
+        ILogger<SdJwtVerifier>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(signatureValidator);
@@ -52,6 +65,7 @@ public class SdJwtVerifier : ISdJwtVerifier
         this.digestValidator = digestValidator;
         this.keyBindingValidator = keyBindingValidator;
         this.claimValidator = claimValidator;
+        this.logger = logger ?? NullLogger<SdJwtVerifier>.Instance;
     }
 
     /// <summary>
@@ -321,16 +335,30 @@ public class SdJwtVerifier : ISdJwtVerifier
         byte[] publicKey,
         HashAlgorithm? expectedHashAlgorithm)
     {
+        // Start distributed tracing activity
+        using var activity = HeroSdJwtActivitySource.Instance.StartActivity("SdJwt.Verify");
+        activity?.SetTag(HeroSdJwtActivitySource.Tags.Operation, "verify");
+
+        // Start performance measurement
+        var stopwatch = Stopwatch.StartNew();
+
+        // Log verification start
+        logger.LogVerificationStarted();
+
         var errors = new List<ErrorCode>();
         var errorDetails = new List<string>();
 
-        // Validate presentation size to prevent DoS attacks
-        if (presentation.Length > Constants.MaxJwtSizeBytes)
+        try
         {
-            errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add($"Presentation exceeds maximum allowed size of {Constants.MaxJwtSizeBytes} bytes");
-            return new VerificationResult(errors, string.Join("; ", errorDetails));
-        }
+            // Validate presentation size to prevent DoS attacks
+            if (presentation.Length > Constants.MaxJwtSizeBytes)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add($"Presentation exceeds maximum allowed size of {Constants.MaxJwtSizeBytes} bytes");
+
+                LogVerificationFailure(ErrorCode.InvalidInput.ToString(), stopwatch, activity);
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
 
         // Parse presentation into parts: JWT~disclosure1~disclosure2~...~keyBinding
         var parts = presentation.Split('~');
@@ -602,16 +630,31 @@ public class SdJwtVerifier : ISdJwtVerifier
             return new VerificationResult(errors, string.Join("; ", errorDetails));
         }
 
-        // Step 6: Extract disclosed claims with full paths
-        var disclosedClaims = ExtractDisclosedClaims(jwt, disclosures, algorithm);
+            // Step 6: Extract disclosed claims with full paths
+            var disclosedClaims = ExtractDisclosedClaims(jwt, disclosures, algorithm);
 
-        // Return result
-        if (errors.Count > 0)
-        {
-            return new VerificationResult(errors, string.Join("; ", errorDetails));
+            // Return result
+            if (errors.Count > 0)
+            {
+                var primaryError = errors.FirstOrDefault();
+                LogVerificationFailure(primaryError.ToString(), stopwatch, activity);
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            // Log successful verification
+            LogVerificationSuccess(disclosures.Count, stopwatch, activity);
+
+            return new VerificationResult(disclosedClaims);
         }
-
-        return new VerificationResult(disclosedClaims);
+        catch (Exception ex)
+        {
+            // Log unexpected errors
+            stopwatch.Stop();
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddTag("error.type", ex.GetType().FullName);
+            activity?.AddTag("error.message", ex.Message);
+            throw;
+        }
     }
 
     /// <summary>
@@ -769,5 +812,50 @@ public class SdJwtVerifier : ISdJwtVerifier
                 CollectAllSdDigests(item, digests, algorithm, depth + 1);
             }
         }
+    }
+
+    /// <summary>
+    /// Helper method to log verification failure and update metrics/tracing.
+    /// </summary>
+    private void LogVerificationFailure(string errorCode, Stopwatch stopwatch, Activity? activity)
+    {
+        stopwatch.Stop();
+
+        logger.LogVerificationFailed(errorCode);
+
+        // Record metrics
+        HeroSdJwtMetrics.VerificationCount.Add(1,
+            new KeyValuePair<string, object?>("result", "failure"),
+            new KeyValuePair<string, object?>("error_code", errorCode));
+        HeroSdJwtMetrics.VerificationFailureCount.Add(1,
+            new KeyValuePair<string, object?>("error_code", errorCode));
+        HeroSdJwtMetrics.VerificationDuration.Record(stopwatch.Elapsed.TotalMilliseconds,
+            new KeyValuePair<string, object?>("result", "failure"));
+
+        // Set activity error status
+        activity?.SetTag(HeroSdJwtActivitySource.Tags.VerificationResult, "failure");
+        activity?.SetTag(HeroSdJwtActivitySource.Tags.ErrorCode, errorCode);
+        activity?.SetStatus(ActivityStatusCode.Error);
+    }
+
+    /// <summary>
+    /// Helper method to log verification success and update metrics/tracing.
+    /// </summary>
+    private void LogVerificationSuccess(int disclosureCount, Stopwatch stopwatch, Activity? activity)
+    {
+        stopwatch.Stop();
+
+        logger.LogVerificationCompleted(disclosureCount);
+
+        // Record metrics
+        HeroSdJwtMetrics.VerificationCount.Add(1,
+            new KeyValuePair<string, object?>("result", "success"));
+        HeroSdJwtMetrics.VerificationDuration.Record(stopwatch.Elapsed.TotalMilliseconds,
+            new KeyValuePair<string, object?>("result", "success"));
+
+        // Set activity success status
+        activity?.SetTag(HeroSdJwtActivitySource.Tags.VerificationResult, "success");
+        activity?.SetTag(HeroSdJwtActivitySource.Tags.DisclosureCount, disclosureCount);
+        activity?.SetStatus(ActivityStatusCode.Ok);
     }
 }
