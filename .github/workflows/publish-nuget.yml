@@ -114,7 +114,7 @@ jobs:
           done
 
       - name: Generate package provenance
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v3
         with:
           subject-path: './packages/*.nupkg'
 
