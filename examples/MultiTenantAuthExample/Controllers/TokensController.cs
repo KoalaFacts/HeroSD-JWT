@@ -17,10 +17,10 @@ namespace MultiTenantAuthExample.Controllers;
 [Produces("application/json")]
 public class TokensController : ControllerBase
 {
-    private readonly ITenantService _tenantService;
-    private readonly ISdJwtIssuer _issuer;
-    private readonly ISdJwtVerifier _verifier;
-    private readonly ILogger<TokensController> _logger;
+    private readonly ITenantService tenantService;
+    private readonly ISdJwtIssuer issuer;
+    private readonly ISdJwtVerifier verifier;
+    private readonly ILogger<TokensController> logger;
 
     public TokensController(
         ITenantService tenantService,
@@ -28,10 +28,10 @@ public class TokensController : ControllerBase
         ISdJwtVerifier verifier,
         ILogger<TokensController> logger)
     {
-        _tenantService = tenantService;
-        _issuer = issuer;
-        _verifier = verifier;
-        _logger = logger;
+        tenantService = tenantService;
+        issuer = issuer;
+        verifier = verifier;
+        logger = logger;
     }
 
     /// <summary>
@@ -47,9 +47,9 @@ public class TokensController : ControllerBase
     public IActionResult IssueToken([FromBody] TokenIssueRequest request)
     {
         // Validate tenant
-        if (!_tenantService.IsTenantValid(request.TenantId))
+        if (!tenantService.IsTenantValid(request.TenantId))
         {
-            _logger.LogWarning("Token issuance failed: Invalid tenant {TenantId}", request.TenantId);
+            logger.LogWarning("Token issuance failed: Invalid tenant {TenantId}", request.TenantId);
             return BadRequest(new ProblemDetails
             {
                 Title = "Invalid Tenant",
@@ -58,12 +58,12 @@ public class TokensController : ControllerBase
             });
         }
 
-        var tenant = _tenantService.GetTenant(request.TenantId)!;
-        var signingKey = _tenantService.GetCurrentSigningKey(request.TenantId);
+        var tenant = tenantService.GetTenant(request.TenantId)!;
+        var signingKey = tenantService.GetCurrentSigningKey(request.TenantId);
 
         if (signingKey == null)
         {
-            _logger.LogError("No signing key available for tenant {TenantId}", request.TenantId);
+            logger.LogError("No signing key available for tenant {TenantId}", request.TenantId);
             return Problem("Signing key not available for tenant", statusCode: StatusCodes.Status500InternalServerError);
         }
 
@@ -98,7 +98,7 @@ public class TokensController : ControllerBase
             }
 
             // Issue SD-JWT with tenant's current key
-            var sdJwt = _issuer.CreateSdJwt(
+            var sdJwt = issuer.CreateSdJwt(
                 claims,
                 request.SelectivelyDisclosableClaims ?? Array.Empty<string>(),
                 signingKey,
@@ -107,7 +107,7 @@ public class TokensController : ControllerBase
                 keyId: tenant.CurrentKeyId  // Include kid for key rotation support
             );
 
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Issued SD-JWT for tenant {TenantId}, subject {Subject}, key {KeyId}, {DisclosureCount} disclosures",
                 request.TenantId, request.Subject, tenant.CurrentKeyId, sdJwt.Disclosures.Count);
 
@@ -122,7 +122,7 @@ public class TokensController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to issue token for tenant {TenantId}", request.TenantId);
+            logger.LogError(ex, "Failed to issue token for tenant {TenantId}", request.TenantId);
             return Problem("Token issuance failed", statusCode: StatusCodes.Status500InternalServerError);
         }
     }
@@ -186,7 +186,7 @@ public class TokensController : ControllerBase
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning(ex, "Failed to extract tenant_id from JWT payload");
+                            logger.LogWarning(ex, "Failed to extract tenant_id from JWT payload");
                         }
                     }
                 }
@@ -194,7 +194,7 @@ public class TokensController : ControllerBase
 
             if (string.IsNullOrEmpty(tenantId))
             {
-                _logger.LogWarning("Could not determine tenant for verification");
+                logger.LogWarning("Could not determine tenant for verification");
                 return Ok(new TokenVerifyResponse
                 {
                     IsValid = false,
@@ -202,9 +202,9 @@ public class TokensController : ControllerBase
                 });
             }
 
-            if (!_tenantService.IsTenantValid(tenantId))
+            if (!tenantService.IsTenantValid(tenantId))
             {
-                _logger.LogWarning("Verification failed: Invalid tenant {TenantId}", tenantId);
+                logger.LogWarning("Verification failed: Invalid tenant {TenantId}", tenantId);
                 return Ok(new TokenVerifyResponse
                 {
                     IsValid = false,
@@ -214,24 +214,24 @@ public class TokensController : ControllerBase
             }
 
             // Create tenant-specific key resolver
-            var keyResolver = _tenantService.CreateKeyResolver(tenantId);
+            var keyResolver = tenantService.CreateKeyResolver(tenantId);
 
             // Verify with key rotation support
-            var result = _verifier.TryVerifyPresentation(
+            var result = verifier.TryVerifyPresentation(
                 request.Presentation,
                 keyResolver: keyResolver,
-                fallbackKey: _tenantService.GetCurrentSigningKey(tenantId) // For tokens without kid
+                fallbackKey: tenantService.GetCurrentSigningKey(tenantId) // For tokens without kid
             );
 
             if (result.IsValid)
             {
-                _logger.LogInformation(
+                logger.LogInformation(
                     "Successfully verified SD-JWT for tenant {TenantId}, key {KeyId}, {ClaimCount} claims disclosed",
                     tenantId, keyId ?? "unknown", result.DisclosedClaims.Count);
             }
             else
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     "Verification failed for tenant {TenantId}: {Errors}",
                     tenantId, string.Join(", ", result.Errors));
             }
@@ -247,7 +247,7 @@ public class TokensController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Verification error");
+            logger.LogError(ex, "Verification error");
             return Ok(new TokenVerifyResponse
             {
                 IsValid = false,
@@ -264,7 +264,7 @@ public class TokensController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
     public IActionResult GetTenants()
     {
-        var tenants = _tenantService.GetAllTenants().Select(t => new
+        var tenants = tenantService.GetAllTenants().Select(t => new
         {
             t.TenantId,
             t.TenantName,

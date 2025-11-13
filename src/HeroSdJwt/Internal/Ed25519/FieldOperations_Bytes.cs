@@ -37,7 +37,7 @@ internal static partial class FieldOperations
     ///   Have q+2^(-255)x = 2^(-255)(h + 19 2^(-25) h9 + 2^(-1))
     ///   so floor(2^(-255)(h + 19 2^(-25) h9 + 2^(-1))) = q.
     /// </summary>
-    internal static void fe_tobytes(byte[] s, int offset, ref FieldElement h)
+    internal static void FeToBytes(byte[] s, int offset, ref FieldElement h)
     {
         int h0 = h.x0, h1 = h.x1, h2 = h.x2, h3 = h.x3, h4 = h.x4;
         int h5 = h.x5, h6 = h.x6, h7 = h.x7, h8 = h.x8, h9 = h.x9;
@@ -119,18 +119,18 @@ internal static partial class FieldOperations
     ///
     /// Ignores top bit of h.
     /// </summary>
-    internal static void fe_frombytes(out FieldElement h, byte[] s, int offset)
+    internal static void FeFromBytes(out FieldElement h, byte[] s, int offset)
     {
-        long h0 = load_4(s, offset + 0);
-        long h1 = load_3(s, offset + 4) << 6;
-        long h2 = load_3(s, offset + 7) << 5;
-        long h3 = load_3(s, offset + 10) << 3;
-        long h4 = load_3(s, offset + 13) << 2;
-        long h5 = load_4(s, offset + 16);
-        long h6 = load_3(s, offset + 20) << 7;
-        long h7 = load_3(s, offset + 23) << 5;
-        long h8 = load_3(s, offset + 26) << 4;
-        long h9 = (load_3(s, offset + 29) & 8388607) << 2;
+        long h0 = Load4(s, offset + 0);
+        long h1 = Load3(s, offset + 4) << 6;
+        long h2 = Load3(s, offset + 7) << 5;
+        long h3 = Load3(s, offset + 10) << 3;
+        long h4 = Load3(s, offset + 13) << 2;
+        long h5 = Load4(s, offset + 16);
+        long h6 = Load3(s, offset + 20) << 7;
+        long h7 = Load3(s, offset + 23) << 5;
+        long h8 = Load3(s, offset + 26) << 4;
+        long h9 = (Load3(s, offset + 29) & 8388607) << 2;
 
         long carry0, carry1, carry2, carry3, carry4, carry5, carry6, carry7, carry8, carry9;
 
@@ -158,7 +158,7 @@ internal static partial class FieldOperations
         h.x9 = (int)h9;
     }
 
-    private static long load_3(byte[] data, int offset)
+    private static long Load3(byte[] data, int offset)
     {
         uint result;
         result = data[offset + 0];
@@ -167,7 +167,7 @@ internal static partial class FieldOperations
         return (long)result;
     }
 
-    private static long load_4(byte[] data, int offset)
+    private static long Load4(byte[] data, int offset)
     {
         uint result;
         result = data[offset + 0];

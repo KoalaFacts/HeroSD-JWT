@@ -22,7 +22,7 @@ internal static partial class FieldOperations
     /// Postconditions:
     ///    |h| bounded by 1.01*2^25,1.01*2^24,1.01*2^25,1.01*2^24,etc.
     /// </summary>
-    internal static void fe_sq(out FieldElement h, ref FieldElement f)
+    internal static void FeSq(out FieldElement h, ref FieldElement f)
     {
         int f0 = f.x0, f1 = f.x1, f2 = f.x2, f3 = f.x3, f4 = f.x4;
         int f5 = f.x5, f6 = f.x6, f7 = f.x7, f8 = f.x8, f9 = f.x9;
@@ -152,7 +152,7 @@ internal static partial class FieldOperations
     /// Postconditions:
     ///    |h| bounded by 1.01*2^25,1.01*2^24,1.01*2^25,1.01*2^24,etc.
     /// </summary>
-    internal static void fe_sq2(out FieldElement h, ref FieldElement f)
+    internal static void FeSq2(out FieldElement h, ref FieldElement f)
     {
         int f0 = f.x0, f1 = f.x1, f2 = f.x2, f3 = f.x3, f4 = f.x4;
         int f5 = f.x5, f6 = f.x6, f7 = f.x7, f8 = f.x8, f9 = f.x9;

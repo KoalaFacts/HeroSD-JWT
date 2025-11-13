@@ -17,14 +17,14 @@ namespace HeroSdJwt.Tests.Unit.Extensions;
 /// </summary>
 public class ExtensionsToSdJwtTests
 {
-    private readonly SdJwt _testSdJwt;
-    private readonly byte[] _hmacKey;
+    private readonly SdJwt testSdJwt;
+    private readonly byte[] hmacKey;
 
     public ExtensionsToSdJwtTests()
     {
         // Create a test SD-JWT with selective disclosures
-        _hmacKey = new byte[32];
-        RandomNumberGenerator.Fill(_hmacKey);
+        hmacKey = new byte[32];
+        RandomNumberGenerator.Fill(hmacKey);
 
         var claims = new Dictionary<string, object>
         {
@@ -40,10 +40,10 @@ public class ExtensionsToSdJwtTests
         };
 
         var issuer = TestHelpers.CreateIssuer();
-        _testSdJwt = issuer.CreateSdJwt(
+        testSdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email", "name", "age", "address" },
-            _hmacKey,
+            hmacKey,
             HashAlgorithm.Sha256,
             decoyDigestCount: 0);
     }
@@ -62,7 +62,7 @@ public class ExtensionsToSdJwtTests
     public void ToPresentation_WithNoClaims_ReturnsJwtOnlyPresentation()
     {
         // Act
-        var presentation = _testSdJwt.ToPresentation();
+        var presentation = testSdJwt.ToPresentation();
 
         // Assert
         Assert.NotNull(presentation);
@@ -74,7 +74,7 @@ public class ExtensionsToSdJwtTests
     public void ToPresentation_WithSingleClaim_IncludesOnlyThatDisclosure()
     {
         // Act
-        var presentation = _testSdJwt.ToPresentation("email");
+        var presentation = testSdJwt.ToPresentation("email");
 
         // Assert
         Assert.NotNull(presentation);
@@ -87,7 +87,7 @@ public class ExtensionsToSdJwtTests
     public void ToPresentation_WithMultipleClaims_IncludesAllDisclosures()
     {
         // Act
-        var presentation = _testSdJwt.ToPresentation("email", "name", "age");
+        var presentation = testSdJwt.ToPresentation("email", "name", "age");
 
         // Assert
         Assert.NotNull(presentation);
@@ -101,7 +101,7 @@ public class ExtensionsToSdJwtTests
     {
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _testSdJwt.ToPresentation("nonexistent"));
+            testSdJwt.ToPresentation("nonexistent"));
 
         Assert.Contains("Claim path 'nonexistent' not found", exception.Message);
         Assert.Contains("Available paths: email, name, age, address", exception.Message);
@@ -111,7 +111,7 @@ public class ExtensionsToSdJwtTests
     public void ToPresentation_WithEmptyClaimArray_ReturnsJwtOnlyPresentation()
     {
         // Act
-        var presentation = _testSdJwt.ToPresentation(Array.Empty<string>());
+        var presentation = testSdJwt.ToPresentation(Array.Empty<string>());
 
         // Assert
         Assert.NotNull(presentation);
@@ -122,7 +122,7 @@ public class ExtensionsToSdJwtTests
     public void ToPresentation_WithAllSelectiveClaims_IncludesAllDisclosures()
     {
         // Act
-        var presentation = _testSdJwt.ToPresentation("email", "name", "age", "address");
+        var presentation = testSdJwt.ToPresentation("email", "name", "age", "address");
 
         // Assert
         Assert.NotNull(presentation);
@@ -150,7 +150,7 @@ public class ExtensionsToSdJwtTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _testSdJwt.ToPresentationWithKeyBinding(null!, "email"));
+            testSdJwt.ToPresentationWithKeyBinding(null!, "email"));
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public class ExtensionsToSdJwtTests
             "test-nonce");
 
         // Act
-        var presentation = _testSdJwt.ToPresentationWithKeyBinding(keyBindingJwt, "email");
+        var presentation = testSdJwt.ToPresentationWithKeyBinding(keyBindingJwt, "email");
 
         // Assert
         Assert.NotNull(presentation);
@@ -191,7 +191,7 @@ public class ExtensionsToSdJwtTests
             "nonce");
 
         // Act
-        var presentation = _testSdJwt.ToPresentationWithKeyBinding(keyBindingJwt);
+        var presentation = testSdJwt.ToPresentationWithKeyBinding(keyBindingJwt);
 
         // Assert
         Assert.NotNull(presentation);
@@ -215,7 +215,7 @@ public class ExtensionsToSdJwtTests
             "nonce");
 
         // Act
-        var presentation = _testSdJwt.ToPresentationWithKeyBinding(
+        var presentation = testSdJwt.ToPresentationWithKeyBinding(
             keyBindingJwt,
             "email",
             "name");
@@ -231,7 +231,7 @@ public class ExtensionsToSdJwtTests
     {
         // Act & Assert - Empty string is still "not null" but the actual implementation might handle it
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            _testSdJwt.ToPresentationWithKeyBinding(null!, "email"));
+            testSdJwt.ToPresentationWithKeyBinding(null!, "email"));
 
         Assert.NotNull(exception);
     }
@@ -252,7 +252,7 @@ public class ExtensionsToSdJwtTests
     public void ToPresentationWithAllClaims_IncludesAllDisclosures()
     {
         // Act
-        var presentation = _testSdJwt.ToPresentationWithAllClaims();
+        var presentation = testSdJwt.ToPresentationWithAllClaims();
 
         // Assert
         Assert.NotNull(presentation);
@@ -268,7 +268,7 @@ public class ExtensionsToSdJwtTests
     public void ToPresentationWithAllClaims_ReturnsValidFormat()
     {
         // Act
-        var presentation = _testSdJwt.ToPresentationWithAllClaims();
+        var presentation = testSdJwt.ToPresentationWithAllClaims();
 
         // Assert
         Assert.NotNull(presentation);
@@ -304,9 +304,9 @@ public class ExtensionsToSdJwtTests
             "nonce");
 
         var sdJwtWithKb = new SdJwt(
-            _testSdJwt.Jwt,
-            _testSdJwt.Disclosures,
-            _testSdJwt.HashAlgorithm,
+            testSdJwt.Jwt,
+            testSdJwt.Disclosures,
+            testSdJwt.HashAlgorithm,
             keyBindingJwt);
 
         // Act
@@ -325,9 +325,9 @@ public class ExtensionsToSdJwtTests
     public void ToPresentation_CanBeUsedMultipleTimes_ProducesDifferentPresentations()
     {
         // Act
-        var presentation1 = _testSdJwt.ToPresentation("email");
-        var presentation2 = _testSdJwt.ToPresentation("email", "name");
-        var presentation3 = _testSdJwt.ToPresentation("name");
+        var presentation1 = testSdJwt.ToPresentation("email");
+        var presentation2 = testSdJwt.ToPresentation("email", "name");
+        var presentation3 = testSdJwt.ToPresentation("name");
 
         // Assert - All should be valid but different
         Assert.NotEqual(presentation1, presentation2);
@@ -339,14 +339,14 @@ public class ExtensionsToSdJwtTests
     public void AllMethods_ProduceValidPresentationFormat()
     {
         // Act
-        var presentation1 = _testSdJwt.ToPresentation("email");
-        var presentation2 = _testSdJwt.ToPresentationWithAllClaims();
+        var presentation1 = testSdJwt.ToPresentation("email");
+        var presentation2 = testSdJwt.ToPresentationWithAllClaims();
 
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var privateKey = ecdsa.ExportECPrivateKey();
         var generator = new KeyBindingGenerator();
         var kb = generator.CreateKeyBindingJwt(privateKey, "hash", "aud", "nonce");
-        var presentation3 = _testSdJwt.ToPresentationWithKeyBinding(kb, "email");
+        var presentation3 = testSdJwt.ToPresentationWithKeyBinding(kb, "email");
 
         // Assert - All should contain ~ separator
         Assert.Contains("~", presentation1);

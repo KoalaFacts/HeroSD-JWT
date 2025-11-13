@@ -360,275 +360,275 @@ public class SdJwtVerifier : ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
-        // Parse presentation into parts: JWT~disclosure1~disclosure2~...~keyBinding
-        var parts = presentation.Split('~');
-        if (parts.Length < 2)
-        {
-            errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add("Invalid presentation format: expected at least JWT and empty slots");
-            return new VerificationResult(errors, string.Join("; ", errorDetails));
-        }
-
-        var jwt = parts[0];
-
-        // Validate JWT size
-        if (jwt.Length > Constants.MaxJwtSizeBytes / 2)
-        {
-            errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add("JWT component exceeds reasonable size limit");
-            return new VerificationResult(errors, string.Join("; ", errorDetails));
-        }
-        var disclosures = new List<string>();
-        var keyBindingJwt = parts.Length > 1 ? parts[^1] : null;
-
-        // Extract disclosures (all parts between JWT and key binding, excluding empty strings)
-        // Limit to prevent DoS attacks via excessive disclosures
-        for (int i = 1; i < parts.Length - 1; i++)
-        {
-            if (!string.IsNullOrWhiteSpace(parts[i]))
-            {
-                if (disclosures.Count >= Constants.MaxDisclosures)
-                {
-                    errors.Add(ErrorCode.InvalidInput);
-                    errorDetails.Add($"Too many disclosures: exceeds maximum of {Constants.MaxDisclosures}");
-                    return new VerificationResult(errors, string.Join("; ", errorDetails));
-                }
-
-                disclosures.Add(parts[i]);
-            }
-        }
-
-        // Step 1: Verify JWT signature
-        bool signatureValid = false;
-        try
-        {
-            signatureValid = signatureValidator.VerifyJwtSignature(jwt, publicKey);
-        }
-        catch (AlgorithmConfusionException)
-        {
-            throw; // Re-throw algorithm confusion exceptions
-        }
-        catch (AlgorithmNotSupportedException)
-        {
-            throw; // Re-throw unsupported algorithm exceptions
-        }
-        catch (Exception ex)
-        {
-            errors.Add(ErrorCode.InvalidSignature);
-            errorDetails.Add($"Signature validation failed: {ex.Message}");
-        }
-
-        if (!signatureValid)
-        {
-            errors.Add(ErrorCode.InvalidSignature);
-            errorDetails.Add("JWT signature is invalid");
-        }
-
-        // Step 2: Parse JWT payload
-        var jwtParts = jwt.Split('.');
-        if (jwtParts.Length != 3)
-        {
-            errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add("Invalid JWT format");
-            return new VerificationResult(errors, string.Join("; ", errorDetails));
-        }
-
-        JsonElement payload;
-        try
-        {
-            var payloadJson = Base64UrlEncoder.DecodeString(jwtParts[1]);
-            payload = JsonDocument.Parse(payloadJson).RootElement;
-        }
-        catch (Exception ex)
-        {
-            errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add($"Failed to parse JWT payload: {ex.Message}");
-            return new VerificationResult(errors, string.Join("; ", errorDetails));
-        }
-
-        // Step 3: Validate temporal claims (exp, nbf, iat)
-        bool claimsValid = claimValidator.ValidateTemporalClaims(payload, options);
-        if (!claimsValid)
-        {
-            errors.Add(ErrorCode.TokenExpired);
-            errorDetails.Add("Temporal claims validation failed");
-        }
-
-        // Validate issuer if configured
-        if (!claimValidator.ValidateIssuer(payload, options.ExpectedIssuer))
-        {
-            errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add("Issuer validation failed");
-        }
-
-        // Validate audience if configured
-        if (!claimValidator.ValidateAudience(payload, options.ExpectedAudience))
-        {
-            errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add("Audience validation failed");
-        }
-
-        // Step 4: Validate disclosure digests
-        HashAlgorithm algorithm;
-        try
-        {
-            algorithm = GetHashAlgorithm(payload, expectedHashAlgorithm);
-        }
-        catch (SdJwtException ex) when (ex.ErrorCode == ErrorCode.AlgorithmConfusion)
-        {
-            errors.Add(ErrorCode.HashAlgorithmMismatch);
-            errorDetails.Add(ex.Message);
-            return new VerificationResult(errors, string.Join("; ", errorDetails));
-        }
-
-        // Collect all _sd array digests from both the JWT payload AND disclosure values
-        // This supports nested selective disclosure per SD-JWT spec
-        var expectedDigests = new List<Digest>();
-        CollectAllSdDigests(payload, expectedDigests, algorithm);
-
-        // Also collect _sd digests from disclosure values (for nested structures)
-        foreach (var disclosure in disclosures)
-        {
-            try
-            {
-                var json = Base64UrlEncoder.DecodeString(disclosure);
-                var array = JsonDocument.Parse(json).RootElement;
-
-                if (array.ValueKind == JsonValueKind.Array && array.GetArrayLength() >= 2)
-                {
-                    // For 3-element disclosures, check if the value contains _sd arrays
-                    var valueIndex = array.GetArrayLength() == 3 ? 2 : 1;
-                    var value = array[valueIndex];
-                    CollectAllSdDigests(value, expectedDigests, algorithm);
-                }
-            }
-            catch
-            {
-                // Skip malformed disclosures
-            }
-        }
-
-        if (disclosures.Count > 0 && expectedDigests.Count > 0)
-        {
-            bool digestsValid = digestValidator.ValidateAllDigests(disclosures, expectedDigests, algorithm);
-            if (!digestsValid)
-            {
-                errors.Add(ErrorCode.DigestMismatch);
-                errorDetails.Add("Disclosure digest validation failed");
-            }
-        }
-
-        // Step 5: Validate key binding if present or required
-        if (!string.IsNullOrWhiteSpace(keyBindingJwt))
-        {
-            // Extract holder's public key from cnf claim
-            if (!payload.TryGetProperty("cnf", out var cnfElement) ||
-                !cnfElement.TryGetProperty("jwk", out var jwkElement))
+            // Parse presentation into parts: JWT~disclosure1~disclosure2~...~keyBinding
+            var parts = presentation.Split('~');
+            if (parts.Length < 2)
             {
                 errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add("Key binding JWT present but cnf claim missing from SD-JWT");
+                errorDetails.Add("Invalid presentation format: expected at least JWT and empty slots");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
-            byte[] holderPublicKey;
-            try
+            var jwt = parts[0];
+
+            // Validate JWT size
+            if (jwt.Length > Constants.MaxJwtSizeBytes / 2)
             {
-                // Parse JWK per RFC 7800 - support both legacy base64 format and proper JWK
-                if (jwkElement.ValueKind == JsonValueKind.String)
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("JWT component exceeds reasonable size limit");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+            var disclosures = new List<string>();
+            var keyBindingJwt = parts.Length > 1 ? parts[^1] : null;
+
+            // Extract disclosures (all parts between JWT and key binding, excluding empty strings)
+            // Limit to prevent DoS attacks via excessive disclosures
+            for (int i = 1; i < parts.Length - 1; i++)
+            {
+                if (!string.IsNullOrWhiteSpace(parts[i]))
                 {
-                    // Legacy format: base64-encoded raw key (for backward compatibility)
-                    var jwkBase64 = jwkElement.GetString();
-                    if (string.IsNullOrWhiteSpace(jwkBase64))
+                    if (disclosures.Count >= Constants.MaxDisclosures)
                     {
                         errors.Add(ErrorCode.InvalidInput);
-                        errorDetails.Add("Invalid cnf claim: jwk is empty");
+                        errorDetails.Add($"Too many disclosures: exceeds maximum of {Constants.MaxDisclosures}");
                         return new VerificationResult(errors, string.Join("; ", errorDetails));
                     }
-                    holderPublicKey = Convert.FromBase64String(jwkBase64);
-                }
-                else if (jwkElement.ValueKind == JsonValueKind.Object)
-                {
-                    // RFC 7800 format: proper JWK with kty, crv, x, y
-                    holderPublicKey = ecPublicKeyConverter.FromJwk(jwkElement);
-                }
-                else
-                {
-                    errors.Add(ErrorCode.InvalidInput);
-                    errorDetails.Add("Invalid cnf claim: jwk must be a string or object");
-                    return new VerificationResult(errors, string.Join("; ", errorDetails));
-                }
 
-                // Validate the public key format and curve
-                using var ecdsa = ECDsa.Create();
-                ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
-
-                // Only P-256 (ES256) is supported
-                if (ecdsa.KeySize != 256)
-                {
-                    errors.Add(ErrorCode.UnsupportedAlgorithm);
-                    errorDetails.Add($"Unsupported elliptic curve: only P-256 is supported, got {ecdsa.KeySize}-bit key");
-                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                    disclosures.Add(parts[i]);
                 }
-            }
-            catch (FormatException)
-            {
-                errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add("Invalid cnf claim: jwk encoding error");
-                return new VerificationResult(errors, string.Join("; ", errorDetails));
-            }
-            catch (CryptographicException)
-            {
-                errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add("Invalid cnf claim: jwk is not a valid ECDSA public key");
-                return new VerificationResult(errors, string.Join("; ", errorDetails));
-            }
-            catch (ArgumentException ex)
-            {
-                errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add($"Invalid cnf claim JWK: {ex.Message}");
-                return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
-            // Compute SD-JWT hash for key binding validation
-            // The hash is computed over: JWT~disclosure1~disclosure2~...~
-            // (everything before the key binding JWT, including the trailing tilde)
-            var sdJwtParts = parts.Take(parts.Length - 1);
-            var sdJwtString = string.Join("~", sdJwtParts) + "~";
-            string sdJwtHash;
+            // Step 1: Verify JWT signature
+            bool signatureValid = false;
             try
             {
-                using var sha256 = SHA256.Create();
-                var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(sdJwtString));
-                sdJwtHash = Base64UrlEncoder.Encode(hashBytes);
+                signatureValid = signatureValidator.VerifyJwtSignature(jwt, publicKey);
+            }
+            catch (AlgorithmConfusionException)
+            {
+                throw; // Re-throw algorithm confusion exceptions
+            }
+            catch (AlgorithmNotSupportedException)
+            {
+                throw; // Re-throw unsupported algorithm exceptions
+            }
+            catch (Exception ex)
+            {
+                errors.Add(ErrorCode.InvalidSignature);
+                errorDetails.Add($"Signature validation failed: {ex.Message}");
+            }
+
+            if (!signatureValid)
+            {
+                errors.Add(ErrorCode.InvalidSignature);
+                errorDetails.Add("JWT signature is invalid");
+            }
+
+            // Step 2: Parse JWT payload
+            var jwtParts = jwt.Split('.');
+            if (jwtParts.Length != 3)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("Invalid JWT format");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            JsonElement payload;
+            try
+            {
+                var payloadJson = Base64UrlEncoder.DecodeString(jwtParts[1]);
+                payload = JsonDocument.Parse(payloadJson).RootElement;
             }
             catch (Exception ex)
             {
                 errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add($"Failed to compute SD-JWT hash: {ex.Message}");
+                errorDetails.Add($"Failed to parse JWT payload: {ex.Message}");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
-            // Validate key binding JWT
-            bool keyBindingValid = keyBindingValidator.ValidateKeyBinding(
-                keyBindingJwt,
-                holderPublicKey,
-                sdJwtHash,
-                options.ExpectedAudience,
-                options.ExpectedNonce);
-
-            if (!keyBindingValid)
+            // Step 3: Validate temporal claims (exp, nbf, iat)
+            bool claimsValid = claimValidator.ValidateTemporalClaims(payload, options);
+            if (!claimsValid)
             {
-                errors.Add(ErrorCode.InvalidSignature);
-                errorDetails.Add("Key binding JWT validation failed");
+                errors.Add(ErrorCode.TokenExpired);
+                errorDetails.Add("Temporal claims validation failed");
             }
-        }
-        else if (options.RequireKeyBinding)
-        {
-            // Key binding is required but not present
-            errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add("Key binding is required but not present");
-            return new VerificationResult(errors, string.Join("; ", errorDetails));
-        }
+
+            // Validate issuer if configured
+            if (!claimValidator.ValidateIssuer(payload, options.ExpectedIssuer))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("Issuer validation failed");
+            }
+
+            // Validate audience if configured
+            if (!claimValidator.ValidateAudience(payload, options.ExpectedAudience))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("Audience validation failed");
+            }
+
+            // Step 4: Validate disclosure digests
+            HashAlgorithm algorithm;
+            try
+            {
+                algorithm = GetHashAlgorithm(payload, expectedHashAlgorithm);
+            }
+            catch (SdJwtException ex) when (ex.ErrorCode == ErrorCode.AlgorithmConfusion)
+            {
+                errors.Add(ErrorCode.HashAlgorithmMismatch);
+                errorDetails.Add(ex.Message);
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            // Collect all _sd array digests from both the JWT payload AND disclosure values
+            // This supports nested selective disclosure per SD-JWT spec
+            var expectedDigests = new List<Digest>();
+            CollectAllSdDigests(payload, expectedDigests, algorithm);
+
+            // Also collect _sd digests from disclosure values (for nested structures)
+            foreach (var disclosure in disclosures)
+            {
+                try
+                {
+                    var json = Base64UrlEncoder.DecodeString(disclosure);
+                    var array = JsonDocument.Parse(json).RootElement;
+
+                    if (array.ValueKind == JsonValueKind.Array && array.GetArrayLength() >= 2)
+                    {
+                        // For 3-element disclosures, check if the value contains _sd arrays
+                        var valueIndex = array.GetArrayLength() == 3 ? 2 : 1;
+                        var value = array[valueIndex];
+                        CollectAllSdDigests(value, expectedDigests, algorithm);
+                    }
+                }
+                catch
+                {
+                    // Skip malformed disclosures
+                }
+            }
+
+            if (disclosures.Count > 0 && expectedDigests.Count > 0)
+            {
+                bool digestsValid = digestValidator.ValidateAllDigests(disclosures, expectedDigests, algorithm);
+                if (!digestsValid)
+                {
+                    errors.Add(ErrorCode.DigestMismatch);
+                    errorDetails.Add("Disclosure digest validation failed");
+                }
+            }
+
+            // Step 5: Validate key binding if present or required
+            if (!string.IsNullOrWhiteSpace(keyBindingJwt))
+            {
+                // Extract holder's public key from cnf claim
+                if (!payload.TryGetProperty("cnf", out var cnfElement) ||
+                    !cnfElement.TryGetProperty("jwk", out var jwkElement))
+                {
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add("Key binding JWT present but cnf claim missing from SD-JWT");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
+
+                byte[] holderPublicKey;
+                try
+                {
+                    // Parse JWK per RFC 7800 - support both legacy base64 format and proper JWK
+                    if (jwkElement.ValueKind == JsonValueKind.String)
+                    {
+                        // Legacy format: base64-encoded raw key (for backward compatibility)
+                        var jwkBase64 = jwkElement.GetString();
+                        if (string.IsNullOrWhiteSpace(jwkBase64))
+                        {
+                            errors.Add(ErrorCode.InvalidInput);
+                            errorDetails.Add("Invalid cnf claim: jwk is empty");
+                            return new VerificationResult(errors, string.Join("; ", errorDetails));
+                        }
+                        holderPublicKey = Convert.FromBase64String(jwkBase64);
+                    }
+                    else if (jwkElement.ValueKind == JsonValueKind.Object)
+                    {
+                        // RFC 7800 format: proper JWK with kty, crv, x, y
+                        holderPublicKey = ecPublicKeyConverter.FromJwk(jwkElement);
+                    }
+                    else
+                    {
+                        errors.Add(ErrorCode.InvalidInput);
+                        errorDetails.Add("Invalid cnf claim: jwk must be a string or object");
+                        return new VerificationResult(errors, string.Join("; ", errorDetails));
+                    }
+
+                    // Validate the public key format and curve
+                    using var ecdsa = ECDsa.Create();
+                    ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
+
+                    // Only P-256 (ES256) is supported
+                    if (ecdsa.KeySize != 256)
+                    {
+                        errors.Add(ErrorCode.UnsupportedAlgorithm);
+                        errorDetails.Add($"Unsupported elliptic curve: only P-256 is supported, got {ecdsa.KeySize}-bit key");
+                        return new VerificationResult(errors, string.Join("; ", errorDetails));
+                    }
+                }
+                catch (FormatException)
+                {
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add("Invalid cnf claim: jwk encoding error");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
+                catch (CryptographicException)
+                {
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add("Invalid cnf claim: jwk is not a valid ECDSA public key");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
+                catch (ArgumentException ex)
+                {
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add($"Invalid cnf claim JWK: {ex.Message}");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
+
+                // Compute SD-JWT hash for key binding validation
+                // The hash is computed over: JWT~disclosure1~disclosure2~...~
+                // (everything before the key binding JWT, including the trailing tilde)
+                var sdJwtParts = parts.Take(parts.Length - 1);
+                var sdJwtString = string.Join("~", sdJwtParts) + "~";
+                string sdJwtHash;
+                try
+                {
+                    using var sha256 = SHA256.Create();
+                    var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(sdJwtString));
+                    sdJwtHash = Base64UrlEncoder.Encode(hashBytes);
+                }
+                catch (Exception ex)
+                {
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add($"Failed to compute SD-JWT hash: {ex.Message}");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
+
+                // Validate key binding JWT
+                bool keyBindingValid = keyBindingValidator.ValidateKeyBinding(
+                    keyBindingJwt,
+                    holderPublicKey,
+                    sdJwtHash,
+                    options.ExpectedAudience,
+                    options.ExpectedNonce);
+
+                if (!keyBindingValid)
+                {
+                    errors.Add(ErrorCode.InvalidSignature);
+                    errorDetails.Add("Key binding JWT validation failed");
+                }
+            }
+            else if (options.RequireKeyBinding)
+            {
+                // Key binding is required but not present
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("Key binding is required but not present");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
 
             // Step 6: Extract disclosed claims with full paths
             var disclosedClaims = ExtractDisclosedClaims(jwt, disclosures, algorithm);

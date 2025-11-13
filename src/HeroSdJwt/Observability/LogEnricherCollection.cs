@@ -11,8 +11,8 @@ namespace HeroSdJwt.Observability;
 /// </remarks>
 public class LogEnricherCollection
 {
-    private readonly List<ILogEnricher> _enrichers = new();
-    private readonly object _lock = new();
+    private readonly List<ILogEnricher> enrichers = new();
+    private readonly object lock = new ();
 
     /// <summary>
     /// Gets the singleton instance of the log enricher collection.
@@ -29,10 +29,10 @@ public class LogEnricherCollection
         if (enricher == null)
             throw new ArgumentNullException(nameof(enricher));
 
-        lock (_lock)
-        {
-            _enrichers.Add(enricher);
-        }
+        lock (lock)
+            {
+                enrichers.Add(enricher);
+            }
     }
 
     /// <summary>
@@ -45,10 +45,10 @@ public class LogEnricherCollection
         if (enricher == null)
             return false;
 
-        lock (_lock)
-        {
-            return _enrichers.Remove(enricher);
-        }
+        lock (lock)
+            {
+                return enrichers.Remove(enricher);
+            }
     }
 
     /// <summary>
@@ -56,10 +56,10 @@ public class LogEnricherCollection
     /// </summary>
     public void Clear()
     {
-        lock (_lock)
-        {
-            _enrichers.Clear();
-        }
+        lock (lock)
+            {
+                enrichers.Clear();
+            }
     }
 
     /// <summary>
@@ -69,10 +69,10 @@ public class LogEnricherCollection
     {
         get
         {
-            lock (_lock)
-            {
-                return _enrichers.Count;
-            }
+            lock (lock)
+                {
+                    return enrichers.Count;
+                }
         }
     }
 
@@ -83,10 +83,10 @@ public class LogEnricherCollection
     internal void EnrichLog(LogEnrichmentContext context)
     {
         List<ILogEnricher> enrichersCopy;
-        lock (_lock)
-        {
-            enrichersCopy = new List<ILogEnricher>(_enrichers);
-        }
+        lock (lock)
+            {
+                enrichersCopy = new List<ILogEnricher>(enrichers);
+            }
 
         foreach (var enricher in enrichersCopy)
         {

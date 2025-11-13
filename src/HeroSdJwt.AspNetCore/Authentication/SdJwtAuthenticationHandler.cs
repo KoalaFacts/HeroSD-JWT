@@ -18,7 +18,7 @@ namespace HeroSdJwt.AspNetCore.Authentication;
 /// </summary>
 public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticationOptions>
 {
-    private readonly ISdJwtVerifier _verifier;
+    private readonly ISdJwtVerifier verifier;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtAuthenticationHandler"/> class.
@@ -36,7 +36,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
         : base(options, logger, encoder)
 #pragma warning restore CS9113
     {
-        _verifier = verifier ?? throw new ArgumentNullException(nameof(verifier));
+        verifier = verifier ?? throw new ArgumentNullException(nameof(verifier));
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
             if (Options.KeyResolver != null)
             {
                 // Use key resolver with optional fallback
-                result = _verifier.TryVerifyPresentation(
+                result = verifier.TryVerifyPresentation(
                     token,
                     Options.KeyResolver,
                     Options.FallbackKey,
@@ -71,7 +71,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
             else if (Options.FallbackKey != null)
             {
                 // Use fallback key only
-                result = _verifier.TryVerifyPresentation(
+                result = verifier.TryVerifyPresentation(
                     token,
                     Options.FallbackKey,
                     Options.VerificationOptions.ExpectedHashAlgorithm);

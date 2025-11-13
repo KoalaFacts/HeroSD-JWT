@@ -11,21 +11,21 @@ namespace HeroSdJwt.Observability;
 /// </remarks>
 internal class EnrichedLogger<T> : ILogger<T>
 {
-    private readonly ILogger<T> _innerLogger;
+    private readonly ILogger<T> innerLogger;
 
     public EnrichedLogger(ILogger<T> innerLogger)
     {
-        _innerLogger = innerLogger ?? throw new ArgumentNullException(nameof(innerLogger));
+        innerLogger = innerLogger ?? throw new ArgumentNullException(nameof(innerLogger));
     }
 
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull
     {
-        return _innerLogger.BeginScope(state);
+        return innerLogger.BeginScope(state);
     }
 
     public bool IsEnabled(LogLevel logLevel)
     {
-        return _innerLogger.IsEnabled(logLevel);
+        return innerLogger.IsEnabled(logLevel);
     }
 
     public void Log<TState>(
@@ -55,14 +55,14 @@ internal class EnrichedLogger<T> : ILogger<T>
                 }
             }
 
-            using (_innerLogger.BeginScope(enrichedState))
+            using (innerLogger.BeginScope(enrichedState))
             {
-                _innerLogger.Log(logLevel, eventId, state, exception, formatter);
+                innerLogger.Log(logLevel, eventId, state, exception, formatter);
             }
         }
         else
         {
-            _innerLogger.Log(logLevel, eventId, state, exception, formatter);
+            innerLogger.Log(logLevel, eventId, state, exception, formatter);
         }
     }
 }

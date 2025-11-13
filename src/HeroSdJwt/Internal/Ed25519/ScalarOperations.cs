@@ -22,32 +22,32 @@ internal static class ScalarOperations
     ///
     /// L = 2^252 + 27742317777372353535851937790883648493
     /// </summary>
-    internal static void sc_reduce(byte[] s)
+    internal static void ScReduce(byte[] s)
     {
-        long s0 = 2097151 & load_3(s, 0);
-        long s1 = 2097151 & (load_4(s, 2) >> 5);
-        long s2 = 2097151 & (load_3(s, 5) >> 2);
-        long s3 = 2097151 & (load_4(s, 7) >> 7);
-        long s4 = 2097151 & (load_4(s, 10) >> 4);
-        long s5 = 2097151 & (load_3(s, 13) >> 1);
-        long s6 = 2097151 & (load_4(s, 15) >> 6);
-        long s7 = 2097151 & (load_3(s, 18) >> 3);
-        long s8 = 2097151 & load_3(s, 21);
-        long s9 = 2097151 & (load_4(s, 23) >> 5);
-        long s10 = 2097151 & (load_3(s, 26) >> 2);
-        long s11 = 2097151 & (load_4(s, 28) >> 7);
-        long s12 = 2097151 & (load_4(s, 31) >> 4);
-        long s13 = 2097151 & (load_3(s, 34) >> 1);
-        long s14 = 2097151 & (load_4(s, 36) >> 6);
-        long s15 = 2097151 & (load_3(s, 39) >> 3);
-        long s16 = 2097151 & load_3(s, 42);
-        long s17 = 2097151 & (load_4(s, 44) >> 5);
-        long s18 = 2097151 & (load_3(s, 47) >> 2);
-        long s19 = 2097151 & (load_4(s, 49) >> 7);
-        long s20 = 2097151 & (load_4(s, 52) >> 4);
-        long s21 = 2097151 & (load_3(s, 55) >> 1);
-        long s22 = 2097151 & (load_4(s, 57) >> 6);
-        long s23 = (load_4(s, 60) >> 3);
+        long s0 = 2097151 & Load3(s, 0);
+        long s1 = 2097151 & (Load4(s, 2) >> 5);
+        long s2 = 2097151 & (Load3(s, 5) >> 2);
+        long s3 = 2097151 & (Load4(s, 7) >> 7);
+        long s4 = 2097151 & (Load4(s, 10) >> 4);
+        long s5 = 2097151 & (Load3(s, 13) >> 1);
+        long s6 = 2097151 & (Load4(s, 15) >> 6);
+        long s7 = 2097151 & (Load3(s, 18) >> 3);
+        long s8 = 2097151 & Load3(s, 21);
+        long s9 = 2097151 & (Load4(s, 23) >> 5);
+        long s10 = 2097151 & (Load3(s, 26) >> 2);
+        long s11 = 2097151 & (Load4(s, 28) >> 7);
+        long s12 = 2097151 & (Load4(s, 31) >> 4);
+        long s13 = 2097151 & (Load3(s, 34) >> 1);
+        long s14 = 2097151 & (Load4(s, 36) >> 6);
+        long s15 = 2097151 & (Load3(s, 39) >> 3);
+        long s16 = 2097151 & Load3(s, 42);
+        long s17 = 2097151 & (Load4(s, 44) >> 5);
+        long s18 = 2097151 & (Load3(s, 47) >> 2);
+        long s19 = 2097151 & (Load4(s, 49) >> 7);
+        long s20 = 2097151 & (Load4(s, 52) >> 4);
+        long s21 = 2097151 & (Load3(s, 55) >> 1);
+        long s22 = 2097151 & (Load4(s, 57) >> 6);
+        long s23 = (Load4(s, 60) >> 3);
 
         long carry0, carry1, carry2, carry3, carry4, carry5, carry6, carry7, carry8, carry9, carry10, carry11, carry12, carry13, carry14, carry15, carry16;
 
@@ -250,46 +250,46 @@ internal static class ScalarOperations
     ///
     /// Used in signature generation: s = (r + k * privateKey) mod L
     /// </summary>
-    internal static void sc_muladd(byte[] s, byte[] a, byte[] b, byte[] c)
+    internal static void ScMuladd(byte[] s, byte[] a, byte[] b, byte[] c)
     {
-        long a0 = 2097151 & load_3(a, 0);
-        long a1 = 2097151 & (load_4(a, 2) >> 5);
-        long a2 = 2097151 & (load_3(a, 5) >> 2);
-        long a3 = 2097151 & (load_4(a, 7) >> 7);
-        long a4 = 2097151 & (load_4(a, 10) >> 4);
-        long a5 = 2097151 & (load_3(a, 13) >> 1);
-        long a6 = 2097151 & (load_4(a, 15) >> 6);
-        long a7 = 2097151 & (load_3(a, 18) >> 3);
-        long a8 = 2097151 & load_3(a, 21);
-        long a9 = 2097151 & (load_4(a, 23) >> 5);
-        long a10 = 2097151 & (load_3(a, 26) >> 2);
-        long a11 = (load_4(a, 28) >> 7);
+        long a0 = 2097151 & Load3(a, 0);
+        long a1 = 2097151 & (Load4(a, 2) >> 5);
+        long a2 = 2097151 & (Load3(a, 5) >> 2);
+        long a3 = 2097151 & (Load4(a, 7) >> 7);
+        long a4 = 2097151 & (Load4(a, 10) >> 4);
+        long a5 = 2097151 & (Load3(a, 13) >> 1);
+        long a6 = 2097151 & (Load4(a, 15) >> 6);
+        long a7 = 2097151 & (Load3(a, 18) >> 3);
+        long a8 = 2097151 & Load3(a, 21);
+        long a9 = 2097151 & (Load4(a, 23) >> 5);
+        long a10 = 2097151 & (Load3(a, 26) >> 2);
+        long a11 = (Load4(a, 28) >> 7);
 
-        long b0 = 2097151 & load_3(b, 0);
-        long b1 = 2097151 & (load_4(b, 2) >> 5);
-        long b2 = 2097151 & (load_3(b, 5) >> 2);
-        long b3 = 2097151 & (load_4(b, 7) >> 7);
-        long b4 = 2097151 & (load_4(b, 10) >> 4);
-        long b5 = 2097151 & (load_3(b, 13) >> 1);
-        long b6 = 2097151 & (load_4(b, 15) >> 6);
-        long b7 = 2097151 & (load_3(b, 18) >> 3);
-        long b8 = 2097151 & load_3(b, 21);
-        long b9 = 2097151 & (load_4(b, 23) >> 5);
-        long b10 = 2097151 & (load_3(b, 26) >> 2);
-        long b11 = (load_4(b, 28) >> 7);
+        long b0 = 2097151 & Load3(b, 0);
+        long b1 = 2097151 & (Load4(b, 2) >> 5);
+        long b2 = 2097151 & (Load3(b, 5) >> 2);
+        long b3 = 2097151 & (Load4(b, 7) >> 7);
+        long b4 = 2097151 & (Load4(b, 10) >> 4);
+        long b5 = 2097151 & (Load3(b, 13) >> 1);
+        long b6 = 2097151 & (Load4(b, 15) >> 6);
+        long b7 = 2097151 & (Load3(b, 18) >> 3);
+        long b8 = 2097151 & Load3(b, 21);
+        long b9 = 2097151 & (Load4(b, 23) >> 5);
+        long b10 = 2097151 & (Load3(b, 26) >> 2);
+        long b11 = (Load4(b, 28) >> 7);
 
-        long c0 = 2097151 & load_3(c, 0);
-        long c1 = 2097151 & (load_4(c, 2) >> 5);
-        long c2 = 2097151 & (load_3(c, 5) >> 2);
-        long c3 = 2097151 & (load_4(c, 7) >> 7);
-        long c4 = 2097151 & (load_4(c, 10) >> 4);
-        long c5 = 2097151 & (load_3(c, 13) >> 1);
-        long c6 = 2097151 & (load_4(c, 15) >> 6);
-        long c7 = 2097151 & (load_3(c, 18) >> 3);
-        long c8 = 2097151 & load_3(c, 21);
-        long c9 = 2097151 & (load_4(c, 23) >> 5);
-        long c10 = 2097151 & (load_3(c, 26) >> 2);
-        long c11 = (load_4(c, 28) >> 7);
+        long c0 = 2097151 & Load3(c, 0);
+        long c1 = 2097151 & (Load4(c, 2) >> 5);
+        long c2 = 2097151 & (Load3(c, 5) >> 2);
+        long c3 = 2097151 & (Load4(c, 7) >> 7);
+        long c4 = 2097151 & (Load4(c, 10) >> 4);
+        long c5 = 2097151 & (Load3(c, 13) >> 1);
+        long c6 = 2097151 & (Load4(c, 15) >> 6);
+        long c7 = 2097151 & (Load3(c, 18) >> 3);
+        long c8 = 2097151 & Load3(c, 21);
+        long c9 = 2097151 & (Load4(c, 23) >> 5);
+        long c10 = 2097151 & (Load3(c, 26) >> 2);
+        long c11 = (Load4(c, 28) >> 7);
 
         long s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15, s16, s17, s18, s19, s20, s21, s22, s23;
         long carry0, carry1, carry2, carry3, carry4, carry5, carry6, carry7, carry8, carry9, carry10, carry11, carry12, carry13, carry14, carry15, carry16, carry17, carry18, carry19, carry20, carry21, carry22;
@@ -531,7 +531,7 @@ internal static class ScalarOperations
         s[31] = (byte)(s11 >> 17);
     }
 
-    private static long load_3(byte[] data, int offset)
+    private static long Load3(byte[] data, int offset)
     {
         uint result;
         result = data[offset + 0];
@@ -540,7 +540,7 @@ internal static class ScalarOperations
         return (long)result;
     }
 
-    private static long load_4(byte[] data, int offset)
+    private static long Load4(byte[] data, int offset)
     {
         uint result;
         result = data[offset + 0];

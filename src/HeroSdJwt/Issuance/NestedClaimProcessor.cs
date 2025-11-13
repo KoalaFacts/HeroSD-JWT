@@ -14,7 +14,7 @@ internal class NestedClaimProcessor
     private readonly IDigestCalculator digestCalculator;
 
     // Security: Maximum nesting depth to prevent stack overflow attacks
-    private const int maxNestingDepth = 10;
+    private const int MaxNestingDepth = 10;
 
     public NestedClaimProcessor(IDisclosureGenerator disclosureGenerator, IDigestCalculator digestCalculator)
     {

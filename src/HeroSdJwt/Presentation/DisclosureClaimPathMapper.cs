@@ -16,7 +16,7 @@ public class DisclosureClaimPathMapper : IDisclosureClaimPathMapper
     private readonly IDisclosureParser disclosureParser;
 
     // Security: Maximum nesting depth to prevent stack overflow attacks
-    private const int maxNestingDepth = 10;
+    private const int MaxNestingDepth = 10;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DisclosureClaimPathMapper"/> class.

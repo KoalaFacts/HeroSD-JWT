@@ -62,7 +62,7 @@ internal struct FieldElement
     internal bool IsNonZero()
     {
         var bytes = new byte[32];
-        FieldOperations.fe_tobytes(bytes, 0, ref this);
+        FieldOperations.FeToBytes(bytes, 0, ref this);
 
         // Check if all bytes are zero
         var result = 0;
@@ -80,7 +80,7 @@ internal struct FieldElement
     internal bool IsNegative()
     {
         var bytes = new byte[32];
-        FieldOperations.fe_tobytes(bytes, 0, ref this);
+        FieldOperations.FeToBytes(bytes, 0, ref this);
         return (bytes[0] & 1) != 0;
     }
 }

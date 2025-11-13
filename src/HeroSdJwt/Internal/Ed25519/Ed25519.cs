@@ -60,7 +60,7 @@ internal static class Ed25519
         if (publicKey.Length != PublicKeySizeInBytes)
             throw new ArgumentException($"Public key must be {PublicKeySizeInBytes} bytes", nameof(publicKey));
 
-        return Ed25519Operations.crypto_sign_verify(signature, 0, message, 0, message.Length, publicKey, 0);
+        return Ed25519Operations.CryptoSignVerify(signature, 0, message, 0, message.Length, publicKey, 0);
     }
 
     /// <summary>
@@ -79,7 +79,7 @@ internal static class Ed25519
             throw new ArgumentException($"Expanded private key must be {ExpandedPrivateKeySizeInBytes} bytes", nameof(expandedPrivateKey));
 
         var signature = new byte[SignatureSizeInBytes];
-        Ed25519Operations.crypto_sign(signature, 0, message, 0, message.Length, expandedPrivateKey, 0);
+        Ed25519Operations.CryptoSign(signature, 0, message, 0, message.Length, expandedPrivateKey, 0);
         return signature;
     }
 
@@ -98,7 +98,7 @@ internal static class Ed25519
         var publicKey = new byte[PublicKeySizeInBytes];
         var expandedPrivateKey = new byte[ExpandedPrivateKeySizeInBytes];
 
-        Ed25519Operations.crypto_sign_keypair(publicKey, 0, expandedPrivateKey, 0, privateKeySeed, 0);
+        Ed25519Operations.CryptoSign_keypair(publicKey, 0, expandedPrivateKey, 0, privateKeySeed, 0);
 
         return (publicKey, expandedPrivateKey);
     }
@@ -118,7 +118,7 @@ internal static class Ed25519
         var publicKey = new byte[PublicKeySizeInBytes];
         var expandedPrivateKey = new byte[ExpandedPrivateKeySizeInBytes];
 
-        Ed25519Operations.crypto_sign_keypair(publicKey, 0, expandedPrivateKey, 0, privateKeySeed, 0);
+        Ed25519Operations.CryptoSign_keypair(publicKey, 0, expandedPrivateKey, 0, privateKeySeed, 0);
 
         return publicKey;
     }

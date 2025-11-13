@@ -27,7 +27,7 @@ internal static partial class FieldOperations
     /// Postconditions:
     ///   |h| bounded by 1.01*2^25,1.01*2^24,1.01*2^25,1.01*2^24,etc.
     /// </summary>
-    internal static void fe_mul(out FieldElement h, ref FieldElement f, ref FieldElement g)
+    internal static void FeMul(out FieldElement h, ref FieldElement f, ref FieldElement g)
     {
         int f0 = f.x0, f1 = f.x1, f2 = f.x2, f3 = f.x3, f4 = f.x4;
         int f5 = f.x5, f6 = f.x6, f7 = f.x7, f8 = f.x8, f9 = f.x9;

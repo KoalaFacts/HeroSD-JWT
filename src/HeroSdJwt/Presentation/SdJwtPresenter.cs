@@ -65,86 +65,86 @@ public class SdJwtPresenter : ISdJwtPresenter
             // Log presentation start
             logger.LogPresentationStarted(selectedClaimsList.Count);
 
-        // Use cached claim path mapping if available (computed at issuance time for performance),
-        // otherwise compute on-demand per SD-JWT spec: "it is up to the Holder how to maintain the mapping"
-        IReadOnlyDictionary<string, int> claimPathToIndex = sdJwt.ClaimPathMapping
-            ?? claimPathMapper.BuildClaimPathMapping(sdJwt);
+            // Use cached claim path mapping if available (computed at issuance time for performance),
+            // otherwise compute on-demand per SD-JWT spec: "it is up to the Holder how to maintain the mapping"
+            IReadOnlyDictionary<string, int> claimPathToIndex = sdJwt.ClaimPathMapping
+                ?? claimPathMapper.BuildClaimPathMapping(sdJwt);
 
-        // Select disclosures based on requested claim paths
-        // Also include parent disclosures for nested paths (e.g., for "address.geo.lat", include "address.geo")
-        var selectedDisclosureIndices = new HashSet<int>();
+            // Select disclosures based on requested claim paths
+            // Also include parent disclosures for nested paths (e.g., for "address.geo.lat", include "address.geo")
+            var selectedDisclosureIndices = new HashSet<int>();
 
-        foreach (var requestedPath in selectedClaimsList)
-        {
-            string claimPath = requestedPath;
-            int disclosureIndex;
-
-            if (!claimPathToIndex.TryGetValue(claimPath, out disclosureIndex))
+            foreach (var requestedPath in selectedClaimsList)
             {
-                // Check if this is a simple claim name (legacy support)
-                // Manual loop to avoid LINQ allocation
-                bool found = false;
-                string? matchedKey = null;
-                foreach (var kvp in claimPathToIndex)
+                string claimPath = requestedPath;
+                int disclosureIndex;
+
+                if (!claimPathToIndex.TryGetValue(claimPath, out disclosureIndex))
                 {
-                    if (kvp.Key == claimPath ||
-                        kvp.Key.EndsWith($".{claimPath}", StringComparison.Ordinal) ||
-                        kvp.Key.EndsWith($"[{claimPath}]", StringComparison.Ordinal))
+                    // Check if this is a simple claim name (legacy support)
+                    // Manual loop to avoid LINQ allocation
+                    bool found = false;
+                    string? matchedKey = null;
+                    foreach (var kvp in claimPathToIndex)
                     {
-                        disclosureIndex = kvp.Value;
-                        matchedKey = kvp.Key;
-                        found = true;
+                        if (kvp.Key == claimPath ||
+                            kvp.Key.EndsWith($".{claimPath}", StringComparison.Ordinal) ||
+                            kvp.Key.EndsWith($"[{claimPath}]", StringComparison.Ordinal))
+                        {
+                            disclosureIndex = kvp.Value;
+                            matchedKey = kvp.Key;
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (found)
+                    {
+                        claimPath = matchedKey!; // Use the full matched path
+                    }
+                    else
+                    {
+                        throw new ArgumentException(
+                            $"Claim path '{claimPath}' not found in SD-JWT. " +
+                            $"Available paths: {string.Join(", ", claimPathToIndex.Keys)}",
+                            nameof(selectedClaimNames));
+                    }
+                }
+
+                if (disclosureIndex < 0 || disclosureIndex >= sdJwt.Disclosures.Count)
+                {
+                    throw new InvalidOperationException(
+                        $"Invalid disclosure index {disclosureIndex} for claim '{claimPath}'");
+                }
+
+                // Add this disclosure
+                selectedDisclosureIndices.Add(disclosureIndex);
+
+                // For nested paths, also add all parent disclosures
+                // E.g., for "address.geo.lat", also add "address.geo"
+                // Use ReadOnlySpan to avoid string allocations
+                ReadOnlySpan<char> pathSpan = claimPath.AsSpan();
+                int dotIndex = pathSpan.IndexOf('.');
+                while (dotIndex >= 0)
+                {
+                    // Find next dot for parent path
+                    int nextDotIndex = pathSpan[(dotIndex + 1)..].IndexOf('.');
+                    if (nextDotIndex >= 0)
+                    {
+                        int parentLength = dotIndex + 1 + nextDotIndex;
+                        string parentPath = claimPath.Substring(0, parentLength);
+                        if (claimPathToIndex.TryGetValue(parentPath, out var parentIndex))
+                        {
+                            selectedDisclosureIndices.Add(parentIndex);
+                        }
+                        dotIndex = parentLength;
+                    }
+                    else
+                    {
                         break;
                     }
                 }
-
-                if (found)
-                {
-                    claimPath = matchedKey!; // Use the full matched path
-                }
-                else
-                {
-                    throw new ArgumentException(
-                        $"Claim path '{claimPath}' not found in SD-JWT. " +
-                        $"Available paths: {string.Join(", ", claimPathToIndex.Keys)}",
-                        nameof(selectedClaimNames));
-                }
             }
-
-            if (disclosureIndex < 0 || disclosureIndex >= sdJwt.Disclosures.Count)
-            {
-                throw new InvalidOperationException(
-                    $"Invalid disclosure index {disclosureIndex} for claim '{claimPath}'");
-            }
-
-            // Add this disclosure
-            selectedDisclosureIndices.Add(disclosureIndex);
-
-            // For nested paths, also add all parent disclosures
-            // E.g., for "address.geo.lat", also add "address.geo"
-            // Use ReadOnlySpan to avoid string allocations
-            ReadOnlySpan<char> pathSpan = claimPath.AsSpan();
-            int dotIndex = pathSpan.IndexOf('.');
-            while (dotIndex >= 0)
-            {
-                // Find next dot for parent path
-                int nextDotIndex = pathSpan[(dotIndex + 1)..].IndexOf('.');
-                if (nextDotIndex >= 0)
-                {
-                    int parentLength = dotIndex + 1 + nextDotIndex;
-                    string parentPath = claimPath.Substring(0, parentLength);
-                    if (claimPathToIndex.TryGetValue(parentPath, out var parentIndex))
-                    {
-                        selectedDisclosureIndices.Add(parentIndex);
-                    }
-                    dotIndex = parentLength;
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
 
             // Convert indices to actual disclosures
             // Sort in-place and build list manually to avoid LINQ allocations

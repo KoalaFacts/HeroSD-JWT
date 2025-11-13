@@ -13,17 +13,17 @@ namespace HeroSdJwt.Observability;
 /// <code>
 /// public class TenantLogEnricher : ILogEnricher
 /// {
-///     private readonly ITenantContext _tenantContext;
+///     private readonly ITenantContext tenantContext;
 ///
 ///     public TenantLogEnricher(ITenantContext tenantContext)
 ///     {
-///         _tenantContext = tenantContext;
+///         tenantContext = tenantContext;
 ///     }
 ///
 ///     public void Enrich(LogEnrichmentContext context)
 ///     {
-///         context.AddProperty("TenantId", _tenantContext.CurrentTenantId);
-///         context.AddProperty("UserId", _tenantContext.CurrentUserId);
+///         context.AddProperty("TenantId", tenantContext.CurrentTenantId);
+///         context.AddProperty("UserId", tenantContext.CurrentUserId);
 ///     }
 /// }
 /// </code>
@@ -43,7 +43,7 @@ public interface ILogEnricher
 /// </summary>
 public class LogEnrichmentContext
 {
-    private readonly Dictionary<string, object?> _properties = new();
+    private readonly Dictionary<string, object?> properties = new();
 
     /// <summary>
     /// Gets the operation type being logged (e.g., "Issuance", "Verification", "Presentation").
@@ -63,7 +63,7 @@ public class LogEnrichmentContext
     /// <summary>
     /// Gets all enriched properties.
     /// </summary>
-    public IReadOnlyDictionary<string, object?> Properties => _properties;
+    public IReadOnlyDictionary<string, object?> Properties => properties;
 
     /// <summary>
     /// Adds a property to the log entry.
@@ -72,7 +72,7 @@ public class LogEnrichmentContext
     /// <param name="value">The property value.</param>
     public void AddProperty(string key, object? value)
     {
-        _properties[key] = value;
+        properties[key] = value;
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ public class LogEnrichmentContext
     /// <returns>true if the property was removed; otherwise, false.</returns>
     public bool RemoveProperty(string key)
     {
-        return _properties.Remove(key);
+        return properties.Remove(key);
     }
 
     /// <summary>
@@ -92,6 +92,6 @@ public class LogEnrichmentContext
     /// <returns>true if the property exists; otherwise, false.</returns>
     public bool HasProperty(string key)
     {
-        return _properties.ContainsKey(key);
+        return properties.ContainsKey(key);
     }
 }

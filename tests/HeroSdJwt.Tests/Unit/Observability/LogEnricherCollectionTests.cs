@@ -344,16 +344,16 @@ public class LogEnricherCollectionTests
 
     private class CustomEnricher : ILogEnricher
     {
-        private readonly Action<LogEnrichmentContext> _action;
+        private readonly Action<LogEnrichmentContext> action;
 
         public CustomEnricher(Action<LogEnrichmentContext> action)
         {
-            _action = action;
+            action = action;
         }
 
         public void Enrich(LogEnrichmentContext context)
         {
-            _action(context);
+            action(context);
         }
     }
 }

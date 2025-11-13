@@ -1,4 +1,4 @@
-﻿
+
 
 namespace HeroSdJwt.Internal.Ed25519
 {

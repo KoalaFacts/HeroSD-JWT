@@ -18,11 +18,11 @@ internal static partial class GroupOperations
     /// r.Y = p.Y * p.Z
     /// r.Z = p.Z * p.T
     /// </summary>
-    internal static void ge_p1p1_to_p2(out GroupElementP2 r, ref GroupElementP1P1 p)
+    internal static void GeP1P1ToP2(out GroupElementP2 r, ref GroupElementP1P1 p)
     {
-        FieldOperations.fe_mul(out r.X, ref p.X, ref p.T);
-        FieldOperations.fe_mul(out r.Y, ref p.Y, ref p.Z);
-        FieldOperations.fe_mul(out r.Z, ref p.Z, ref p.T);
+        FieldOperations.FeMul(out r.X, ref p.X, ref p.T);
+        FieldOperations.FeMul(out r.Y, ref p.Y, ref p.Z);
+        FieldOperations.FeMul(out r.Z, ref p.Z, ref p.T);
     }
 
     /// <summary>
@@ -33,12 +33,12 @@ internal static partial class GroupOperations
     /// r.Z = p.Z * p.T
     /// r.T = p.X * p.Y
     /// </summary>
-    internal static void ge_p1p1_to_p3(out GroupElementP3 r, ref GroupElementP1P1 p)
+    internal static void GeP1P1ToP3(out GroupElementP3 r, ref GroupElementP1P1 p)
     {
-        FieldOperations.fe_mul(out r.X, ref p.X, ref p.T);
-        FieldOperations.fe_mul(out r.Y, ref p.Y, ref p.Z);
-        FieldOperations.fe_mul(out r.Z, ref p.Z, ref p.T);
-        FieldOperations.fe_mul(out r.T, ref p.X, ref p.Y);
+        FieldOperations.FeMul(out r.X, ref p.X, ref p.T);
+        FieldOperations.FeMul(out r.Y, ref p.Y, ref p.Z);
+        FieldOperations.FeMul(out r.Z, ref p.Z, ref p.T);
+        FieldOperations.FeMul(out r.T, ref p.X, ref p.Y);
     }
 
     /// <summary>
@@ -49,12 +49,12 @@ internal static partial class GroupOperations
     /// r.Z = p.Z
     /// r.T = p.X * p.Y
     /// </summary>
-    internal static void ge_p2_to_p3(out GroupElementP3 r, ref GroupElementP2 p)
+    internal static void GeP2ToP3(out GroupElementP3 r, ref GroupElementP2 p)
     {
-        FieldOperations.fe_copy(out r.X, ref p.X);
-        FieldOperations.fe_copy(out r.Y, ref p.Y);
-        FieldOperations.fe_copy(out r.Z, ref p.Z);
-        FieldOperations.fe_mul(out r.T, ref p.X, ref p.Y);
+        FieldOperations.FeCopy(out r.X, ref p.X);
+        FieldOperations.FeCopy(out r.Y, ref p.Y);
+        FieldOperations.FeCopy(out r.Z, ref p.Z);
+        FieldOperations.FeMul(out r.T, ref p.X, ref p.Y);
     }
 
     /// <summary>
@@ -65,13 +65,13 @@ internal static partial class GroupOperations
     /// r.Z = p.Z
     /// r.T2d = p.T * 2d (where d is the curve constant)
     /// </summary>
-    internal static void ge_p3_to_cached(out GroupElementCached r, ref GroupElementP3 p)
+    internal static void GeP3ToCached(out GroupElementCached r, ref GroupElementP3 p)
     {
-        FieldOperations.fe_add(out r.YplusX, ref p.Y, ref p.X);
-        FieldOperations.fe_sub(out r.YminusX, ref p.Y, ref p.X);
-        FieldOperations.fe_copy(out r.Z, ref p.Z);
+        FieldOperations.FeAdd(out r.YplusX, ref p.Y, ref p.X);
+        FieldOperations.FeSub(out r.YminusX, ref p.Y, ref p.X);
+        FieldOperations.FeCopy(out r.Z, ref p.Z);
         var d2 = LookupTables.d2;
-        FieldOperations.fe_mul(out r.T2d, ref p.T, ref d2);
+        FieldOperations.FeMul(out r.T2d, ref p.T, ref d2);
     }
 
     /// <summary>
@@ -81,11 +81,11 @@ internal static partial class GroupOperations
     /// r.Y = p.Y
     /// r.Z = p.Z
     /// </summary>
-    internal static void ge_p3_to_p2(out GroupElementP2 r, ref GroupElementP3 p)
+    internal static void GeP3ToP2(out GroupElementP2 r, ref GroupElementP3 p)
     {
-        FieldOperations.fe_copy(out r.X, ref p.X);
-        FieldOperations.fe_copy(out r.Y, ref p.Y);
-        FieldOperations.fe_copy(out r.Z, ref p.Z);
+        FieldOperations.FeCopy(out r.X, ref p.X);
+        FieldOperations.FeCopy(out r.Y, ref p.Y);
+        FieldOperations.FeCopy(out r.Z, ref p.Z);
     }
 
     /// <summary>
@@ -93,12 +93,12 @@ internal static partial class GroupOperations
     ///
     /// The identity element in extended coordinates is (0:1:1:0).
     /// </summary>
-    internal static void ge_p3_0(out GroupElementP3 h)
+    internal static void GeP3Zero(out GroupElementP3 h)
     {
-        FieldOperations.fe_0(out h.X);
-        FieldOperations.fe_1(out h.Y);
-        FieldOperations.fe_1(out h.Z);
-        FieldOperations.fe_0(out h.T);
+        FieldOperations.FeZero(out h.X);
+        FieldOperations.FeOne(out h.Y);
+        FieldOperations.FeOne(out h.Z);
+        FieldOperations.FeZero(out h.T);
     }
 
     /// <summary>
@@ -106,21 +106,21 @@ internal static partial class GroupOperations
     ///
     /// The identity element in projective coordinates is (0:1:1).
     /// </summary>
-    internal static void ge_p2_0(out GroupElementP2 h)
+    internal static void GeP2Zero(out GroupElementP2 h)
     {
-        FieldOperations.fe_0(out h.X);
-        FieldOperations.fe_1(out h.Y);
-        FieldOperations.fe_1(out h.Z);
+        FieldOperations.FeZero(out h.X);
+        FieldOperations.FeOne(out h.Y);
+        FieldOperations.FeOne(out h.Z);
     }
 
     /// <summary>
     /// Sets a precomputed group element to the identity/neutral element.
     /// </summary>
-    internal static void ge_precomp_0(out GroupElementPreComp h)
+    internal static void GePrecompZero(out GroupElementPreComp h)
     {
-        FieldOperations.fe_1(out h.yplusx);
-        FieldOperations.fe_1(out h.yminusx);
-        FieldOperations.fe_0(out h.xy2d);
+        FieldOperations.FeOne(out h.yplusx);
+        FieldOperations.FeOne(out h.yminusx);
+        FieldOperations.FeZero(out h.xy2d);
     }
 
     /// <summary>
@@ -128,11 +128,11 @@ internal static partial class GroupOperations
     /// If b == 1, p = q; if b == 0, p remains unchanged.
     /// Constant-time operation to prevent timing attacks.
     /// </summary>
-    internal static void ge_cmov(ref GroupElementPreComp p, ref GroupElementPreComp q, int b)
+    internal static void GeCmov(ref GroupElementPreComp p, ref GroupElementPreComp q, int b)
     {
-        FieldOperations.fe_cmov(ref p.yplusx, ref q.yplusx, b);
-        FieldOperations.fe_cmov(ref p.yminusx, ref q.yminusx, b);
-        FieldOperations.fe_cmov(ref p.xy2d, ref q.xy2d, b);
+        FieldOperations.FeCmov(ref p.yplusx, ref q.yplusx, b);
+        FieldOperations.FeCmov(ref p.yminusx, ref q.yminusx, b);
+        FieldOperations.FeCmov(ref p.xy2d, ref q.xy2d, b);
     }
 
     /// <summary>
@@ -140,10 +140,10 @@ internal static partial class GroupOperations
     /// If b == 1, negate; if b == 0, leave unchanged.
     /// Constant-time operation to prevent timing attacks.
     /// </summary>
-    internal static void ge_precomp_cmov(ref GroupElementPreComp t, ref GroupElementPreComp u, byte b)
+    internal static void GePrecompCmov(ref GroupElementPreComp t, ref GroupElementPreComp u, byte b)
     {
-        FieldOperations.fe_cmov(ref t.yplusx, ref u.yplusx, b);
-        FieldOperations.fe_cmov(ref t.yminusx, ref u.yminusx, b);
-        FieldOperations.fe_cmov(ref t.xy2d, ref u.xy2d, b);
+        FieldOperations.FeCmov(ref t.yplusx, ref u.yplusx, b);
+        FieldOperations.FeCmov(ref t.yminusx, ref u.yminusx, b);
+        FieldOperations.FeCmov(ref t.xy2d, ref u.xy2d, b);
     }
 }

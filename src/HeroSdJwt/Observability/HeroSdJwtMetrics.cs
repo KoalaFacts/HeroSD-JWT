@@ -124,19 +124,19 @@ public static class HeroSdJwtMetrics
     /// <summary>
     /// Observable gauge for tracking the number of disclosures in the last issued SD-JWT.
     /// </summary>
-    private static long _lastDisclosureCount;
+    private static long lastDisclosureCount;
 
     /// <summary>
     /// Observable gauge for the number of disclosures in recently issued SD-JWTs.
     /// </summary>
     public static readonly ObservableGauge<long> DisclosureCount = Instance.CreateObservableGauge<long>(
         "sdjwt.disclosure.count",
-        observeValue: () => _lastDisclosureCount,
+        observeValue: () => lastDisclosureCount,
         description: "Number of disclosures in the last issued SD-JWT");
 
     /// <summary>
     /// Updates the last disclosure count for the observable gauge.
     /// </summary>
     /// <param name="count">The number of disclosures.</param>
-    internal static void UpdateLastDisclosureCount(long count) => _lastDisclosureCount = count;
+    internal static void UpdateLastDisclosureCount(long count) => lastDisclosureCount = count;
 }

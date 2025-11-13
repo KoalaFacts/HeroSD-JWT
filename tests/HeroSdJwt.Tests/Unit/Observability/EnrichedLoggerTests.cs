@@ -42,14 +42,14 @@ public class EnrichedLoggerTests
 
         private class TestScope : IDisposable
         {
-            private readonly Action _dispose;
+            private readonly Action dispose;
 
             public TestScope(Action dispose)
             {
-                _dispose = dispose;
+                dispose = dispose;
             }
 
-            public void Dispose() => _dispose();
+            public void Dispose() => dispose();
         }
     }
 

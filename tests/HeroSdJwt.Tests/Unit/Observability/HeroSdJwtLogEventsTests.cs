@@ -10,11 +10,11 @@ namespace HeroSdJwt.Tests.Unit.Observability;
 /// </summary>
 public class HeroSdJwtLogEventsTests
 {
-    private readonly TestLogger _logger;
+    private readonly TestLogger logger;
 
     public HeroSdJwtLogEventsTests()
     {
-        _logger = new TestLogger();
+        logger = new TestLogger();
     }
 
     #region Issuance Tests (1000-1999)
@@ -23,10 +23,10 @@ public class HeroSdJwtLogEventsTests
     public void LogIssuanceStarted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogIssuanceStarted(5, 3, 2);
+        logger.LogIssuanceStarted(5, 3, 2);
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(1000, entry.EventId.Id);
         Assert.Equal(LogLevel.Information, entry.LogLevel);
         Assert.Contains("5 claims", entry.Message);
@@ -38,10 +38,10 @@ public class HeroSdJwtLogEventsTests
     public void LogIssuanceCompleted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogIssuanceCompleted(10, "ES256");
+        logger.LogIssuanceCompleted(10, "ES256");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(1001, entry.EventId.Id);
         Assert.Equal(LogLevel.Information, entry.LogLevel);
         Assert.Contains("10 disclosures", entry.Message);
@@ -52,10 +52,10 @@ public class HeroSdJwtLogEventsTests
     public void LogDisclosureGenerated_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogDisclosureGenerated("user.email");
+        logger.LogDisclosureGenerated("user.email");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(1002, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("user.email", entry.Message);
@@ -65,10 +65,10 @@ public class HeroSdJwtLogEventsTests
     public void LogDecoysGenerated_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogDecoysGenerated(5);
+        logger.LogDecoysGenerated(5);
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(1003, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("5 decoy digests", entry.Message);
@@ -81,10 +81,10 @@ public class HeroSdJwtLogEventsTests
         var exception = new InvalidOperationException("Test error");
 
         // Act
-        _logger.LogIssuanceFailed(exception, "Issuance failed");
+        logger.LogIssuanceFailed(exception, "Issuance failed");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(1004, entry.EventId.Id);
         Assert.Equal(LogLevel.Error, entry.LogLevel);
         Assert.Contains("Issuance failed", entry.Message);
@@ -99,10 +99,10 @@ public class HeroSdJwtLogEventsTests
     public void LogVerificationStarted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogVerificationStarted();
+        logger.LogVerificationStarted();
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2000, entry.EventId.Id);
         Assert.Equal(LogLevel.Information, entry.LogLevel);
         Assert.Contains("verification started", entry.Message);
@@ -112,10 +112,10 @@ public class HeroSdJwtLogEventsTests
     public void LogVerificationCompleted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogVerificationCompleted(8);
+        logger.LogVerificationCompleted(8);
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2001, entry.EventId.Id);
         Assert.Equal(LogLevel.Information, entry.LogLevel);
         Assert.Contains("8 disclosures", entry.Message);
@@ -125,10 +125,10 @@ public class HeroSdJwtLogEventsTests
     public void LogVerificationFailed_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogVerificationFailed("INVALID_SIGNATURE");
+        logger.LogVerificationFailed("INVALID_SIGNATURE");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2002, entry.EventId.Id);
         Assert.Equal(LogLevel.Warning, entry.LogLevel);
         Assert.Contains("INVALID_SIGNATURE", entry.Message);
@@ -138,10 +138,10 @@ public class HeroSdJwtLogEventsTests
     public void LogSignatureValidationStarted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogSignatureValidationStarted("ES256");
+        logger.LogSignatureValidationStarted("ES256");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2010, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("ES256", entry.Message);
@@ -151,10 +151,10 @@ public class HeroSdJwtLogEventsTests
     public void LogSignatureValidationSucceeded_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogSignatureValidationSucceeded();
+        logger.LogSignatureValidationSucceeded();
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2011, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("successful", entry.Message);
@@ -164,10 +164,10 @@ public class HeroSdJwtLogEventsTests
     public void LogSignatureValidationFailed_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogSignatureValidationFailed("Invalid signature bytes");
+        logger.LogSignatureValidationFailed("Invalid signature bytes");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2012, entry.EventId.Id);
         Assert.Equal(LogLevel.Warning, entry.LogLevel);
         Assert.Contains("Invalid signature bytes", entry.Message);
@@ -177,10 +177,10 @@ public class HeroSdJwtLogEventsTests
     public void LogDigestValidationStarted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogDigestValidationStarted(12);
+        logger.LogDigestValidationStarted(12);
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2020, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("12 disclosures", entry.Message);
@@ -190,10 +190,10 @@ public class HeroSdJwtLogEventsTests
     public void LogDigestValidationSucceeded_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogDigestValidationSucceeded(12);
+        logger.LogDigestValidationSucceeded(12);
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2021, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("12 disclosures", entry.Message);
@@ -203,10 +203,10 @@ public class HeroSdJwtLogEventsTests
     public void LogDigestValidationFailed_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogDigestValidationFailed("Digest mismatch");
+        logger.LogDigestValidationFailed("Digest mismatch");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2022, entry.EventId.Id);
         Assert.Equal(LogLevel.Warning, entry.LogLevel);
         Assert.Contains("Digest mismatch", entry.Message);
@@ -216,10 +216,10 @@ public class HeroSdJwtLogEventsTests
     public void LogKeyResolutionStarted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogKeyResolutionStarted("key-123");
+        logger.LogKeyResolutionStarted("key-123");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2030, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("key-123", entry.Message);
@@ -229,10 +229,10 @@ public class HeroSdJwtLogEventsTests
     public void LogKeyResolutionStarted_WithNullKeyId_LogsCorrectly()
     {
         // Act
-        _logger.LogKeyResolutionStarted(null);
+        logger.LogKeyResolutionStarted(null);
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2030, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
     }
@@ -241,10 +241,10 @@ public class HeroSdJwtLogEventsTests
     public void LogKeyResolutionSucceeded_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogKeyResolutionSucceeded();
+        logger.LogKeyResolutionSucceeded();
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2031, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("successful", entry.Message);
@@ -254,10 +254,10 @@ public class HeroSdJwtLogEventsTests
     public void LogKeyResolutionFailed_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogKeyResolutionFailed("key-456");
+        logger.LogKeyResolutionFailed("key-456");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2032, entry.EventId.Id);
         Assert.Equal(LogLevel.Error, entry.LogLevel);
         Assert.Contains("key-456", entry.Message);
@@ -267,10 +267,10 @@ public class HeroSdJwtLogEventsTests
     public void LogKeyResolutionFailed_WithNullKeyId_LogsCorrectly()
     {
         // Act
-        _logger.LogKeyResolutionFailed(null);
+        logger.LogKeyResolutionFailed(null);
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(2032, entry.EventId.Id);
         Assert.Equal(LogLevel.Error, entry.LogLevel);
     }
@@ -283,10 +283,10 @@ public class HeroSdJwtLogEventsTests
     public void LogPresentationStarted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogPresentationStarted(7);
+        logger.LogPresentationStarted(7);
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(3000, entry.EventId.Id);
         Assert.Equal(LogLevel.Information, entry.LogLevel);
         Assert.Contains("7 requested claims", entry.Message);
@@ -296,10 +296,10 @@ public class HeroSdJwtLogEventsTests
     public void LogPresentationCompleted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogPresentationCompleted(5);
+        logger.LogPresentationCompleted(5);
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(3001, entry.EventId.Id);
         Assert.Equal(LogLevel.Information, entry.LogLevel);
         Assert.Contains("5 disclosures", entry.Message);
@@ -309,10 +309,10 @@ public class HeroSdJwtLogEventsTests
     public void LogClaimIncluded_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogClaimIncluded("user.address.street");
+        logger.LogClaimIncluded("user.address.street");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(3002, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("user.address.street", entry.Message);
@@ -323,10 +323,10 @@ public class HeroSdJwtLogEventsTests
     public void LogClaimExcluded_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogClaimExcluded("user.ssn");
+        logger.LogClaimExcluded("user.ssn");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(3003, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("user.ssn", entry.Message);
@@ -340,10 +340,10 @@ public class HeroSdJwtLogEventsTests
         var exception = new ArgumentException("Invalid claim path");
 
         // Act
-        _logger.LogPresentationFailed(exception, "Presentation failed");
+        logger.LogPresentationFailed(exception, "Presentation failed");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(3004, entry.EventId.Id);
         Assert.Equal(LogLevel.Error, entry.LogLevel);
         Assert.Contains("Presentation failed", entry.Message);
@@ -358,10 +358,10 @@ public class HeroSdJwtLogEventsTests
     public void LogKeyBindingGenerationStarted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogKeyBindingGenerationStarted();
+        logger.LogKeyBindingGenerationStarted();
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(4000, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("generation started", entry.Message);
@@ -371,10 +371,10 @@ public class HeroSdJwtLogEventsTests
     public void LogKeyBindingGenerated_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogKeyBindingGenerated("ES256");
+        logger.LogKeyBindingGenerated("ES256");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(4001, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("ES256", entry.Message);
@@ -385,10 +385,10 @@ public class HeroSdJwtLogEventsTests
     public void LogKeyBindingValidationStarted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogKeyBindingValidationStarted();
+        logger.LogKeyBindingValidationStarted();
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(4010, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("validation started", entry.Message);
@@ -398,10 +398,10 @@ public class HeroSdJwtLogEventsTests
     public void LogKeyBindingValidationSucceeded_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogKeyBindingValidationSucceeded();
+        logger.LogKeyBindingValidationSucceeded();
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(4011, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("successful", entry.Message);
@@ -411,10 +411,10 @@ public class HeroSdJwtLogEventsTests
     public void LogKeyBindingValidationFailed_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogKeyBindingValidationFailed("Invalid sd_hash");
+        logger.LogKeyBindingValidationFailed("Invalid sd_hash");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(4012, entry.EventId.Id);
         Assert.Equal(LogLevel.Warning, entry.LogLevel);
         Assert.Contains("Invalid sd_hash", entry.Message);
@@ -428,10 +428,10 @@ public class HeroSdJwtLogEventsTests
     public void LogSigningStarted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogSigningStarted("ES256");
+        logger.LogSigningStarted("ES256");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(5000, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("ES256", entry.Message);
@@ -441,10 +441,10 @@ public class HeroSdJwtLogEventsTests
     public void LogSigningCompleted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogSigningCompleted();
+        logger.LogSigningCompleted();
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(5001, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("completed", entry.Message);
@@ -457,10 +457,10 @@ public class HeroSdJwtLogEventsTests
         var exception = new InvalidOperationException("Key not found");
 
         // Act
-        _logger.LogSigningFailed(exception, "Signing failed");
+        logger.LogSigningFailed(exception, "Signing failed");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(5002, entry.EventId.Id);
         Assert.Equal(LogLevel.Error, entry.LogLevel);
         Assert.Contains("Signing failed", entry.Message);
@@ -471,10 +471,10 @@ public class HeroSdJwtLogEventsTests
     public void LogHashCalculationStarted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogHashCalculationStarted("SHA-256");
+        logger.LogHashCalculationStarted("SHA-256");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(5010, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("SHA-256", entry.Message);
@@ -484,10 +484,10 @@ public class HeroSdJwtLogEventsTests
     public void LogHashCalculationCompleted_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogHashCalculationCompleted();
+        logger.LogHashCalculationCompleted();
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(5011, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("completed", entry.Message);
@@ -501,10 +501,10 @@ public class HeroSdJwtLogEventsTests
     public void LogSecurityWarning_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogSecurityWarning("Weak algorithm detected");
+        logger.LogSecurityWarning("Weak algorithm detected");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(6000, entry.EventId.Id);
         Assert.Equal(LogLevel.Warning, entry.LogLevel);
         Assert.Contains("Weak algorithm detected", entry.Message);
@@ -517,10 +517,10 @@ public class HeroSdJwtLogEventsTests
         var exception = new Exception("Unexpected condition");
 
         // Act
-        _logger.LogUnexpectedError(exception, "Something went wrong");
+        logger.LogUnexpectedError(exception, "Something went wrong");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(6001, entry.EventId.Id);
         Assert.Equal(LogLevel.Error, entry.LogLevel);
         Assert.Contains("Something went wrong", entry.Message);
@@ -531,10 +531,10 @@ public class HeroSdJwtLogEventsTests
     public void LogConfiguration_LogsWithCorrectEventIdAndLevel()
     {
         // Act
-        _logger.LogConfiguration("TimeProvider=System, ClockSkew=5m");
+        logger.LogConfiguration("TimeProvider=System, ClockSkew=5m");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Equal(6002, entry.EventId.Id);
         Assert.Equal(LogLevel.Debug, entry.LogLevel);
         Assert.Contains("TimeProvider=System", entry.Message);
@@ -548,38 +548,38 @@ public class HeroSdJwtLogEventsTests
     public void MultipleLogCalls_AllCaptured()
     {
         // Act
-        _logger.LogIssuanceStarted(1, 1, 0);
-        _logger.LogVerificationStarted();
-        _logger.LogPresentationStarted(3);
+        logger.LogIssuanceStarted(1, 1, 0);
+        logger.LogVerificationStarted();
+        logger.LogPresentationStarted(3);
 
         // Assert
-        Assert.Equal(3, _logger.LogEntries.Count);
-        Assert.Equal(1000, _logger.LogEntries[0].EventId.Id);
-        Assert.Equal(2000, _logger.LogEntries[1].EventId.Id);
-        Assert.Equal(3000, _logger.LogEntries[2].EventId.Id);
+        Assert.Equal(3, logger.LogEntries.Count);
+        Assert.Equal(1000, logger.LogEntries[0].EventId.Id);
+        Assert.Equal(2000, logger.LogEntries[1].EventId.Id);
+        Assert.Equal(3000, logger.LogEntries[2].EventId.Id);
     }
 
     [Fact]
     public void LogWithZeroValues_WorksCorrectly()
     {
         // Act
-        _logger.LogIssuanceStarted(0, 0, 0);
-        _logger.LogVerificationCompleted(0);
+        logger.LogIssuanceStarted(0, 0, 0);
+        logger.LogVerificationCompleted(0);
 
         // Assert
-        Assert.Equal(2, _logger.LogEntries.Count);
-        Assert.Contains("0 claims", _logger.LogEntries[0].Message);
-        Assert.Contains("0 disclosures", _logger.LogEntries[1].Message);
+        Assert.Equal(2, logger.LogEntries.Count);
+        Assert.Contains("0 claims", logger.LogEntries[0].Message);
+        Assert.Contains("0 disclosures", logger.LogEntries[1].Message);
     }
 
     [Fact]
     public void LogWithLargeNumbers_WorksCorrectly()
     {
         // Act
-        _logger.LogIssuanceCompleted(999999, "ES256");
+        logger.LogIssuanceCompleted(999999, "ES256");
 
         // Assert
-        var entry = Assert.Single(_logger.LogEntries);
+        var entry = Assert.Single(logger.LogEntries);
         Assert.Contains("999999", entry.Message);
     }
 
@@ -587,24 +587,24 @@ public class HeroSdJwtLogEventsTests
     public void LogWithSpecialCharacters_WorksCorrectly()
     {
         // Act
-        _logger.LogClaimIncluded("user.data[0].value");
-        _logger.LogSecurityWarning("Algorithm 'none' is not allowed");
+        logger.LogClaimIncluded("user.data[0].value");
+        logger.LogSecurityWarning("Algorithm 'none' is not allowed");
 
         // Assert
-        Assert.Equal(2, _logger.LogEntries.Count);
-        Assert.Contains("user.data[0].value", _logger.LogEntries[0].Message);
-        Assert.Contains("'none'", _logger.LogEntries[1].Message);
+        Assert.Equal(2, logger.LogEntries.Count);
+        Assert.Contains("user.data[0].value", logger.LogEntries[0].Message);
+        Assert.Contains("'none'", logger.LogEntries[1].Message);
     }
 
     [Fact]
     public void LogWithEmptyStrings_WorksCorrectly()
     {
         // Act
-        _logger.LogDisclosureGenerated("");
-        _logger.LogConfiguration("");
+        logger.LogDisclosureGenerated("");
+        logger.LogConfiguration("");
 
         // Assert
-        Assert.Equal(2, _logger.LogEntries.Count);
+        Assert.Equal(2, logger.LogEntries.Count);
     }
 
     #endregion

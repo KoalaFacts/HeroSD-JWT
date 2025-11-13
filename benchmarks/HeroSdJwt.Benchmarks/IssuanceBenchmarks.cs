@@ -11,35 +11,35 @@ namespace HeroSdJwt.Benchmarks;
 [SimpleJob(launchCount: 1, warmupCount: 3, iterationCount: 10)]
 public class IssuanceBenchmarks
 {
-    private byte[] _hmacKey = null!;
-    private RSA _rsa = null!;
-    private ECDsa _ecdsa = null!;
+    private byte[] hmacKey = null!;
+    private RSA rsa = null!;
+    private ECDsa ecdsa = null!;
 
-    private Dictionary<string, object> _claims10 = null!;
-    private Dictionary<string, object> _claims50 = null!;
-    private Dictionary<string, object> _claims100 = null!;
+    private Dictionary<string, object> claims10 = null!;
+    private Dictionary<string, object> claims50 = null!;
+    private Dictionary<string, object> claims100 = null!;
 
     [GlobalSetup]
     public void Setup()
     {
         // Generate keys
-        _hmacKey = new byte[32];
-        RandomNumberGenerator.Fill(_hmacKey);
+        hmacKey = new byte[32];
+        RandomNumberGenerator.Fill(hmacKey);
 
-        _rsa = RSA.Create(2048);
-        _ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        rsa = RSA.Create(2048);
+        ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
 
         // Generate claim sets
-        _claims10 = GenerateClaims(10);
-        _claims50 = GenerateClaims(50);
-        _claims100 = GenerateClaims(100);
+        claims10 = GenerateClaims(10);
+        claims50 = GenerateClaims(50);
+        claims100 = GenerateClaims(100);
     }
 
     [GlobalCleanup]
     public void Cleanup()
     {
-        _rsa.Dispose();
-        _ecdsa.Dispose();
+        rsa.Dispose();
+        ecdsa.Dispose();
     }
 
     private static Dictionary<string, object> GenerateClaims(int count)
@@ -68,9 +68,9 @@ public class IssuanceBenchmarks
     {
         var claims = claimCount switch
         {
-            10 => _claims10,
-            50 => _claims50,
-            100 => _claims100,
+            10 => claims10,
+            50 => claims50,
+            100 => claims100,
             _ => throw new ArgumentException(nameof(claimCount))
         };
 
@@ -79,7 +79,7 @@ public class IssuanceBenchmarks
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
             .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
 
-        return builder.SignWithHmac(_hmacKey).Build();
+        return builder.SignWithHmac(hmacKey).Build();
     }
 
     // ====== RS256 (RSA-SHA256) Benchmarks ======
@@ -90,9 +90,9 @@ public class IssuanceBenchmarks
     {
         var claims = claimCount switch
         {
-            10 => _claims10,
-            50 => _claims50,
-            100 => _claims100,
+            10 => claims10,
+            50 => claims50,
+            100 => claims100,
             _ => throw new ArgumentException(nameof(claimCount))
         };
 
@@ -101,7 +101,7 @@ public class IssuanceBenchmarks
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
             .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
 
-        var rsaPrivateKey = _rsa.ExportPkcs8PrivateKey();
+        var rsaPrivateKey = rsa.ExportPkcs8PrivateKey();
         return builder.SignWithRsa(rsaPrivateKey).Build();
     }
 
@@ -113,9 +113,9 @@ public class IssuanceBenchmarks
     {
         var claims = claimCount switch
         {
-            10 => _claims10,
-            50 => _claims50,
-            100 => _claims100,
+            10 => claims10,
+            50 => claims50,
+            100 => claims100,
             _ => throw new ArgumentException(nameof(claimCount))
         };
 
@@ -124,7 +124,7 @@ public class IssuanceBenchmarks
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
             .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
 
-        var ecdsaPrivateKey = _ecdsa.ExportPkcs8PrivateKey();
+        var ecdsaPrivateKey = ecdsa.ExportPkcs8PrivateKey();
         return builder.SignWithEcdsa(ecdsaPrivateKey).Build();
     }
 

@@ -23,7 +23,7 @@ internal static partial class FieldOperations
     /// <summary>
     /// Sets h to 0.
     /// </summary>
-    internal static void fe_0(out FieldElement h)
+    internal static void FeZero(out FieldElement h)
     {
         h = default(FieldElement);
     }
@@ -31,7 +31,7 @@ internal static partial class FieldOperations
     /// <summary>
     /// Sets h to 1.
     /// </summary>
-    internal static void fe_1(out FieldElement h)
+    internal static void FeOne(out FieldElement h)
     {
         h = default(FieldElement);
         h.x0 = 1;
@@ -40,7 +40,7 @@ internal static partial class FieldOperations
     /// <summary>
     /// h = f + g
     /// </summary>
-    internal static void fe_add(out FieldElement h, ref FieldElement f, ref FieldElement g)
+    internal static void FeAdd(out FieldElement h, ref FieldElement f, ref FieldElement g)
     {
         h.x0 = f.x0 + g.x0;
         h.x1 = f.x1 + g.x1;
@@ -57,7 +57,7 @@ internal static partial class FieldOperations
     /// <summary>
     /// h = f - g
     /// </summary>
-    internal static void fe_sub(out FieldElement h, ref FieldElement f, ref FieldElement g)
+    internal static void FeSub(out FieldElement h, ref FieldElement f, ref FieldElement g)
     {
         h.x0 = f.x0 - g.x0;
         h.x1 = f.x1 - g.x1;
@@ -74,7 +74,7 @@ internal static partial class FieldOperations
     /// <summary>
     /// h = -f
     /// </summary>
-    internal static void fe_neg(out FieldElement h, ref FieldElement f)
+    internal static void FeNeg(out FieldElement h, ref FieldElement f)
     {
         h.x0 = -f.x0;
         h.x1 = -f.x1;
@@ -91,7 +91,7 @@ internal static partial class FieldOperations
     /// <summary>
     /// h = f
     /// </summary>
-    internal static void fe_copy(out FieldElement h, ref FieldElement f)
+    internal static void FeCopy(out FieldElement h, ref FieldElement f)
     {
         h.x0 = f.x0;
         h.x1 = f.x1;
@@ -111,7 +111,7 @@ internal static partial class FieldOperations
     ///
     /// Preconditions: b in {0,1}.
     /// </summary>
-    internal static void fe_cswap(ref FieldElement f, ref FieldElement g, int b)
+    internal static void FeCswap(ref FieldElement f, ref FieldElement g, int b)
     {
         int mask = -b; // mask = b ? 0xFFFFFFFF : 0x00000000
 
@@ -133,7 +133,7 @@ internal static partial class FieldOperations
     ///
     /// Preconditions: b in {0,1}.
     /// </summary>
-    internal static void fe_cmov(ref FieldElement f, ref FieldElement g, int b)
+    internal static void FeCmov(ref FieldElement f, ref FieldElement g, int b)
     {
         int f0 = f.x0;
         int f1 = f.x1;

@@ -21,21 +21,21 @@ internal static partial class GroupOperations
     /// This compressed format stores only the y-coordinate and the sign of x,
     /// which is sufficient to uniquely identify a point on the curve.
     /// </summary>
-    internal static void ge_tobytes(byte[] s, int offset, ref GroupElementP2 h)
+    internal static void GeToBytes(byte[] s, int offset, ref GroupElementP2 h)
     {
         FieldElement recip, x, y;
 
         // Compute 1/Z
-        FieldOperations.fe_invert(out recip, ref h.Z);
+        FieldOperations.FeInvert(out recip, ref h.Z);
 
         // Compute affine x = X/Z
-        FieldOperations.fe_mul(out x, ref h.X, ref recip);
+        FieldOperations.FeMul(out x, ref h.X, ref recip);
 
         // Compute affine y = Y/Z
-        FieldOperations.fe_mul(out y, ref h.Y, ref recip);
+        FieldOperations.FeMul(out y, ref h.Y, ref recip);
 
         // Encode y-coordinate
-        FieldOperations.fe_tobytes(s, offset, ref y);
+        FieldOperations.FeToBytes(s, offset, ref y);
 
         // Set top bit to sign of x (x mod 2)
         s[offset + 31] ^= (byte)(x.IsNegative() ? 0x80 : 0);
@@ -44,21 +44,21 @@ internal static partial class GroupOperations
     /// <summary>
     /// Encodes a group element in P3 form to 32 bytes.
     /// </summary>
-    internal static void ge_p3_tobytes(byte[] s, int offset, ref GroupElementP3 h)
+    internal static void GeP3ToBytes(byte[] s, int offset, ref GroupElementP3 h)
     {
         FieldElement recip, x, y;
 
         // Compute 1/Z
-        FieldOperations.fe_invert(out recip, ref h.Z);
+        FieldOperations.FeInvert(out recip, ref h.Z);
 
         // Compute affine x = X/Z
-        FieldOperations.fe_mul(out x, ref h.X, ref recip);
+        FieldOperations.FeMul(out x, ref h.X, ref recip);
 
         // Compute affine y = Y/Z
-        FieldOperations.fe_mul(out y, ref h.Y, ref recip);
+        FieldOperations.FeMul(out y, ref h.Y, ref recip);
 
         // Encode y-coordinate
-        FieldOperations.fe_tobytes(s, offset, ref y);
+        FieldOperations.FeToBytes(s, offset, ref y);
 
         // Set top bit to sign of x (x mod 2)
         s[offset + 31] ^= (byte)(x.IsNegative() ? 0x80 : 0);
@@ -75,53 +75,53 @@ internal static partial class GroupOperations
     /// 3. Recover x-coordinate using curve equation: x^2 = (y^2-1)/(dy^2+1)
     /// 4. Adjust x sign to match the encoded sign bit
     /// </summary>
-    internal static bool ge_frombytes_negate_vartime(out GroupElementP3 h, byte[] s, int offset)
+    internal static bool GeFromBytesNegateVartime(out GroupElementP3 h, byte[] s, int offset)
     {
         FieldElement u, v, v3, vxx, check;
 
         // Extract y-coordinate (ignore top bit)
-        FieldOperations.fe_frombytes(out h.Y, s, offset);
+        FieldOperations.FeFromBytes(out h.Y, s, offset);
 
         // Set Z = 1
-        FieldOperations.fe_1(out h.Z);
+        FieldOperations.FeOne(out h.Z);
 
         // Compute u = y^2
-        FieldOperations.fe_sq(out u, ref h.Y);
+        FieldOperations.FeSq(out u, ref h.Y);
 
         // Compute v = dy^2
         var d = LookupTables.d;
-        FieldOperations.fe_mul(out v, ref u, ref d);
+        FieldOperations.FeMul(out v, ref u, ref d);
 
         // Compute u = y^2-1
-        FieldOperations.fe_sub(out u, ref u, ref h.Z);
+        FieldOperations.FeSub(out u, ref u, ref h.Z);
 
         // Compute v = dy^2+1
-        FieldOperations.fe_add(out v, ref v, ref h.Z);
+        FieldOperations.FeAdd(out v, ref v, ref h.Z);
 
         // Compute v^3
-        FieldOperations.fe_sq(out v3, ref v);
-        FieldOperations.fe_mul(out v3, ref v3, ref v);
+        FieldOperations.FeSq(out v3, ref v);
+        FieldOperations.FeMul(out v3, ref v3, ref v);
 
         // Compute v^6 = (v^3)^2
-        FieldOperations.fe_sq(out h.X, ref v3);
+        FieldOperations.FeSq(out h.X, ref v3);
 
         // Compute v^7 = v^6 * v
-        FieldOperations.fe_mul(out h.X, ref h.X, ref v);
+        FieldOperations.FeMul(out h.X, ref h.X, ref v);
 
         // Compute uv^7
-        FieldOperations.fe_mul(out h.X, ref h.X, ref u);
+        FieldOperations.FeMul(out h.X, ref h.X, ref u);
 
         // Compute x = (uv^7)^((q-5)/8)
-        FieldOperations.fe_pow22523(out h.X, ref h.X);
+        FieldOperations.FePow22523(out h.X, ref h.X);
 
         // Multiply by uv^3
-        FieldOperations.fe_mul(out h.X, ref h.X, ref v3);
-        FieldOperations.fe_mul(out h.X, ref h.X, ref u);
+        FieldOperations.FeMul(out h.X, ref h.X, ref v3);
+        FieldOperations.FeMul(out h.X, ref h.X, ref u);
 
         // Check if we got the right square root
-        FieldOperations.fe_sq(out vxx, ref h.X);
-        FieldOperations.fe_mul(out vxx, ref vxx, ref v);
-        FieldOperations.fe_sub(out check, ref vxx, ref u);
+        FieldOperations.FeSq(out vxx, ref h.X);
+        FieldOperations.FeMul(out vxx, ref vxx, ref v);
+        FieldOperations.FeSub(out check, ref vxx, ref u);
 
         if (!check.IsNonZero())
         {
@@ -130,11 +130,11 @@ internal static partial class GroupOperations
         else
         {
             // Try x * sqrt(-1)
-            FieldOperations.fe_add(out check, ref vxx, ref u);
+            FieldOperations.FeAdd(out check, ref vxx, ref u);
             if (!check.IsNonZero())
             {
                 var sqrtm1 = LookupTables.sqrtm1;
-                FieldOperations.fe_mul(out h.X, ref h.X, ref sqrtm1);
+                FieldOperations.FeMul(out h.X, ref h.X, ref sqrtm1);
             }
             else
             {
@@ -150,11 +150,11 @@ internal static partial class GroupOperations
 
         if (x_is_negative != s_is_negative)
         {
-            FieldOperations.fe_neg(out h.X, ref h.X);
+            FieldOperations.FeNeg(out h.X, ref h.X);
         }
 
         // Compute T = XY
-        FieldOperations.fe_mul(out h.T, ref h.X, ref h.Y);
+        FieldOperations.FeMul(out h.T, ref h.X, ref h.Y);
 
         return true;
     }

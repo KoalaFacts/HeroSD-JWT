@@ -20,24 +20,24 @@ namespace HeroSdJwt.AspNetCore.Tests.Integration;
 /// </summary>
 public class EndToEndAuthenticationTests : IDisposable
 {
-    private readonly byte[] _testKey;
-    private readonly ISdJwtIssuer _issuer;
-    private readonly ISdJwtPresenter _presenter;
-    private bool _disposed;
+    private readonly byte[] testKey;
+    private readonly ISdJwtIssuer issuer;
+    private readonly ISdJwtPresenter presenter;
+    private bool disposed;
 
     public EndToEndAuthenticationTests()
     {
         // Generate test key (HMAC)
-        _testKey = new byte[32];
-        RandomNumberGenerator.Fill(_testKey);
+        testKey = new byte[32];
+        RandomNumberGenerator.Fill(testKey);
 
         // Create issuer and presenter for test setup
         var services = new ServiceCollection();
         services.AddSdJwtServices();
         var serviceProvider = services.BuildServiceProvider();
 
-        _issuer = serviceProvider.GetRequiredService<ISdJwtIssuer>();
-        _presenter = serviceProvider.GetRequiredService<ISdJwtPresenter>();
+        issuer = serviceProvider.GetRequiredService<ISdJwtIssuer>();
+        presenter = serviceProvider.GetRequiredService<ISdJwtPresenter>();
     }
 
     [Fact]
@@ -58,14 +58,14 @@ public class EndToEndAuthenticationTests : IDisposable
 
         // Mark name, email, and role as selectively disclosable
         var selectiveClaims = new[] { "name", "email", "role" };
-        var sdJwt = _issuer.CreateSdJwt(
+        var sdJwt = issuer.CreateSdJwt(
             claims,
             selectiveClaims,
-            _testKey,
+            testKey,
             HeroSdJwt.Primitives.HashAlgorithm.Sha256,
             HeroSdJwt.Primitives.SignatureAlgorithm.HS256);
-        var presentation = _presenter.FormatPresentation(
-            _presenter.CreatePresentationWithAllClaims(sdJwt));
+        var presentation = presenter.FormatPresentation(
+            presenter.CreatePresentationWithAllClaims(sdJwt));
 
         // Act - Make authenticated request
         client.DefaultRequestHeaders.Authorization =
@@ -132,14 +132,14 @@ public class EndToEndAuthenticationTests : IDisposable
             ["name"] = "John Doe"
         };
 
-        var sdJwt = _issuer.CreateSdJwt(
+        var sdJwt = issuer.CreateSdJwt(
             claims,
             Array.Empty<string>(),
             wrongKey,
             HeroSdJwt.Primitives.HashAlgorithm.Sha256,
             HeroSdJwt.Primitives.SignatureAlgorithm.HS256);
-        var presentation = _presenter.FormatPresentation(
-            _presenter.CreatePresentationWithAllClaims(sdJwt));
+        var presentation = presenter.FormatPresentation(
+            presenter.CreatePresentationWithAllClaims(sdJwt));
 
         // Act
         client.DefaultRequestHeaders.Authorization =
@@ -169,16 +169,16 @@ public class EndToEndAuthenticationTests : IDisposable
         };
 
         var selectiveClaims = new[] { "email", "age", "ssn" };
-        var sdJwt = _issuer.CreateSdJwt(
+        var sdJwt = issuer.CreateSdJwt(
             claims,
             selectiveClaims,
-            _testKey,
+            testKey,
             HeroSdJwt.Primitives.HashAlgorithm.Sha256,
             HeroSdJwt.Primitives.SignatureAlgorithm.HS256);
 
         // Only disclose email and age, NOT ssn
-        var presentation = _presenter.FormatPresentation(
-            _presenter.CreatePresentation(sdJwt, new[] { "email", "age" }));
+        var presentation = presenter.FormatPresentation(
+            presenter.CreatePresentation(sdJwt, new[] { "email", "age" }));
 
         // Act
         client.DefaultRequestHeaders.Authorization =
@@ -213,7 +213,7 @@ public class EndToEndAuthenticationTests : IDisposable
                     services.AddAuthentication()
                         .AddSdJwt(options =>
                         {
-                            options.FallbackKey = _testKey;
+                            options.FallbackKey = testKey;
                         });
                     services.AddAuthorization();
                 });
@@ -271,10 +271,10 @@ public class EndToEndAuthenticationTests : IDisposable
 
     public void Dispose()
     {
-        if (_disposed)
+        if (disposed)
             return;
 
-        _disposed = true;
+        disposed = true;
         GC.SuppressFinalize(this);
     }
 }

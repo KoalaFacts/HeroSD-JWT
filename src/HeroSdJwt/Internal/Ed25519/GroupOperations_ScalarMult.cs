@@ -45,9 +45,9 @@ internal static partial class GroupOperations
     /// </summary>
     private static void Cmov(ref GroupElementPreComp t, ref GroupElementPreComp u, byte b)
     {
-        FieldOperations.fe_cmov(ref t.yplusx, ref u.yplusx, b);
-        FieldOperations.fe_cmov(ref t.yminusx, ref u.yminusx, b);
-        FieldOperations.fe_cmov(ref t.xy2d, ref u.xy2d, b);
+        FieldOperations.FeCmov(ref t.yplusx, ref u.yplusx, b);
+        FieldOperations.FeCmov(ref t.yminusx, ref u.yminusx, b);
+        FieldOperations.FeCmov(ref t.xy2d, ref u.xy2d, b);
     }
 
     /// <summary>
@@ -59,7 +59,7 @@ internal static partial class GroupOperations
         byte bnegative = Negative(b);
         byte babs = (byte)(b - (((-bnegative) & b) << 1));
 
-        ge_precomp_0(out t);
+        GePrecompZero(out t);
         var table = LookupTables.Base[pos];
         Cmov(ref t, ref table[0], Equal(babs, 1));
         Cmov(ref t, ref table[1], Equal(babs, 2));
@@ -71,7 +71,7 @@ internal static partial class GroupOperations
         Cmov(ref t, ref table[7], Equal(babs, 8));
         minust.yplusx = t.yminusx;
         minust.yminusx = t.yplusx;
-        FieldOperations.fe_neg(out minust.xy2d, ref t.xy2d);
+        FieldOperations.FeNeg(out minust.xy2d, ref t.xy2d);
         Cmov(ref t, ref minust, bnegative);
     }
 
@@ -83,7 +83,7 @@ internal static partial class GroupOperations
     /// Preconditions:
     ///   a[31] &lt;= 127
     /// </summary>
-    internal static void ge_scalarmult_base(out GroupElementP3 h, byte[] a, int offset)
+    internal static void GeScalarmultBase(out GroupElementP3 h, byte[] a, int offset)
     {
         sbyte[] e = new sbyte[64];
         sbyte carry;
@@ -114,26 +114,26 @@ internal static partial class GroupOperations
         // Each e[i] is now between -8 and 8
 
         // Process odd indices first
-        ge_p3_0(out h);
+        GeP3Zero(out h);
         for (i = 1; i < 64; i += 2)
         {
             Select(out t, i / 2, e[i]);
-            ge_madd(out r, ref h, ref t);
-            ge_p1p1_to_p3(out h, ref r);
+            GeMadd(out r, ref h, ref t);
+            GeP1P1ToP3(out h, ref r);
         }
 
         // Four doublings
-        ge_p3_dbl(out r, ref h); ge_p1p1_to_p2(out s, ref r);
-        ge_p2_dbl(out r, ref s); ge_p1p1_to_p2(out s, ref r);
-        ge_p2_dbl(out r, ref s); ge_p1p1_to_p2(out s, ref r);
-        ge_p2_dbl(out r, ref s); ge_p1p1_to_p3(out h, ref r);
+        GeP3Dbl(out r, ref h); GeP1P1ToP2(out s, ref r);
+        GeP2Dbl(out r, ref s); GeP1P1ToP2(out s, ref r);
+        GeP2Dbl(out r, ref s); GeP1P1ToP2(out s, ref r);
+        GeP2Dbl(out r, ref s); GeP1P1ToP3(out h, ref r);
 
         // Process even indices
         for (i = 0; i < 64; i += 2)
         {
             Select(out t, i / 2, e[i]);
-            ge_madd(out r, ref h, ref t);
-            ge_p1p1_to_p3(out h, ref r);
+            GeMadd(out r, ref h, ref t);
+            GeP1P1ToP3(out h, ref r);
         }
     }
 
@@ -143,21 +143,21 @@ internal static partial class GroupOperations
     /// Multiplies an arbitrary point p by scalar a.
     /// Uses simple double-and-add algorithm.
     /// </summary>
-    internal static void ge_scalarmult(out GroupElementP2 h, byte[] a, ref GroupElementP3 p)
+    internal static void GeScalarmult(out GroupElementP2 h, byte[] a, ref GroupElementP3 p)
     {
         // Start with identity
-        ge_p2_0(out h);
+        GeP2Zero(out h);
 
         GroupElementP3 result;
-        ge_p3_0(out result);
+        GeP3Zero(out result);
 
         // Double-and-add algorithm
         for (int i = 255; i >= 0; i--)
         {
             // Double
             GroupElementP1P1 t;
-            ge_p3_dbl(out t, ref result);
-            ge_p1p1_to_p3(out result, ref t);
+            GeP3Dbl(out t, ref result);
+            GeP1P1ToP3(out result, ref t);
 
             // Get bit i of scalar
             int bit = (a[i / 8] >> (i % 8)) & 1;
@@ -166,21 +166,21 @@ internal static partial class GroupOperations
             if (bit == 1)
             {
                 GroupElementCached pCached;
-                ge_p3_to_cached(out pCached, ref p);
-                ge_add(out t, ref result, ref pCached);
-                ge_p1p1_to_p3(out result, ref t);
+                GeP3ToCached(out pCached, ref p);
+                GeAdd(out t, ref result, ref pCached);
+                GeP1P1ToP3(out result, ref t);
             }
         }
 
         // Convert to P2
-        ge_p3_to_p2(out h, ref result);
+        GeP3ToP2(out h, ref result);
     }
 
     /// <summary>
     /// Converts a scalar to sliding window representation.
     /// This representation reduces the number of point additions needed.
     /// </summary>
-    private static void slide(sbyte[] r, byte[] a)
+    private static void Slide(sbyte[] r, byte[] a)
     {
         int i;
         int b;
@@ -229,13 +229,13 @@ internal static partial class GroupOperations
     ///
     /// Used in signature verification.
     /// </summary>
-    internal static void ge_double_scalarmult_vartime(
+    internal static void GeDoubleScalarmultVartime(
         out GroupElementP2 r,
         byte[] a, ref GroupElementP3 A,
         byte[] b)
     {
-        sbyte[] aslide = new sbyte[256];
-        sbyte[] bslide = new sbyte[256];
+        sbyte[] aSlide = new sbyte[256];
+        sbyte[] bSlide = new sbyte[256];
         GroupElementCached[] Ai = new GroupElementCached[8];
         GroupElementCached[] Bi = new GroupElementCached[8];  // Bi also needs odd multiples
         GroupElementP1P1 t;
@@ -245,84 +245,84 @@ internal static partial class GroupOperations
         GroupElementP3 B2;
         int i;
 
-        slide(aslide, a);
-        slide(bslide, b);
+        Slide(aSlide, a);
+        Slide(bSlide, b);
 
         // Get base point B
         B = LookupTables.GetBasePoint();
 
         // Precompute Ai = [1A, 3A, 5A, 7A, 9A, 11A, 13A, 15A]
-        ge_p3_to_cached(out Ai[0], ref A);
-        ge_p3_dbl(out t, ref A); ge_p1p1_to_p3(out A2, ref t);
-        ge_add(out t, ref A2, ref Ai[0]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Ai[1], ref u);
-        ge_add(out t, ref A2, ref Ai[1]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Ai[2], ref u);
-        ge_add(out t, ref A2, ref Ai[2]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Ai[3], ref u);
-        ge_add(out t, ref A2, ref Ai[3]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Ai[4], ref u);
-        ge_add(out t, ref A2, ref Ai[4]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Ai[5], ref u);
-        ge_add(out t, ref A2, ref Ai[5]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Ai[6], ref u);
-        ge_add(out t, ref A2, ref Ai[6]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Ai[7], ref u);
+        GeP3ToCached(out Ai[0], ref A);
+        GeP3Dbl(out t, ref A); GeP1P1ToP3(out A2, ref t);
+        GeAdd(out t, ref A2, ref Ai[0]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Ai[1], ref u);
+        GeAdd(out t, ref A2, ref Ai[1]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Ai[2], ref u);
+        GeAdd(out t, ref A2, ref Ai[2]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Ai[3], ref u);
+        GeAdd(out t, ref A2, ref Ai[3]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Ai[4], ref u);
+        GeAdd(out t, ref A2, ref Ai[4]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Ai[5], ref u);
+        GeAdd(out t, ref A2, ref Ai[5]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Ai[6], ref u);
+        GeAdd(out t, ref A2, ref Ai[6]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Ai[7], ref u);
 
         // Precompute Bi = [1B, 3B, 5B, 7B, 9B, 11B, 13B, 15B]
-        ge_p3_to_cached(out Bi[0], ref B);
-        ge_p3_dbl(out t, ref B); ge_p1p1_to_p3(out B2, ref t);
-        ge_add(out t, ref B2, ref Bi[0]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Bi[1], ref u);
-        ge_add(out t, ref B2, ref Bi[1]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Bi[2], ref u);
-        ge_add(out t, ref B2, ref Bi[2]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Bi[3], ref u);
-        ge_add(out t, ref B2, ref Bi[3]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Bi[4], ref u);
-        ge_add(out t, ref B2, ref Bi[4]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Bi[5], ref u);
-        ge_add(out t, ref B2, ref Bi[5]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Bi[6], ref u);
-        ge_add(out t, ref B2, ref Bi[6]); ge_p1p1_to_p3(out u, ref t);
-        ge_p3_to_cached(out Bi[7], ref u);
+        GeP3ToCached(out Bi[0], ref B);
+        GeP3Dbl(out t, ref B); GeP1P1ToP3(out B2, ref t);
+        GeAdd(out t, ref B2, ref Bi[0]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Bi[1], ref u);
+        GeAdd(out t, ref B2, ref Bi[1]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Bi[2], ref u);
+        GeAdd(out t, ref B2, ref Bi[2]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Bi[3], ref u);
+        GeAdd(out t, ref B2, ref Bi[3]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Bi[4], ref u);
+        GeAdd(out t, ref B2, ref Bi[4]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Bi[5], ref u);
+        GeAdd(out t, ref B2, ref Bi[5]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Bi[6], ref u);
+        GeAdd(out t, ref B2, ref Bi[6]); GeP1P1ToP3(out u, ref t);
+        GeP3ToCached(out Bi[7], ref u);
 
-        ge_p2_0(out r);
+        GeP2Zero(out r);
 
         // Find highest non-zero position
         for (i = 255; i >= 0; --i)
         {
-            if ((aslide[i] != 0) || (bslide[i] != 0)) break;
+            if ((aSlide[i] != 0) || (bSlide[i] != 0)) break;
         }
 
         // Interleaved double-and-add
         for (; i >= 0; --i)
         {
-            ge_p2_dbl(out t, ref r);
+            GeP2Dbl(out t, ref r);
 
-            if (aslide[i] > 0)
+            if (aSlide[i] > 0)
             {
-                ge_p1p1_to_p3(out u, ref t);
-                ge_add(out t, ref u, ref Ai[aslide[i] / 2]);
+                GeP1P1ToP3(out u, ref t);
+                GeAdd(out t, ref u, ref Ai[aSlide[i] / 2]);
             }
-            else if (aslide[i] < 0)
+            else if (aSlide[i] < 0)
             {
-                ge_p1p1_to_p3(out u, ref t);
-                ge_sub(out t, ref u, ref Ai[(-aslide[i]) / 2]);
-            }
-
-            if (bslide[i] > 0)
-            {
-                ge_p1p1_to_p3(out u, ref t);
-                ge_add(out t, ref u, ref Bi[bslide[i] / 2]);
-            }
-            else if (bslide[i] < 0)
-            {
-                ge_p1p1_to_p3(out u, ref t);
-                ge_sub(out t, ref u, ref Bi[(-bslide[i]) / 2]);
+                GeP1P1ToP3(out u, ref t);
+                GeSub(out t, ref u, ref Ai[(-aSlide[i]) / 2]);
             }
 
-            ge_p1p1_to_p2(out r, ref t);
+            if (bSlide[i] > 0)
+            {
+                GeP1P1ToP3(out u, ref t);
+                GeAdd(out t, ref u, ref Bi[bSlide[i] / 2]);
+            }
+            else if (bSlide[i] < 0)
+            {
+                GeP1P1ToP3(out u, ref t);
+                GeSub(out t, ref u, ref Bi[(-bSlide[i]) / 2]);
+            }
+
+            GeP1P1ToP2(out r, ref t);
         }
     }
 }
