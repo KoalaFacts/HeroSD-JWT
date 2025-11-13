@@ -6,6 +6,7 @@ using HeroSdJwt.Cryptography;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Models;
 using HeroSdJwt.Observability;
+using HeroSdJwt.Presentation;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Constants = HeroSdJwt.Primitives.Constants;
@@ -329,8 +330,16 @@ public class SdJwtIssuer : ISdJwtIssuer
             // Step 3: Create JWT using the specified signature algorithm
             var jwt = jwtSigner.CreateJwt(payload, signingKey, signatureAlgorithm, keyId);
 
-            // Step 4: Create SdJwt object
-            var sdJwt = new SdJwt(jwt, disclosures, hashAlgorithm);
+            // Step 4: Compute claim path mapping for presentation performance optimization
+            // This caches the mapping at issuance time to avoid recomputation on every presentation
+            var claimPathMapper = new DisclosureClaimPathMapper(digestCalculator, new DisclosureParser());
+
+            // Create temporary SdJwt to compute the mapping
+            var tempSdJwt = new SdJwt(jwt, disclosures, hashAlgorithm);
+            var claimPathMapping = claimPathMapper.BuildClaimPathMapping(tempSdJwt);
+
+            // Step 5: Create final SdJwt object with cached mapping
+            var sdJwt = new SdJwt(jwt, disclosures, hashAlgorithm, null, claimPathMapping);
 
             // Stop performance measurement
             stopwatch.Stop();

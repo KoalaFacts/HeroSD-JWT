@@ -34,15 +34,24 @@ public sealed class SdJwt
     public string? KeyBindingJwt { get; }
 
     /// <summary>
+    /// Gets the cached claim path to disclosure index mapping.
+    /// This mapping is computed once during SD-JWT creation to improve presentation performance.
+    /// Maps claim paths (e.g., "address.street") to disclosure array indices.
+    /// If null, the mapping will be computed on-demand during presentation.
+    /// </summary>
+    public IReadOnlyDictionary<string, int>? ClaimPathMapping { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SdJwt"/> class.
     /// </summary>
     /// <param name="jwt">The base JWT string.</param>
     /// <param name="disclosures">The list of base64url-encoded disclosures.</param>
     /// <param name="hashAlgorithm">The hash algorithm used.</param>
     /// <param name="keyBindingJwt">Optional key binding JWT.</param>
+    /// <param name="claimPathMapping">Optional cached claim path to disclosure index mapping.</param>
     /// <exception cref="ArgumentNullException">Thrown when jwt or disclosures is null.</exception>
     /// <exception cref="ArgumentException">Thrown when jwt is empty or whitespace.</exception>
-    public SdJwt(string jwt, IEnumerable<string> disclosures, HashAlgorithm hashAlgorithm, string? keyBindingJwt = null)
+    public SdJwt(string jwt, IEnumerable<string> disclosures, HashAlgorithm hashAlgorithm, string? keyBindingJwt = null, IReadOnlyDictionary<string, int>? claimPathMapping = null)
     {
         ArgumentNullException.ThrowIfNull(jwt);
         ArgumentNullException.ThrowIfNull(disclosures);
@@ -56,6 +65,7 @@ public sealed class SdJwt
         Disclosures = new ReadOnlyCollection<string>(disclosures.ToList());
         HashAlgorithm = hashAlgorithm;
         KeyBindingJwt = keyBindingJwt;
+        ClaimPathMapping = claimPathMapping;
     }
 
     /// <summary>

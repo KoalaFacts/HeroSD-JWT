@@ -65,9 +65,11 @@ public class SdJwtPresenter : ISdJwtPresenter
             // Log presentation start
             logger.LogPresentationStarted(selectedClaimsList.Count);
 
-        // Build claim path mapping by analyzing JWT structure
-        // This is computed on-demand per SD-JWT spec: "it is up to the Holder how to maintain the mapping"
-        var claimPathToIndex = claimPathMapper.BuildClaimPathMapping(sdJwt);
+        // Use cached claim path mapping if available (computed at issuance time for performance),
+        // otherwise compute on-demand per SD-JWT spec: "it is up to the Holder how to maintain the mapping"
+        var claimPathToIndex = sdJwt.ClaimPathMapping != null
+            ? new Dictionary<string, int>(sdJwt.ClaimPathMapping)
+            : claimPathMapper.BuildClaimPathMapping(sdJwt);
 
         // Select disclosures based on requested claim paths
         // Also include parent disclosures for nested paths (e.g., for "address.geo.lat", include "address.geo")
