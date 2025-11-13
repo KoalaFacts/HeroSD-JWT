@@ -51,14 +51,11 @@ public class PresentationBenchmarks
 
         // Pre-generate key binding JWT for benchmarking
         var presentation = _sdJwt.ToPresentation("claim_0");
-        // Calculate SD-JWT hash (SHA-256 of ASCII presentation)
+        // Calculate SD-JWT hash (SHA-256 of UTF-8 presentation)
         using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(System.Text.Encoding.ASCII.GetBytes(presentation));
-        // Base64Url encode (base64 with URL-safe characters and no padding)
-        _sdJwtHash = Convert.ToBase64String(hashBytes)
-            .Replace('+', '-')
-            .Replace('/', '_')
-            .TrimEnd('=');
+        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(presentation));
+        // Base64Url encode using BCL Base64Url
+        _sdJwtHash = System.Buffers.Text.Base64Url.EncodeToString(hashBytes);
 
         var kbGenerator = new KeyBindingGenerator();
         var holderPrivateKeyBytes = _holderKey.ExportECPrivateKey();

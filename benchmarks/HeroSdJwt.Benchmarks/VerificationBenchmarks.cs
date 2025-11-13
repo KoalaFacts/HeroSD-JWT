@@ -46,6 +46,7 @@ public class VerificationBenchmarks
         {
             ["iss"] = "https://issuer.example.com",
             ["sub"] = "user-123",
+            ["aud"] = "https://verifier.example.com",
             ["iat"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             ["exp"] = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds(),
             ["email"] = "alice@example.com",
@@ -82,17 +83,15 @@ public class VerificationBenchmarks
 
         var sdJwtWithKeyBinding = builderWithKeyBinding.SignWithRsa(rsaPrivateKey).Build();
 
-        // Generate key binding JWT
-        var tempPresentation = sdJwtWithKeyBinding.ToPresentation("email", "name");
-        // Calculate SD-JWT hash (SHA-256 of ASCII presentation)
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(System.Text.Encoding.ASCII.GetBytes(tempPresentation));
-        // Base64Url encode (base64 with URL-safe characters and no padding)
-        var sdJwtHash = Convert.ToBase64String(hashBytes)
-            .Replace('+', '-')
-            .Replace('/', '_')
-            .TrimEnd('=');
+        // Create presentation ONCE and reuse it for both hash and final presentation
+        var presentation = sdJwtWithKeyBinding.ToPresentation("email", "name");
 
+        // Calculate SD-JWT hash (SHA-256 of UTF-8 presentation)
+        using var sha256 = SHA256.Create();
+        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(presentation));
+        var sdJwtHash = System.Buffers.Text.Base64Url.EncodeToString(hashBytes);
+
+        // Generate key binding JWT
         var kbGenerator = new KeyBindingGenerator();
         var holderPrivateKeyBytes = _holderKey.ExportECPrivateKey();
         var keyBindingJwt = kbGenerator.CreateKeyBindingJwt(
@@ -101,9 +100,8 @@ public class VerificationBenchmarks
             "https://verifier.example.com",
             "nonce-123");
 
-        _presentationWithKeyBinding = sdJwtWithKeyBinding.ToPresentationWithKeyBinding(
-            keyBindingJwt,
-            "email", "name");
+        // Append key binding JWT to the presentation we already created
+        _presentationWithKeyBinding = presentation + keyBindingJwt;
 
         // Create verifiers with required dependencies
         var ecPublicKeyConverter = new EcPublicKeyConverter();
@@ -128,7 +126,6 @@ public class VerificationBenchmarks
 
         var verifierWithKbOptions = new SdJwtVerificationOptions
         {
-            ExpectedIssuer = "https://issuer.example.com",
             ExpectedAudience = "https://verifier.example.com",
             ExpectedNonce = "nonce-123",
             RequireKeyBinding = true
