@@ -46,7 +46,18 @@ jobs:
         cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: |
+        if [ "${{ matrix.dotnet-version }}" == "10.0.x" ]; then
+          # Restore entire solution including examples
+          dotnet restore
+        else
+          # Restore only library and test projects (examples target net10.0 only)
+          dotnet restore src/HeroSdJwt/HeroSdJwt.csproj
+          dotnet restore src/HeroSdJwt.AspNetCore/HeroSdJwt.AspNetCore.csproj
+          dotnet restore tests/HeroSdJwt.Tests/HeroSdJwt.Tests.csproj
+          dotnet restore tests/HeroSdJwt.AspNetCore.Tests/HeroSdJwt.AspNetCore.Tests.csproj
+          dotnet restore benchmarks/HeroSdJwt.Benchmarks/HeroSdJwt.Benchmarks.csproj
+        fi
 
     - name: Check for new lock files
       id: lock-files
