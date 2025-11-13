@@ -94,7 +94,7 @@ public class VerificationBenchmarks
             .TrimEnd('=');
 
         var kbGenerator = new KeyBindingGenerator();
-        var holderPrivateKeyBytes = _holderKey.ExportPkcs8PrivateKey();
+        var holderPrivateKeyBytes = _holderKey.ExportECPrivateKey();
         var keyBindingJwt = kbGenerator.CreateKeyBindingJwt(
             holderPrivateKeyBytes,
             sdJwtHash,
