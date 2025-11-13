@@ -3,13 +3,24 @@ using HeroSdJwt.Issuance;
 using HeroSdJwt.Presentation;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
+#if NET9_0_OR_GREATER
 using Microsoft.AspNetCore.OpenApi;
 using Scalar.AspNetCore;
+#endif
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
+#if NET9_0_OR_GREATER
 builder.Services.AddOpenApi();
+#else
+// .NET 8: Use Swashbuckle for OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new() { Title = "HeroSD-JWT Example API", Version = "1.0.0" });
+});
+#endif
 
 // Register SD-JWT services (verifier, issuer, presenter, etc.)
 builder.Services.AddSdJwtServices();
@@ -41,11 +52,20 @@ var app = builder.Build();
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
+#if NET9_0_OR_GREATER
     app.MapOpenApi("/openapi/v1.json");
     app.MapScalarApiReference("/openapi/{documentName}", options =>
     {
         options.WithOpenApiRoutePattern("/openapi/v1.json");
     });
+#else
+    // .NET 8: Use Swashbuckle UI
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "HeroSD-JWT Example API v1");
+    });
+#endif
 }
 
 app.UseHttpsRedirection();
@@ -70,7 +90,12 @@ app.MapGet("/", () => new
     }
 })
 .WithName("GetRoot")
-.WithOpenApi();
+#if NET9_0_OR_GREATER
+#if NET9_0_OR_GREATER
+.WithOpenApi()
+#endif
+#endif
+;
 
 // =====================================================================
 // Token Issuance Endpoint
@@ -148,7 +173,9 @@ app.MapPost("/token", (ISdJwtIssuer issuer, ISdJwtPresenter presenter, IConfigur
     });
 })
 .WithName("IssueToken")
+#if NET9_0_OR_GREATER
 .WithOpenApi()
+#endif
 .Accepts<UserCredentials>("application/json");
 
 // =====================================================================
@@ -173,7 +200,9 @@ app.MapGet("/api/profile", (HttpContext context) =>
     });
 })
 .WithName("GetProfile")
+#if NET9_0_OR_GREATER
 .WithOpenApi()
+#endif
 .RequireAuthorization();
 
 app.MapGet("/api/claims", (HttpContext context) =>
@@ -191,7 +220,9 @@ app.MapGet("/api/claims", (HttpContext context) =>
     });
 })
 .WithName("GetClaims")
+#if NET9_0_OR_GREATER
 .WithOpenApi()
+#endif
 .RequireAuthorization();
 
 app.MapGet("/api/admin", (HttpContext context) =>
@@ -211,7 +242,9 @@ app.MapGet("/api/admin", (HttpContext context) =>
     });
 })
 .WithName("AdminOnly")
+#if NET9_0_OR_GREATER
 .WithOpenApi()
+#endif
 .RequireAuthorization();
 
 app.Run();

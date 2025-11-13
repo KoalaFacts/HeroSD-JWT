@@ -8,4 +8,11 @@
     <!-- This allows the first CI run to generate lock files without failing -->
     <RestoreLockedMode Condition="'$(NUGET_LOCKED_MODE)' == 'true'">true</RestoreLockedMode>
   </PropertyGroup>
+
+  <!-- Default target frameworks for all projects -->
+  <PropertyGroup>
+    <!-- Default multi-targeting for all projects -->
+    <!-- Individual projects can override if they need specific frameworks (e.g., source generators using netstandard2.0) -->
+    <SupportedTargetFrameworks>net8.0;net9.0;net10.0</SupportedTargetFrameworks>
+  </PropertyGroup>
 </Project>
