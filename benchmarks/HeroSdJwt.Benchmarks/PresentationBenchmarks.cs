@@ -61,7 +61,7 @@ public class PresentationBenchmarks
             .TrimEnd('=');
 
         var kbGenerator = new KeyBindingGenerator();
-        var holderPrivateKeyBytes = _holderKey.ExportECPrivateKey();
+        var holderPrivateKeyBytes = _holderKey.ExportPkcs8PrivateKey();
         _keyBindingJwt = kbGenerator.CreateKeyBindingJwt(
             holderPrivateKeyBytes,
             _sdJwtHash,
