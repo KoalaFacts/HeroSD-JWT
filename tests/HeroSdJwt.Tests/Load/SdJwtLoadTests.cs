@@ -196,13 +196,18 @@ public class SdJwtLoadTests
                 var presentation = sdJwt.ToPresentation("email");
                 var result = verifier.TryVerifyPresentation(presentation, issuerKey);
 
-                return result.IsValid
-                    ? Response.Ok(result)
-                    : Response.Fail<object>("Verification failed");
+                if (result.IsValid)
+                {
+                    return await Task.FromResult(Response.Ok(result));
+                }
+                else
+                {
+                    return await Task.FromResult(Response.Fail<object>("Verification failed"));
+                }
             }
             catch (Exception ex)
             {
-                return Response.Fail<object>(ex.Message);
+                return await Task.FromResult(Response.Fail<object>(ex.Message));
             }
         })
         .WithoutWarmUp()
@@ -266,11 +271,11 @@ public class SdJwtLoadTests
                 var presentation = sdJwt.ToPresentation("email", "department");
                 presentations.Add(presentation);
 
-                return Response.Ok();
+                return await Task.FromResult(Response.Ok());
             }
             catch (Exception ex)
             {
-                return Response.Fail<object>(ex.Message);
+                return await Task.FromResult(Response.Fail<object>(ex.Message));
             }
         })
         .WithoutWarmUp()
@@ -285,16 +290,21 @@ public class SdJwtLoadTests
                 if (presentations.TryTake(out var presentation))
                 {
                     var result = verifier.TryVerifyPresentation(presentation, key);
-                    return result.IsValid
-                        ? Response.Ok()
-                        : Response.Fail<object>("Verification failed");
+                    if (result.IsValid)
+                    {
+                        return await Task.FromResult(Response.Ok());
+                    }
+                    else
+                    {
+                        return await Task.FromResult(Response.Fail<object>("Verification failed"));
+                    }
                 }
 
-                return Response.Fail<object>("No presentations available");
+                return await Task.FromResult(Response.Fail<object>("No presentations available"));
             }
             catch (Exception ex)
             {
-                return Response.Fail<object>(ex.Message);
+                return await Task.FromResult(Response.Fail<object>(ex.Message));
             }
         })
         .WithoutWarmUp()
@@ -351,13 +361,18 @@ public class SdJwtLoadTests
                 var presentation = sdJwt.ToPresentation("email");
                 var result = verifier.TryVerifyPresentation(presentation, key);
 
-                return result.IsValid
-                    ? Response.Ok()
-                    : Response.Fail<object>("Verification failed");
+                if (result.IsValid)
+                {
+                    return await Task.FromResult(Response.Ok());
+                }
+                else
+                {
+                    return await Task.FromResult(Response.Fail<object>("Verification failed"));
+                }
             }
             catch (Exception ex)
             {
-                return Response.Fail<object>(ex.Message);
+                return await Task.FromResult(Response.Fail<object>(ex.Message));
             }
         })
         .WithoutWarmUp()
