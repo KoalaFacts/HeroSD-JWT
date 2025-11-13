@@ -9,7 +9,7 @@ namespace HeroSdJwt.Encoding;
 /// Base64url is defined in RFC 4648 Section 5.
 /// This wrapper adds security features like DoS protection and domain-specific exceptions.
 /// </summary>
-internal static class Base64UrlEncoder
+public static class Base64UrlEncoder
 {
     /// <summary>
     /// Maximum input length to prevent DoS attacks through memory exhaustion.
