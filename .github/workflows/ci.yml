@@ -69,10 +69,10 @@ jobs:
       run: |
         if [ "${{ matrix.dotnet-version }}" == "8.0.x" ]; then
           # SDK 8.0.x: Override TargetFrameworks to exclude net9.0 and net10.0
-          dotnet restore /p:TargetFrameworks=net8.0
+          dotnet restore '/p:TargetFrameworks=net8.0'
         elif [ "${{ matrix.dotnet-version }}" == "9.0.x" ]; then
           # SDK 9.0.x: Override TargetFrameworks to exclude net10.0
-          dotnet restore /p:TargetFrameworks="net8.0;net9.0"
+          dotnet restore '/p:TargetFrameworks=net8.0;net9.0'
         else
           # SDK 10.0.x: Restore all targets
           dotnet restore
