@@ -7,6 +7,7 @@ using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Models;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using SdJwtHashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
@@ -61,7 +62,7 @@ public class VerificationBenchmarks
         var builder = new SdJwtBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
-            .MakeSelective("email", "name", "birthdate", "address.street", "address.city");
+            .MakeSelective("email", "name", "birthdate");
 
         _sdJwtHmac = builder.SignWithHmac(_hmacKey).Build();
         var rsaPrivateKey = _rsa.ExportPkcs8PrivateKey();

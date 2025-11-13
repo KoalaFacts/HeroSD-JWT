@@ -5,6 +5,7 @@ using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Models;
+using HeroSdJwt.Primitives;
 using SdJwtHashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Benchmarks;
@@ -44,7 +45,7 @@ public class PresentationBenchmarks
         var builder = new SdJwtBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
-            .MakeSelective(claims.Keys.Where(k => k.StartsWith("claim_")).ToArray());
+            .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
 
         _sdJwt = builder.SignWithHmac(_hmacKey).Build();
 

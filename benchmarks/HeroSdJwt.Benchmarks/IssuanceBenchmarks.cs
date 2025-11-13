@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using BenchmarkDotNet.Attributes;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
+using HeroSdJwt.Primitives;
 using SdJwtHashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Benchmarks;
@@ -76,7 +77,7 @@ public class IssuanceBenchmarks
         var builder = new SdJwtBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
-            .MakeSelective(claims.Keys.Where(k => !k.StartsWith("iss") && !k.StartsWith("sub")).ToArray());
+            .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
 
         return builder.SignWithHmac(_hmacKey).Build();
     }
@@ -98,7 +99,7 @@ public class IssuanceBenchmarks
         var builder = new SdJwtBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
-            .MakeSelective(claims.Keys.Where(k => !k.StartsWith("iss") && !k.StartsWith("sub")).ToArray());
+            .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
 
         var rsaPrivateKey = _rsa.ExportPkcs8PrivateKey();
         return builder.SignWithRsa(rsaPrivateKey).Build();
@@ -121,7 +122,7 @@ public class IssuanceBenchmarks
         var builder = new SdJwtBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
-            .MakeSelective(claims.Keys.Where(k => !k.StartsWith("iss") && !k.StartsWith("sub")).ToArray());
+            .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
 
         var ecdsaPrivateKey = _ecdsa.ExportECPrivateKey();
         return builder.SignWithEcdsa(ecdsaPrivateKey).Build();
