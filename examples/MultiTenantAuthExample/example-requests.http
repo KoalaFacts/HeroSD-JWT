@@ -1,0 +1,249 @@
+### Multi-Tenant SD-JWT Authentication API Examples
+### Use with REST Client or similar HTTP client extensions
+
+@baseUrl = https://localhost:5001
+@contentType = application/json
+
+###############################################################################
+# 1. List All Tenants
+###############################################################################
+
+### Get all configured tenants
+GET {{baseUrl}}/api/tokens/tenants
+Accept: {{contentType}}
+
+###############################################################################
+# 2. Issue Tokens for Different Tenants
+###############################################################################
+
+### Issue token for ACME Corporation (2-hour lifetime)
+POST {{baseUrl}}/api/tokens/issue
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "acme-corp",
+  "subject": "user-12345",
+  "claims": {
+    "email": "alice@acme.com",
+    "name": "Alice Smith",
+    "role": "admin",
+    "department": "engineering",
+    "clearance": "top-secret"
+  },
+  "selectivelyDisclosableClaims": ["email", "department", "clearance"],
+  "tokenLifetimeSeconds": 3600
+}
+
+### Issue token for Contoso (1-hour lifetime)
+POST {{baseUrl}}/api/tokens/issue
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "contoso",
+  "subject": "employee-456",
+  "claims": {
+    "email": "bob@contoso.com",
+    "role": "developer",
+    "team": "platform"
+  },
+  "selectivelyDisclosableClaims": ["email", "team"]
+}
+
+### Issue token for Fabrikam (30-minute lifetime)
+POST {{baseUrl}}/api/tokens/issue
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "fabrikam",
+  "subject": "contractor-789",
+  "claims": {
+    "email": "charlie@fabrikam.com",
+    "role": "consultant",
+    "project": "modernization"
+  },
+  "selectivelyDisclosableClaims": ["email", "project"]
+}
+
+### Issue token for Woodgrove Bank (15-minute lifetime, financial tenant)
+POST {{baseUrl}}/api/tokens/issue
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "woodgrove",
+  "subject": "customer-42",
+  "claims": {
+    "email": "dave@example.com",
+    "account_type": "premium",
+    "account_number": "123456789",
+    "balance": 50000.00
+  },
+  "selectivelyDisclosableClaims": ["account_number", "balance"],
+  "tokenLifetimeSeconds": 900
+}
+
+###############################################################################
+# 3. Verify Tokens
+###############################################################################
+
+### Verify token (replace with actual SD-JWT from issue response)
+### NOTE: Replace the presentation value with actual token from issue endpoint
+POST {{baseUrl}}/api/tokens/verify
+Content-Type: {{contentType}}
+
+{
+  "presentation": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImFjbWUtMjAyNC0xMSJ9.eyJfc2QiOlsiU3lzdGVtLlN0cmluZ1tdIl0sInN1YiI6InVzZXItMTIzNDUiLCJpc3MiOiJodHRwczovL2V4YW1wbGUuY29tL3RlbmFudHMvYWNtZS1jb3JwIiwidGVuYW50X2lkIjoiYWNtZS1jb3JwIiwiaWF0IjoxNzMxNTQ5NjAwLCJleHAiOjE3MzE1NTMyMDAsIm9yZyI6ImFjbWUtY29ycCIsIm9yZ19uYW1lIjoiQUNNRSBDb3Jwb3JhdGlvbiJ9.signature~disclosure~",
+  "tenantId": "acme-corp"
+}
+
+### Verify token without tenant hint (auto-detect from token)
+POST {{baseUrl}}/api/tokens/verify
+Content-Type: {{contentType}}
+
+{
+  "presentation": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImFjbWUtMjAyNC0xMSJ9.eyJfc2QiOlsiU3lzdGVtLlN0cmluZ1tdIl0sInN1YiI6InVzZXItMTIzNDUiLCJpc3MiOiJodHRwczovL2V4YW1wbGUuY29tL3RlbmFudHMvYWNtZS1jb3JwIiwidGVuYW50X2lkIjoiYWNtZS1jb3JwIiwiaWF0IjoxNzMxNTQ5NjAwLCJleHAiOjE3MzE1NTMyMDAsIm9yZyI6ImFjbWUtY29ycCIsIm9yZ19uYW1lIjoiQUNNRSBDb3Jwb3JhdGlvbiJ9.signature~disclosure~"
+}
+
+###############################################################################
+# 4. Error Cases
+###############################################################################
+
+### Try to issue token for invalid tenant
+POST {{baseUrl}}/api/tokens/issue
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "nonexistent-tenant",
+  "subject": "user-999",
+  "claims": {
+    "email": "test@example.com"
+  }
+}
+
+### Try to issue token for disabled tenant
+POST {{baseUrl}}/api/tokens/issue
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "test-disabled",
+  "subject": "user-999",
+  "claims": {
+    "email": "test@example.com"
+  }
+}
+
+### Try to verify invalid presentation
+POST {{baseUrl}}/api/tokens/verify
+Content-Type: {{contentType}}
+
+{
+  "presentation": "invalid.jwt.format~",
+  "tenantId": "acme-corp"
+}
+
+### Try to verify with wrong tenant
+POST {{baseUrl}}/api/tokens/verify
+Content-Type: {{contentType}}
+
+{
+  "presentation": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImFjbWUtMjAyNC0xMSJ9.eyJfc2QiOlsiU3lzdGVtLlN0cmluZ1tdIl0sInN1YiI6InVzZXItMTIzNDUiLCJpc3MiOiJodHRwczovL2V4YW1wbGUuY29tL3RlbmFudHMvYWNtZS1jb3JwIiwidGVuYW50X2lkIjoiYWNtZS1jb3JwIiwiaWF0IjoxNzMxNTQ5NjAwLCJleHAiOjE3MzE1NTMyMDAsIm9yZyI6ImFjbWUtY29ycCIsIm9yZ19uYW1lIjoiQUNNRSBDb3Jwb3JhdGlvbiJ9.signature~disclosure~",
+  "tenantId": "contoso"
+}
+
+###############################################################################
+# 5. Key Rotation Scenarios
+###############################################################################
+
+### Issue token with current key (will use CurrentKeyId from config)
+POST {{baseUrl}}/api/tokens/issue
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "contoso",
+  "subject": "test-rotation",
+  "claims": {
+    "email": "rotation-test@contoso.com",
+    "purpose": "key-rotation-demo"
+  },
+  "selectivelyDisclosableClaims": ["email"]
+}
+
+### NOTE: After key rotation (adding contoso-key-v3 and updating CurrentKeyId):
+### - New tokens will be issued with contoso-key-v3
+### - Old tokens with contoso-key-v1 or contoso-key-v2 still verify (if keys remain in config)
+### - Removing old keys from config will invalidate all tokens issued with those keys
+
+###############################################################################
+# 6. Selective Disclosure Examples
+###############################################################################
+
+### Issue token with multiple selective claims
+POST {{baseUrl}}/api/tokens/issue
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "acme-corp",
+  "subject": "user-selective",
+  "claims": {
+    "name": "John Doe",
+    "email": "john@acme.com",
+    "phone": "+1-555-0123",
+    "ssn": "123-45-6789",
+    "address": {
+      "street": "123 Main St",
+      "city": "Boston",
+      "state": "MA",
+      "zip": "02101"
+    }
+  },
+  "selectivelyDisclosableClaims": ["email", "phone", "ssn", "address.street", "address.zip"]
+}
+
+### NOTE: Holder can then create presentations revealing only specific claims
+### For example:
+### - Share email and phone for contact verification
+### - Share address.city and address.state for location verification
+### - Keep SSN completely hidden
+
+###############################################################################
+# 7. Tenant-Specific Features
+###############################################################################
+
+### ACME Corp: Long-lived token with default org claims
+POST {{baseUrl}}/api/tokens/issue
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "acme-corp",
+  "subject": "long-lived-session",
+  "claims": {
+    "session_id": "sess-abc123",
+    "ip": "203.0.113.42"
+  }
+}
+### Result: Token automatically includes org="acme-corp", org_name="ACME Corporation"
+### Max lifetime: 7200 seconds (2 hours)
+
+### Woodgrove Bank: Short-lived token with compliance claims
+POST {{baseUrl}}/api/tokens/issue
+Content-Type: {{contentType}}
+
+{
+  "tenantId": "woodgrove",
+  "subject": "transaction-xyz",
+  "claims": {
+    "transaction_id": "txn-789",
+    "amount": 1000.00
+  }
+}
+### Result: Token automatically includes org_type="financial", compliance="regulated"
+### Max lifetime: 900 seconds (15 minutes)
+
+###############################################################################
+# Notes:
+#
+# - All timestamps are Unix epoch seconds
+# - SD-JWT format: jwt~disclosure~disclosure~...~keybinding (keybinding optional)
+# - Tenant ID is automatically included in every token
+# - Default claims from tenant config are merged automatically
+# - Token lifetime cannot exceed tenant's MaxTokenLifetimeSeconds
+###############################################################################
