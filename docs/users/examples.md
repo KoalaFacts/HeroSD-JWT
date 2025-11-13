@@ -4,6 +4,7 @@ This document provides detailed examples of using HeroSD-JWT for various scenari
 
 ## Table of Contents
 
+- [Live Examples](#live-examples)
 - [Basic Examples](#basic-examples)
 - [Nested Objects](#nested-objects)
 - [Array Elements](#array-elements)
@@ -11,6 +12,58 @@ This document provides detailed examples of using HeroSD-JWT for various scenari
 - [Different Signature Algorithms](#different-signature-algorithms)
 - [Error Handling](#error-handling)
 - [Real-World Scenarios](#real-world-scenarios)
+
+## Live Examples
+
+The repository includes complete, runnable example projects that demonstrate real-world integrations:
+
+### 🌐 ASP.NET Core Integration Example
+
+**Location:** [examples/AspNetCoreIntegrationExample/](../../examples/AspNetCoreIntegrationExample/)
+
+A production-ready REST API demonstrating SD-JWT authentication and authorization with ASP.NET Core.
+
+**Features:**
+- ✅ SD-JWT token issuance endpoint
+- ✅ Automatic authentication middleware
+- ✅ Protected endpoints with claims-based authorization
+- ✅ OpenAPI documentation with Scalar UI
+- ✅ Configuration-based setup
+- ✅ Full request/response examples
+
+**Quick Start:**
+```bash
+cd examples/AspNetCoreIntegrationExample
+dotnet run
+# Visit https://localhost:5001/openapi/v1
+```
+
+**Learn More:** [ASP.NET Core Integration README](../../examples/AspNetCoreIntegrationExample/README.md)
+
+### 📊 Observability with Serilog Example
+
+**Location:** [examples/SerilogExample/](../../examples/SerilogExample/)
+
+Comprehensive observability demonstration using Serilog for structured logging, metrics, and distributed tracing.
+
+**Features:**
+- ✅ Structured logging with Serilog (console + file)
+- ✅ Real-time metrics collection and reporting
+- ✅ Distributed tracing with Activity/Span tracking
+- ✅ Custom log enrichers (correlation IDs, environment info)
+- ✅ Complete SD-JWT lifecycle demonstration
+- ✅ Error logging and verification failure examples
+
+**Quick Start:**
+```bash
+cd examples/SerilogExample
+dotnet run
+# Check console output and logs/sdjwt-*.log
+```
+
+**Learn More:** [Serilog Example README](../../examples/SerilogExample/README.md)
+
+---
 
 ## Basic Examples
 
