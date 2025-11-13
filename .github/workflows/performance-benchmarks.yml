@@ -1,0 +1,85 @@
+name: Performance Benchmarks
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'benchmarks/**'
+      - '.github/workflows/performance-benchmarks.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'benchmarks/**'
+  workflow_dispatch:  # Allow manual trigger
+
+# Cancel in-progress runs for the same workflow and ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write  # For committing baseline
+  pull-requests: write  # For posting comments
+  deployments: write  # For GitHub Pages
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  benchmark:
+    name: Run Performance Benchmarks
+    runs-on: ubuntu-latest  # Consistent environment for comparisons
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build benchmarks
+      run: |
+        dotnet build benchmarks/HeroSdJwt.Benchmarks/HeroSdJwt.Benchmarks.csproj \
+          --configuration Release \
+          --no-restore
+
+    - name: Run benchmarks
+      run: |
+        cd benchmarks/HeroSdJwt.Benchmarks
+        dotnet run -c Release --framework net9.0 \
+          --filter "*" \
+          --job short \
+          --exporters json
+
+    - name: Store benchmark result
+      uses: benchmark-action/github-action-benchmark@v1
+      with:
+        tool: 'benchmarkdotnet'
+        output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/combined-report-full.json
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        comment-on-alert: true
+        fail-on-alert: true
+        alert-threshold: '105%'  # Fail if >5% slower
+        comment-always: true
+        benchmark-data-dir-path: 'dev/bench'
+        auto-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        summary-always: true
+        gh-pages-branch: 'gh-pages'
+        save-data-file: true
+
+    - name: Upload benchmark artifacts
+      uses: actions/upload-artifact@v5
+      if: always()
+      with:
+        name: benchmark-results
+        path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/*
+        retention-days: 30

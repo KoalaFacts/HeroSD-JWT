@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -46,6 +47,7 @@ public class VerificationBenchmarks
         {
             ["iss"] = "https://issuer.example.com",
             ["sub"] = "user-123",
+            ["aud"] = "https://verifier.example.com",
             ["iat"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             ["exp"] = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds(),
             ["email"] = "alice@example.com",
@@ -84,14 +86,11 @@ public class VerificationBenchmarks
 
         // Generate key binding JWT
         var tempPresentation = sdJwtWithKeyBinding.ToPresentation("email", "name");
-        // Calculate SD-JWT hash (SHA-256 of ASCII presentation)
+        // Calculate SD-JWT hash (SHA-256 of UTF-8 presentation)
         using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(System.Text.Encoding.ASCII.GetBytes(tempPresentation));
-        // Base64Url encode (base64 with URL-safe characters and no padding)
-        var sdJwtHash = Convert.ToBase64String(hashBytes)
-            .Replace('+', '-')
-            .Replace('/', '_')
-            .TrimEnd('=');
+        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(tempPresentation));
+        // Base64Url encode using built-in .NET API
+        var sdJwtHash = Base64Url.EncodeToString(hashBytes);
 
         var kbGenerator = new KeyBindingGenerator();
         var holderPrivateKeyBytes = _holderKey.ExportECPrivateKey();
