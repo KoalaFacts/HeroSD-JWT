@@ -49,11 +49,11 @@ public class SdJwtLoadTests
                     HeroSdJwt.Primitives.HashAlgorithm.Sha256,
                     SignatureAlgorithm.HS256);
 
-                return Response.Ok(sdJwt);
+                return await Task.FromResult(Response.Ok(sdJwt));
             }
             catch (Exception ex)
             {
-                return Response.Fail<object>(ex.Message);
+                return await Task.FromResult(Response.Fail<object>(ex.Message));
             }
         })
         .WithoutWarmUp()
@@ -116,13 +116,18 @@ public class SdJwtLoadTests
             {
                 var result = verifier.TryVerifyPresentation(presentation, key);
 
-                return result.IsValid
-                    ? Response.Ok(result)
-                    : Response.Fail<object>("Verification failed");
+                if (result.IsValid)
+                {
+                    return await Task.FromResult(Response.Ok(result));
+                }
+                else
+                {
+                    return await Task.FromResult(Response.Fail<object>("Verification failed"));
+                }
             }
             catch (Exception ex)
             {
-                return Response.Fail<object>(ex.Message);
+                return await Task.FromResult(Response.Fail<object>(ex.Message));
             }
         })
         .WithoutWarmUp()
