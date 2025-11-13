@@ -51,6 +51,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        dotnet-version: ${{ fromJson(needs.setup-matrix.outputs.dotnet-versions) }}
 
     steps:
     - name: Checkout code
@@ -58,19 +59,28 @@ jobs:
       with:
         fetch-depth: 0  # Full history for Source Link
 
-    - name: Setup .NET (latest SDK)
+    - name: Setup .NET ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v5
       with:
-        # Use latest SDK - it can build all target frameworks (net8.0, net9.0, net10.0)
-        dotnet-version: ${{ fromJson(needs.setup-matrix.outputs.dotnet-versions)[2] }}
+        dotnet-version: ${{ matrix.dotnet-version }}
         cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: |
+        if [ "${{ matrix.dotnet-version }}" == "8.0.x" ]; then
+          # SDK 8.0.x: Override TargetFrameworks to exclude net9.0 and net10.0
+          dotnet restore '/p:TargetFrameworks=net8.0'
+        elif [ "${{ matrix.dotnet-version }}" == "9.0.x" ]; then
+          # SDK 9.0.x: Override TargetFrameworks to exclude net10.0
+          dotnet restore '/p:TargetFrameworks=net8.0;net9.0'
+        else
+          # SDK 10.0.x: Restore all targets
+          dotnet restore
+        fi
 
     - name: Check for new lock files
       id: lock-files
-      if: matrix.os == 'ubuntu-latest' && github.event_name == 'push'
+      if: matrix.os == 'ubuntu-latest' && matrix.dotnet-version == '10.0.x' && github.event_name == 'push'
       run: |
         if git diff --name-only | grep -q "packages.lock.json"; then
           echo "LOCK_FILES_GENERATED=true" >> $GITHUB_OUTPUT
@@ -98,29 +108,49 @@ jobs:
         )"
         git push
 
-    - name: Build all target frameworks
-      run: dotnet build --configuration Release --no-restore
+    - name: Build
+      run: |
+        if [ "${{ matrix.dotnet-version }}" == "8.0.x" ]; then
+          # SDK 8.0.x can only build net8.0 targets
+          dotnet build --configuration Release --no-restore --framework net8.0
+        elif [ "${{ matrix.dotnet-version }}" == "9.0.x" ]; then
+          # SDK 9.0.x can only build up to net9.0 targets
+          dotnet build --configuration Release --no-restore --framework net9.0
+        else
+          # SDK 10.0.x can build all targets including net10.0
+          dotnet build --configuration Release --no-restore
+        fi
 
-    - name: Run tests on all target frameworks
-      run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
+    - name: Run tests
+      run: |
+        if [ "${{ matrix.dotnet-version }}" == "8.0.x" ]; then
+          # Test only net8.0 targets
+          dotnet test --configuration Release --no-build --framework net8.0 --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
+        elif [ "${{ matrix.dotnet-version }}" == "9.0.x" ]; then
+          # Test only net9.0 targets
+          dotnet test --configuration Release --no-build --framework net9.0 --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
+        else
+          # Test all framework targets
+          dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
+        fi
 
     - name: Publish test results
       uses: EnricoMi/publish-unit-test-result-action@v2
-      if: always() && runner.os == 'Linux'
+      if: always() && runner.os == 'Linux' && matrix.dotnet-version == '10.0.x'
       with:
         files: 'TestResults/**/*.trx'
-        check_name: 'Test Results (${{ matrix.os }})'
+        check_name: 'Test Results (${{ matrix.os }} - .NET ${{ matrix.dotnet-version }})'
 
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v5
       with:
-        name: test-results-${{ matrix.os }}
+        name: test-results-${{ matrix.os }}-${{ matrix.dotnet-version }}
         path: TestResults/**/*.trx
         retention-days: 30
 
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-latest' && matrix.dotnet-version == '10.0.x'
       uses: codecov/codecov-action@v5
       with:
         files: 'TestResults/**/coverage.cobertura.xml'
