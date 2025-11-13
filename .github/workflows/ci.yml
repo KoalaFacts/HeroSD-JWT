@@ -46,17 +46,7 @@ jobs:
         cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
-      run: |
-        if [ "${{ matrix.dotnet-version }}" == "10.0.x" ]; then
-          # Restore everything including examples for .NET 10
-          dotnet restore
-        else
-          # Restore only src/ and tests/ for older SDKs (examples target net10.0 only)
-          dotnet restore src/HeroSdJwt/HeroSdJwt.csproj
-          dotnet restore src/HeroSdJwt.AspNetCore/HeroSdJwt.AspNetCore.csproj
-          dotnet restore tests/HeroSdJwt.Tests/HeroSdJwt.Tests.csproj
-          dotnet restore tests/HeroSdJwt.AspNetCore.Tests/HeroSdJwt.AspNetCore.Tests.csproj
-        fi
+      run: dotnet restore
 
     - name: Check for new lock files
       id: lock-files
@@ -90,19 +80,29 @@ jobs:
 
     - name: Build
       run: |
-        if [ "${{ matrix.dotnet-version }}" == "10.0.x" ]; then
-          # Build everything including examples for .NET 10
-          dotnet build --configuration Release --no-restore
+        if [ "${{ matrix.dotnet-version }}" == "8.0.x" ]; then
+          # SDK 8.0.x can only build net8.0 targets
+          dotnet build --configuration Release --no-restore --framework net8.0
+        elif [ "${{ matrix.dotnet-version }}" == "9.0.x" ]; then
+          # SDK 9.0.x can only build up to net9.0 targets
+          dotnet build --configuration Release --no-restore --framework net9.0
         else
-          # Build only src/ and tests/ for older SDKs (examples target net10.0 only)
-          dotnet build src/HeroSdJwt/HeroSdJwt.csproj --configuration Release --no-restore
-          dotnet build src/HeroSdJwt.AspNetCore/HeroSdJwt.AspNetCore.csproj --configuration Release --no-restore
-          dotnet build tests/HeroSdJwt.Tests/HeroSdJwt.Tests.csproj --configuration Release --no-restore
-          dotnet build tests/HeroSdJwt.AspNetCore.Tests/HeroSdJwt.AspNetCore.Tests.csproj --configuration Release --no-restore
+          # SDK 10.0.x can build all targets including net10.0
+          dotnet build --configuration Release --no-restore
         fi
 
     - name: Run tests
-      run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
+      run: |
+        if [ "${{ matrix.dotnet-version }}" == "8.0.x" ]; then
+          # Test only net8.0 targets
+          dotnet test --configuration Release --no-build --framework net8.0 --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
+        elif [ "${{ matrix.dotnet-version }}" == "9.0.x" ]; then
+          # Test only net9.0 targets
+          dotnet test --configuration Release --no-build --framework net9.0 --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
+        else
+          # Test all framework targets
+          dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
+        fi
 
     - name: Publish test results
       uses: EnricoMi/publish-unit-test-result-action@v2
