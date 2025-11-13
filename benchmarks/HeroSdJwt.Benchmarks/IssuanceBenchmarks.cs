@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using BenchmarkDotNet.Attributes;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
+using SdJwtHashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Benchmarks;
 
@@ -74,10 +75,10 @@ public class IssuanceBenchmarks
 
         var builder = new SdJwtBuilder()
             .WithClaims(claims)
-            .WithHashAlgorithm("SHA-256")
-            .MakeClaimsSelective(claims.Keys.Where(k => !k.StartsWith("iss") && !k.StartsWith("sub")));
+            .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
+            .MakeSelective(claims.Keys.Where(k => !k.StartsWith("iss") && !k.StartsWith("sub")).ToArray());
 
-        return builder.SignWithHmac(_hmacKey);
+        return builder.SignWithHmac(_hmacKey).Build();
     }
 
     // ====== RS256 (RSA-SHA256) Benchmarks ======
@@ -96,10 +97,11 @@ public class IssuanceBenchmarks
 
         var builder = new SdJwtBuilder()
             .WithClaims(claims)
-            .WithHashAlgorithm("SHA-256")
-            .MakeClaimsSelective(claims.Keys.Where(k => !k.StartsWith("iss") && !k.StartsWith("sub")));
+            .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
+            .MakeSelective(claims.Keys.Where(k => !k.StartsWith("iss") && !k.StartsWith("sub")).ToArray());
 
-        return builder.SignWithRsa(_rsa);
+        var rsaPrivateKey = _rsa.ExportPkcs8PrivateKey();
+        return builder.SignWithRsa(rsaPrivateKey).Build();
     }
 
     // ====== ES256 (ECDSA-P256-SHA256) Benchmarks ======
@@ -118,10 +120,11 @@ public class IssuanceBenchmarks
 
         var builder = new SdJwtBuilder()
             .WithClaims(claims)
-            .WithHashAlgorithm("SHA-256")
-            .MakeClaimsSelective(claims.Keys.Where(k => !k.StartsWith("iss") && !k.StartsWith("sub")));
+            .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
+            .MakeSelective(claims.Keys.Where(k => !k.StartsWith("iss") && !k.StartsWith("sub")).ToArray());
 
-        return builder.SignWithEcdsa(_ecdsa);
+        var ecdsaPrivateKey = _ecdsa.ExportECPrivateKey();
+        return builder.SignWithEcdsa(ecdsaPrivateKey).Build();
     }
 
     public IEnumerable<int> ClaimCounts()

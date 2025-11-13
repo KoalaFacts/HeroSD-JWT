@@ -1,7 +1,11 @@
 using System.Security.Cryptography;
+using System.Text;
 using BenchmarkDotNet.Attributes;
+using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Models;
+using SdJwtHashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Benchmarks;
 
@@ -12,6 +16,8 @@ public class PresentationBenchmarks
     private byte[] _hmacKey = null!;
     private SdJwt _sdJwt = null!;
     private ECDsa _holderKey = null!;
+    private string _keyBindingJwt = null!;
+    private string _sdJwtHash = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -37,10 +43,29 @@ public class PresentationBenchmarks
 
         var builder = new SdJwtBuilder()
             .WithClaims(claims)
-            .WithHashAlgorithm("SHA-256")
-            .MakeClaimsSelective(claims.Keys.Where(k => k.StartsWith("claim_")));
+            .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
+            .MakeSelective(claims.Keys.Where(k => k.StartsWith("claim_")).ToArray());
 
-        _sdJwt = builder.SignWithHmac(_hmacKey);
+        _sdJwt = builder.SignWithHmac(_hmacKey).Build();
+
+        // Pre-generate key binding JWT for benchmarking
+        var presentation = _sdJwt.ToPresentation("claim_0");
+        // Calculate SD-JWT hash (SHA-256 of ASCII presentation)
+        using var sha256 = SHA256.Create();
+        var hashBytes = sha256.ComputeHash(System.Text.Encoding.ASCII.GetBytes(presentation));
+        // Base64Url encode (base64 with URL-safe characters and no padding)
+        _sdJwtHash = Convert.ToBase64String(hashBytes)
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+
+        var kbGenerator = new KeyBindingGenerator();
+        var holderPrivateKeyBytes = _holderKey.ExportECPrivateKey();
+        _keyBindingJwt = kbGenerator.CreateKeyBindingJwt(
+            holderPrivateKeyBytes,
+            _sdJwtHash,
+            "https://verifier.example.com",
+            "nonce-123");
     }
 
     [GlobalCleanup]
@@ -53,7 +78,7 @@ public class PresentationBenchmarks
     public string CreatePresentationFewClaims()
     {
         // Disclose only 5 claims
-        return _sdJwt.ToPresentation(new[] { "claim_0", "claim_1", "claim_2", "claim_3", "claim_4" });
+        return _sdJwt.ToPresentation("claim_0", "claim_1", "claim_2", "claim_3", "claim_4");
     }
 
     [Benchmark]
@@ -75,11 +100,8 @@ public class PresentationBenchmarks
     public string CreatePresentationWithKeyBinding()
     {
         // Disclose 5 claims with key binding
-        return _sdJwt.ToPresentation(
-            new[] { "claim_0", "claim_1", "claim_2", "claim_3", "claim_4" },
-            audience: "https://verifier.example.com",
-            nonce: "nonce-123",
-            holderKey: _holderKey
-        );
+        return _sdJwt.ToPresentationWithKeyBinding(
+            _keyBindingJwt,
+            "claim_0", "claim_1", "claim_2", "claim_3", "claim_4");
     }
 }

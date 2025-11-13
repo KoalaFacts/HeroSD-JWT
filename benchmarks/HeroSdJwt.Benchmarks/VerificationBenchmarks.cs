@@ -1,9 +1,14 @@
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Models;
 using HeroSdJwt.Verification;
+using SdJwtHashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Benchmarks;
 
@@ -55,60 +60,87 @@ public class VerificationBenchmarks
 
         var builder = new SdJwtBuilder()
             .WithClaims(claims)
-            .WithHashAlgorithm("SHA-256")
-            .MakeClaimsSelective(new[] { "email", "name", "birthdate", "address.street", "address.city" });
+            .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
+            .MakeSelective("email", "name", "birthdate", "address.street", "address.city");
 
-        _sdJwtHmac = builder.SignWithHmac(_hmacKey);
-        _sdJwtRsa = builder.SignWithRsa(_rsa);
+        _sdJwtHmac = builder.SignWithHmac(_hmacKey).Build();
+        var rsaPrivateKey = _rsa.ExportPkcs8PrivateKey();
+        _sdJwtRsa = builder.SignWithRsa(rsaPrivateKey).Build();
 
         // Create presentations
-        _presentation = _sdJwtHmac.ToPresentation(new[] { "email", "name" });
+        _presentation = _sdJwtHmac.ToPresentation("email", "name");
 
         // Create presentation with key binding
-        var holderKeyJwk = JsonSerializer.Serialize(new Dictionary<string, object>
-        {
-            ["kty"] = "EC",
-            ["crv"] = "P-256",
-            ["x"] = Convert.ToBase64String(_holderKey.ExportSubjectPublicKeyInfo()[27..59]),
-            ["y"] = Convert.ToBase64String(_holderKey.ExportSubjectPublicKeyInfo()[59..91])
-        });
+        var holderPublicKey = _holderKey.ExportSubjectPublicKeyInfo();
 
         var builderWithKeyBinding = new SdJwtBuilder()
             .WithClaims(claims)
-            .WithHashAlgorithm("SHA-256")
-            .WithHolderPublicKey(holderKeyJwk)
-            .MakeClaimsSelective(new[] { "email", "name", "birthdate" });
+            .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
+            .WithKeyBinding(holderPublicKey)
+            .MakeSelective("email", "name", "birthdate");
 
-        var sdJwtWithKeyBinding = builderWithKeyBinding.SignWithRsa(_rsa);
-        _presentationWithKeyBinding = sdJwtWithKeyBinding.ToPresentation(
-            new[] { "email", "name" },
+        var sdJwtWithKeyBinding = builderWithKeyBinding.SignWithRsa(rsaPrivateKey).Build();
+
+        // Generate key binding JWT
+        var tempPresentation = sdJwtWithKeyBinding.ToPresentation("email", "name");
+        // Calculate SD-JWT hash (SHA-256 of ASCII presentation)
+        using var sha256 = SHA256.Create();
+        var hashBytes = sha256.ComputeHash(System.Text.Encoding.ASCII.GetBytes(tempPresentation));
+        // Base64Url encode (base64 with URL-safe characters and no padding)
+        var sdJwtHash = Convert.ToBase64String(hashBytes)
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+
+        var kbGenerator = new KeyBindingGenerator();
+        var holderPrivateKeyBytes = _holderKey.ExportECPrivateKey();
+        var keyBindingJwt = kbGenerator.CreateKeyBindingJwt(
+            holderPrivateKeyBytes,
+            sdJwtHash,
             "https://verifier.example.com",
-            "nonce-123",
-            _holderKey
-        );
+            "nonce-123");
 
-        // Create verifiers
-        _verifier = new SdJwtVerifier(new SdJwtVerificationOptions
-        {
-            KeyResolver = (kid) => Task.FromResult(_hmacKey),
-            ExpectedIssuer = "https://issuer.example.com",
-            ValidateExpirationTime = true
-        });
+        _presentationWithKeyBinding = sdJwtWithKeyBinding.ToPresentationWithKeyBinding(
+            keyBindingJwt,
+            "email", "name");
 
-        _verifierWithKeyBinding = new SdJwtVerifier(new SdJwtVerificationOptions
+        // Create verifiers with required dependencies
+        var ecPublicKeyConverter = new EcPublicKeyConverter();
+        var signatureValidator = new SignatureValidator();
+        var digestValidator = new DigestValidator();
+        var keyBindingValidator = new KeyBindingValidator(TimeProvider.System);
+        var claimValidator = new ClaimValidator();
+
+        var verifierOptions = new SdJwtVerificationOptions
         {
-            KeyResolver = (kid) => Task.FromResult(JsonSerializer.Serialize(new Dictionary<string, object>
-            {
-                ["kty"] = "RSA",
-                ["n"] = Convert.ToBase64String(_rsa.ExportParameters(false).Modulus!),
-                ["e"] = Convert.ToBase64String(_rsa.ExportParameters(false).Exponent!)
-            })),
+            ExpectedIssuer = "https://issuer.example.com"
+        };
+
+        _verifier = new SdJwtVerifier(
+            verifierOptions,
+            ecPublicKeyConverter,
+            signatureValidator,
+            digestValidator,
+            keyBindingValidator,
+            claimValidator,
+            null);
+
+        var verifierWithKbOptions = new SdJwtVerificationOptions
+        {
             ExpectedIssuer = "https://issuer.example.com",
             ExpectedAudience = "https://verifier.example.com",
             ExpectedNonce = "nonce-123",
-            RequireKeyBinding = true,
-            ValidateExpirationTime = true
-        });
+            RequireKeyBinding = true
+        };
+
+        _verifierWithKeyBinding = new SdJwtVerifier(
+            verifierWithKbOptions,
+            ecPublicKeyConverter,
+            signatureValidator,
+            digestValidator,
+            keyBindingValidator,
+            claimValidator,
+            null);
     }
 
     [GlobalCleanup]
@@ -120,20 +152,22 @@ public class VerificationBenchmarks
     }
 
     [Benchmark]
-    public async Task<VerificationResult> VerifyWithoutKeyBinding()
+    public VerificationResult VerifyWithoutKeyBinding()
     {
-        return await _verifier.VerifyPresentationAsync(_presentation);
+        return _verifier.VerifyPresentation(_presentation, _hmacKey);
     }
 
     [Benchmark]
-    public async Task<VerificationResult> VerifyWithKeyBinding()
+    public VerificationResult VerifyWithKeyBinding()
     {
-        return await _verifierWithKeyBinding.VerifyPresentationAsync(_presentationWithKeyBinding);
+        // Export RSA public key for verification
+        var rsaPublicKey = _rsa.ExportSubjectPublicKeyInfo();
+        return _verifierWithKeyBinding.VerifyPresentation(_presentationWithKeyBinding, rsaPublicKey);
     }
 
     [Benchmark]
-    public bool TryVerifyWithoutKeyBinding()
+    public VerificationResult TryVerifyWithoutKeyBinding()
     {
-        return _verifier.TryVerifyPresentation(_presentation, out _);
+        return _verifier.TryVerifyPresentation(_presentation, _hmacKey);
     }
 }
