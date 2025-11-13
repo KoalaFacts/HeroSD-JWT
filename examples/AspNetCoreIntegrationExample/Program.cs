@@ -42,11 +42,9 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi("/openapi/v1.json");
-    app.MapScalarApiReference(options =>
+    app.MapScalarApiReference("/openapi/{documentName}", options =>
     {
-        options
-            .WithEndpointPrefix("/openapi/{documentName}")
-            .WithOpenApiRoutePattern("/openapi/v1.json");
+        options.WithOpenApiRoutePattern("/openapi/v1.json");
     });
 }
 

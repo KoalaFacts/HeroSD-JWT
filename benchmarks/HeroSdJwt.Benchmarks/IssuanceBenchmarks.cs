@@ -124,7 +124,7 @@ public class IssuanceBenchmarks
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
             .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
 
-        var ecdsaPrivateKey = _ecdsa.ExportECPrivateKey();
+        var ecdsaPrivateKey = _ecdsa.ExportPkcs8PrivateKey();
         return builder.SignWithEcdsa(ecdsaPrivateKey).Build();
     }
 
