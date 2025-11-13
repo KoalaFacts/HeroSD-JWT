@@ -638,10 +638,10 @@ Current test coverage: **277 passing tests** across:
 
 Comprehensive documentation is available in the [docs/](docs/) directory:
 
-- **[Getting Started Guide](docs/getting-started.md)** - Installation and first steps
-- **[Examples](docs/examples.md)** - Detailed code examples for various scenarios
-- **[Security Best Practices](docs/security.md)** - Important security considerations
-- **[API Reference](docs/api-reference.md)** - Complete API documentation
+- **[Getting Started Guide](docs/users/getting-started.md)** - Installation and first steps
+- **[Examples](docs/users/examples.md)** - Detailed code examples for various scenarios
+- **[Security Best Practices](docs/users/security.md)** - Important security considerations
+- **[API Reference](docs/users/api-reference.md)** - Complete API documentation
 
 ## Contributing
 

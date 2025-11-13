@@ -13,7 +13,7 @@ This example demonstrates how to integrate HeroSD-JWT with ASP.NET Core for auto
 
 ## Prerequisites
 
-- .NET 9.0 SDK or later
+- .NET 8.0 SDK or later (supports .NET 8.0 LTS, 9.0, and 10.0)
 - Basic understanding of ASP.NET Core Minimal APIs
 - Basic understanding of JWT/SD-JWT concepts
 
