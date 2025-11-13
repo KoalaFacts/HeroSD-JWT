@@ -29,8 +29,27 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
+  setup-matrix:
+    name: Setup SDK Version
+    runs-on: ubuntu-latest
+    outputs:
+      latest-dotnet-version: ${{ steps.extract-versions.outputs.version }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Extract latest SDK version from Directory.Build.props
+      id: extract-versions
+      run: |
+        # Extract SupportedSdkVersions and get the last version
+        SDK_VERSIONS=$(grep -oP '(?<=<SupportedSdkVersions>)[^<]+' Directory.Build.props)
+        LATEST_VERSION=$(echo "$SDK_VERSIONS" | sed 's/.*;//')
+        echo "version=${LATEST_VERSION}" >> $GITHUB_OUTPUT
+        echo "Using latest SDK version: ${LATEST_VERSION}"
+
   benchmark:
     name: Run Performance Benchmarks
+    needs: setup-matrix
     runs-on: ubuntu-latest  # Consistent environment for comparisons
     timeout-minutes: 60
 
@@ -41,7 +60,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: '10.0.x'
+        dotnet-version: ${{ needs.setup-matrix.outputs.latest-dotnet-version }}
 
     - name: Restore dependencies
       run: dotnet restore

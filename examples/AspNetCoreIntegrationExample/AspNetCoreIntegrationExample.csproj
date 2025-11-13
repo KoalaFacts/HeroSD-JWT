@@ -9,7 +9,7 @@
   <!-- Framework-specific package references -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <!-- .NET 8: Use Swashbuckle for OpenAPI support -->
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.1" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' != 'net8.0'">

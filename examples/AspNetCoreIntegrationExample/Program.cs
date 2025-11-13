@@ -91,9 +91,7 @@ app.MapGet("/", () => new
 })
 .WithName("GetRoot")
 #if NET9_0_OR_GREATER
-#if NET9_0_OR_GREATER
 .WithOpenApi()
-#endif
 #endif
 ;
 

@@ -23,8 +23,27 @@ jobs:
   # The default setup automatically scans on push/PR and provides the same security analysis
   # Re-enable this job only if you disable default CodeQL in repository settings
 
+  setup-sdk:
+    name: Setup SDK Version
+    runs-on: ubuntu-latest
+    outputs:
+      latest-dotnet-version: ${{ steps.extract-versions.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Extract latest SDK version from Directory.Build.props
+        id: extract-versions
+        run: |
+          # Extract SupportedSdkVersions and get the last version
+          SDK_VERSIONS=$(grep -oP '(?<=<SupportedSdkVersions>)[^<]+' Directory.Build.props)
+          LATEST_VERSION=$(echo "$SDK_VERSIONS" | sed 's/.*;//')
+          echo "version=${LATEST_VERSION}" >> $GITHUB_OUTPUT
+          echo "Using latest SDK version: ${LATEST_VERSION}"
+
   nuget-audit:
     name: NuGet Security Audit
+    needs: setup-sdk
     runs-on: ubuntu-latest
 
     steps:
@@ -34,7 +53,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: ${{ needs.setup-sdk.outputs.latest-dotnet-version }}
           cache: false  # Disabled until packages.lock.json is generated
 
       - name: Restore and audit dependencies
@@ -61,7 +80,7 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [nuget-audit]
+    needs: [setup-sdk, nuget-audit]
     if: always()
 
     steps:
