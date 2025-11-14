@@ -58,7 +58,7 @@ jobs:
           name: build-output
           path: |
             src/HeroSdJwt/bin/Release/
-            src/HeroSdJwt/obj/Release/
+            src/HeroSdJwt/obj/
           retention-days: 1
 
   # Pack NuGet packages (parallel with SBOM generation)
