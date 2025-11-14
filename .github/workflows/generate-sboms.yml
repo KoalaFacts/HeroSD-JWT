@@ -78,7 +78,6 @@ jobs:
             -nsb https://github.com/KoalaFacts/HeroSD-JWT \
             -mi SPDX:${{ matrix.spdx-version }} \
             -m sbom-output \
-            -ManifestDirPath sbom-output \
             -V Verbose
 
       - name: Rename SBOM file
