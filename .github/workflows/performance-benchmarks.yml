@@ -29,57 +29,50 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  setup-matrix:
-    name: Setup SDK Version
-    runs-on: ubuntu-latest
-    outputs:
-      latest-dotnet-version: ${{ steps.extract-versions.outputs.version }}
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-
-    - name: Extract latest SDK version from Directory.Build.props
-      id: extract-versions
-      run: |
-        # Extract SupportedSdkVersions and get the last version
-        SDK_VERSIONS=$(grep -oP '(?<=<SupportedSdkVersions>)[^<]+' Directory.Build.props)
-        LATEST_VERSION=$(echo "$SDK_VERSIONS" | sed 's/.*;//')
-        echo "version=${LATEST_VERSION}" >> $GITHUB_OUTPUT
-        echo "Using latest SDK version: ${LATEST_VERSION}"
-
   benchmark:
     name: Run Performance Benchmarks
-    needs: setup-matrix
     runs-on: ubuntu-latest  # Consistent environment for comparisons
+    strategy:
+      fail-fast: false
+      matrix:
+        dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
+        include:
+          - dotnet-version: '8.0.x'
+            framework: 'net8.0'
+          - dotnet-version: '9.0.x'
+            framework: 'net9.0'
+          - dotnet-version: '10.0.x'
+            framework: 'net10.0'
     timeout-minutes: 60
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
 
-    - name: Setup .NET
+    - name: Setup .NET ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: ${{ needs.setup-matrix.outputs.latest-dotnet-version }}
+        dotnet-version: ${{ matrix.dotnet-version }}
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore --framework ${{ matrix.framework }} 
 
-    - name: Build benchmarks
+    - name: Build benchmarks ${{ matrix.dotnet-version }}
       run: |
         dotnet build benchmarks/HeroSdJwt.Benchmarks/HeroSdJwt.Benchmarks.csproj \
           --configuration Release \
+          --framework ${{ matrix.framework }} \
           --no-restore
 
-    - name: Run benchmarks
+    - name: Run benchmarks ${{ matrix.dotnet-version }}
       run: |
         cd benchmarks/HeroSdJwt.Benchmarks
-        dotnet run -c Release --framework net10.0 \
+        dotnet run -c Release --framework ${{ matrix.framework }} \
           --filter "*" \
           --job short \
           --exporters json
 
-    - name: Store benchmark result
+    - name: Store benchmark result ${{ matrix.dotnet-version }}
       uses: benchmark-action/github-action-benchmark@v1
       with:
         tool: 'benchmarkdotnet'
@@ -95,10 +88,10 @@ jobs:
         gh-pages-branch: 'gh-pages'
         save-data-file: true
 
-    - name: Upload benchmark artifacts
+    - name: Upload benchmark artifacts ${{ matrix.dotnet-version }}
       uses: actions/upload-artifact@v5
       if: always()
       with:
-        name: benchmark-results
+        name: benchmark-results-${{ matrix.framework }}
         path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/*
         retention-days: 30

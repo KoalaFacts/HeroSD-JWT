@@ -38,17 +38,7 @@ jobs:
       url: https://www.nuget.org/packages/HeroSD-JWT
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Determine version
+      - name: Determine version from release
         id: version
         run: |
           if [ "${{ github.event_name }}" == "workflow_run" ]; then
@@ -60,9 +50,8 @@ jobs:
             VERSION="${{ inputs.version }}"
             TAG="v$VERSION"
           else
-            # Extract from csproj
-            VERSION=$(grep '<Version>' src/HeroSdJwt.csproj | sed 's/.*<Version>\(.*\)<\/Version>.*/\1/')
-            TAG="v$VERSION"
+            echo "Error: No version specified and not triggered by workflow_run"
+            exit 1
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
@@ -80,31 +69,52 @@ jobs:
           fi
           echo "Version format validated: $VERSION"
 
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
-
-      - name: Run tests
-        run: dotnet test --configuration Release --no-build --verbosity normal
-
-      - name: Pack NuGet packages
+      - name: Download packages from GitHub Release
         run: |
-          mkdir -p ./packages
-          dotnet pack src/HeroSdJwt.csproj \
-            --configuration Release \
-            --no-build \
-            --output ./packages \
-            /p:PackageVersion=${{ steps.version.outputs.VERSION }} \
-            /p:IncludeSymbols=true \
-            /p:SymbolPackageFormat=snupkg
+          TAG="${{ steps.version.outputs.TAG }}"
+          VERSION="${{ steps.version.outputs.VERSION }}"
 
-          echo "Created packages:"
+          echo "Downloading packages from release $TAG..."
+
+          # Verify release exists
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Error: Release $TAG not found"
+            echo "Please create the release first using the create-release workflow"
+            exit 1
+          fi
+
+          # Create packages directory
+          mkdir -p ./packages
+
+          # Download NuGet packages from the release
+          gh release download "$TAG" \
+            --pattern "HeroSD-JWT.${VERSION}.nupkg" \
+            --dir ./packages
+
+          gh release download "$TAG" \
+            --pattern "HeroSD-JWT.${VERSION}.snupkg" \
+            --dir ./packages
+
+          echo "Downloaded packages:"
           ls -lh ./packages/
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate package contents
         run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+
+          # Verify both packages exist
+          if [ ! -f "./packages/HeroSD-JWT.${VERSION}.nupkg" ]; then
+            echo "Error: Main package not found: HeroSD-JWT.${VERSION}.nupkg"
+            exit 1
+          fi
+
+          if [ ! -f "./packages/HeroSD-JWT.${VERSION}.snupkg" ]; then
+            echo "Error: Symbol package not found: HeroSD-JWT.${VERSION}.snupkg"
+            exit 1
+          fi
+
           echo "Package contents:"
           for pkg in ./packages/*.nupkg; do
             if [ -f "$pkg" ]; then
