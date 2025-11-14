@@ -98,6 +98,44 @@ jobs:
           echo "Packages verified:"
           ls -lh src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.*
 
+      - name: Install Microsoft SBOM tool
+        run: dotnet tool install --global Microsoft.Sbom.DotNetTool
+
+      - name: Generate SBOM (SPDX 2.2)
+        run: |
+          sbom-tool generate \
+            -b src/HeroSdJwt/bin/Release \
+            -bc src/HeroSdJwt \
+            -pn HeroSD-JWT \
+            -pv ${{ inputs.version }} \
+            -ps KoalaFacts \
+            -nsb https://github.com/KoalaFacts/HeroSD-JWT \
+            -m sbom-output-spdx22 \
+            -ManifestDirPath sbom-output-spdx22 \
+            -V Verbose
+
+      - name: Generate SBOM (SPDX 3.0)
+        run: |
+          sbom-tool generate \
+            -b src/HeroSdJwt/bin/Release \
+            -bc src/HeroSdJwt \
+            -pn HeroSD-JWT \
+            -pv ${{ inputs.version }} \
+            -ps KoalaFacts \
+            -nsb https://github.com/KoalaFacts/HeroSD-JWT \
+            -m sbom-output-spdx30 \
+            -mi SPDX:3.0 \
+            -ManifestDirPath sbom-output-spdx30 \
+            -V Verbose
+
+      - name: Copy SBOMs to release directory
+        run: |
+          mkdir -p release-sboms
+          cp sbom-output-spdx22/_manifest/spdx_2.2/*.spdx.json release-sboms/HeroSD-JWT.${{ inputs.version }}.spdx-2.2.json
+          cp sbom-output-spdx30/_manifest/spdx_3.0/*.spdx.json release-sboms/HeroSD-JWT.${{ inputs.version }}.spdx-3.0.json
+          echo "SBOMs generated:"
+          ls -lh release-sboms/
+
       - name: Generate release notes
         id: release-notes
         run: |
@@ -141,13 +179,15 @@ jobs:
         run: |
           echo "Creating release v${{ inputs.version }}..."
 
-          # Create release directly (not draft) with packages
+          # Create release directly (not draft) with packages and SBOMs
           # This will trigger the publish-nuget workflow immediately
           gh release create v${{ inputs.version }} \
             --title "Release v${{ inputs.version }}" \
             --notes-file release-notes.md \
             src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg \
-            src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg
+            src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg \
+            release-sboms/HeroSD-JWT.${{ inputs.version }}.spdx-2.2.json \
+            release-sboms/HeroSD-JWT.${{ inputs.version }}.spdx-3.0.json
 
           echo "✅ Release created and published!"
         env:
@@ -172,4 +212,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Packages:**" >> $GITHUB_STEP_SUMMARY
           echo "- HeroSD-JWT.${{ inputs.version }}.nupkg" >> $GITHUB_STEP_SUMMARY
-          echo "- HeroSD-JWT.${{ inputs.version }}.snupkg" >> $GITHUB_STEP_SUMMARY
+          echo "- HeroSD-JWT.${{ inputs.version }}.snupkg (symbols)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**SBOMs (Software Bill of Materials):**" >> $GITHUB_STEP_SUMMARY
+          echo "- HeroSD-JWT.${{ inputs.version }}.spdx-2.2.json (SPDX 2.2)" >> $GITHUB_STEP_SUMMARY
+          echo "- HeroSD-JWT.${{ inputs.version }}.spdx-3.0.json (SPDX 3.0)" >> $GITHUB_STEP_SUMMARY
