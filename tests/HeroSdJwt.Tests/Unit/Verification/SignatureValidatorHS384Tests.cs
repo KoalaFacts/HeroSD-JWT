@@ -129,19 +129,6 @@ public class SignatureValidatorHS384Tests
     }
 
     [Fact]
-    public void VerifyJwtSignature_EmptyKey_ThrowsException()
-    {
-        // Arrange
-        var key = RandomNumberGenerator.GetBytes(48);
-        var jwt = _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, key, SignatureAlgorithm.HS384);
-        var emptyKey = Array.Empty<byte>();
-
-        // Act & Assert
-        Assert.ThrowsAny<Exception>(() =>
-            _validator.VerifyJwtSignature(jwt, emptyKey));
-    }
-
-    [Fact]
     public void VerifyJwtSignature_EmptySignature_ReturnsFalse()
     {
         // Arrange

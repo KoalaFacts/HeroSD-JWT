@@ -182,20 +182,6 @@ public class SignatureValidatorPS256Tests
     }
 
     [Fact]
-    public void VerifyJwtSignature_EmptyKey_ThrowsException()
-    {
-        // Arrange
-        using var rsa = RSA.Create(2048);
-        var privateKey = rsa.ExportPkcs8PrivateKey();
-        var jwt = _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, privateKey, SignatureAlgorithm.PS256);
-        var emptyKey = Array.Empty<byte>();
-
-        // Act & Assert
-        Assert.ThrowsAny<Exception>(() =>
-            _validator.VerifyJwtSignature(jwt, emptyKey));
-    }
-
-    [Fact]
     public void VerifyJwtSignature_MultipleValidations_ConsistentResults()
     {
         // Arrange

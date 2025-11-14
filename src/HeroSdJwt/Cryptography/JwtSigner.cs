@@ -31,6 +31,12 @@ public class JwtSigner : IJwtSigner
         ArgumentNullException.ThrowIfNull(payload);
         ArgumentNullException.ThrowIfNull(signingKey);
 
+        // Reject empty keys for security
+        if (signingKey.Length == 0)
+        {
+            throw new ArgumentException("Signing key cannot be empty", nameof(signingKey));
+        }
+
         // Create header with algorithm
         var algName = algorithm switch
         {

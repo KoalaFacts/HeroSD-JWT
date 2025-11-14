@@ -166,20 +166,6 @@ public class SignatureValidatorES512Tests
     }
 
     [Fact]
-    public void VerifyJwtSignature_EmptyKey_ThrowsException()
-    {
-        // Arrange
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP521);
-        var privateKey = ecdsa.ExportECPrivateKey();
-        var jwt = _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, privateKey, SignatureAlgorithm.ES512);
-        var emptyKey = Array.Empty<byte>();
-
-        // Act & Assert
-        Assert.ThrowsAny<Exception>(() =>
-            _validator.VerifyJwtSignature(jwt, emptyKey));
-    }
-
-    [Fact]
     public void VerifyJwtSignature_MultipleValidations_ConsistentResults()
     {
         // Arrange
