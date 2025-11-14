@@ -98,7 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 📋 **SBOM (Software Bill of Materials)** - Supply chain security and transparency
   - SPDX 2.2 format for maximum compatibility with current tools
   - SPDX 3.0 format for future-proofing
-  - Automated generation in release pipeline
+  - Automated generation in release pipeline (parallel, optimized for performance)
   - Meets US Executive Order 14028 and enterprise compliance requirements
 
 ### Changed
