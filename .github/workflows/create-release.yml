@@ -107,11 +107,14 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
 
+      - name: Install Microsoft SBOM tool
+        run: dotnet tool install --global Microsoft.Sbom.DotNetTool
+
       - name: Restore dependencies
         run: dotnet restore -p:TargetFramework=${{ matrix.framework }}
 
-      - name: Install Microsoft SBOM tool
-        run: dotnet tool install --global Microsoft.Sbom.DotNetTool
+      - name: Build
+        run: dotnet build --configuration Release --no-restore --framework ${{ matrix.framework }}
 
       - name: Generate SBOM (SPDX ${{ matrix.spdx-version }})
         run: |
