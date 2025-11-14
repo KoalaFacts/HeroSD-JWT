@@ -114,15 +114,21 @@ jobs:
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
+      with:
+        fetch-depth: 0  # Need full history for comparing commits on push events
 
     - name: Dependency Review
       uses: actions/dependency-review-action@v4
       with:
         fail-on-severity: high
         deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
-        comment-summary-in-pr: always
+        comment-summary-in-pr: ${{ github.event_name == 'pull_request' && 'always' || 'never' }}
+        # For push events, compare against previous commit
+        # For PRs, these are automatically detected
+        base-ref: ${{ github.event_name == 'push' && github.event.before || '' }}
+        head-ref: ${{ github.event_name == 'push' && github.sha || '' }}
