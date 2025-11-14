@@ -50,7 +50,6 @@ jobs:
       uses: actions/setup-dotnet@v5
       with:
         dotnet-version: ${{ matrix.dotnet-version }}
-        cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
       run: dotnet restore -p:TargetFramework=${{ matrix.framework }}
@@ -102,7 +101,6 @@ jobs:
           8.0.x
           9.0.x
           10.0.x
-        cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
       run: dotnet restore
@@ -131,7 +129,6 @@ jobs:
           8.0.x
           9.0.x
           10.0.x
-        cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
       run: dotnet restore
