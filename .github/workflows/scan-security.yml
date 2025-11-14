@@ -114,7 +114,6 @@ jobs:
       - name: Run Microsoft Security DevOps
         uses: microsoft/security-devops-action@v1
         id: msdo
-        continue-on-error: true
         with:
           # Available tools: antimalware, binskim, credscan, eslint, templateanalyzer, terrascan, trivy
           tools: 'binskim,credscan'
