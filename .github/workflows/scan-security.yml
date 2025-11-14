@@ -1,14 +1,18 @@
-name: Security Scanning
+# Comprehensive Security Scanning
+# Combines NuGet vulnerability auditing and Microsoft Security DevOps analysis
+name: Scan Security
 
 on:
   push:
+    branches: [ main, develop ]
+  pull_request:
     branches: [ main, develop ]
   schedule:
     # Run weekly on Monday at 00:00 UTC
     - cron: '0 0 * * 1'
   workflow_dispatch:
 
-# Only run one security scan at a time
+# Only run one security scan at a time per ref
 concurrency:
   group: security-${{ github.ref }}
   cancel-in-progress: false
@@ -17,13 +21,16 @@ permissions:
   actions: read
   contents: read
   security-events: write
+  id-token: write  # May be used by security tools for authentication
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  # CodeQL analysis disabled - using GitHub default CodeQL setup instead
-  # The default setup automatically scans on push/PR and provides the same security analysis
-  # Re-enable this job only if you disable default CodeQL in repository settings
+  # NuGet package vulnerability scanning
   nuget-audit:
-    name: NuGet Security Audit ${{ matrix.dotnet-version }}
+    name: NuGet Audit (.NET ${{ matrix.dotnet-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -36,6 +43,7 @@ jobs:
             framework: 'net9.0'
           - dotnet-version: '10.0.x'
             framework: 'net10.0'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -58,37 +66,112 @@ jobs:
             echo "No vulnerable packages detected."
           fi
 
-      - name: Upload audit results ${{ matrix.dotnet-version }}
+      - name: Upload audit results
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: nuget-audit-results-${{ matrix.framework }}
+          name: nuget-audit-${{ matrix.framework }}
           path: audit-${{ matrix.framework }}.log
           retention-days: 30
 
+  # Microsoft Security DevOps analysis (BinSkim, CredScan, etc.)
+  microsoft-security-devops:
+    name: Microsoft Security DevOps (.NET ${{ matrix.dotnet-version }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
+        include:
+          - dotnet-version: '8.0.x'
+            framework: 'net8.0'
+          - dotnet-version: '9.0.x'
+            framework: 'net9.0'
+          - dotnet-version: '10.0.x'
+            framework: 'net10.0'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Setup .NET 6.0 (required by Security DevOps tools)
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: Setup .NET ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+
+      - name: Restore dependencies
+        run: dotnet restore -p:TargetFramework=${{ matrix.framework }}
+
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore --framework ${{ matrix.framework }}
+
+      - name: Run Microsoft Security DevOps
+        uses: microsoft/security-devops-action@v1
+        id: msdo
+        with:
+          # Available tools: antimalware, binskim, credscan, eslint, templateanalyzer, terrascan, trivy
+          tools: 'binskim,credscan'
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: ${{ steps.msdo.outputs.sarifFile }}
+
+      - name: Upload detailed results
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: security-devops-${{ matrix.framework }}
+          path: |
+            .gdn/**
+            ${{ steps.msdo.outputs.sarifFile }}
+          retention-days: 90
+
+  # Consolidated security summary
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [nuget-audit]
+    needs: [nuget-audit, microsoft-security-devops]
     if: always()
 
     steps:
       - name: Create security summary
         run: |
-          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Security scans completed on $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Comprehensive Security Scan Results" >> $GITHUB_STEP_SUMMARY
-          echo "- CodeQL Analysis: Managed by GitHub default setup" >> $GITHUB_STEP_SUMMARY
-          echo "- NuGet Audit: ${{ needs.nuget-audit.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Secret Scanning: Managed by GitHub default secret scanning" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> **Note**: CodeQL analysis and secret scanning run automatically via GitHub default setup. Dependency review for PRs is handled in the CI workflow." >> $GITHUB_STEP_SUMMARY
+          echo "**Scan completed**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ "${{ needs.nuget-audit.result }}" != "success" ]; then
-            echo "**Some security checks failed. Please review the results above.**" >> $GITHUB_STEP_SUMMARY
+          echo "### Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| NuGet Vulnerability Audit | ${{ needs.nuget-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Microsoft Security DevOps | ${{ needs.microsoft-security-devops.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| CodeQL Analysis | Managed by GitHub default setup |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Scanning | Managed by GitHub default setup |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Scan Details" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **NuGet Audit**: Scans for vulnerable NuGet packages across .NET 8.0, 9.0, and 10.0" >> $GITHUB_STEP_SUMMARY
+          echo "- **Microsoft Security DevOps**: Runs BinSkim (binary analysis) and CredScan (credential scanning)" >> $GITHUB_STEP_SUMMARY
+          echo "- **CodeQL**: Automated code scanning via GitHub default setup" >> $GITHUB_STEP_SUMMARY
+          echo "- **Secret Scanning**: Automated credential leak detection via GitHub" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Overall status
+          if [ "${{ needs.nuget-audit.result }}" == "success" ] && [ "${{ needs.microsoft-security-devops.result }}" == "success" ]; then
+            echo "✅ **All security checks passed!**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "**All security checks passed!**" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Some security checks failed. Please review the results above.**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Check the Security tab for detailed SARIF results and uploaded artifacts for logs." >> $GITHUB_STEP_SUMMARY
           fi
