@@ -137,7 +137,7 @@ jobs:
           echo "All SBOMs generated:"
           ls -lh release-sboms/
 
-      - name: Generate release notes
+      - name: Create release description template
         id: release-notes
         run: |
           cat > release-notes.md << EOF
