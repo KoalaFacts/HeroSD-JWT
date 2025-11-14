@@ -51,30 +51,24 @@ jobs:
       - name: Run tests
         run: dotnet test --configuration Release --no-build --verbosity normal
 
-      - name: Extract release notes from CHANGELOG
-        id: extract-notes
+      - name: Update CHANGELOG.md
         run: |
           VERSION="${{ inputs.version }}"
+          DATE=$(date +%Y-%m-%d)
 
-          # Extract the section for this version from CHANGELOG.md
-          # Find lines between ## [VERSION] and the next ## heading
-          NOTES=$(sed -n "/## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '$ d' | tail -n +2)
+          # Insert new version entry after "# Changelog" title
+          sed -i "/# Changelog/a\\\\n## [$VERSION] - $DATE\\n\\nSee [GitHub Release](https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v$VERSION) for details.\\n" CHANGELOG.md
 
-          if [ -z "$NOTES" ]; then
-            echo "Warning: No changelog entry found for version $VERSION"
-            NOTES="See release notes: https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v$VERSION"
-          else
-            # Add link to full changelog at the end
-            NOTES="${NOTES}"$'\n\n'"See full changelog: https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG.md"
-          fi
+          echo "Updated CHANGELOG.md with version $VERSION"
 
-          # Save to multiline environment variable using delimiter
-          delimiter="$(openssl rand -hex 8)"
-          echo "RELEASE_NOTES<<${delimiter}" >> $GITHUB_ENV
-          echo "$NOTES" >> $GITHUB_ENV
-          echo "${delimiter}" >> $GITHUB_ENV
+          # Commit the CHANGELOG update
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "chore: release v$VERSION [skip ci]"
+          git push
 
-          echo "Release notes extracted from CHANGELOG.md"
+          echo "CHANGELOG.md committed and pushed"
 
       - name: Pack NuGet packages
         run: |
@@ -137,48 +131,34 @@ jobs:
           echo "All SBOMs generated:"
           ls -lh release-sboms/
 
-      - name: Create release description template
+      - name: Create release description footer
         id: release-notes
         run: |
-          cat > release-notes.md << EOF
-          ## HeroSD-JWT v${{ inputs.version }}
+          # Create footer with installation and package info (GitHub will auto-generate the main content)
+          cat > release-footer.md << 'EOF'
 
-          **Production-ready .NET library for SD-JWT (Selective Disclosure JWT)**
-
-          ### Features
-          - Complete SD-JWT implementation per IETF draft-ietf-oauth-selective-disclosure-jwt
-          - Array element disclosure support
-          - Nested claims with recursive processing
-          - Key binding (holder binding)
-          - Multiple signature algorithms: HS256, RS256, ES256
-          - Minimal dependencies (BCL only)
-          - Multi-targeting: .NET 8.0 (LTS), 9.0, 10.0
-          - Native AOT compatible
-          - Full XML documentation
-          - Symbol package (.snupkg) with Source Link debugging
+          ---
 
           ### Installation
-          \`\`\`bash
+          ```bash
           dotnet add package HeroSD-JWT --version ${{ inputs.version }}
-          \`\`\`
+          ```
 
           ### Package Details
+          - **NuGet**: [HeroSD-JWT v${{ inputs.version }}](https://www.nuget.org/packages/HeroSD-JWT/${{ inputs.version }})
           - **Frameworks**: net8.0, net9.0, net10.0
           - **Dependencies**: Microsoft.Bcl.Memory (net8.0 only), Microsoft.Extensions.Logging.Abstractions
 
-          ### Documentation
-          - [README](https://github.com/KoalaFacts/HeroSD-JWT/blob/main/README.md)
-          - [NuGet Package](https://www.nuget.org/packages/HeroSD-JWT/${{ inputs.version }})
-
           ### SBOMs (Software Bill of Materials)
-          Per-framework SBOMs included:
+          Per-framework SBOMs included in this release:
           - SPDX 2.2 format (net8.0, net9.0, net10.0)
           - SPDX 3.0 format (net8.0, net9.0, net10.0)
 
-          ---
-          Production ready - Fully tested and verified!
+          ### Documentation
+          - [README](https://github.com/KoalaFacts/HeroSD-JWT/blob/main/README.md)
+          - [Full Changelog](https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG.md)
           EOF
-          echo "Release notes generated"
+          echo "Release footer created with installation and package details"
 
       - name: Create GitHub Release
         run: |
@@ -186,12 +166,13 @@ jobs:
 
           gh release create v${{ inputs.version }} \
             --title "Release v${{ inputs.version }}" \
-            --notes-file release-notes.md \
+            --generate-notes \
+            --notes-file release-footer.md \
             src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg \
             src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg \
             release-sboms/*.json
 
-          echo "Release created and published!"
+          echo "Release created with auto-generated notes and published!"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
