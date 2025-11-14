@@ -16,8 +16,9 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  validate-version:
-    name: Validate Version Format
+  # Build, test, and create release (fast path)
+  create-release:
+    name: Create Release v${{ inputs.version }}
     runs-on: ubuntu-latest
 
     steps:
@@ -31,13 +32,6 @@ jobs:
           fi
           echo "Version validated: $VERSION"
 
-  # Pack NuGet packages
-  pack-nuget:
-    name: Pack NuGet Packages
-    needs: validate-version
-    runs-on: ubuntu-latest
-
-    steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
@@ -52,99 +46,11 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Pack NuGet packages
-        run: |
-          dotnet pack src/HeroSdJwt/HeroSdJwt.csproj \
-            --configuration Release \
-            -p:PackageVersion=${{ inputs.version }} \
-            -p:Version=${{ inputs.version }}
+      - name: Build Release
+        run: dotnet build --configuration Release --no-restore
 
-      - name: Verify packages were created
-        run: |
-          if [ ! -f "src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg" ]; then
-            echo "Error: Main package not found"
-            exit 1
-          fi
-          if [ ! -f "src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg" ]; then
-            echo "Error: Symbol package not found"
-            exit 1
-          fi
-          echo "Packages verified:"
-          ls -lh src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.*
-
-      - name: Upload NuGet packages
-        uses: actions/upload-artifact@v5
-        with:
-          name: nuget-packages
-          path: src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.*
-          retention-days: 1
-
-  # Generate SBOMs in parallel (3 frameworks × 2 SPDX versions = 6 jobs)
-  generate-sbom:
-    name: SBOM (${{ matrix.framework }}, SPDX ${{ matrix.spdx-version }})
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
-        spdx-version: ['2.2', '3.0']
-        include:
-          - dotnet-version: '8.0.x'
-            framework: 'net8.0'
-          - dotnet-version: '9.0.x'
-            framework: 'net9.0'
-          - dotnet-version: '10.0.x'
-            framework: 'net10.0'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup .NET SDKs
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: ${{ matrix.dotnet-version }}
-
-      - name: Install Microsoft SBOM tool
-        run: dotnet tool install --global Microsoft.Sbom.DotNetTool
-
-      - name: Restore dependencies
-        run: dotnet restore -p:TargetFramework=${{ matrix.framework }}
-
-      - name: Build
-        run: dotnet build --configuration Release --no-restore --framework ${{ matrix.framework }}
-
-      - name: Generate SBOM (SPDX ${{ matrix.spdx-version }})
-        run: |
-          sbom-tool generate \
-            -b src/HeroSdJwt/bin/Release/${{ matrix.framework }} \
-            -bc src/HeroSdJwt \
-            -pn HeroSD-JWT \
-            -pv ${{ inputs.version }} \
-            -ps KoalaFacts \
-            -nsb https://github.com/KoalaFacts/HeroSD-JWT \
-            -mi SPDX:${{ matrix.spdx-version }} \
-            -m sbom-output \
-            -ManifestDirPath sbom-output \
-            -V Verbose
-
-      - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v5
-        with:
-          name: sbom-${{ matrix.framework }}-spdx${{ matrix.spdx-version }}
-          path: sbom-output/_manifest/**/*.spdx.json
-          retention-days: 1
-
-  # Create GitHub release (waits for all parallel jobs)
-  create-release:
-    name: Create Release v${{ inputs.version }}
-    needs: [pack-nuget, generate-sbom]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
+      - name: Run tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
 
       - name: Extract release notes from CHANGELOG
         id: extract-notes
@@ -171,34 +77,26 @@ jobs:
 
           echo "Release notes extracted from CHANGELOG.md"
 
-      - name: Download NuGet packages
-        uses: actions/download-artifact@v5
-        with:
-          name: nuget-packages
-          path: packages/
-
-      - name: Download all SBOMs
-        uses: actions/download-artifact@v5
-        with:
-          pattern: sbom-*
-          path: sboms/
-          merge-multiple: false
-
-      - name: Organize SBOMs
+      - name: Pack NuGet packages
         run: |
-          mkdir -p release-sboms
+          dotnet pack src/HeroSdJwt/HeroSdJwt.csproj \
+            --configuration Release \
+            --no-build \
+            -p:PackageVersion=${{ inputs.version }} \
+            -p:Version=${{ inputs.version }}
 
-          # Rename and organize SBOMs by framework and SPDX version
-          for framework in net8.0 net9.0 net10.0; do
-            # SPDX 2.2
-            find sboms/sbom-${framework}-spdx2.2 -name "*.spdx.json" -exec cp {} release-sboms/HeroSD-JWT.${{ inputs.version }}.${framework}.spdx-2.2.json \;
-
-            # SPDX 3.0
-            find sboms/sbom-${framework}-spdx3.0 -name "*.spdx.json" -exec cp {} release-sboms/HeroSD-JWT.${{ inputs.version }}.${framework}.spdx-3.0.json \;
-          done
-
-          echo "SBOMs organized:"
-          ls -lh release-sboms/
+      - name: Verify packages were created
+        run: |
+          if [ ! -f "src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg" ]; then
+            echo "Error: Main package not found"
+            exit 1
+          fi
+          if [ ! -f "src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg" ]; then
+            echo "Error: Symbol package not found"
+            exit 1
+          fi
+          echo "Packages verified:"
+          ls -lh src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.*
 
       - name: Generate release notes
         id: release-notes
@@ -234,9 +132,7 @@ jobs:
           - [NuGet Package](https://www.nuget.org/packages/HeroSD-JWT/${{ inputs.version }})
 
           ### SBOMs (Software Bill of Materials)
-          Framework-specific SBOMs available:
-          - SPDX 2.2 format (net8.0, net9.0, net10.0)
-          - SPDX 3.0 format (net8.0, net9.0, net10.0)
+          SBOMs are being generated asynchronously and will be attached to this release shortly.
 
           ---
           🎯 **Production ready** - Fully tested and verified!
@@ -247,14 +143,12 @@ jobs:
         run: |
           echo "Creating release v${{ inputs.version }}..."
 
-          # Create release directly (not draft) with packages and SBOMs
-          # This will trigger the publish-nuget workflow immediately
+          # Create release with packages (SBOMs will be added asynchronously by generate-sboms workflow)
           gh release create v${{ inputs.version }} \
             --title "Release v${{ inputs.version }}" \
             --notes-file release-notes.md \
-            packages/*.nupkg \
-            packages/*.snupkg \
-            release-sboms/*.spdx*.json
+            src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg \
+            src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg
 
           echo "✅ Release created and published!"
         env:
@@ -275,15 +169,9 @@ jobs:
           echo "**Release URL**: https://github.com/${{ github.repository }}/releases/tag/v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "The publish-nuget workflow will automatically trigger and publish to NuGet.org using trusted publishing." >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ **Publish to NuGet** - The publish-nuget workflow will automatically trigger" >> $GITHUB_STEP_SUMMARY
+          echo "2. ⏳ **Generate SBOMs** - The generate-sboms workflow is running asynchronously and will attach SBOMs to this release when ready" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Packages:**" >> $GITHUB_STEP_SUMMARY
           echo "- HeroSD-JWT.${{ inputs.version }}.nupkg" >> $GITHUB_STEP_SUMMARY
           echo "- HeroSD-JWT.${{ inputs.version }}.snupkg (symbols)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**SBOMs (Software Bill of Materials):**" >> $GITHUB_STEP_SUMMARY
-          echo "Per-framework SBOMs for net8.0, net9.0, net10.0:" >> $GITHUB_STEP_SUMMARY
-          echo "- SPDX 2.2 format (3 files)" >> $GITHUB_STEP_SUMMARY
-          echo "- SPDX 3.0 format (3 files)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Total release artifacts**: 8 files (2 packages + 6 SBOMs)" >> $GITHUB_STEP_SUMMARY
