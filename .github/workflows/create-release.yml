@@ -16,9 +16,8 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  # Build and test once (prerequisite for all parallel jobs)
-  build-and-test:
-    name: Build and Test
+  validate-version:
+    name: Validate Version Format
     runs-on: ubuntu-latest
 
     steps:
@@ -35,7 +34,7 @@ jobs:
   # Pack NuGet packages
   pack-nuget:
     name: Pack NuGet Packages
-    needs: build-and-test
+    needs: validate-version
     runs-on: ubuntu-latest
 
     steps:
