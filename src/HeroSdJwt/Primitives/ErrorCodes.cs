@@ -96,5 +96,11 @@ public enum ErrorCode
     /// <summary>
     /// The key resolver threw an exception while attempting to resolve a key ID.
     /// </summary>
-    KeyResolverFailed
+    KeyResolverFailed,
+
+    /// <summary>
+    /// Token replay attack detected.
+    /// The jti (JWT ID) has already been used for verification.
+    /// </summary>
+    ReplayAttack
 }
