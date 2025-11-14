@@ -8,9 +8,6 @@
 [![C#](https://img.shields.io/badge/C%23-12.0-239120?style=flat-square&logo=c-sharp)](https://docs.microsoft.com/en-us/dotnet/csharp/)
 [![AOT Compatible](https://img.shields.io/badge/AOT-Compatible-blue?style=flat-square)](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)
 [![Minimal Dependencies](https://img.shields.io/badge/Dependencies-Minimal%20(BCL%20Only)-green?style=flat-square)](https://www.nuget.org/packages/HeroSD-JWT/)
-[![GitHub Stars](https://img.shields.io/github/stars/KoalaFacts/HeroSD-JWT?style=flat-square&logo=github)](https://github.com/KoalaFacts/HeroSD-JWT/stargazers)
-[![GitHub Issues](https://img.shields.io/github/issues/KoalaFacts/HeroSD-JWT?style=flat-square&logo=github)](https://github.com/KoalaFacts/HeroSD-JWT/issues)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 A .NET library implementing SD-JWT (Selective Disclosure for JSON Web Tokens) according to the IETF [draft-ietf-oauth-selective-disclosure-jwt](https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/) specification.
 
