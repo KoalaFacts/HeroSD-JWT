@@ -8,19 +8,14 @@ namespace HeroSdJwt.Issuance;
 /// Processes nested claims and builds objects with selective disclosure at multiple levels.
 /// Supports nested _sd arrays within objects per SD-JWT spec.
 /// </summary>
-internal class NestedClaimProcessor
+internal class NestedClaimProcessor(IDisclosureGenerator disclosureGenerator, IDigestCalculator digestCalculator)
 {
-    private readonly IDisclosureGenerator disclosureGenerator;
-    private readonly IDigestCalculator digestCalculator;
+    private readonly IDisclosureGenerator disclosureGenerator = disclosureGenerator;
+    private readonly IDigestCalculator digestCalculator = digestCalculator;
 
     // Security: Maximum nesting depth to prevent stack overflow attacks
     private const int MaxNestingDepth = 10;
 
-    public NestedClaimProcessor(IDisclosureGenerator disclosureGenerator, IDigestCalculator digestCalculator)
-    {
-        this.disclosureGenerator = disclosureGenerator;
-        this.digestCalculator = digestCalculator;
-    }
 
     /// <summary>
     /// Processes nested claims and returns modified claims with _sd arrays at appropriate levels.

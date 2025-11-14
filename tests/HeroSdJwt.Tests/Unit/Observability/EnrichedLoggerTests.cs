@@ -40,14 +40,9 @@ public class EnrichedLoggerTests
             });
         }
 
-        private class TestScope : IDisposable
+        private class TestScope(Action dispose) : IDisposable
         {
-            private readonly Action dispose;
-
-            public TestScope(Action dispose)
-            {
-                this.dispose = dispose;
-            }
+            private readonly Action dispose = dispose;
 
             public void Dispose() => dispose();
         }

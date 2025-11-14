@@ -10,10 +10,13 @@ namespace HeroSdJwt.Presentation;
 /// by analyzing the JWT structure and matching disclosure digests.
 /// Per SD-JWT spec, the holder must maintain this mapping for presentation creation.
 /// </summary>
-public class DisclosureClaimPathMapper : IDisclosureClaimPathMapper
+/// <remarks>
+/// Initializes a new instance of the <see cref="DisclosureClaimPathMapper"/> class with dependencies.
+/// </remarks>
+public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisclosureParser disclosureParser) : IDisclosureClaimPathMapper
 {
-    private readonly IDigestCalculator digestCalculator;
-    private readonly IDisclosureParser disclosureParser;
+    private readonly IDigestCalculator digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
+    private readonly IDisclosureParser disclosureParser = disclosureParser ?? throw new ArgumentNullException(nameof(disclosureParser));
 
     // Security: Maximum nesting depth to prevent stack overflow attacks
     private const int MaxNestingDepth = 10;
@@ -24,15 +27,6 @@ public class DisclosureClaimPathMapper : IDisclosureClaimPathMapper
     public DisclosureClaimPathMapper()
         : this(new DigestCalculator(), new DisclosureParser())
     {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DisclosureClaimPathMapper"/> class with dependencies.
-    /// </summary>
-    public DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisclosureParser disclosureParser)
-    {
-        this.digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
-        this.disclosureParser = disclosureParser ?? throw new ArgumentNullException(nameof(disclosureParser));
     }
 
     /// <summary>

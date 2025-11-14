@@ -15,24 +15,16 @@ namespace MultiTenantAuthExample.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public class TokensController : ControllerBase
+public class TokensController(
+    ITenantService tenantService,
+    ISdJwtIssuer issuer,
+    ISdJwtVerifier verifier,
+    ILogger<TokensController> logger) : ControllerBase
 {
-    private readonly ITenantService tenantService;
-    private readonly ISdJwtIssuer issuer;
-    private readonly ISdJwtVerifier verifier;
-    private readonly ILogger<TokensController> logger;
-
-    public TokensController(
-        ITenantService tenantService,
-        ISdJwtIssuer issuer,
-        ISdJwtVerifier verifier,
-        ILogger<TokensController> logger)
-    {
-        this.tenantService = tenantService;
-        this.issuer = issuer;
-        this.verifier = verifier;
-        this.logger = logger;
-    }
+    private readonly ITenantService tenantService = tenantService;
+    private readonly ISdJwtIssuer issuer = issuer;
+    private readonly ISdJwtVerifier verifier = verifier;
+    private readonly ILogger<TokensController> logger = logger;
 
     /// <summary>
     /// Issues a new SD-JWT for a specific tenant.

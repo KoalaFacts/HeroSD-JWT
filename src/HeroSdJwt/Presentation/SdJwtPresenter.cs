@@ -10,10 +10,15 @@ namespace HeroSdJwt.Presentation;
 /// <summary>
 /// Creates presentations from SD-JWTs by selecting which claims to disclose.
 /// </summary>
-public class SdJwtPresenter : ISdJwtPresenter
+/// <remarks>
+/// Initializes a new instance of the <see cref="SdJwtPresenter"/> class with dependencies.
+/// </remarks>
+/// <param name="claimPathMapper">The claim path mapper to use.</param>
+/// <param name="logger">Optional logger for observability. If null, logging is disabled.</param>
+public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper, ILogger<SdJwtPresenter>? logger = null) : ISdJwtPresenter
 {
-    private readonly IDisclosureClaimPathMapper claimPathMapper;
-    private readonly ILogger<SdJwtPresenter> logger;
+    private readonly IDisclosureClaimPathMapper claimPathMapper = claimPathMapper ?? throw new ArgumentNullException(nameof(claimPathMapper));
+    private readonly ILogger<SdJwtPresenter> logger = logger ?? NullLogger<SdJwtPresenter>.Instance;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtPresenter"/> class.
@@ -22,17 +27,6 @@ public class SdJwtPresenter : ISdJwtPresenter
     public SdJwtPresenter(ILogger<SdJwtPresenter>? logger = null)
         : this(new DisclosureClaimPathMapper(), logger)
     {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SdJwtPresenter"/> class with dependencies.
-    /// </summary>
-    /// <param name="claimPathMapper">The claim path mapper to use.</param>
-    /// <param name="logger">Optional logger for observability. If null, logging is disabled.</param>
-    public SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper, ILogger<SdJwtPresenter>? logger = null)
-    {
-        this.claimPathMapper = claimPathMapper ?? throw new ArgumentNullException(nameof(claimPathMapper));
-        this.logger = logger ?? NullLogger<SdJwtPresenter>.Instance;
     }
 
     /// <summary>

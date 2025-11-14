@@ -9,14 +9,9 @@ namespace HeroSdJwt.Observability;
 /// This class wraps an ILogger instance and automatically enriches log entries
 /// with properties from registered <see cref="ILogEnricher"/> instances.
 /// </remarks>
-internal class EnrichedLogger<T> : ILogger<T>
+internal class EnrichedLogger<T>(ILogger<T> innerLogger) : ILogger<T>
 {
-    private readonly ILogger<T> innerLogger;
-
-    public EnrichedLogger(ILogger<T> innerLogger)
-    {
-        this.innerLogger = innerLogger ?? throw new ArgumentNullException(nameof(innerLogger));
-    }
+    private readonly ILogger<T> innerLogger = innerLogger ?? throw new ArgumentNullException(nameof(innerLogger));
 
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull
     {

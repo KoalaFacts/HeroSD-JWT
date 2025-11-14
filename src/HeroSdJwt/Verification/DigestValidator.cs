@@ -8,9 +8,13 @@ namespace HeroSdJwt.Verification;
 /// <summary>
 /// Validates disclosure digests using constant-time comparison to prevent timing attacks.
 /// </summary>
-public class DigestValidator : IDigestValidator
+/// <remarks>
+/// Initializes a new instance of the <see cref="DigestValidator"/> class with a digest calculator.
+/// </remarks>
+/// <param name="digestCalculator">The digest calculator to use.</param>
+public class DigestValidator(IDigestCalculator digestCalculator) : IDigestValidator
 {
-    private readonly IDigestCalculator digestCalculator;
+    private readonly IDigestCalculator digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DigestValidator"/> class.
@@ -18,15 +22,6 @@ public class DigestValidator : IDigestValidator
     public DigestValidator()
         : this(new DigestCalculator())
     {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DigestValidator"/> class with a digest calculator.
-    /// </summary>
-    /// <param name="digestCalculator">The digest calculator to use.</param>
-    public DigestValidator(IDigestCalculator digestCalculator)
-    {
-        this.digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
     }
 
     /// <summary>

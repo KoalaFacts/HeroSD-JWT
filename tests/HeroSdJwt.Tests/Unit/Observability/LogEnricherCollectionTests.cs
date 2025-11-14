@@ -342,14 +342,9 @@ public class LogEnricherCollectionTests
     }
 #pragma warning restore xUnit1051
 
-    private class CustomEnricher : ILogEnricher
+    private class CustomEnricher(Action<LogEnrichmentContext> action) : ILogEnricher
     {
-        private readonly Action<LogEnrichmentContext> action;
-
-        public CustomEnricher(Action<LogEnrichmentContext> action)
-        {
-            this.action = action;
-        }
+        private readonly Action<LogEnrichmentContext> action = action;
 
         public void Enrich(LogEnrichmentContext context)
         {

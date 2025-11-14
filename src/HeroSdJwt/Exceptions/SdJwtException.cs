@@ -64,62 +64,46 @@ public class SignatureInvalidException : SdJwtException
 /// <summary>
 /// Exception thrown when a disclosure digest verification fails.
 /// </summary>
-public class DigestMismatchException : SdJwtException
+/// <remarks>
+/// Initializes a new instance of the <see cref="DigestMismatchException"/> class.
+/// </remarks>
+/// <param name="message">The error message.</param>
+public class DigestMismatchException(string message) : SdJwtException(message, ErrorCode.DigestMismatch)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DigestMismatchException"/> class.
-    /// </summary>
-    /// <param name="message">The error message.</param>
-    public DigestMismatchException(string message)
-        : base(message, ErrorCode.DigestMismatch)
-    {
-    }
 }
 
 /// <summary>
 /// Exception thrown when a token has expired.
 /// </summary>
-public class ClaimExpiredException : SdJwtException
+/// <remarks>
+/// Initializes a new instance of the <see cref="ClaimExpiredException"/> class.
+/// </remarks>
+/// <param name="message">The error message.</param>
+/// <param name="errorCode">The specific expiration error code (TokenExpired or TokenNotYetValid).</param>
+public class ClaimExpiredException(string message, ErrorCode errorCode) : SdJwtException(message, errorCode)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ClaimExpiredException"/> class.
-    /// </summary>
-    /// <param name="message">The error message.</param>
-    /// <param name="errorCode">The specific expiration error code (TokenExpired or TokenNotYetValid).</param>
-    public ClaimExpiredException(string message, ErrorCode errorCode)
-        : base(message, errorCode)
-    {
-    }
 }
 
 /// <summary>
 /// Exception thrown when an unsupported or invalid algorithm is encountered.
 /// </summary>
-public class AlgorithmNotSupportedException : SdJwtException
+/// <remarks>
+/// Initializes a new instance of the <see cref="AlgorithmNotSupportedException"/> class.
+/// </remarks>
+/// <param name="message">The error message.</param>
+public class AlgorithmNotSupportedException(string message) : SdJwtException(message, ErrorCode.UnsupportedAlgorithm)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AlgorithmNotSupportedException"/> class.
-    /// </summary>
-    /// <param name="message">The error message.</param>
-    public AlgorithmNotSupportedException(string message)
-        : base(message, ErrorCode.UnsupportedAlgorithm)
-    {
-    }
 }
 
 /// <summary>
 /// Exception thrown when algorithm confusion attack is detected (algorithm is "none").
 /// </summary>
-public class AlgorithmConfusionException : SdJwtException
+/// <remarks>
+/// Initializes a new instance of the <see cref="AlgorithmConfusionException"/> class.
+/// </remarks>
+/// <param name="message">The error message.</param>
+public class AlgorithmConfusionException(string message) : SdJwtException(message, ErrorCode.AlgorithmConfusion)
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AlgorithmConfusionException"/> class.
-    /// </summary>
-    /// <param name="message">The error message.</param>
-    public AlgorithmConfusionException(string message)
-        : base(message, ErrorCode.AlgorithmConfusion)
-    {
-    }
 }
 
 /// <summary>

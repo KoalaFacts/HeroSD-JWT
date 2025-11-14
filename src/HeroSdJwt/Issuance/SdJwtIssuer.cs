@@ -19,36 +19,27 @@ namespace HeroSdJwt.Issuance;
 /// <summary>
 /// Creates SD-JWTs with selectively disclosable claims.
 /// </summary>
-public class SdJwtIssuer : ISdJwtIssuer
+/// <remarks>
+/// Initializes a new instance of the <see cref="SdJwtIssuer"/> class with dependencies.
+/// For simple usage: new SdJwtIssuer(new DisclosureGenerator(), new DigestCalculator(), new EcPublicKeyConverter(), new JwtSigner())
+/// </remarks>
+/// <param name="disclosureGenerator">The disclosure generator.</param>
+/// <param name="digestCalculator">The digest calculator.</param>
+/// <param name="ecPublicKeyConverter">The EC public key converter.</param>
+/// <param name="jwtSigner">The JWT signer.</param>
+/// <param name="logger">Optional logger for observability. If null, logging is disabled.</param>
+public class SdJwtIssuer(
+    IDisclosureGenerator disclosureGenerator,
+    IDigestCalculator digestCalculator,
+    IEcPublicKeyConverter ecPublicKeyConverter,
+    IJwtSigner jwtSigner,
+    ILogger<SdJwtIssuer>? logger = null) : ISdJwtIssuer
 {
-    private readonly IDisclosureGenerator disclosureGenerator;
-    private readonly IDigestCalculator digestCalculator;
-    private readonly IEcPublicKeyConverter ecPublicKeyConverter;
-    private readonly IJwtSigner jwtSigner;
-    private readonly ILogger<SdJwtIssuer> logger;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SdJwtIssuer"/> class with dependencies.
-    /// For simple usage: new SdJwtIssuer(new DisclosureGenerator(), new DigestCalculator(), new EcPublicKeyConverter(), new JwtSigner())
-    /// </summary>
-    /// <param name="disclosureGenerator">The disclosure generator.</param>
-    /// <param name="digestCalculator">The digest calculator.</param>
-    /// <param name="ecPublicKeyConverter">The EC public key converter.</param>
-    /// <param name="jwtSigner">The JWT signer.</param>
-    /// <param name="logger">Optional logger for observability. If null, logging is disabled.</param>
-    public SdJwtIssuer(
-        IDisclosureGenerator disclosureGenerator,
-        IDigestCalculator digestCalculator,
-        IEcPublicKeyConverter ecPublicKeyConverter,
-        IJwtSigner jwtSigner,
-        ILogger<SdJwtIssuer>? logger = null)
-    {
-        this.disclosureGenerator = disclosureGenerator ?? throw new ArgumentNullException(nameof(disclosureGenerator));
-        this.digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
-        this.ecPublicKeyConverter = ecPublicKeyConverter ?? throw new ArgumentNullException(nameof(ecPublicKeyConverter));
-        this.jwtSigner = jwtSigner ?? throw new ArgumentNullException(nameof(jwtSigner));
-        this.logger = logger ?? NullLogger<SdJwtIssuer>.Instance;
-    }
+    private readonly IDisclosureGenerator disclosureGenerator = disclosureGenerator ?? throw new ArgumentNullException(nameof(disclosureGenerator));
+    private readonly IDigestCalculator digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
+    private readonly IEcPublicKeyConverter ecPublicKeyConverter = ecPublicKeyConverter ?? throw new ArgumentNullException(nameof(ecPublicKeyConverter));
+    private readonly IJwtSigner jwtSigner = jwtSigner ?? throw new ArgumentNullException(nameof(jwtSigner));
+    private readonly ILogger<SdJwtIssuer> logger = logger ?? NullLogger<SdJwtIssuer>.Instance;
 
     /// <summary>
     /// Creates an SD-JWT with the specified claims and selective disclosure settings.

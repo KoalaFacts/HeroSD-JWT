@@ -9,19 +9,14 @@ namespace HeroSdJwt.Issuance;
 /// Per SD-JWT spec section 4.2.5, decoy digests prevent enumeration of the number
 /// of selectively disclosable claims by adding fake digests that look real.
 /// </summary>
-public class DecoyDigestGenerator : IDecoyDigestGenerator
+/// <remarks>
+/// Initializes a new instance of the <see cref="DecoyDigestGenerator"/> class with dependencies.
+/// For simple usage: new DecoyDigestGenerator(new DigestCalculator())
+/// </remarks>
+/// <param name="digestCalculator">The digest calculator to use.</param>
+public class DecoyDigestGenerator(IDigestCalculator digestCalculator) : IDecoyDigestGenerator
 {
-    private readonly IDigestCalculator digestCalculator;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DecoyDigestGenerator"/> class with dependencies.
-    /// For simple usage: new DecoyDigestGenerator(new DigestCalculator())
-    /// </summary>
-    /// <param name="digestCalculator">The digest calculator to use.</param>
-    public DecoyDigestGenerator(IDigestCalculator digestCalculator)
-    {
-        this.digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
-    }
+    private readonly IDigestCalculator digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
 
     /// <summary>
     /// Generates the specified number of decoy digests using cryptographically secure random data.

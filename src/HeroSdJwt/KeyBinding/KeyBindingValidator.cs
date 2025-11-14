@@ -10,9 +10,13 @@ namespace HeroSdJwt.KeyBinding;
 /// <summary>
 /// Validates key binding JWTs to prove holder possession of private key.
 /// </summary>
-public class KeyBindingValidator : IKeyBindingValidator
+/// <remarks>
+/// Initializes a new instance of the <see cref="KeyBindingValidator"/> class with dependencies.
+/// </remarks>
+/// <param name="timeProvider">The time provider for temporal validation.</param>
+public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidator
 {
-    private readonly TimeProvider timeProvider;
+    private readonly TimeProvider timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="KeyBindingValidator"/> class.
@@ -20,15 +24,6 @@ public class KeyBindingValidator : IKeyBindingValidator
     public KeyBindingValidator()
         : this(TimeProvider.System)
     {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="KeyBindingValidator"/> class with dependencies.
-    /// </summary>
-    /// <param name="timeProvider">The time provider for temporal validation.</param>
-    public KeyBindingValidator(TimeProvider timeProvider)
-    {
-        this.timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     /// <summary>
