@@ -9,7 +9,7 @@ namespace HeroSdJwt.Cryptography;
 
 /// <summary>
 /// Creates and signs JWTs using various signature algorithms.
-/// Supports HS256, RS256, and ES256 per RFC 7518.
+/// Supports HS256, HS384, HS512, RS256, PS256, ES256, ES384, ES512, and EdDSA per RFC 7518.
 /// </summary>
 public class JwtSigner : IJwtSigner
 {
@@ -31,6 +31,12 @@ public class JwtSigner : IJwtSigner
         ArgumentNullException.ThrowIfNull(payload);
         ArgumentNullException.ThrowIfNull(signingKey);
 
+        // Reject empty keys for security
+        if (signingKey.Length == 0)
+        {
+            throw new ArgumentException("Signing key cannot be empty", nameof(signingKey));
+        }
+
         // Create header with algorithm
         var algName = algorithm switch
         {
@@ -38,6 +44,11 @@ public class JwtSigner : IJwtSigner
             SignatureAlgorithm.RS256 => "RS256",
             SignatureAlgorithm.ES256 => "ES256",
             SignatureAlgorithm.EdDSA => "EdDSA",
+            SignatureAlgorithm.HS384 => "HS384",
+            SignatureAlgorithm.HS512 => "HS512",
+            SignatureAlgorithm.PS256 => "PS256",
+            SignatureAlgorithm.ES384 => "ES384",
+            SignatureAlgorithm.ES512 => "ES512",
             _ => throw new ArgumentException($"Unsupported algorithm: {algorithm}", nameof(algorithm))
         };
 
@@ -71,6 +82,11 @@ public class JwtSigner : IJwtSigner
             SignatureAlgorithm.RS256 => SignRsa256(signingInputBytes, signingKey),
             SignatureAlgorithm.ES256 => SignEcdsa256(signingInputBytes, signingKey),
             SignatureAlgorithm.EdDSA => SignEdDsa(signingInputBytes, signingKey),
+            SignatureAlgorithm.HS384 => SignHmacSha384(signingInputBytes, signingKey),
+            SignatureAlgorithm.HS512 => SignHmacSha512(signingInputBytes, signingKey),
+            SignatureAlgorithm.PS256 => SignPss256(signingInputBytes, signingKey),
+            SignatureAlgorithm.ES384 => SignEcdsa384(signingInputBytes, signingKey),
+            SignatureAlgorithm.ES512 => SignEcdsa512(signingInputBytes, signingKey),
             _ => throw new ArgumentException($"Algorithm {algorithm} not implemented", nameof(algorithm))
         };
 
@@ -165,6 +181,116 @@ public class JwtSigner : IJwtSigner
         var signature = new byte[64];
         Ed25519Operations.CryptoSign(signature, 0, data, 0, data.Length, privateKeyBytes, 0);
         return signature;
+    }
+
+
+    /// <summary>
+    /// Signs data using HMAC-SHA384 (symmetric).
+    /// </summary>
+    private static byte[] SignHmacSha384(byte[] data, byte[] key)
+    {
+        return HMACSHA384.HashData(key, data);
+    }
+
+    /// <summary>
+    /// Signs data using HMAC-SHA512 (symmetric).
+    /// </summary>
+    private static byte[] SignHmacSha512(byte[] data, byte[] key)
+    {
+        return HMACSHA512.HashData(key, data);
+    }
+
+    /// <summary>
+    /// Signs data using RSA-SHA256 with PSS padding (asymmetric).
+    /// Key must be in PKCS#8 PrivateKeyInfo format.
+    /// </summary>
+    private static byte[] SignPss256(byte[] data, byte[] privateKeyBytes)
+    {
+        try
+        {
+            using var rsa = RSA.Create();
+            rsa.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+
+            // Validate minimum key size (2048 bits per NIST recommendations)
+            const int MinimumRsaKeySize = 2048;
+            if (rsa.KeySize < MinimumRsaKeySize)
+            {
+                throw new ArgumentException(
+                    $"RSA key size {rsa.KeySize} is below minimum required size of {MinimumRsaKeySize} bits",
+                    nameof(privateKeyBytes));
+            }
+
+            return rsa.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
+        }
+        catch (CryptographicException ex)
+        {
+            throw new ArgumentException(
+                "Invalid RSA private key format. Expected PKCS#8 PrivateKeyInfo format.",
+                nameof(privateKeyBytes),
+                ex);
+        }
+    }
+
+    /// <summary>
+    /// Signs data using ECDSA-SHA384 with P-384 curve (asymmetric).
+    /// Key must be in PKCS#8 PrivateKeyInfo format with P-384 curve.
+    /// </summary>
+    private static byte[] SignEcdsa384(byte[] data, byte[] privateKeyBytes)
+    {
+        try
+        {
+            using var ecdsa = ECDsa.Create();
+            ecdsa.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+
+            // Validate curve is P-384 (secp384r1) as required for ES384
+            var parameters = ecdsa.ExportParameters(false);
+            if (parameters.Curve.Oid?.Value != "1.3.132.0.34") // P-384 OID
+            {
+                throw new ArgumentException(
+                    "ES384 requires P-384 (secp384r1) curve. Provided key uses a different curve.",
+                    nameof(privateKeyBytes));
+            }
+
+            return ecdsa.SignData(data, HashAlgorithmName.SHA384);
+        }
+        catch (CryptographicException ex)
+        {
+            throw new ArgumentException(
+                "Invalid ECDSA private key format. Expected PKCS#8 PrivateKeyInfo format with P-384 curve.",
+                nameof(privateKeyBytes),
+                ex);
+        }
+    }
+
+    /// <summary>
+    /// Signs data using ECDSA-SHA512 with P-521 curve (asymmetric).
+    /// Key must be in PKCS#8 PrivateKeyInfo format with P-521 curve.
+    /// </summary>
+    private static byte[] SignEcdsa512(byte[] data, byte[] privateKeyBytes)
+    {
+        try
+        {
+            using var ecdsa = ECDsa.Create();
+            ecdsa.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+
+            // Validate curve is P-521 (secp521r1) as required for ES512
+            var parameters = ecdsa.ExportParameters(false);
+            if (parameters.Curve.Oid?.Value != "1.3.132.0.35") // P-521 OID
+            {
+                throw new ArgumentException(
+                    "ES512 requires P-521 (secp521r1) curve. Provided key uses a different curve.",
+                    nameof(privateKeyBytes));
+            }
+
+            return ecdsa.SignData(data, HashAlgorithmName.SHA512);
+        }
+        catch (CryptographicException ex)
+        {
+            throw new ArgumentException(
+                "Invalid ECDSA private key format. Expected PKCS#8 PrivateKeyInfo format with P-521 curve.",
+                nameof(privateKeyBytes),
+                ex);
+        }
     }
 
     /// <summary>
