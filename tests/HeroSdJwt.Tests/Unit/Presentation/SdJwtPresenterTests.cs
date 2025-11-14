@@ -61,19 +61,6 @@ public class SdJwtPresenterTests
     }
 
     [Fact]
-    public void Constructor_WithLogger_CreatesInstance()
-    {
-        // Arrange
-        var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<SdJwtPresenter>();
-
-        // Act
-        var presenter = new SdJwtPresenter(logger);
-
-        // Assert
-        Assert.NotNull(presenter);
-    }
-
-    [Fact]
     public void Constructor_WithClaimPathMapper_CreatesInstance()
     {
         // Arrange

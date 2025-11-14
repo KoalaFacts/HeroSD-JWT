@@ -1,8 +1,4 @@
-using System.Diagnostics;
 using HeroSdJwt.Models;
-using HeroSdJwt.Observability;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Constants = HeroSdJwt.Primitives.Constants;
 
 namespace HeroSdJwt.Presentation;
@@ -14,18 +10,15 @@ namespace HeroSdJwt.Presentation;
 /// Initializes a new instance of the <see cref="SdJwtPresenter"/> class with dependencies.
 /// </remarks>
 /// <param name="claimPathMapper">The claim path mapper to use.</param>
-/// <param name="logger">Optional logger for observability. If null, logging is disabled.</param>
-public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper, ILogger<SdJwtPresenter>? logger = null) : ISdJwtPresenter
+public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwtPresenter
 {
     private readonly IDisclosureClaimPathMapper claimPathMapper = claimPathMapper ?? throw new ArgumentNullException(nameof(claimPathMapper));
-    private readonly ILogger<SdJwtPresenter> logger = logger ?? NullLogger<SdJwtPresenter>.Instance;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtPresenter"/> class.
     /// </summary>
-    /// <param name="logger">Optional logger for observability. If null, logging is disabled.</param>
-    public SdJwtPresenter(ILogger<SdJwtPresenter>? logger = null)
-        : this(new DisclosureClaimPathMapper(), logger)
+    public SdJwtPresenter()
+        : this(new DisclosureClaimPathMapper())
     {
     }
 
@@ -46,18 +39,8 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper, ILogger<
 
         var selectedClaimsList = selectedClaimNames.ToList();
 
-        // Start distributed tracing activity
-        using var activity = HeroSdJwtActivitySource.Instance.StartActivity("SdJwt.Present");
-        activity?.SetTag(HeroSdJwtActivitySource.Tags.Operation, "present");
-        activity?.SetTag(HeroSdJwtActivitySource.Tags.ClaimCount, selectedClaimsList.Count);
-
-        // Start performance measurement
-        var stopwatch = Stopwatch.StartNew();
-
         try
         {
-            // Log presentation start
-            logger.LogPresentationStarted(selectedClaimsList.Count);
 
             // Use cached claim path mapping if available (computed at issuance time for performance),
             // otherwise compute on-demand per SD-JWT spec: "it is up to the Holder how to maintain the mapping"
@@ -156,36 +139,10 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper, ILogger<
             var finalKeyBindingJwt = keyBindingJwt ?? sdJwt.KeyBindingJwt;
             var presentation = new SdJwtPresentation(sdJwt.Jwt, selectedDisclosures, finalKeyBindingJwt);
 
-            // Stop performance measurement
-            stopwatch.Stop();
-
-            // Log successful presentation
-            logger.LogPresentationCompleted(selectedDisclosures.Count);
-
-            // Record metrics
-            HeroSdJwtMetrics.PresentationCount.Add(1);
-            HeroSdJwtMetrics.PresentationDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
-
-            // Set activity tags for successful completion
-            activity?.SetTag(HeroSdJwtActivitySource.Tags.DisclosureCount, selectedDisclosures.Count);
-            activity?.SetStatus(ActivityStatusCode.Ok);
-
             return presentation;
         }
-        catch (Exception ex)
+        catch
         {
-            // Stop performance measurement
-            stopwatch.Stop();
-
-            // Log error
-            logger.LogPresentationFailed(ex, ex.Message);
-
-            // Set activity error status
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.AddTag("error.type", ex.GetType().FullName);
-            activity?.AddTag("error.message", ex.Message);
-
-            // Re-throw the exception
             throw;
         }
     }

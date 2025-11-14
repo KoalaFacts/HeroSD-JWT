@@ -1,14 +1,10 @@
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Models;
-using HeroSdJwt.Observability;
 using HeroSdJwt.Presentation;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Constants = HeroSdJwt.Primitives.Constants;
 using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
@@ -27,19 +23,16 @@ namespace HeroSdJwt.Issuance;
 /// <param name="digestCalculator">The digest calculator.</param>
 /// <param name="ecPublicKeyConverter">The EC public key converter.</param>
 /// <param name="jwtSigner">The JWT signer.</param>
-/// <param name="logger">Optional logger for observability. If null, logging is disabled.</param>
 public class SdJwtIssuer(
     IDisclosureGenerator disclosureGenerator,
     IDigestCalculator digestCalculator,
     IEcPublicKeyConverter ecPublicKeyConverter,
-    IJwtSigner jwtSigner,
-    ILogger<SdJwtIssuer>? logger = null) : ISdJwtIssuer
+    IJwtSigner jwtSigner) : ISdJwtIssuer
 {
     private readonly IDisclosureGenerator disclosureGenerator = disclosureGenerator ?? throw new ArgumentNullException(nameof(disclosureGenerator));
     private readonly IDigestCalculator digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
     private readonly IEcPublicKeyConverter ecPublicKeyConverter = ecPublicKeyConverter ?? throw new ArgumentNullException(nameof(ecPublicKeyConverter));
     private readonly IJwtSigner jwtSigner = jwtSigner ?? throw new ArgumentNullException(nameof(jwtSigner));
-    private readonly ILogger<SdJwtIssuer> logger = logger ?? NullLogger<SdJwtIssuer>.Instance;
 
     /// <summary>
     /// Creates an SD-JWT with the specified claims and selective disclosure settings.
@@ -68,26 +61,8 @@ public class SdJwtIssuer(
 
         var selectiveClaimsList = selectivelyDisclosableClaims?.ToList() ?? [];
 
-        // Start distributed tracing activity
-        using var activity = HeroSdJwtActivitySource.Instance.StartActivity("SdJwt.Issue");
-        activity?.SetTag(HeroSdJwtActivitySource.Tags.Operation, "issue");
-        activity?.SetTag(HeroSdJwtActivitySource.Tags.Algorithm, signatureAlgorithm.ToString());
-        activity?.SetTag(HeroSdJwtActivitySource.Tags.HashAlgorithm, hashAlgorithm.ToString());
-        activity?.SetTag(HeroSdJwtActivitySource.Tags.DecoyCount, decoyDigestCount);
-        activity?.SetTag(HeroSdJwtActivitySource.Tags.HasKeyBinding, holderPublicKey != null);
-        if (keyId != null)
-        {
-            activity?.SetTag(HeroSdJwtActivitySource.Tags.KeyId, keyId);
-        }
-
-        // Start performance measurement
-        var stopwatch = Stopwatch.StartNew();
-
         try
         {
-            // Log issuance start
-            logger.LogIssuanceStarted(claims.Count, selectiveClaimsList.Count, decoyDigestCount);
-
             // Parse claim specifications to separate simple claims from array elements
             var parsedClaims = selectiveClaimsList.Select(ClaimPath.Parse).ToList();
 
@@ -159,9 +134,6 @@ public class SdJwtIssuer(
                     // Compute digest
                     var digest = digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
                     digests.Add(digest);
-
-                    // Log disclosure generation at debug level
-                    logger.LogDisclosureGenerated(claimPath.BaseName);
                 }
             }
 
@@ -174,9 +146,6 @@ public class SdJwtIssuer(
                 var decoyGenerator = new DecoyDigestGenerator(digestCalculator);
                 var decoyDigests = decoyGenerator.GenerateDecoyDigests(decoyDigestCount, hashAlgorithm);
                 digests = decoyGenerator.InterleaveDecoys(digests, decoyDigests);
-
-                // Log decoy generation
-                logger.LogDecoysGenerated(decoyDigestCount);
             }
 
             // Step 1.5: Process nested claims and build objects with _sd arrays
@@ -332,41 +301,10 @@ public class SdJwtIssuer(
             // Step 5: Create final SdJwt object with cached mapping
             var sdJwt = new SdJwt(jwt, disclosures, hashAlgorithm, null, claimPathMapping);
 
-            // Stop performance measurement
-            stopwatch.Stop();
-
-            // Log successful issuance
-            logger.LogIssuanceCompleted(disclosures.Count, signatureAlgorithm.ToString());
-
-            // Record metrics
-            HeroSdJwtMetrics.IssuanceCount.Add(1,
-                new KeyValuePair<string, object?>("algorithm", signatureAlgorithm.ToString()),
-                new KeyValuePair<string, object?>("hash_algorithm", hashAlgorithm.ToString()));
-            HeroSdJwtMetrics.IssuanceDuration.Record(stopwatch.Elapsed.TotalMilliseconds,
-                new KeyValuePair<string, object?>("algorithm", signatureAlgorithm.ToString()));
-            HeroSdJwtMetrics.UpdateLastDisclosureCount(disclosures.Count);
-
-            // Set activity tags for successful completion
-            activity?.SetTag(HeroSdJwtActivitySource.Tags.DisclosureCount, disclosures.Count);
-            activity?.SetTag(HeroSdJwtActivitySource.Tags.ClaimCount, claims.Count);
-            activity?.SetStatus(ActivityStatusCode.Ok);
-
             return sdJwt;
         }
-        catch (Exception ex)
+        catch
         {
-            // Stop performance measurement
-            stopwatch.Stop();
-
-            // Log error
-            logger.LogIssuanceFailed(ex, ex.Message);
-
-            // Set activity error status
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.AddTag("error.type", ex.GetType().FullName);
-            activity?.AddTag("error.message", ex.Message);
-
-            // Re-throw the exception
             throw;
         }
     }

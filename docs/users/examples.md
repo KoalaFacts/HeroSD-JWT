@@ -42,29 +42,6 @@ dotnet run
 
 **Learn More:** [ASP.NET Core Integration README](../../examples/AspNetCoreIntegrationExample/README.md)
 
-### 📊 Observability with Serilog Example
-
-**Location:** [examples/SerilogExample/](../../examples/SerilogExample/)
-
-Comprehensive observability demonstration using Serilog for structured logging, metrics, and distributed tracing.
-
-**Features:**
-- ✅ Structured logging with Serilog (console + file)
-- ✅ Real-time metrics collection and reporting
-- ✅ Distributed tracing with Activity/Span tracking
-- ✅ Custom log enrichers (correlation IDs, environment info)
-- ✅ Complete SD-JWT lifecycle demonstration
-- ✅ Error logging and verification failure examples
-
-**Quick Start:**
-```bash
-cd examples/SerilogExample
-dotnet run
-# Check console output and logs/sdjwt-*.log
-```
-
-**Learn More:** [Serilog Example README](../../examples/SerilogExample/README.md)
-
 ---
 
 ## Basic Examples

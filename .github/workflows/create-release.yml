@@ -147,7 +147,7 @@ jobs:
           ### Package Details
           - **NuGet**: [HeroSD-JWT v${{ inputs.version }}](https://www.nuget.org/packages/HeroSD-JWT/${{ inputs.version }})
           - **Frameworks**: net8.0, net9.0, net10.0
-          - **Dependencies**: Microsoft.Bcl.Memory (net8.0 only), Microsoft.Extensions.Logging.Abstractions
+          - **Dependencies**: Microsoft.Bcl.Memory (net8.0 only)
 
           ### SBOMs (Software Bill of Materials)
           Per-framework SBOMs included in this release:

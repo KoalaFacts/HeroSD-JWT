@@ -233,8 +233,7 @@ git tag v1.1.0-beta.1
    - Update CHANGELOG.md with deprecation notice
 
 3. **Runtime Warnings:**
-   - Emit warnings during usage (optional, for critical deprecations)
-   - Log deprecation warnings via ILogger
+   - Emit warnings during usage via exceptions or return values (optional, for critical deprecations)
 
 4. **Removal (MAJOR release):**
    - Remove deprecated API in next MAJOR version

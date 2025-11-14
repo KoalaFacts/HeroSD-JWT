@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+		<TargetFrameworks>$(SupportedTargetFrameworks)</TargetFrameworks>
     <RootNamespace>HeroSdJwt</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -20,7 +20,7 @@
     <Authors>KoalaFacts</Authors>
     <Company>KoalaFacts</Company>
     <Product>HeroSD-JWT</Product>
-    <Description>A production-ready .NET library implementing SD-JWT (Selective Disclosure for JSON Web Tokens) according to IETF draft-ietf-oauth-selective-disclosure-jwt. Supports array element disclosure, nested claims, key binding, and multiple signature algorithms (HS256, RS256, ES256). Zero third-party dependencies - uses only .NET BCL.</Description>
+    <Description>A production-ready .NET library implementing SD-JWT (Selective Disclosure for JSON Web Tokens) according to IETF draft-ietf-oauth-selective-disclosure-jwt. Supports array element disclosure, nested claims, key binding, and multiple signature algorithms (HS256, RS256, ES256). Minimal dependencies - uses only .NET BCL (Base Class Library).</Description>
     <PackageTags>sd-jwt;selective-disclosure;jwt;verifiable-credentials;privacy;zero-knowledge;cryptography;security;json-web-token</PackageTags>
     <PackageProjectUrl>https://github.com/KoalaFacts/HeroSD-JWT</PackageProjectUrl>
     <RepositoryUrl>https://github.com/KoalaFacts/HeroSD-JWT</RepositoryUrl>
@@ -46,12 +46,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="Microsoft.Bcl.Memory" Version="9.0.10" />
-  </ItemGroup>
-
-  <!-- Logging Abstractions -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
+    <PackageReference Include="Microsoft.Bcl.Memory" Version="10.0.0" />
   </ItemGroup>
 
   <!-- Source Link for debugging support -->

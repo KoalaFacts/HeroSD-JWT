@@ -122,8 +122,7 @@ public class VerificationBenchmarks
             signatureValidator,
             digestValidator,
             keyBindingValidator,
-            claimValidator,
-            null);
+            claimValidator);
 
         var verifierWithKbOptions = new SdJwtVerificationOptions
         {
@@ -139,8 +138,7 @@ public class VerificationBenchmarks
             signatureValidator,
             digestValidator,
             keyBindingValidator,
-            claimValidator,
-            null);
+            claimValidator);
     }
 
     [GlobalCleanup]

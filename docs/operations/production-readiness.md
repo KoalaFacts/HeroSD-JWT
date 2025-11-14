@@ -96,35 +96,7 @@ HeroSD-JWT is a **mature and well-implemented SD-JWT library** with strong funda
 
 ## Critical Gaps
 
-### 1. Observability & Logging (CRITICAL)
-
-**Status:** ❌ Missing
-
-**What's Missing:**
-- No `ILogger<T>` support
-- No structured logging
-- No metrics/counters (verification success/failure rates)
-- No distributed tracing (Activity/OpenTelemetry)
-- No performance counters
-- No audit logging
-
-**Impact:**
-- Impossible to diagnose production issues
-- No visibility into verification failures
-- Can't track performance degradation
-- Difficult to troubleshoot in distributed systems
-
-**Recommendation:**
-- Add `ILogger<T>` to all major classes
-- Emit structured logs for all operations
-- Add performance counters for verification operations
-- Support OpenTelemetry for distributed tracing
-
-**Estimated Effort:** 3 days
-
----
-
-### 2. ASP.NET Core Integration (CRITICAL)
+### 1. ASP.NET Core Integration (CRITICAL)
 
 **Status:** ❌ Missing
 
@@ -696,21 +668,7 @@ Add for critical algorithms (round-trip properties)
 
 **Goal:** Address critical blockers for production deployment
 
-#### 1.1 Add Logging & Observability (3 days)
-- [ ] Add `ILogger<T>` to all major classes
-- [ ] Emit structured logs for verification events
-- [ ] Add performance counters
-- [ ] Add distributed tracing support (Activity/OpenTelemetry)
-- [ ] Document logging configuration
-
-**Files to modify:**
-- `SdJwtBuilder`, `SdJwtVerifier`, `KeyBindingValidator`
-- Add `Microsoft.Extensions.Logging.Abstractions` reference
-- Update tests with `NullLogger` or test logger
-
----
-
-#### 1.2 ASP.NET Core Integration (5 days)
+#### 1.1 ASP.NET Core Integration (5 days)
 - [ ] Create `HeroSdJwt.AspNetCore` project
 - [ ] Implement authentication middleware
 - [ ] Create DI extensions (`AddHeroSdJwt()`)
@@ -946,7 +904,6 @@ Add for critical algorithms (round-trip properties)
 
 ### Critical (Must-Have) ❌
 
-- [ ] **Observability & Logging** - ILogger support for diagnosing production issues
 - [ ] **ASP.NET Core Integration** - Authentication middleware and DI extensions
 - [ ] **Test Coverage Reporting** - 80%+ coverage with Coverlet/Codecov
 - [ ] **Key Management Abstractions** - IKeyStore interface and implementations
@@ -1104,10 +1061,6 @@ git checkout -b feature/test-coverage
 # Create new projects
 dotnet new classlib -n HeroSdJwt.AspNetCore -o src/HeroSdJwt.AspNetCore
 dotnet new console -n HeroSdJwt.Benchmarks -o benchmarks/HeroSdJwt.Benchmarks
-
-# Add dependencies
-cd src/HeroSdJwt
-dotnet add package Microsoft.Extensions.Logging.Abstractions
 ```
 
 ### Questions?
