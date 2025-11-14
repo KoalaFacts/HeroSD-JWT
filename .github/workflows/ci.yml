@@ -66,17 +66,7 @@ jobs:
         cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
-      run: |
-        if [ "${{ matrix.dotnet-version }}" == "8.0.x" ]; then
-          # SDK 8.0.x: Override TargetFrameworks to exclude net9.0 and net10.0
-          dotnet restore '/p:TargetFrameworks=net8.0'
-        elif [ "${{ matrix.dotnet-version }}" == "9.0.x" ]; then
-          # SDK 9.0.x: Override TargetFrameworks to exclude net10.0
-          dotnet restore '/p:TargetFrameworks=net8.0;net9.0'
-        else
-          # SDK 10.0.x: Restore all targets
-          dotnet restore
-        fi
+      run: dotnet restore
 
     - name: Check for new lock files
       id: lock-files
@@ -109,30 +99,10 @@ jobs:
         git push
 
     - name: Build
-      run: |
-        if [ "${{ matrix.dotnet-version }}" == "8.0.x" ]; then
-          # SDK 8.0.x can only build net8.0 targets
-          dotnet build --configuration Release --no-restore --framework net8.0
-        elif [ "${{ matrix.dotnet-version }}" == "9.0.x" ]; then
-          # SDK 9.0.x can only build up to net9.0 targets
-          dotnet build --configuration Release --no-restore --framework net9.0
-        else
-          # SDK 10.0.x can build all targets including net10.0
-          dotnet build --configuration Release --no-restore
-        fi
+      run: dotnet build --configuration Release --no-restore
 
     - name: Run tests
-      run: |
-        if [ "${{ matrix.dotnet-version }}" == "8.0.x" ]; then
-          # Test only net8.0 targets
-          dotnet test --configuration Release --no-build --framework net8.0 --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
-        elif [ "${{ matrix.dotnet-version }}" == "9.0.x" ]; then
-          # Test only net9.0 targets
-          dotnet test --configuration Release --no-build --framework net9.0 --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
-        else
-          # Test all framework targets
-          dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
-        fi
+      run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
 
     - name: Publish test results
       uses: EnricoMi/publish-unit-test-result-action@v2
