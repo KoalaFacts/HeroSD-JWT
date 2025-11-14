@@ -114,7 +114,7 @@ jobs:
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    if: github.event_name == 'pull_request'
 
     steps:
     - name: Checkout code

@@ -99,7 +99,7 @@ jobs:
           gh release upload v${{ steps.version.outputs.version }} \
             release-sboms/HeroSD-JWT.${{ steps.version.outputs.version }}.${{ matrix.framework }}.spdx-${{ matrix.spdx-version }}.json \
             --clobber
-          echo "✅ SBOM attached to release v${{ steps.version.outputs.version }}"
+          echo "SBOM attached to release v${{ steps.version.outputs.version }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -124,7 +124,7 @@ jobs:
 
       - name: Create summary
         run: |
-          echo "## 📋 SBOM Generation Complete" >> $GITHUB_STEP_SUMMARY
+          echo "## SBOM Generation Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version**: v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Status**: ${{ needs.generate-sbom.result }}" >> $GITHUB_STEP_SUMMARY
