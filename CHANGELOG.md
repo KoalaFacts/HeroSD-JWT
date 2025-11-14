@@ -72,6 +72,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2025-11-14
+
+### Fixed
+- Fixed README badges
+  - Build Status badge now references correct workflow file (ci.yml instead of dotnet.yml)
+  - Dependencies badge changed from "Zero Dependencies" to "Minimal (BCL Only)" to accurately reflect Microsoft.Extensions.Logging.Abstractions dependency
+- Fixed publish-nuget workflow missing checkout step
+  - Added checkout step to fix "not a git repository" error when detecting release version
+
+### Documentation
+- Audited and updated workflows README
+  - Removed all emoji icons for cleaner documentation
+  - Fixed workflow name references (release.yml to create-release.yml)
+  - Added generate-sboms.yml workflow documentation
+  - Updated CI details to show .NET 8.0, 9.0, 10.0 support
+  - Corrected release process documentation
+  - Added SBOM troubleshooting section
+  - Updated workflow dependency diagram
+
+---
+
 ## [1.1.0] - 2025-11-14
 
 ### Added
