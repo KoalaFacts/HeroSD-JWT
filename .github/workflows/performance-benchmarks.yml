@@ -55,7 +55,7 @@ jobs:
         dotnet-version: ${{ matrix.dotnet-version }}
 
     - name: Restore dependencies
-      run: dotnet restore --framework ${{ matrix.framework }} 
+      run: dotnet restore -p:TargetFramework=${{ matrix.framework }} 
 
     - name: Build benchmarks ${{ matrix.dotnet-version }}
       run: |
@@ -76,7 +76,7 @@ jobs:
       uses: benchmark-action/github-action-benchmark@v1
       with:
         tool: 'benchmarkdotnet'
-        output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/combined-report-full.json
+        output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/combined-report-full-${{ matrix.framework }}.json
         github-token: ${{ secrets.GITHUB_TOKEN }}
         comment-on-alert: true
         fail-on-alert: true
@@ -93,5 +93,5 @@ jobs:
       if: always()
       with:
         name: benchmark-results-${{ matrix.framework }}
-        path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/*
+        path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/combined-report-full-${{ matrix.framework }}.json
         retention-days: 30
