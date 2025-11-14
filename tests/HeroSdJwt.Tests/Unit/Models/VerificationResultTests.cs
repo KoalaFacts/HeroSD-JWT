@@ -1,7 +1,6 @@
 using HeroSdJwt.Models;
 using HeroSdJwt.Primitives;
 using System.Text.Json;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Unit.Models;
 

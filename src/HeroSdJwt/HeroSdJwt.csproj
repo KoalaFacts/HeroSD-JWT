@@ -63,7 +63,6 @@
   <!-- Expose internal classes to test project and AspNetCore integration -->
   <ItemGroup>
     <InternalsVisibleTo Include="HeroSdJwt.Tests" />
-    <InternalsVisibleTo Include="HeroSdJwt.AspNetCore" />
   </ItemGroup>
 
 </Project>

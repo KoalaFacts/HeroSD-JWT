@@ -1,6 +1,6 @@
+using HeroSdJwt.Primitives;
 using MultiTenantAuthExample.Models;
 using System.Collections.Concurrent;
-using HeroSdJwt.Primitives;
 
 namespace MultiTenantAuthExample.Services;
 

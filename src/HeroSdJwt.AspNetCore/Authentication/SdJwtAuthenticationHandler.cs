@@ -1,14 +1,12 @@
-using System.Security.Claims;
-using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Models;
-using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace HeroSdJwt.AspNetCore.Authentication;
 

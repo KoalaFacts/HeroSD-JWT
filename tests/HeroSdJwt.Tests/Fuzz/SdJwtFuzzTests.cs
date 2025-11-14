@@ -1,8 +1,8 @@
-using System.Security.Cryptography;
 using CsCheck;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Primitives;
+using System.Security.Cryptography;
 
 namespace HeroSdJwt.Tests.Fuzz;
 

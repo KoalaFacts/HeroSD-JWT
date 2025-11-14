@@ -5,8 +5,6 @@
 //
 // Complex field operations: multiplication, squaring, and serialization
 
-using System;
-
 namespace HeroSdJwt.Internal.Ed25519;
 
 /// <summary>

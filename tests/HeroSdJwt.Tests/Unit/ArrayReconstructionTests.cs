@@ -1,13 +1,8 @@
-using HeroSdJwt.Tests;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
-using HeroSdJwt.Presentation;
-using HeroSdJwt.Primitives;
-using HeroSdJwt.Verification;
 using System.Security.Cryptography;
 using System.Text.Json;
-using Xunit;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Unit;

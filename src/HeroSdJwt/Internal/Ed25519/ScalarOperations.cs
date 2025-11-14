@@ -8,8 +8,6 @@
 // L = 2^252 + 27742317777372353535851937790883648493
 // (the order of the base point on Ed25519)
 
-using System;
-
 namespace HeroSdJwt.Internal.Ed25519;
 
 internal static class ScalarOperations

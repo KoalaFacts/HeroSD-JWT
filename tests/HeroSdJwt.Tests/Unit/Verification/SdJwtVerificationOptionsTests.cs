@@ -1,5 +1,4 @@
 using HeroSdJwt.Verification;
-using Xunit;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Unit.Verification;

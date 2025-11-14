@@ -5,8 +5,6 @@
 //
 // Curve constants and precomputed tables for Ed25519
 
-using System;
-
 namespace HeroSdJwt.Internal.Ed25519;
 
 internal static partial class LookupTables

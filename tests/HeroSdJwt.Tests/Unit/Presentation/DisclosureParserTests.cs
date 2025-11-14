@@ -2,7 +2,6 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Presentation;
 using System.Text.Json;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Unit.Presentation;
 

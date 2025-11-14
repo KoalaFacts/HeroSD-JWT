@@ -1,8 +1,7 @@
+using HeroSdJwt.Encoding;
 using System.Buffers;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
-using HeroSdJwt.Encoding;
 
 namespace HeroSdJwt.KeyBinding;
 

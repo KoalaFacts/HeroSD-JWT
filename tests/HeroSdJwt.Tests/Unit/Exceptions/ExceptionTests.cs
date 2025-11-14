@@ -1,6 +1,5 @@
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Unit.Exceptions;
 

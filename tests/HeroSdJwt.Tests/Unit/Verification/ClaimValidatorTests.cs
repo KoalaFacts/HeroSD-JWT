@@ -1,6 +1,5 @@
 using HeroSdJwt.Verification;
 using System.Text.Json;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Unit.Verification;
 

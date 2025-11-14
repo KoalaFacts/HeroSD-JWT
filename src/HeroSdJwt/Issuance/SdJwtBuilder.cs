@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Models;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;

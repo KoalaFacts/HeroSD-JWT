@@ -1,7 +1,5 @@
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Models;
-using HeroSdJwt.Primitives;
-using Xunit;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Unit.Models;

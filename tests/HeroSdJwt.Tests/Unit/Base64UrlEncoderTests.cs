@@ -1,7 +1,5 @@
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
-using System.Text;
-using Xunit;
 using Base64UrlEncoder = HeroSdJwt.Encoding.Base64UrlEncoder;
 
 namespace HeroSdJwt.Tests.Unit;

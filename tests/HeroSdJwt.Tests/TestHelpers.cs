@@ -9,7 +9,7 @@ namespace HeroSdJwt.Tests;
 /// Factory methods for creating test instances with dependency injection.
 /// Provides convenient defaults for testing scenarios.
 /// </summary>
-public static class TestHelpers
+internal static class TestHelpers
 {
     /// <summary>
     /// Creates an SdJwtVerifier with default dependencies for testing.

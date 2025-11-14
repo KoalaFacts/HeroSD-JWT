@@ -5,8 +5,6 @@
 //
 // Group operations on Ed25519 curve points
 
-using System;
-
 namespace HeroSdJwt.Internal.Ed25519;
 
 internal static partial class GroupOperations

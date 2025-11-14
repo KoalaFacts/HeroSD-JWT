@@ -1,10 +1,9 @@
 using HeroSdJwt.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 
-namespace HeroSdJwt.AspNetCore.Extensions;
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+namespace Microsoft.AspNetCore.Authentication;
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 
 /// <summary>
 /// Extension methods for adding SD-JWT authentication to an <see cref="AuthenticationBuilder"/>.

@@ -5,7 +5,6 @@
 //
 // Core Ed25519 cryptographic operations
 
-using System;
 using System.Security.Cryptography;
 
 namespace HeroSdJwt.Internal.Ed25519;

@@ -1,5 +1,4 @@
 using HeroSdJwt.AspNetCore.Authentication;
-using HeroSdJwt.AspNetCore.Extensions;
 using HeroSdJwt.Verification;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;

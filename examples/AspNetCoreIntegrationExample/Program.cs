@@ -1,8 +1,11 @@
-using HeroSdJwt.AspNetCore.Extensions;
+using HeroSdJwt;
+using HeroSdJwt.AspNetCore;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Presentation;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
+using Microsoft.AspNetCore.Authentication;
+
 #if NET9_0_OR_GREATER
 using Microsoft.AspNetCore.OpenApi;
 using Scalar.AspNetCore;

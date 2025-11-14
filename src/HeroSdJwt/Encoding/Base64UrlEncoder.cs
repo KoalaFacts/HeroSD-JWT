@@ -1,5 +1,5 @@
-using System.Buffers.Text;
 using HeroSdJwt.Exceptions;
+using System.Buffers.Text;
 using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 
 namespace HeroSdJwt.Encoding;

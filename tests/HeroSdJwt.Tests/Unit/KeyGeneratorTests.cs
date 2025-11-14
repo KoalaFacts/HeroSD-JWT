@@ -1,8 +1,6 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Primitives;
-using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Unit;
 

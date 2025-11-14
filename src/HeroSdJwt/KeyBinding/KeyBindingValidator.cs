@@ -1,9 +1,8 @@
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace HeroSdJwt.KeyBinding;
 

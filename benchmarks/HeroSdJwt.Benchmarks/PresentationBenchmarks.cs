@@ -1,11 +1,10 @@
-using System.Security.Cryptography;
-using System.Text;
 using BenchmarkDotNet.Attributes;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Models;
 using HeroSdJwt.Primitives;
+using System.Security.Cryptography;
 using SdJwtHashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Benchmarks;

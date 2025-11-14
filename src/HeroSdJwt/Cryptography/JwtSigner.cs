@@ -1,10 +1,9 @@
-using System.Buffers;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Internal.Ed25519;
 using HeroSdJwt.Primitives;
+using System.Buffers;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace HeroSdJwt.Cryptography;
 

@@ -1,7 +1,7 @@
-using System.Security.Cryptography;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Primitives;
 using NBomber.CSharp;
+using System.Security.Cryptography;
 
 namespace HeroSdJwt.Tests.Load;
 

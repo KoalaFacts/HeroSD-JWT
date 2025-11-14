@@ -1,12 +1,8 @@
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using HeroSdJwt.Cryptography;
-using HeroSdJwt.Exceptions;
 using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
+using System.Text.Json;
 using Constants = HeroSdJwt.Primitives.Constants;
-using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 using SignatureAlgorithm = HeroSdJwt.Primitives.SignatureAlgorithm;
 

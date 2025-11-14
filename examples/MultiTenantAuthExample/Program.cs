@@ -1,5 +1,8 @@
+using HeroSdJwt;
+using HeroSdJwt.AspNetCore;
+using HeroSdJwt.Issuance;
+using HeroSdJwt.Verification;
 using MultiTenantAuthExample.Services;
-using HeroSdJwt.AspNetCore.Extensions;
 #if NET9_0_OR_GREATER
 using Scalar.AspNetCore;
 #endif

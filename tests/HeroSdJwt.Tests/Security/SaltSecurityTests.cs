@@ -1,7 +1,5 @@
 using HeroSdJwt.Issuance;
-using System.Text;
 using System.Text.Json;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Security;
 

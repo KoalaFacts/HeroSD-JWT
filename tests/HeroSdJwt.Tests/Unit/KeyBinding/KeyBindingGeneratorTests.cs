@@ -1,7 +1,6 @@
 using HeroSdJwt.KeyBinding;
 using System.Security.Cryptography;
 using System.Text.Json;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Unit.KeyBinding;
 

@@ -1,5 +1,4 @@
 using HeroSdJwt.Models;
-using Constants = HeroSdJwt.Primitives.Constants;
 
 namespace HeroSdJwt.Presentation;
 

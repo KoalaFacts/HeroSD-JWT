@@ -1,5 +1,5 @@
-using System.Security.Cryptography;
 using HeroSdJwt.Internal.Ed25519;
+using System.Security.Cryptography;
 
 namespace HeroSdJwt.Cryptography;
 

@@ -13,13 +13,13 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <!-- .NET 9: Use Microsoft.AspNetCore.OpenApi -->
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <!-- .NET 9: Use Microsoft.AspNetCore.OpenApi 9.x -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.10.3" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <!-- .NET 10: Use latest Microsoft.AspNetCore.OpenApi -->
+    <!-- .NET 10: Use Microsoft.AspNetCore.OpenApi 10.x -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.10.3" />
   </ItemGroup>

@@ -1,11 +1,9 @@
+using HeroSdJwt.Issuance;
+using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
 using Microsoft.AspNetCore.Mvc;
 using MultiTenantAuthExample.Models;
 using MultiTenantAuthExample.Services;
-using HeroSdJwt.Issuance;
-using HeroSdJwt.Verification;
-using HeroSdJwt.Primitives;
-using HeroSdJwt.Cryptography;
-using HeroSdJwt.KeyBinding;
 
 namespace MultiTenantAuthExample.Controllers;
 

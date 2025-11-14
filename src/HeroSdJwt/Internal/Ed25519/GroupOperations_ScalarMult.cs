@@ -8,8 +8,6 @@
 // NOTE: This is a simplified implementation without full precomputed tables.
 // The full optimized version with precomputed base point tables can be added later.
 
-using System;
-
 namespace HeroSdJwt.Internal.Ed25519;
 
 internal static partial class GroupOperations

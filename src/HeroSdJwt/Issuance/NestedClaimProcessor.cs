@@ -1,5 +1,5 @@
-using System.Text.Json;
 using HeroSdJwt.Models;
+using System.Text.Json;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Issuance;

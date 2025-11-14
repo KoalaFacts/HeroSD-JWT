@@ -2,7 +2,6 @@ using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Primitives;
 using System.Text.Json;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Unit;
 

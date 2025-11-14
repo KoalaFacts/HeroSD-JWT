@@ -1,4 +1,3 @@
-using HeroSdJwt.AspNetCore.Extensions;
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;

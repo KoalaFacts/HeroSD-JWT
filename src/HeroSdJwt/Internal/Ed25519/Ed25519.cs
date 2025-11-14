@@ -4,8 +4,6 @@
 //
 // Curve25519 and Ed25519 by Dan Bernstein - public domain (Ref10 from SUPERCOP)
 
-using System;
-
 namespace HeroSdJwt.Internal.Ed25519;
 
 /// <summary>

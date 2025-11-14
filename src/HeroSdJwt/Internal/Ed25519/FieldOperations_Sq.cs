@@ -5,8 +5,6 @@
 //
 // Field squaring operations
 
-using System;
-
 namespace HeroSdJwt.Internal.Ed25519;
 
 internal static partial class FieldOperations

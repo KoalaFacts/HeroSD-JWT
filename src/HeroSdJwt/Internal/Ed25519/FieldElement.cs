@@ -6,7 +6,6 @@
 // Field elements are represented as 10 int32 values in radix 2^25.5
 // This representation allows for efficient arithmetic without overflow.
 
-using System;
 using System.Runtime.InteropServices;
 
 namespace HeroSdJwt.Internal.Ed25519;

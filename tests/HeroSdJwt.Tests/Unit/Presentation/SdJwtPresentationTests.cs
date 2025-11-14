@@ -1,5 +1,4 @@
 using HeroSdJwt.Presentation;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Unit.Presentation;
 

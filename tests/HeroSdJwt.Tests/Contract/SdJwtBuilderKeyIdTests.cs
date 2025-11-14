@@ -1,9 +1,7 @@
 using HeroSdJwt.Cryptography;
-using HeroSdJwt.Issuance;
-using System.Text;
-using System.Text.Json;
 using HeroSdJwt.Encoding;
-using Xunit;
+using HeroSdJwt.Issuance;
+using System.Text.Json;
 
 namespace HeroSdJwt.Tests.Contract;
 

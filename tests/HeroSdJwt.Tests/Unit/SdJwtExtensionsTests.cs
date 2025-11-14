@@ -1,10 +1,7 @@
-using HeroSdJwt.Tests;
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
-using HeroSdJwt.Verification;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Unit;
 

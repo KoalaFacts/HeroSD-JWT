@@ -1,5 +1,4 @@
 using HeroSdJwt.Internal.Ed25519;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Unit.Cryptography;
 

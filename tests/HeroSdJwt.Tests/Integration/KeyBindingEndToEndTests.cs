@@ -1,13 +1,8 @@
-using HeroSdJwt.Tests;
-using HeroSdJwt.Extensions;
-using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Presentation;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
-using Xunit;
 using Base64UrlEncoder = HeroSdJwt.Encoding.Base64UrlEncoder;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 

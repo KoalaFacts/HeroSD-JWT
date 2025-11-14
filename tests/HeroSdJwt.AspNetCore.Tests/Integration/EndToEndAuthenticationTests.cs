@@ -1,16 +1,16 @@
-using System.Net;
-using System.Security.Cryptography;
-using System.Text.Json;
-using HeroSdJwt.AspNetCore.Authentication;
-using HeroSdJwt.AspNetCore.Extensions;
+using HeroSdJwt.AspNetCore;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Presentation;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Net;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace HeroSdJwt.AspNetCore.Tests.Integration;
 

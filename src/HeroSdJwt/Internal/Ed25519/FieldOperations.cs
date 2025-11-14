@@ -6,8 +6,6 @@
 // Field arithmetic operations for GF(2^255 - 19).
 // All operations are performed in constant time to prevent timing attacks.
 
-using System;
-
 namespace HeroSdJwt.Internal.Ed25519;
 
 /// <summary>

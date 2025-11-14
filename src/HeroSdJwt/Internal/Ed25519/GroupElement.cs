@@ -14,7 +14,6 @@
 // - Cached: Precomputed values for addition
 // - PreComp: Precomputed values for fixed-base multiplication
 
-using System;
 using System.Runtime.InteropServices;
 
 namespace HeroSdJwt.Internal.Ed25519;

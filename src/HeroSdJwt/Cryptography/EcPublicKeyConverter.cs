@@ -1,8 +1,7 @@
-using System.Security.Cryptography;
-using System.Text.Json;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
-using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace HeroSdJwt.Cryptography;
 
