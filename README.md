@@ -2,12 +2,12 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/HeroSD-JWT.svg?style=flat-square&logo=nuget&label=NuGet)](https://www.nuget.org/packages/HeroSD-JWT/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/HeroSD-JWT.svg?style=flat-square&logo=nuget&label=Downloads)](https://www.nuget.org/packages/HeroSD-JWT/)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/KoalaFacts/HeroSD-JWT/dotnet.yml?branch=main&style=flat-square&logo=github&label=Build)](https://github.com/KoalaFacts/HeroSD-JWT/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/KoalaFacts/HeroSD-JWT/ci.yml?branch=main&style=flat-square&logo=github&label=Build)](https://github.com/KoalaFacts/HeroSD-JWT/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-512BD4?style=flat-square&logo=.net)](https://dotnet.microsoft.com/)
 [![C#](https://img.shields.io/badge/C%23-12.0-239120?style=flat-square&logo=c-sharp)](https://docs.microsoft.com/en-us/dotnet/csharp/)
 [![AOT Compatible](https://img.shields.io/badge/AOT-Compatible-blue?style=flat-square)](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)
-[![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero-green?style=flat-square)](https://www.nuget.org/packages/HeroSD-JWT/)
+[![Minimal Dependencies](https://img.shields.io/badge/Dependencies-Minimal%20(BCL%20Only)-green?style=flat-square)](https://www.nuget.org/packages/HeroSD-JWT/)
 [![GitHub Stars](https://img.shields.io/github/stars/KoalaFacts/HeroSD-JWT?style=flat-square&logo=github)](https://github.com/KoalaFacts/HeroSD-JWT/stargazers)
 [![GitHub Issues](https://img.shields.io/github/issues/KoalaFacts/HeroSD-JWT?style=flat-square&logo=github)](https://github.com/KoalaFacts/HeroSD-JWT/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
@@ -606,33 +606,11 @@ dotnet test
 dotnet test --verbosity normal
 ```
 
-Current test coverage: **277 passing tests** across:
-- Contract tests (API behavior)
-- Unit tests (component logic, array elements, claim paths, disclosures, signature algorithms, Base64Url encoding, decoy digests, JWK handling, builder API, crypto helpers)
-- Integration tests (end-to-end flows with arrays and nested claims)
-- Security tests (timing attacks, algorithm confusion, salt entropy, key binding)
-
 ## Performance
 
 - **Verification**: < 100ms for 50-claim SD-JWTs
 - **Processing**: < 500ms for 100-claim SD-JWTs
 - **Thread-agnostic design**: Reuse `SdJwtIssuer`, `SdJwtPresenter`, `SdJwtVerifier` instances (you handle synchronization)
-
-## Roadmap
-
-### ✅ Completed
-- [x] **Key binding (proof of possession)** - RFC 7800 compliant with temporal validation
-- [x] **Array element selective disclosure** - Full support with syntax like `degrees[1]`
-- [x] **Decoy digests for privacy enhancement** - Cryptographically secure decoy generation
-- [x] **Security hardening** - Critical claim protection, _sd_alg placement validation, KB-JWT replay prevention
-- [x] **Integration tests for end-to-end flows** - 7 comprehensive tests
-- [x] **Nested property path parsing** - Foundation with dot notation support (`address.street`)
-- [x] **Nested claims selective disclosure** - Full support for nested properties with `_sd` arrays
-- [x] **RS256/ES256 signature algorithm support** - All three algorithms (HS256, RS256, ES256) fully implemented
-
-### 🚧 In Progress / Planned
-- [ ] **Performance benchmarks** - Systematic benchmarking suite
-- [ ] **NuGet package publishing** - Production-ready release
 
 ## Documentation
 
@@ -675,9 +653,3 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 - **Issues**: Report bugs at https://github.com/KoalaFacts/HeroSD-JWT/issues
 - **Discussions**: Community support via GitHub Discussions
-
----
-
-**Status**: ✅ Production Ready - All features complete
-
-**Version**: 1.0.7
