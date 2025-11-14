@@ -95,9 +95,9 @@ internal class NestedClaimProcessor
         int depth = 0)
     {
         // Security: Prevent stack overflow with deeply nested structures
-        if (depth > maxNestingDepth)
+        if (depth > MaxNestingDepth)
         {
-            throw new ArgumentException($"Maximum nesting depth of {maxNestingDepth} exceeded. This may indicate a malformed or malicious JSON structure.");
+            throw new ArgumentException($"Maximum nesting depth of {MaxNestingDepth} exceeded. This may indicate a malformed or malicious JSON structure.");
         }
         var result = new Dictionary<string, object>();
         var sdDigests = new List<string>();

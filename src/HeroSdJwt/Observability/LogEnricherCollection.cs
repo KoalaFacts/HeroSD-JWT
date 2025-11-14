@@ -12,7 +12,7 @@ namespace HeroSdJwt.Observability;
 public class LogEnricherCollection
 {
     private readonly List<ILogEnricher> enrichers = new();
-    private readonly object lock = new ();
+    private readonly object syncLock = new ();
 
     /// <summary>
     /// Gets the singleton instance of the log enricher collection.
@@ -29,7 +29,7 @@ public class LogEnricherCollection
         if (enricher == null)
             throw new ArgumentNullException(nameof(enricher));
 
-        lock (lock)
+        lock (syncLock)
             {
                 enrichers.Add(enricher);
             }
@@ -45,7 +45,7 @@ public class LogEnricherCollection
         if (enricher == null)
             return false;
 
-        lock (lock)
+        lock (syncLock)
             {
                 return enrichers.Remove(enricher);
             }
@@ -56,7 +56,7 @@ public class LogEnricherCollection
     /// </summary>
     public void Clear()
     {
-        lock (lock)
+        lock (syncLock)
             {
                 enrichers.Clear();
             }
@@ -69,7 +69,7 @@ public class LogEnricherCollection
     {
         get
         {
-            lock (lock)
+            lock (syncLock)
                 {
                     return enrichers.Count;
                 }
@@ -83,7 +83,7 @@ public class LogEnricherCollection
     internal void EnrichLog(LogEnrichmentContext context)
     {
         List<ILogEnricher> enrichersCopy;
-        lock (lock)
+        lock (syncLock)
             {
                 enrichersCopy = new List<ILogEnricher>(enrichers);
             }

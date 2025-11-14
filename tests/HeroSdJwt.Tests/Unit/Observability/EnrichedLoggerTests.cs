@@ -46,7 +46,7 @@ public class EnrichedLoggerTests
 
             public TestScope(Action dispose)
             {
-                dispose = dispose;
+                this.dispose = dispose;
             }
 
             public void Dispose() => dispose();

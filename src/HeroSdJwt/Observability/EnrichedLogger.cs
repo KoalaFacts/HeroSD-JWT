@@ -15,7 +15,7 @@ internal class EnrichedLogger<T> : ILogger<T>
 
     public EnrichedLogger(ILogger<T> innerLogger)
     {
-        innerLogger = innerLogger ?? throw new ArgumentNullException(nameof(innerLogger));
+        this.innerLogger = innerLogger ?? throw new ArgumentNullException(nameof(innerLogger));
     }
 
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull

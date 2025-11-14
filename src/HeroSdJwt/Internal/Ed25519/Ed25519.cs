@@ -98,7 +98,7 @@ internal static class Ed25519
         var publicKey = new byte[PublicKeySizeInBytes];
         var expandedPrivateKey = new byte[ExpandedPrivateKeySizeInBytes];
 
-        Ed25519Operations.CryptoSign_keypair(publicKey, 0, expandedPrivateKey, 0, privateKeySeed, 0);
+        Ed25519Operations.CryptoSignKeypair(publicKey, 0, expandedPrivateKey, 0, privateKeySeed, 0);
 
         return (publicKey, expandedPrivateKey);
     }
@@ -118,7 +118,7 @@ internal static class Ed25519
         var publicKey = new byte[PublicKeySizeInBytes];
         var expandedPrivateKey = new byte[ExpandedPrivateKeySizeInBytes];
 
-        Ed25519Operations.CryptoSign_keypair(publicKey, 0, expandedPrivateKey, 0, privateKeySeed, 0);
+        Ed25519Operations.CryptoSignKeypair(publicKey, 0, expandedPrivateKey, 0, privateKeySeed, 0);
 
         return publicKey;
     }

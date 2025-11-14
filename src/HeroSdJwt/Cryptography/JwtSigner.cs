@@ -164,7 +164,7 @@ public class JwtSigner : IJwtSigner
         }
 
         var signature = new byte[64];
-        Ed25519Operations.crypto_sign(signature, 0, data, 0, data.Length, privateKeyBytes, 0);
+        Ed25519Operations.CryptoSign(signature, 0, data, 0, data.Length, privateKeyBytes, 0);
         return signature;
     }
 

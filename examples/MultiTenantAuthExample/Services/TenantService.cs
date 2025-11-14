@@ -16,7 +16,7 @@ public class TenantService : ITenantService
 
     public TenantService(IConfiguration configuration, ILogger<TenantService> logger)
     {
-        logger = logger;
+        this.logger = logger;
         tenants = new ConcurrentDictionary<string, TenantConfiguration>(StringComparer.OrdinalIgnoreCase);
         tenantKeys = new ConcurrentDictionary<string, ConcurrentDictionary<string, byte[]>>(StringComparer.OrdinalIgnoreCase);
 
@@ -26,15 +26,15 @@ public class TenantService : ITenantService
     private void LoadTenantsFromConfiguration(IConfiguration configuration)
     {
         var tenantsSection = configuration.GetSection("MultiTenant:Tenants");
-        var tenants = tenantsSection.Get<List<TenantConfiguration>>();
+        var tenantList = tenantsSection.Get<List<TenantConfiguration>>();
 
-        if (tenants == null || tenants.Count == 0)
+        if (tenantList == null || tenantList.Count == 0)
         {
             logger.LogWarning("No tenants configured. Service will operate without tenant data.");
             return;
         }
 
-        foreach (var tenant in tenants)
+        foreach (var tenant in tenantList)
         {
             if (string.IsNullOrWhiteSpace(tenant.TenantId))
             {

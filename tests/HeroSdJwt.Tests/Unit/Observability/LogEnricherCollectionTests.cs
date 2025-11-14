@@ -348,7 +348,7 @@ public class LogEnricherCollectionTests
 
         public CustomEnricher(Action<LogEnrichmentContext> action)
         {
-            action = action;
+            this.action = action;
         }
 
         public void Enrich(LogEnrichmentContext context)

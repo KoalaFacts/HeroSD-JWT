@@ -28,10 +28,10 @@ public class TokensController : ControllerBase
         ISdJwtVerifier verifier,
         ILogger<TokensController> logger)
     {
-        tenantService = tenantService;
-        issuer = issuer;
-        verifier = verifier;
-        logger = logger;
+        this.tenantService = tenantService;
+        this.issuer = issuer;
+        this.verifier = verifier;
+        this.logger = logger;
     }
 
     /// <summary>

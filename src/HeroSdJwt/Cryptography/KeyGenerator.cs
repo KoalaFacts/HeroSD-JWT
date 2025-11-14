@@ -57,7 +57,7 @@ public class KeyGenerator : IKeyGenerator
         var publicKey = new byte[32];
         var expandedPrivateKey = new byte[64];
 
-        Ed25519Operations.crypto_sign_keypair(publicKey, 0, expandedPrivateKey, 0, seed, 0);
+        Ed25519Operations.CryptoSignKeypair(publicKey, 0, expandedPrivateKey, 0, seed, 0);
 
         return (expandedPrivateKey, publicKey);
     }

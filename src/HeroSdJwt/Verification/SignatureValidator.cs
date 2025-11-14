@@ -303,7 +303,7 @@ public class SignatureValidator : ISignatureValidator
                 return false; // Invalid signature length
             }
 
-            return Ed25519Operations.crypto_sign_verify(signature, 0, data, 0, data.Length, publicKeyBytes, 0);
+            return Ed25519Operations.CryptoSignVerify(signature, 0, data, 0, data.Length, publicKeyBytes, 0);
         }
         catch (SdJwtException)
         {

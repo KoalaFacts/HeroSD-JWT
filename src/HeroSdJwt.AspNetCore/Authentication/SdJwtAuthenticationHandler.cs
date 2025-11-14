@@ -36,7 +36,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
         : base(options, logger, encoder)
 #pragma warning restore CS9113
     {
-        verifier = verifier ?? throw new ArgumentNullException(nameof(verifier));
+        this.verifier = verifier ?? throw new ArgumentNullException(nameof(verifier));
     }
 
     /// <summary>
