@@ -11,17 +11,17 @@ This directory contains the automated CI/CD workflows for HeroSD-JWT. The workfl
 **Purpose**: Continuous integration - builds, tests, and validates code quality
 
 **Jobs**:
-- `build-and-test`: Multi-platform (Linux, Windows, macOS) and multi-version (.NET 8 & 9) testing
+- `build-and-test`: Multi-platform (Linux, Windows, macOS) and multi-framework (.NET 8.0, 9.0, 10.0) testing
 - `code-quality`: Code formatting checks and build warnings validation
 - `pack`: Creates NuGet package artifacts (only on main branch)
 
 **Key Features**:
-- ✅ Dependency caching for faster builds
-- ✅ Matrix testing across 3 OS × 2 .NET versions = 6 configurations
-- ✅ Test result publishing with detailed reports
-- ✅ Code coverage reporting to Codecov
-- ✅ Code formatting validation
-- ✅ Warning-as-error enforcement
+- Dependency caching for faster builds
+- Matrix testing across 3 OS x 3 .NET versions = 9 configurations
+- Test result publishing with detailed reports
+- Code coverage reporting to Codecov
+- Code formatting validation
+- Warning-as-error enforcement
 
 **When to use**:
 - Runs automatically on every push and PR
@@ -29,71 +29,88 @@ This directory contains the automated CI/CD workflows for HeroSD-JWT. The workfl
 
 ---
 
-### 2. Release Workflow (`release.yml`)
+### 2. Create Release Workflow (`create-release.yml`)
 
-**Trigger**: Tag push (v*), Manual dispatch
+**Trigger**: Manual dispatch (workflow_dispatch)
 
-**Purpose**: Creates GitHub releases with automated changelog generation
+**Purpose**: Creates GitHub releases with NuGet packages
 
 **Jobs**:
-- `create-release`: Builds packages, generates changelog, creates/updates GitHub release
+- `create-release`: Builds, tests, packs NuGet packages, and creates GitHub release with git tag
 
 **Key Features**:
-- ✅ Automated changelog generation from git commits
-- ✅ Groups changes by type (Features, Fixes, Docs, etc.)
-- ✅ Attaches NuGet packages (.nupkg and .snupkg) to release
-- ✅ Validates tag format (vX.Y.Z or vX.Y.Z-prerelease)
-- ✅ Supports updating existing releases
-- ✅ Marks pre-release versions automatically
-
-**Changelog Format**:
-Commits are automatically categorized by prefix:
-- `feat:` / `feature:` → Features section
-- `fix:` → Bug Fixes section
-- `docs:` → Documentation section
-- `test:` → Tests section
-- `chore:` → Chores & Maintenance section
+- Version format validation (X.Y.Z or X.Y.Z-prerelease)
+- Extracts release notes from CHANGELOG.md
+- Creates git tag automatically (v + version)
+- Attaches NuGet packages (.nupkg and .snupkg) to release
+- Triggers publish-nuget and generate-sboms workflows
+- Fast path (~5-10 minutes) - doesn't wait for SBOMs
 
 **How to create a release**:
 
-```bash
-# 1. Update version in src/HeroSdJwt/HeroSdJwt.csproj
-# 2. Commit your changes
-git add src/HeroSdJwt/HeroSdJwt.csproj
-git commit -m "chore: bump version to 1.2.0"
+1. Update CHANGELOG.md with release notes under `## [X.Y.Z] - YYYY-MM-DD`
+2. Commit and push changes
+3. Go to **Actions** → **Create Release**
+4. Click **Run workflow**
+5. Enter version (e.g., `1.1.0`)
+6. Workflow will:
+   - Validate version format
+   - Build and test all frameworks
+   - Pack NuGet packages
+   - Create GitHub release with tag vX.Y.Z
+   - Trigger NuGet publish
+   - Trigger SBOM generation (async)
 
-# 3. Create and push tag
-git tag -a v1.2.0 -m "Release v1.2.0"
-git push origin v1.2.0
-
-# 4. GitHub Actions will automatically create the release with changelog
-```
-
-Or manually trigger:
-1. Go to **Actions** → **Create Release**
-2. Click **Run workflow**
-3. Enter tag (e.g., `v1.2.0`)
+**Note**: Version is NOT stored in .csproj - it's passed as a parameter during pack.
 
 ---
 
-### 3. Publish Workflow (`publish-nuget.yml`)
+### 3. Generate SBOMs Workflow (`generate-sboms.yml`)
 
-**Trigger**: GitHub release published, Manual dispatch
+**Trigger**: Release published event, Manual dispatch
+
+**Purpose**: Generates Software Bill of Materials (SBOM) for supply chain security
+
+**Jobs**:
+- `generate-sbom`: Matrix job generating 6 SBOMs in parallel (3 frameworks x 2 SPDX versions)
+- `sbom-summary`: Aggregates results and creates summary
+
+**Key Features**:
+- Per-framework SBOMs (net8.0, net9.0, net10.0) for accurate dependency tracking
+- Dual SPDX format support (2.2 and 3.0)
+- Parallel generation for performance
+- Attaches SBOMs to existing GitHub release
+- fail-fast: false - continues generating other SBOMs if one fails
+- Runs asynchronously - doesn't block release or NuGet publish
+
+**SBOM Files Generated**:
+- HeroSD-JWT.{version}.net8.0.spdx-2.2.json
+- HeroSD-JWT.{version}.net8.0.spdx-3.0.json
+- HeroSD-JWT.{version}.net9.0.spdx-2.2.json
+- HeroSD-JWT.{version}.net9.0.spdx-3.0.json
+- HeroSD-JWT.{version}.net10.0.spdx-2.2.json
+- HeroSD-JWT.{version}.net10.0.spdx-3.0.json
+
+**Timeline**: ~15-20 minutes (runs in parallel with NuGet publish)
+
+---
+
+### 4. Publish Workflow (`publish-nuget.yml`)
+
+**Trigger**: create-release workflow completion (workflow_run), Manual dispatch
 
 **Purpose**: Publishes packages to NuGet.org using Trusted Publishing (OIDC)
 
 **Jobs**:
-- `publish`: Builds, tests, packs, validates, and publishes to NuGet.org
+- `publish`: Downloads packages from GitHub release and publishes to NuGet.org
 
 **Key Features**:
-- ✅ **Trusted Publishing** with OIDC (no API keys!)
-- ✅ Version format validation
-- ✅ Full test suite execution before publishing
-- ✅ Package content validation
-- ✅ Package provenance attestation
-- ✅ Symbols package (.snupkg) generation
-- ✅ Dependency caching
-- ✅ Detailed release summary
+- Trusted Publishing with OIDC (no API keys needed)
+- Version detection from latest GitHub release
+- Downloads pre-built packages from release (no rebuild)
+- Package content validation
+- Package provenance attestation
+- Automatic trigger when create-release completes successfully
 
 **Security**:
 - Uses GitHub OIDC tokens (no long-lived API keys)
@@ -104,85 +121,75 @@ Or manually trigger:
 **Manual publish**:
 1. Go to **Actions** → **Publish to NuGet**
 2. Click **Run workflow**
-3. Enter version (e.g., `1.2.0`)
+3. Enter version (e.g., `1.1.0`)
 4. Approve in production environment (if required)
 
 ---
 
-### 4. Security Scanning Workflow (`scan-security.yml`)
+### 5. Security Scanning Workflow (`scan-security.yml`)
 
 **Trigger**: Push to main/develop, Weekly schedule (Monday 00:00 UTC), Manual
 
 **Purpose**: Automated security scanning and vulnerability detection
 
 **Jobs**:
-- `nuget-audit`: Scans NuGet packages for known vulnerabilities
+- `nuget-audit`: Scans NuGet packages for known vulnerabilities using Microsoft Security DevOps
 - `security-summary`: Aggregates security scan results
 
 **Key Features**:
-- ✅ CodeQL static analysis via GitHub default setup
-- ✅ NuGet dependency vulnerability scanning
-- ✅ Secret detection via GitHub default secret scanning
-- ✅ Weekly scheduled scans
-- ✅ Dependency review for PRs (handled in CI workflow)
+- CodeQL static analysis via GitHub default setup
+- NuGet dependency vulnerability scanning
+- BinSkim binary analysis
+- CredScan secret detection
+- Weekly scheduled scans
+- Dependency review for PRs (handled in CI workflow)
 
 **What gets scanned**:
 - Source code for security vulnerabilities (via GitHub CodeQL default setup)
 - NuGet dependencies for CVEs (dotnet list package --vulnerable)
-- Secrets in code (via GitHub default secret scanning)
+- Binary security (BinSkim)
+- Credentials in code (CredScan)
 
 ---
 
 ## Workflow Dependencies
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Developer Workflow                    │
-└─────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-        ┌──────────────────────────────────────┐
-        │  Push code / Create PR               │
-        └──────────────────────────────────────┘
-                            │
-        ┌───────────────────┴────────────────────┐
-        │                                         │
-        ▼                                         ▼
-┌───────────────┐                      ┌──────────────────┐
-│  CI Workflow  │                      │Security Workflow │
-│               │                      │                  │
-│ • Build       │                      │ • CodeQL         │
-│ • Test        │                      │ • Dep Review     │
-│ • Quality     │                      │ • Audit          │
-└───────────────┘                      └──────────────────┘
-        │
-        ▼
-┌──────────────────────┐
-│  Merge to main       │
-└──────────────────────┘
-        │
-        ▼
-┌──────────────────────┐
-│  Create tag (vX.Y.Z) │
-└──────────────────────┘
-        │
-        ▼
-┌──────────────────────┐
-│ Release Workflow     │
-│                      │
-│ • Build packages     │
-│ • Generate changelog │
-│ • Create release     │
-└──────────────────────┘
-        │
-        ▼
-┌──────────────────────┐
-│ Publish Workflow     │
-│                      │
-│ • Validate           │
-│ • Test               │
-│ • Publish to NuGet   │
-└──────────────────────┘
+Developer Workflow
+        |
+        v
+Push code / Create PR
+        |
+        +------------------+
+        |                  |
+        v                  v
+CI Workflow      Security Workflow
+- Build           - CodeQL
+- Test            - Dep Review
+- Quality         - Audit
+        |
+        v
+Merge to main
+        |
+        v
+Update CHANGELOG.md
+        |
+        v
+Trigger: Create Release Workflow (manual)
+        |
+        v
+Create Release Workflow (~5-10 min)
+- Build & Test
+- Pack NuGet packages
+- Create GitHub release with tag
+        |
+        +------------------+
+        |                  |
+        v                  v
+Publish Workflow   Generate SBOMs Workflow
+(~3-4 min)         (~15-20 min, async)
+- Download pkgs    - Generate 6 SBOMs
+- Publish NuGet    - Attach to release
 ```
 
 ---
@@ -199,7 +206,7 @@ Or manually trigger:
 
 | Environment | Purpose | Protection Rules |
 |-------------|---------|------------------|
-| `production` | NuGet package publishing | ✅ Required reviewers<br>✅ Deployment branches: main only |
+| `production` | NuGet package publishing | Required reviewers, Deployment branches: main only |
 
 ### Setting up Trusted Publishing
 
@@ -232,9 +239,9 @@ All workflows use multi-layer caching:
 
 2. **.NET SDK cache** (via `setup-dotnet` action)
    - Caches .NET SDK downloads
-   - Automatic in `setup-dotnet@v4`
+   - Automatic in `setup-dotnet@v5`
 
-**Cache hits save ~30-60 seconds per workflow run.**
+**Cache hits save approximately 30-60 seconds per workflow run.**
 
 ---
 
@@ -242,7 +249,7 @@ All workflows use multi-layer caching:
 
 ### For Contributors
 
-1. **Write good commit messages** with conventional prefixes:
+1. **Follow conventional commit format** (for consistency):
    ```
    feat: add new feature
    fix: resolve bug in verification
@@ -259,19 +266,23 @@ All workflows use multi-layer caching:
    dotnet format --verify-no-changes
    ```
 
-3. **Keep PRs focused**: One feature/fix per PR for cleaner changelogs
+3. **Keep PRs focused**: One feature/fix per PR for easier review
 
 ### For Maintainers
 
 1. **Use semantic versioning**:
-   - `vX.Y.Z` for stable releases
-   - `vX.Y.Z-alpha.1` for pre-releases
+   - `X.Y.Z` for stable releases
+   - `X.Y.Z-alpha.1` for pre-releases
 
-2. **Review security scan results weekly**
+2. **Update CHANGELOG.md before releases**:
+   - Add section `## [X.Y.Z] - YYYY-MM-DD`
+   - Document all changes under Added, Changed, Fixed, Security sections
 
-3. **Approve production deployments** carefully
+3. **Review security scan results weekly**
 
-4. **Keep dependencies updated**:
+4. **Approve production deployments carefully**
+
+5. **Keep dependencies updated**:
    ```bash
    dotnet list package --outdated
    ```
@@ -282,9 +293,9 @@ All workflows use multi-layer caching:
 
 ### CI Failures
 
-**Problem**: Tests fail on specific OS/version
+**Problem**: Tests fail on specific OS/framework
 - Check test logs in Actions → CI → specific job
-- Run locally: `dotnet test --framework net8.0` or `net9.0`
+- Run locally: `dotnet test --framework net8.0` or `net9.0` or `net10.0`
 
 **Problem**: Code formatting fails
 - Run: `dotnet format`
@@ -292,13 +303,18 @@ All workflows use multi-layer caching:
 
 ### Release Failures
 
-**Problem**: Tag format invalid
-- Use format: `vX.Y.Z` (e.g., `v1.2.0`)
-- For pre-release: `vX.Y.Z-alpha.1`
+**Problem**: Version format invalid
+- Use format: `X.Y.Z` (e.g., `1.1.0`)
+- For pre-release: `X.Y.Z-alpha.1`
+- Do NOT include 'v' prefix in workflow input
 
-**Problem**: Release already exists
-- Workflow will update existing release with new assets
-- Or delete the release and re-run
+**Problem**: No CHANGELOG entry found
+- Add section to CHANGELOG.md: `## [X.Y.Z] - YYYY-MM-DD`
+- Commit and push before triggering workflow
+
+**Problem**: Build or test fails
+- Fix the issue
+- Re-run workflow (it will create/update the same release)
 
 ### Publish Failures
 
@@ -307,13 +323,24 @@ All workflows use multi-layer caching:
 - Check Trusted Publishing policy on NuGet.org
 - Ensure `production` environment exists
 
-**Problem**: Version already exists
+**Problem**: Version already exists on NuGet.org
 - NuGet doesn't allow overwriting versions
-- Bump version and create new tag
+- Bump version and create new release
 
-**Problem**: Tests fail during publish
-- Check test logs
-- Fix tests and create new tag
+**Problem**: Cannot download packages from release
+- Ensure create-release workflow completed successfully
+- Check that release v{version} exists with .nupkg and .snupkg assets
+
+### SBOM Generation Failures
+
+**Problem**: SBOM generation fails for specific framework
+- Check workflow logs for specific error
+- Manually trigger: Actions → Generate SBOMs → Run workflow → Enter version
+- Individual SBOM failures don't block release or NuGet publish
+
+**Problem**: SBOMs not attached to release
+- Verify release immutability is NOT enabled in repository settings
+- Manually trigger generate-sboms workflow
 
 ### Security Scan Failures
 
@@ -333,16 +360,18 @@ All workflows use multi-layer caching:
 
 Current optimizations:
 
-1. **Parallel matrix builds**: 6 configurations run simultaneously
-2. **Dependency caching**: ~45 second savings per run
+1. **Parallel matrix builds**: 9 configurations run simultaneously in CI
+2. **Dependency caching**: Approximately 45 second savings per run
 3. **Conditional jobs**: Jobs only run when needed
-4. **Artifact retention**: 7-30 days based on importance
-5. **Fail-fast disabled**: See all failures, not just first
+4. **Artifact retention**: 1-90 days based on importance
+5. **Async SBOM generation**: Doesn't block release or NuGet publish
+6. **Pre-built packages**: publish-nuget downloads from release instead of rebuilding
 
 **Average workflow times**:
 - CI: ~3-5 minutes (with cache)
-- Release: ~2-3 minutes
+- Create Release: ~5-10 minutes
 - Publish: ~3-4 minutes
+- Generate SBOMs: ~15-20 minutes (async, parallel)
 - Security: ~8-12 minutes
 
 ---
@@ -351,17 +380,17 @@ Current optimizations:
 
 ### Monthly Tasks
 
-- [ ] Review security scan results
-- [ ] Update action versions (Dependabot PRs)
-- [ ] Check for outdated NuGet packages
-- [ ] Review workflow run metrics
+- Review security scan results
+- Update action versions (Dependabot PRs)
+- Check for outdated NuGet packages
+- Review workflow run metrics
 
 ### Quarterly Tasks
 
-- [ ] Review and optimize caching strategy
-- [ ] Audit GitHub environments and secrets
-- [ ] Review Trusted Publishing policies
-- [ ] Update this documentation
+- Review and optimize caching strategy
+- Audit GitHub environments and secrets
+- Review Trusted Publishing policies
+- Update this documentation
 
 ---
 
@@ -371,6 +400,8 @@ Current optimizations:
 - [NuGet Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/publish-a-package#trusted-publishing)
 - [CodeQL for C#](https://codeql.github.com/docs/codeql-language-guides/codeql-for-csharp/)
 - [Semantic Versioning](https://semver.org/)
+- [SPDX Specification](https://spdx.dev/specifications/)
+- [Microsoft SBOM Tool](https://github.com/microsoft/sbom-tool)
 - [Publishing Guide](../../PUBLISHING.md)
 
 ---
