@@ -30,9 +30,7 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
   - [Signature Algorithms](#-different-signature-algorithms)
   - [Advanced API](#-advanced-api-full-control)
 - [Architecture](#architecture)
-- [Project Structure](#project-structure)
 - [Security](#security)
-- [API Stability & Versioning](#api-stability--versioning)
 - [Requirements](#requirements)
 - [Native AOT and Trimming](#native-aot-and-trimming-compatibility)
 - [Testing](#testing)
@@ -45,19 +43,19 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
 - [Support](#support)
 
 ## Key Features
-- ✅ Create SD-JWTs with selectively disclosable claims
-- ✅ **Nested object selective disclosure** - Full support for nested properties like `address.street`, `address.geo.lat` (multi-level nesting)
-- ✅ **Array element selective disclosure** - Syntax like `degrees[1]` for individual array elements
-- ✅ **Array & Object Reconstruction API** - Automatically reconstruct hierarchical structures from disclosed claims
-- ✅ **JWT Key Rotation Support** - RFC 7515 compliant `kid` parameter with key resolver pattern for secure key management
-- ✅ **Key binding (proof of possession)** - RFC 7800 compliant with temporal validation
-- ✅ **Decoy digests** - Privacy protection against claim enumeration
-- ✅ Holder-controlled claim disclosure
-- ✅ Cryptographic verification of signatures and claim integrity
-- ✅ Zero third-party dependencies (uses only .NET BCL including `System.Security.Cryptography`, `System.Text.Json`, `System.Buffers.Text`)
-- ✅ Constant-time comparison for security-critical operations
-- ✅ Algorithm confusion prevention (rejects "none" algorithm)
-- ✅ Multi-targeting .NET 8.0, .NET 9.0, and .NET 10.0
+- Create SD-JWTs with selectively disclosable claims
+- **Nested object selective disclosure** - Full support for nested properties like `address.street`, `address.geo.lat` (multi-level nesting)
+- **Array element selective disclosure** - Syntax like `degrees[1]` for individual array elements
+- **Array & Object Reconstruction API** - Automatically reconstruct hierarchical structures from disclosed claims
+- **JWT Key Rotation Support** - RFC 7515 compliant `kid` parameter with key resolver pattern for secure key management
+- **Key binding (proof of possession)** - RFC 7800 compliant with temporal validation
+- **Decoy digests** - Privacy protection against claim enumeration
+- Holder-controlled claim disclosure
+- Cryptographic verification of signatures and claim integrity
+- Zero third-party dependencies (uses only .NET BCL including `System.Security.Cryptography`, `System.Text.Json`, `System.Buffers.Text`)
+- Constant-time comparison for security-critical operations
+- Algorithm confusion prevention (rejects "none" algorithm)
+- Multi-targeting .NET 8.0, .NET 9.0, and .NET 10.0
 
 ## Installation
 
@@ -472,22 +470,6 @@ The library follows the three-party SD-JWT model:
      │                            │                           │
 ```
 
-## Project Structure
-
-```
-src/
-├── Core/               # Domain models (SdJwt, Disclosure, Digest, VerificationResult)
-├── Common/             # Shared utilities (HashAlgorithm, ErrorCodes, Base64UrlEncoder)
-├── Issuance/           # SD-JWT creation (SdJwtIssuer, DisclosureGenerator, DigestCalculator)
-├── Presentation/       # Claim selection & formatting (SdJwtPresenter, SdJwtPresentation)
-└── Verification/       # Signature & digest validation (SdJwtVerifier, SignatureValidator, DigestValidator)
-
-tests/
-├── Contract/           # Public API contract tests
-├── Unit/               # Unit tests for individual components
-└── Security/           # Security-specific tests (timing attacks, algorithm confusion, salt entropy)
-```
-
 ## Security
 
 This library implements security best practices:
@@ -512,45 +494,6 @@ For vulnerability reporting and security best practices, see:
 - **[SECURITY.md](SECURITY.md)** - Vulnerability disclosure policy and security contact
 - **[Security Guide](docs/users/security.md)** - Detailed security best practices and guidelines
 
-## API Stability & Versioning
-
-HeroSD-JWT follows strict **[Semantic Versioning 2.0.0](https://semver.org/)** with strong API stability guarantees:
-
-### Version Policy
-
-```
-MAJOR.MINOR.PATCH
-  │     │      └─── Bug fixes (backward-compatible)
-  │     └────────── New features (backward-compatible)
-  └──────────────── Breaking changes (requires migration)
-```
-
-### API Stability Guarantees
-
-✅ **Stable Public API** (guaranteed until next MAJOR version):
-- All public types, methods, and properties
-- Extension methods (`ToPresentation()`, `ToPresentationWithAllClaims()`)
-- Configuration types (`SdJwtVerificationOptions`, `SdJwtAuthenticationOptions`)
-- Error codes and exception types
-
-✅ **Binary Compatibility**:
-- MINOR and PATCH releases maintain binary compatibility
-- No recompilation required for updates within same MAJOR version
-
-✅ **Long-Term Support (LTS)**:
-- LTS versions supported for 12 months with security fixes
-- v1.x targets .NET 8.0 (LTS) - supported until November 2026
-
-### Breaking Change Policy
-
-**Deprecation Timeline:**
-1. API marked `[Obsolete]` for minimum 6 months
-2. Migration guide provided before removal
-3. Breaking changes bundled into MAJOR releases only
-
-**For detailed versioning policy, see:**
-- **[Versioning Policy](docs/maintainers/versioning-policy.md)** - Complete versioning strategy and deprecation process
-
 ## Requirements
 
 - **.NET 8.0** (LTS), **.NET 9.0**, or **.NET 10.0**
@@ -559,7 +502,7 @@ MAJOR.MINOR.PATCH
 
 ## Native AOT and Trimming Compatibility
 
-✅ **AOT-Compatible with Standard JSON Types**: This library works with .NET Native AOT compilation when used with standard JSON-serializable types.
+**AOT-Compatible with Standard JSON Types**: This library works with .NET Native AOT compilation when used with standard JSON-serializable types.
 
 **Implementation approach**:
 - Uses `Utf8JsonWriter` for all **internal** JSON serialization (disclosures, JWTs, key binding)
@@ -569,9 +512,9 @@ MAJOR.MINOR.PATCH
 
 **API Boundary Consideration**:
 The public API accepts `Dictionary<string, object>` for claim values to support any JSON-serializable type. This means:
-- ✅ **Primitive types work in AOT**: string, int, long, double, bool, arrays, dictionaries
-- ✅ **JsonElement works perfectly in AOT**: Pre-parsed JSON values
-- ⚠️ **Custom classes may require trimming annotations**: If you pass custom POCOs, ensure they're preserved
+- **Primitive types work in AOT**: string, int, long, double, bool, arrays, dictionaries
+- **JsonElement works perfectly in AOT**: Pre-parsed JSON values
+- **Custom classes may require trimming annotations**: If you pass custom POCOs, ensure they're preserved
 
 **Key technical details**:
 - SD-JWT disclosure arrays use `Utf8JsonWriter`: `[salt, claim_name, claim_value]`
