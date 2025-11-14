@@ -85,8 +85,20 @@ jobs:
 
       - name: Rename SBOM file
         run: |
+          echo "Listing sbom-output directory structure:"
+          find sbom-output -type f -name "*.spdx.json"
+
           mkdir -p release-sboms
-          find sbom-output/_manifest -name "*.spdx.json" -exec cp {} release-sboms/HeroSD-JWT.${{ steps.version.outputs.version }}.${{ matrix.framework }}.spdx-${{ matrix.spdx-version }}.json \;
+
+          # Find the SBOM file (handle different directory structures for SPDX 2.2 vs 3.0)
+          SBOM_FILE=$(find sbom-output -type f -name "*.spdx.json" | head -n 1)
+
+          if [ -z "$SBOM_FILE" ]; then
+            echo "Error: No SBOM file found in sbom-output directory"
+            exit 1
+          fi
+
+          cp "$SBOM_FILE" release-sboms/HeroSD-JWT.${{ steps.version.outputs.version }}.${{ matrix.framework }}.spdx-${{ matrix.spdx-version }}.json
           echo "SBOM file created:"
           ls -lh release-sboms/
 
