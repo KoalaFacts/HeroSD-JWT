@@ -17,7 +17,7 @@ env:
 
 jobs:
   create-release:
-    name: Create Release
+    name: Create Release ${{ inputs.version }}
     runs-on: ubuntu-latest
 
     steps:
