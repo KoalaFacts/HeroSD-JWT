@@ -67,6 +67,9 @@ jobs:
       - name: Install Microsoft SBOM tool
         run: dotnet tool install --global Microsoft.Sbom.DotNetTool
 
+      - name: Create SBOM output directory
+        run: mkdir -p sbom-output
+
       - name: Generate SBOM (SPDX ${{ matrix.spdx-version }})
         run: |
           sbom-tool generate \
