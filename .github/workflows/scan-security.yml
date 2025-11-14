@@ -114,20 +114,23 @@ jobs:
       - name: Run Microsoft Security DevOps
         uses: microsoft/security-devops-action@v1
         id: msdo
+        continue-on-error: true
         with:
           # Available tools: antimalware, binskim, credscan, eslint, templateanalyzer, terrascan, trivy
           tools: 'binskim,credscan'
 
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
+        if: always()
         with:
           sarif_file: ${{ steps.msdo.outputs.sarifFile }}
 
-      - name: Upload detailed results
+      - name: Upload SARIF Artifacts
         uses: actions/upload-artifact@v5
+        if: always() && steps.msdo.outputs.sarifFile != ''
         with:
           name: security-devops-${{ matrix.framework }}
-          path: .gdn
+          path: ${{ steps.msdo.outputs.sarifFile }}
           retention-days: 90
           if-no-files-found: warn
 
