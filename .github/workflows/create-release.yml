@@ -100,10 +100,11 @@ jobs:
       - name: Install Microsoft SBOM tool
         run: dotnet tool install --global Microsoft.Sbom.DotNetTool
 
-      - name: Generate SBOM (SPDX 2.2)
+      - name: Generate SBOMs (parallel)
         run: |
+          # Generate SPDX 2.2 in background
           sbom-tool generate \
-            -b src/HeroSdJwt/bin/Release \
+            -b src/HeroSdJwt/bin/Release/net8.0 \
             -bc src/HeroSdJwt \
             -pn HeroSD-JWT \
             -pv ${{ inputs.version }} \
@@ -111,12 +112,12 @@ jobs:
             -nsb https://github.com/KoalaFacts/HeroSD-JWT \
             -m sbom-output-spdx22 \
             -ManifestDirPath sbom-output-spdx22 \
-            -V Verbose
+            -V Verbose &
+          SPDX22_PID=$!
 
-      - name: Generate SBOM (SPDX 3.0)
-        run: |
+          # Generate SPDX 3.0 in background
           sbom-tool generate \
-            -b src/HeroSdJwt/bin/Release \
+            -b src/HeroSdJwt/bin/Release/net8.0 \
             -bc src/HeroSdJwt \
             -pn HeroSD-JWT \
             -pv ${{ inputs.version }} \
@@ -125,7 +126,29 @@ jobs:
             -m sbom-output-spdx30 \
             -mi SPDX:3.0 \
             -ManifestDirPath sbom-output-spdx30 \
-            -V Verbose
+            -V Verbose &
+          SPDX30_PID=$!
+
+          # Wait for both to complete
+          echo "Waiting for SPDX 2.2 generation (PID: $SPDX22_PID)..."
+          wait $SPDX22_PID
+          SPDX22_EXIT=$?
+
+          echo "Waiting for SPDX 3.0 generation (PID: $SPDX30_PID)..."
+          wait $SPDX30_PID
+          SPDX30_EXIT=$?
+
+          # Check both succeeded
+          if [ $SPDX22_EXIT -ne 0 ]; then
+            echo "Error: SPDX 2.2 generation failed with exit code $SPDX22_EXIT"
+            exit 1
+          fi
+          if [ $SPDX30_EXIT -ne 0 ]; then
+            echo "Error: SPDX 3.0 generation failed with exit code $SPDX30_EXIT"
+            exit 1
+          fi
+
+          echo "Both SBOMs generated successfully!"
 
       - name: Copy SBOMs to release directory
         run: |
