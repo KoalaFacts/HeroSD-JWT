@@ -72,7 +72,7 @@ public class SignatureValidator : ISignatureValidator
         if (!IsSupportedAlgorithm(algorithm))
         {
             throw new AlgorithmNotSupportedException(
-                $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, HS384, HS512, RS256, PS256, ES256, ES384, ES512, EdDSA");
+                $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, RS256, ES256, EdDSA");
         }
 
         // Construct the signing input (header.payload)
@@ -86,13 +86,8 @@ public class SignatureValidator : ISignatureValidator
         return algorithm switch
         {
             "HS256" => VerifyHmacSha256(signingInputBytes, signatureBytes, publicKey),
-            "HS384" => VerifyHmacSha384(signingInputBytes, signatureBytes, publicKey),
-            "HS512" => VerifyHmacSha512(signingInputBytes, signatureBytes, publicKey),
             "RS256" => VerifyRsa256(signingInputBytes, signatureBytes, publicKey),
-            "PS256" => VerifyPss256(signingInputBytes, signatureBytes, publicKey),
             "ES256" => VerifyEcdsa256(signingInputBytes, signatureBytes, publicKey),
-            "ES384" => VerifyEcdsa384(signingInputBytes, signatureBytes, publicKey),
-            "ES512" => VerifyEcdsa512(signingInputBytes, signatureBytes, publicKey),
             "EdDSA" => VerifyEdDsa(signingInputBytes, signatureBytes, publicKey),
             _ => throw new AlgorithmNotSupportedException($"Algorithm '{algorithm}' verification not implemented")
         };
@@ -104,31 +99,6 @@ public class SignatureValidator : ISignatureValidator
     private static bool VerifyHmacSha256(byte[] data, byte[] signature, byte[] key)
     {
         using var hmac = new HMACSHA256(key);
-        var computedSignature = hmac.ComputeHash(data);
-
-        // Use constant-time comparison to prevent timing attacks
-        return CryptographicOperations.FixedTimeEquals(computedSignature, signature);
-    }
-
-
-    /// <summary>
-    /// Verifies an HMAC-SHA384 signature using constant-time comparison.
-    /// </summary>
-    private static bool VerifyHmacSha384(byte[] data, byte[] signature, byte[] key)
-    {
-        using var hmac = new HMACSHA384(key);
-        var computedSignature = hmac.ComputeHash(data);
-
-        // Use constant-time comparison to prevent timing attacks
-        return CryptographicOperations.FixedTimeEquals(computedSignature, signature);
-    }
-
-    /// <summary>
-    /// Verifies an HMAC-SHA512 signature using constant-time comparison.
-    /// </summary>
-    private static bool VerifyHmacSha512(byte[] data, byte[] signature, byte[] key)
-    {
-        using var hmac = new HMACSHA512(key);
         var computedSignature = hmac.ComputeHash(data);
 
         // Use constant-time comparison to prevent timing attacks
@@ -179,49 +149,6 @@ public class SignatureValidator : ISignatureValidator
     }
 
     /// <summary>
-    /// Verifies an RSA-PSS signature with SHA-256.
-    /// Requires minimum 2048-bit RSA keys for security.
-    /// </summary>
-    private static bool VerifyPss256(byte[] data, byte[] signature, byte[] publicKeyBytes)
-    {
-        try
-        {
-            using var rsa = RSA.Create();
-            rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-
-            // Validate minimum key size (2048 bits per NIST recommendations)
-            const int MinimumRsaKeySize = 2048;
-            if (rsa.KeySize < MinimumRsaKeySize)
-            {
-                throw new SdJwtException(
-                    $"RSA key size {rsa.KeySize} is below minimum required size of {MinimumRsaKeySize} bits",
-                    ErrorCode.InvalidInput);
-            }
-
-            return rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
-        }
-        catch (SdJwtException)
-        {
-            throw; // Re-throw our validation exceptions
-        }
-        catch (CryptographicException)
-        {
-            // Signature verification failed - legitimate cryptographic failure
-            return false;
-        }
-        catch (ArgumentException)
-        {
-            // Invalid key format
-            return false;
-        }
-        catch
-        {
-            // Other unexpected errors - fail safely
-            return false;
-        }
-    }
-
-    /// <summary>
     /// Verifies an ECDSA-SHA256 signature.
     /// Validates that the curve is P-256 (secp256r1) as required for ES256.
     /// </summary>
@@ -242,92 +169,6 @@ public class SignatureValidator : ISignatureValidator
             }
 
             return ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA256);
-        }
-        catch (SdJwtException)
-        {
-            throw; // Re-throw our validation exceptions
-        }
-        catch (CryptographicException)
-        {
-            // Signature verification failed - legitimate cryptographic failure
-            return false;
-        }
-        catch (ArgumentException)
-        {
-            // Invalid key format
-            return false;
-        }
-        catch
-        {
-            // Other unexpected errors - fail safely
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Verifies an ECDSA-SHA384 signature.
-    /// Validates that the curve is P-384 (secp384r1) as required for ES384.
-    /// </summary>
-    private static bool VerifyEcdsa384(byte[] data, byte[] signature, byte[] publicKeyBytes)
-    {
-        try
-        {
-            using var ecdsa = ECDsa.Create();
-            ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-
-            // Validate curve parameters for ES384 (must be P-384/secp384r1)
-            var parameters = ecdsa.ExportParameters(false);
-            if (parameters.Curve.Oid?.Value != "1.3.132.0.34") // P-384 OID
-            {
-                throw new SdJwtException(
-                    "ES384 requires P-384 (secp384r1) curve",
-                    ErrorCode.InvalidInput);
-            }
-
-            return ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA384);
-        }
-        catch (SdJwtException)
-        {
-            throw; // Re-throw our validation exceptions
-        }
-        catch (CryptographicException)
-        {
-            // Signature verification failed - legitimate cryptographic failure
-            return false;
-        }
-        catch (ArgumentException)
-        {
-            // Invalid key format
-            return false;
-        }
-        catch
-        {
-            // Other unexpected errors - fail safely
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Verifies an ECDSA-SHA512 signature.
-    /// Validates that the curve is P-521 (secp521r1) as required for ES512.
-    /// </summary>
-    private static bool VerifyEcdsa512(byte[] data, byte[] signature, byte[] publicKeyBytes)
-    {
-        try
-        {
-            using var ecdsa = ECDsa.Create();
-            ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-
-            // Validate curve parameters for ES512 (must be P-521/secp521r1)
-            var parameters = ecdsa.ExportParameters(false);
-            if (parameters.Curve.Oid?.Value != "1.3.132.0.35") // P-521 OID
-            {
-                throw new SdJwtException(
-                    "ES512 requires P-521 (secp521r1) curve",
-                    ErrorCode.InvalidInput);
-            }
-
-            return ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA512);
         }
         catch (SdJwtException)
         {
@@ -482,13 +323,8 @@ public class SignatureValidator : ISignatureValidator
         return algorithm switch
         {
             "HS256" => true,
-            "HS384" => true,
-            "HS512" => true,
             "RS256" => true,
-            "PS256" => true,
             "ES256" => true,
-            "ES384" => true,
-            "ES512" => true,
             "EdDSA" => true,
             _ => false
         };
