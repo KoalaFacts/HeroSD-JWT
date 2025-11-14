@@ -4,6 +4,7 @@ using HeroSdJwt.Exceptions;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
+using HeroSdJwt.Verification.ReplayProtection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Constants = HeroSdJwt.Primitives.Constants;
@@ -25,6 +26,7 @@ public class SdJwtVerifier : ISdJwtVerifier
     private readonly IDigestValidator digestValidator;
     private readonly IKeyBindingValidator keyBindingValidator;
     private readonly IClaimValidator claimValidator;
+    private readonly JtiValidator? jtiValidator;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtVerifier"/> class with dependencies.
@@ -36,13 +38,15 @@ public class SdJwtVerifier : ISdJwtVerifier
     /// <param name="digestValidator">Digest validator.</param>
     /// <param name="keyBindingValidator">Key binding validator.</param>
     /// <param name="claimValidator">Claim validator.</param>
+    /// <param name="jtiValidator">Optional JTI validator for replay attack prevention. If null, replay protection is disabled (backward compatibility).</param>
     public SdJwtVerifier(
         SdJwtVerificationOptions options,
         IEcPublicKeyConverter ecPublicKeyConverter,
         ISignatureValidator signatureValidator,
         IDigestValidator digestValidator,
         IKeyBindingValidator keyBindingValidator,
-        IClaimValidator claimValidator)
+        IClaimValidator claimValidator,
+        JtiValidator? jtiValidator = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(signatureValidator);
@@ -57,6 +61,7 @@ public class SdJwtVerifier : ISdJwtVerifier
         this.digestValidator = digestValidator;
         this.keyBindingValidator = keyBindingValidator;
         this.claimValidator = claimValidator;
+        this.jtiValidator = jtiValidator;
     }
 
     /// <summary>
@@ -112,6 +117,10 @@ public class SdJwtVerifier : ISdJwtVerifier
         try
         {
             return VerifyPresentationInternal(presentation, publicKey, expectedHashAlgorithm);
+        }
+        catch (ReplayAttackException ex)
+        {
+            return new VerificationResult(ErrorCode.ReplayAttack, ex.Message);
         }
         catch (AlgorithmConfusionException ex)
         {
@@ -183,6 +192,10 @@ public class SdJwtVerifier : ISdJwtVerifier
         try
         {
             return VerifyPresentationInternalWithResolver(presentation, keyResolver, fallbackKey, expectedHashAlgorithm);
+        }
+        catch (ReplayAttackException ex)
+        {
+            return new VerificationResult(ErrorCode.ReplayAttack, ex.Message);
         }
         catch (AlgorithmConfusionException ex)
         {
@@ -607,6 +620,41 @@ public class SdJwtVerifier : ISdJwtVerifier
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add("Key binding is required but not present");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            // Step 5.5: Validate replay protection (jti) if JtiValidator is present
+            if (jtiValidator != null)
+            {
+                try
+                {
+                    // Extract claims from payload for JtiValidator
+                    var claimsDict = new Dictionary<string, JsonElement>();
+                    foreach (var property in payload.EnumerateObject())
+                    {
+                        claimsDict[property.Name] = property.Value;
+                    }
+
+                    // ValidateAsync will throw if replay detected or validation fails
+                    // Note: This is a synchronous context, so we use GetAwaiter().GetResult()
+                    jtiValidator.ValidateAsync(claimsDict, CancellationToken.None).GetAwaiter().GetResult();
+                }
+                catch (ReplayAttackException)
+                {
+                    // Re-throw replay attack exceptions directly
+                    throw;
+                }
+                catch (SdJwtException)
+                {
+                    // Re-throw other SD-JWT exceptions (missing jti, missing iss, etc.)
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    // Wrap unexpected exceptions
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add($"Replay protection validation failed: {ex.Message}");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
             }
 
             // Step 6: Extract disclosed claims with full paths
