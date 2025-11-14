@@ -31,5 +31,50 @@ public enum SignatureAlgorithm
     /// Provides 128-bit security with smaller keys and faster performance than RSA.
     /// Per RFC 8037.
     /// </summary>
-    EdDSA
+    EdDSA,
+
+    /// <summary>
+    /// HMAC using SHA-384 (symmetric key).
+    /// Requires a shared secret key.
+    /// Minimum 384-bit key size recommended (same as hash output).
+    /// Provides 192-bit security level.
+    /// Per RFC 7518 Section 3.2.
+    /// </summary>
+    HS384,
+
+    /// <summary>
+    /// HMAC using SHA-512 (symmetric key).
+    /// Requires a shared secret key.
+    /// Minimum 512-bit key size recommended (same as hash output).
+    /// Provides 256-bit security level.
+    /// Per RFC 7518 Section 3.2.
+    /// </summary>
+    HS512,
+
+    /// <summary>
+    /// RSASSA-PSS using SHA-256 and MGF1 with SHA-256 (asymmetric key).
+    /// Requires RSA private key for signing, public key for verification.
+    /// Minimum 2048-bit key size recommended.
+    /// Provides provably secure padding (preferred over RS256 for new applications).
+    /// Per RFC 7518 Section 3.5.
+    /// </summary>
+    PS256,
+
+    /// <summary>
+    /// ECDSA using P-384 curve and SHA-384 (asymmetric key).
+    /// Requires EC private key for signing, public key for verification.
+    /// Uses secp384r1 (NIST P-384) curve.
+    /// Provides 192-bit security level.
+    /// Per RFC 7518 Section 3.4.
+    /// </summary>
+    ES384,
+
+    /// <summary>
+    /// ECDSA using P-521 curve and SHA-512 (asymmetric key).
+    /// Requires EC private key for signing, public key for verification.
+    /// Uses secp521r1 (NIST P-521) curve.
+    /// Provides 256-bit security level.
+    /// Per RFC 7518 Section 3.4.
+    /// </summary>
+    ES512
 }
