@@ -28,8 +28,12 @@ env:
 
 jobs:
   security-scan:
-    name: Microsoft Security DevOps
+    name: Security Scan (.NET ${{ matrix.dotnet-version }})
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
 
     steps:
     - name: Checkout repository
@@ -42,10 +46,10 @@ jobs:
       with:
         dotnet-version: '6.0.x'
 
-    - name: Setup .NET 10.0
+    - name: Setup .NET ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: '10.0.x'
+        dotnet-version: ${{ matrix.dotnet-version }}
 
     - name: Restore dependencies
       run: dotnet restore
@@ -77,7 +81,7 @@ jobs:
       uses: actions/upload-artifact@v5
       if: always()
       with:
-        name: security-devops-results
+        name: security-devops-results-${{ matrix.dotnet-version }}
         path: |
           .gdn/**
           ${{ steps.msdo.outputs.sarifFile }}
