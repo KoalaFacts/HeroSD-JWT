@@ -96,9 +96,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **1,894 tests passing** across all target frameworks
 
 - 📋 **SBOM (Software Bill of Materials)** - Supply chain security and transparency
+  - Per-framework SBOMs (net8.0, net9.0, net10.0) for accurate dependency tracking
   - SPDX 2.2 format for maximum compatibility with current tools
   - SPDX 3.0 format for future-proofing
-  - Automated generation in release pipeline (parallel, optimized for performance)
+  - Automated generation in release pipeline (parallel matrix, fail-fast)
+  - 6 total SBOMs per release (3 frameworks × 2 formats)
   - Meets US Executive Order 14028 and enterprise compliance requirements
 
 ### Changed
