@@ -24,34 +24,14 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  setup-matrix:
-    name: Setup Build Matrix
-    runs-on: ubuntu-latest
-    outputs:
-      dotnet-versions: ${{ steps.extract-versions.outputs.versions }}
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-
-    - name: Extract SDK versions from Directory.Build.props
-      id: extract-versions
-      run: |
-        # Extract SupportedSdkVersions from Directory.Build.props
-        SDK_VERSIONS=$(grep -oP '(?<=<SupportedSdkVersions>)[^<]+' Directory.Build.props | sed 's/;/","/g')
-        # Convert to JSON array format
-        JSON_ARRAY="[\"${SDK_VERSIONS}\"]"
-        echo "versions=${JSON_ARRAY}" >> $GITHUB_OUTPUT
-        echo "Detected SDK versions: ${JSON_ARRAY}"
-
   build-and-test:
     name: Build and Test
-    needs: setup-matrix
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        dotnet-version: ${{ fromJson(needs.setup-matrix.outputs.dotnet-versions) }}
+        dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
 
     steps:
     - name: Checkout code
