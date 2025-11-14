@@ -1,25 +1,20 @@
-using HeroSdJwt;
 using HeroSdJwt.AspNetCore;
-using HeroSdJwt.Issuance;
-using HeroSdJwt.Verification;
 using MultiTenantAuthExample.Services;
-#if NET9_0_OR_GREATER
 using Scalar.AspNetCore;
+#if NET9_0_OR_GREATER
+using Microsoft.AspNetCore.OpenApi;
 #endif
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
 #if NET9_0_OR_GREATER
 builder.Services.AddOpenApi();
 #else
-// .NET 8: Use Swashbuckle for OpenAPI
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new() { Title = "Multi-Tenant SD-JWT API", Version = "1.0.0" });
-});
+// .NET 8: Use Swashbuckle for OpenAPI generation (AddOpenApi requires .NET 9+)
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 #endif
 
 // Register HeroSdJwt services (includes all cryptographic and validation services)
@@ -40,6 +35,7 @@ app.UseHttpsRedirection();
 
 #if NET9_0_OR_GREATER
 app.MapOpenApi();
+#endif
 app.MapScalarApiReference(options =>
 {
     options
@@ -47,14 +43,6 @@ app.MapScalarApiReference(options =>
         .WithTheme(ScalarTheme.Purple)
         .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
 });
-#else
-// .NET 8: Use Swashbuckle UI
-app.UseSwagger();
-app.UseSwaggerUI(options =>
-{
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Multi-Tenant SD-JWT API v1");
-});
-#endif
 
 app.MapControllers();
 

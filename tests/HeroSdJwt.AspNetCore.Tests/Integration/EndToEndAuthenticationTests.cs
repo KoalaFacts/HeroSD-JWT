@@ -1,4 +1,3 @@
-using HeroSdJwt.AspNetCore;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Presentation;
 using Microsoft.AspNetCore.Authentication;
