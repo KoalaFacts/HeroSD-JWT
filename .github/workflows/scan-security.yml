@@ -106,10 +106,10 @@ jobs:
           dotnet-version: ${{ matrix.dotnet-version }}
 
       - name: Restore dependencies
-        run: dotnet restore -p:TargetFramework=${{ matrix.framework }}
+        run: dotnet restore src/HeroSdJwt/HeroSdJwt.csproj -p:TargetFramework=${{ matrix.framework }}
 
-      - name: Build solution
-        run: dotnet build --configuration Release --no-restore --framework ${{ matrix.framework }}
+      - name: Build main project only
+        run: dotnet build src/HeroSdJwt/HeroSdJwt.csproj --configuration Release --no-restore --framework ${{ matrix.framework }}
 
       - name: Run Microsoft Security DevOps
         uses: microsoft/security-devops-action@v1
