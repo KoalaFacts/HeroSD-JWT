@@ -4,7 +4,7 @@
 [![NuGet Downloads](https://img.shields.io/nuget/dt/HeroSD-JWT.svg?style=flat-square&logo=nuget&label=Downloads)](https://www.nuget.org/packages/HeroSD-JWT/)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/KoalaFacts/HeroSD-JWT/dotnet.yml?branch=main&style=flat-square&logo=github&label=Build)](https://github.com/KoalaFacts/HeroSD-JWT/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0-512BD4?style=flat-square&logo=.net)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-512BD4?style=flat-square&logo=.net)](https://dotnet.microsoft.com/)
 [![C#](https://img.shields.io/badge/C%23-12.0-239120?style=flat-square&logo=c-sharp)](https://docs.microsoft.com/en-us/dotnet/csharp/)
 [![AOT Compatible](https://img.shields.io/badge/AOT-Compatible-blue?style=flat-square)](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero-green?style=flat-square)](https://www.nuget.org/packages/HeroSD-JWT/)
@@ -57,7 +57,7 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
 - ✅ Zero third-party dependencies (uses only .NET BCL including `System.Security.Cryptography`, `System.Text.Json`, `System.Buffers.Text`)
 - ✅ Constant-time comparison for security-critical operations
 - ✅ Algorithm confusion prevention (rejects "none" algorithm)
-- ✅ Multi-targeting .NET 8.0 and .NET 9.0
+- ✅ Multi-targeting .NET 8.0, .NET 9.0, and .NET 10.0
 
 ## Installation
 
@@ -553,9 +553,9 @@ MAJOR.MINOR.PATCH
 
 ## Requirements
 
-- **.NET 8.0** (LTS) or **.NET 9.0**
+- **.NET 8.0** (LTS), **.NET 9.0**, or **.NET 10.0**
 - No third-party dependencies (uses only .NET BCL)
-  - Note: .NET 8.0 includes a polyfill dependency (`Microsoft.Bcl.Memory`) to backport .NET 9.0's native `Base64Url` APIs
+  - Note: .NET 8.0 includes a polyfill dependency (`Microsoft.Bcl.Memory`) to backport .NET 9.0+'s native `Base64Url` APIs
 
 ## Native AOT and Trimming Compatibility
 

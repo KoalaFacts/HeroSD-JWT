@@ -107,24 +107,233 @@ Best practices:
 
 ### Key Rotation
 
-Implement key rotation to limit the impact of key compromise:
+Implement key rotation to limit the impact of key compromise. HeroSD-JWT supports the `kid` (key ID) parameter per RFC 7515 for enterprise-grade key rotation:
+
+#### Basic Key Rotation Strategy
+
+1. **Deploy new key** (pre-deployment phase)
+2. **Activate new key** for issuing new tokens
+3. **Maintain old keys** for verification during overlap period
+4. **Remove old keys** after retention period
+
+#### Using Key IDs
+
+Issue SD-JWTs with key identifiers:
 
 ```csharp
-public class KeyRotationService
+using HeroSdJwt.Issuance;
+
+var keyGen = KeyGenerator.Instance;
+var key = keyGen.GenerateHmacKey();
+
+// Issue with key ID
+var sdJwt = SdJwtBuilder.Create()
+    .WithClaim("sub", "user-123")
+    .WithClaim("email", "alice@example.com")
+    .MakeSelective("email")
+    .WithKeyId("key-2024-11")  // RFC 7515 kid parameter
+    .SignWithHmac(key)
+    .Build();
+```
+
+#### Key Resolver Pattern
+
+Implement dynamic key resolution for multi-key deployments:
+
+```csharp
+using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
+
+// Set up key store
+var keyStore = new Dictionary<string, byte[]>
 {
-    private readonly Dictionary<string, byte[]> _keys = new();
+    ["key-2024-10"] = previousKey,
+    ["key-2024-11"] = currentKey,
+    ["key-2024-12"] = nextKey  // Pre-deployed
+};
 
-    public byte[] GetCurrentKey() => _keys["current"];
+// Create resolver
+KeyResolver resolver = keyId => keyStore.GetValueOrDefault(keyId);
 
-    public byte[] GetKeyById(string keyId) => _keys[keyId];
+// Verify with resolver
+var verifier = new SdJwtVerifier();
+var result = verifier.TryVerifyPresentation(presentation, resolver);
 
-    public void RotateKeys()
+if (!result.IsValid)
+{
+    Console.WriteLine($"Verification failed: {result.ErrorMessage}");
+}
+```
+
+#### Production Key Rotation Service
+
+Complete production-ready implementation:
+
+```csharp
+public class ProductionKeyRotationService
+{
+    private readonly Dictionary<string, KeyMetadata> _keys = new();
+    private readonly ILogger _logger;
+
+    public class KeyMetadata
     {
-        _keys["previous"] = _keys["current"];
-        _keys["current"] = KeyGenerator.Instance.GenerateHmacKey();
+        public byte[] Key { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? RotatedAt { get; set; }
+        public DateTime? DeactivatedAt { get; set; }
+        public bool IsActive { get; set; }
+        public string Algorithm { get; set; } = "HS256";
+    }
+
+    public string IssueToken(Dictionary<string, object> claims, string[] selectiveClaims)
+    {
+        var activeKey = _keys.FirstOrDefault(k => k.Value.IsActive);
+        if (activeKey.Key == null)
+            throw new InvalidOperationException("No active signing key available");
+
+        var sdJwt = SdJwtBuilder.Create()
+            .WithClaims(claims)
+            .MakeSelective(selectiveClaims)
+            .WithKeyId(activeKey.Key)
+            .SignWithHmac(activeKey.Value.Key)
+            .Build();
+
+        _logger.LogInformation("Issued token with key: {KeyId}", activeKey.Key);
+        return sdJwt.EncodedSdJwt;
+    }
+
+    public void DeployNewKey()
+    {
+        var keyGen = KeyGenerator.Instance;
+        var newKeyId = $"key-{DateTime.UtcNow:yyyy-MM-dd-HHmmss}";
+        var newKey = keyGen.GenerateHmacKey();
+
+        _keys[newKeyId] = new KeyMetadata
+        {
+            Key = newKey,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = false
+        };
+
+        _logger.LogInformation("Deployed new key: {KeyId}", newKeyId);
+    }
+
+    public void ActivateKey(string keyId)
+    {
+        if (!_keys.ContainsKey(keyId))
+            throw new ArgumentException($"Key not found: {keyId}");
+
+        // Deactivate current key
+        foreach (var key in _keys.Where(k => k.Value.IsActive))
+        {
+            key.Value.IsActive = false;
+            key.Value.RotatedAt = DateTime.UtcNow;
+            _logger.LogInformation("Rotated key: {KeyId}", key.Key);
+        }
+
+        // Activate new key
+        _keys[keyId].IsActive = true;
+        _logger.LogInformation("Activated key: {KeyId}", keyId);
+    }
+
+    public void RemoveOldKeys(TimeSpan retentionPeriod)
+    {
+        var cutoff = DateTime.UtcNow - retentionPeriod;
+        var oldKeys = _keys
+            .Where(k => k.Value.RotatedAt.HasValue && k.Value.RotatedAt < cutoff)
+            .Select(k => k.Key)
+            .ToList();
+
+        foreach (var keyId in oldKeys)
+        {
+            _keys.Remove(keyId);
+            _logger.LogWarning("Removed old key: {KeyId}", keyId);
+        }
+    }
+
+    public KeyResolver GetKeyResolver()
+    {
+        return keyId =>
+        {
+            if (_keys.TryGetValue(keyId, out var metadata))
+            {
+                return metadata.Key;
+            }
+
+            _logger.LogError("Unknown key ID requested: {KeyId}", keyId);
+            return null;
+        };
+    }
+
+    public void MonitorKeyHealth()
+    {
+        foreach (var key in _keys)
+        {
+            var age = DateTime.UtcNow - key.Value.CreatedAt;
+            if (age > TimeSpan.FromDays(90) && key.Value.IsActive)
+            {
+                _logger.LogWarning(
+                    "Active key {KeyId} is {Days} days old - consider rotation",
+                    key.Key,
+                    age.Days);
+            }
+        }
     }
 }
 ```
+
+#### Key Rotation Best Practices
+
+1. **Rotation Schedule**
+   - Rotate keys every 90 days minimum
+   - Immediately rotate if compromise is suspected
+   - Document rotation procedures
+
+2. **Overlap Period**
+   - Deploy new key 24-48 hours before activation
+   - Keep old keys for verification during transition
+   - Typical overlap: 7-30 days depending on token lifetime
+
+3. **Key Retention**
+   - Retain deactivated keys for token lifetime + grace period
+   - For 30-day tokens, keep old keys for 60 days minimum
+   - Archive old keys securely before deletion
+
+4. **Monitoring**
+   - Track key usage metrics
+   - Alert on unknown key IDs
+   - Monitor key age and rotation compliance
+   - Log all key lifecycle events
+
+5. **Emergency Rotation**
+   ```csharp
+   public void EmergencyKeyRotation()
+   {
+       // 1. Deploy new key immediately
+       DeployNewKey();
+
+       // 2. Activate immediately (no overlap period)
+       var newKeyId = _keys.OrderByDescending(k => k.Value.CreatedAt)
+                          .First().Key;
+       ActivateKey(newKeyId);
+
+       // 3. Revoke compromised keys
+       foreach (var key in _keys.Where(k => !k.Value.IsActive))
+       {
+           key.Value.DeactivatedAt = DateTime.UtcNow;
+       }
+
+       // 4. Alert monitoring systems
+       _logger.LogCritical("EMERGENCY: Key rotation completed");
+   }
+   ```
+
+6. **Key ID Naming**
+   - Use descriptive, sortable key IDs
+   - Include timestamp: `key-2024-11-14`
+   - Include environment: `key-prod-2024-11`
+   - Max length: 256 characters
+   - Use printable ASCII only
 
 ## Algorithm Selection
 

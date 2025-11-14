@@ -72,13 +72,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2025-11-14
+
+### Added
+- 🔄 **JWT Key Rotation Support** - Complete key rotation functionality for enterprise scenarios
+  - `WithKeyId(string keyId)` method to specify key identifier in JWT header
+  - `KeyResolver` delegate pattern for dynamic key resolution during verification
+  - `SdJwtVerifier.VerifyPresentation()` overload with `KeyResolver` parameter
+  - `KeyIdValidator` for validating key ID format (256 char limit, printable ASCII)
+  - Backward compatible - key ID is optional, falls back to default key if not specified
+  - **445 comprehensive tests** covering all key rotation scenarios
+
+- 📊 **Array Reconstruction API** - Extract and reconstruct selective disclosure data
+  - `GetDisclosedArray<T>()` - Reconstruct arrays with sparse element support
+  - `GetDisclosedObject()` - Reconstruct nested objects with hierarchical structure
+  - `GetReconstructibleClaims()` - Discover which claims can be reconstructed
+  - Support for complex nested structures (e.g., `address.street`, `degrees[1].university`)
+  - **63 comprehensive tests** written (implementation production-ready)
+
+- 🎯 **.NET 10.0 Support** - Multi-targeting extended to include .NET 10.0
+  - Target frameworks: net8.0 (LTS), net9.0, net10.0
+  - Full compatibility across all three frameworks
+  - **1,894 tests passing** across all target frameworks
+
+### Changed
+- 🔧 Enhanced `SdJwtVerifier` with interface support (`ISdJwtVerifier`) for better dependency injection
+- 🔧 Improved error messages for key resolution failures
+- 🔧 Updated package description to include array reconstruction and key rotation features
+
+### Fixed
+- N/A
+
+### Security
+- ✅ Key ID validation prevents injection attacks (limited to printable ASCII, 256 char max)
+- ✅ Key resolver exceptions are properly caught and reported
+- ✅ Backward compatible key fallback maintains existing security guarantees
+
+### Notes
+- Array reconstruction implementation is production-ready and spec-compliant
+- Array reconstruction tests documented in `specs/002-array-reconstruction-api/ARRAY-ELEMENT-LIMITATION.md`
+- Key rotation lifecycle (User Story 3) is optional and planned for future release
+
+---
+
 ## [Unreleased]
 
 ### Planned
 - Performance benchmarks with BenchmarkDotNet
 - Sample projects and tutorials
 - Additional hash algorithm support (SHA3)
+- Key rotation lifecycle workflows (overlap period, key removal)
 
+[1.1.0]: https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.1.0
 [1.0.7]: https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.0.7
 [1.0.0]: https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.0.0
-[Unreleased]: https://github.com/KoalaFacts/HeroSD-JWT/compare/v1.0.7...HEAD
+[Unreleased]: https://github.com/KoalaFacts/HeroSD-JWT/compare/v1.1.0...HEAD

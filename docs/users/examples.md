@@ -12,6 +12,8 @@ This document provides detailed examples of using HeroSD-JWT for various scenari
 - [Different Signature Algorithms](#different-signature-algorithms)
 - [Error Handling](#error-handling)
 - [Real-World Scenarios](#real-world-scenarios)
+- [Array & Object Reconstruction](#array--object-reconstruction)
+- [JWT Key Rotation](#jwt-key-rotation)
 
 ## Live Examples
 
@@ -447,6 +449,294 @@ var accessPresentation = sdJwt.ToPresentation("clearance_level");
 
 // External partner - disclose contact info only
 var contactPresentation = sdJwt.ToPresentation("email", "phone");
+```
+
+## Array & Object Reconstruction
+
+### Discovering Reconstructible Claims
+
+When working with complex presentations, use `GetReconstructibleClaims()` to discover which claims can be reconstructed from the disclosed data:
+
+```csharp
+var sdJwt = SdJwtBuilder.Create()
+    .WithClaim("user", new
+    {
+        name = "Alice",
+        contact = new
+        {
+            email = "alice@example.com",
+            phone = "+1-555-0100"
+        },
+        addresses = new[]
+        {
+            new { type = "home", street = "123 Main St" },
+            new { type = "work", street = "456 Office Blvd" }
+        }
+    })
+    .MakeSelective(
+        "user.contact.email",
+        "user.addresses[0]",
+        "user.addresses[1].street"
+    )
+    .SignWithHmac(key)
+    .Build();
+
+// Holder creates presentation
+var presentation = sdJwt.ToPresentation(
+    "user.contact.email",
+    "user.addresses[0]"
+);
+
+// Verifier discovers what can be reconstructed
+var result = verifier.VerifyPresentation(presentation, key);
+var reconstructible = result.GetReconstructibleClaims();
+// Returns: ["user", "user.contact", "user.addresses"]
+
+// Reconstruct discovered structures
+var user = result.GetDisclosedObject("user");
+// Result: {
+//   "name": "Alice",
+//   "contact": { "email": "alice@example.com" },
+//   "addresses": [{ "type": "home", "street": "123 Main St" }, null]
+// }
+
+var addresses = result.GetDisclosedArray("user.addresses");
+// Result: [{ "type": "home", "street": "123 Main St" }, null]
+```
+
+### Complex Nested Reconstruction
+
+Combine arrays and objects in hierarchical structures:
+
+```csharp
+var sdJwt = SdJwtBuilder.Create()
+    .WithClaim("education", new[]
+    {
+        new
+        {
+            degree = "BS",
+            university = "MIT",
+            location = new { city = "Cambridge", state = "MA" },
+            year = 2015
+        },
+        new
+        {
+            degree = "MS",
+            university = "Stanford",
+            location = new { city = "Stanford", state = "CA" },
+            year = 2017
+        },
+        new
+        {
+            degree = "PhD",
+            university = "Berkeley",
+            location = new { city = "Berkeley", state = "CA" },
+            year = 2021
+        }
+    })
+    .MakeSelective(
+        "education[0].degree",
+        "education[0].university",
+        "education[1]",
+        "education[2].location.city",
+        "education[2].location.state"
+    )
+    .SignWithHmac(key)
+    .Build();
+
+// Disclose graduate degrees with partial location info
+var presentation = sdJwt.ToPresentation(
+    "education[1]",
+    "education[2].location.city",
+    "education[2].location.state"
+);
+
+var result = verifier.VerifyPresentation(presentation, key);
+var education = result.GetDisclosedArray("education");
+// Result: [
+//   null,
+//   { "degree": "MS", "university": "Stanford",
+//     "location": { "city": "Stanford", "state": "CA" }, "year": 2017 },
+//   { "location": { "city": "Berkeley", "state": "CA" } }
+// ]
+```
+
+## JWT Key Rotation
+
+### Issuing with Key IDs
+
+Use the `kid` (key ID) parameter to support key rotation scenarios:
+
+```csharp
+var keyGen = KeyGenerator.Instance;
+var currentKey = keyGen.GenerateHmacKey();
+
+// Issue SD-JWT with key identifier
+var sdJwt = SdJwtBuilder.Create()
+    .WithClaim("sub", "user-123")
+    .WithClaim("email", "alice@example.com")
+    .WithClaim("role", "admin")
+    .MakeSelective("email", "role")
+    .WithKeyId("key-2024-11")  // Specify key ID
+    .SignWithHmac(currentKey)
+    .Build();
+
+// The JWT header will include: { "alg": "HS256", "kid": "key-2024-11" }
+```
+
+### Verifying with Key Resolver
+
+Implement dynamic key resolution for multi-key deployments:
+
+```csharp
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.KeyBinding;
+using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
+
+// Set up key store with multiple active keys
+var keyStore = new Dictionary<string, byte[]>
+{
+    ["key-2024-09"] = oldKey,      // Being phased out
+    ["key-2024-10"] = previousKey, // Previous generation
+    ["key-2024-11"] = currentKey,  // Current active key
+    ["key-2024-12"] = nextKey      // Pre-deployed for rotation
+};
+
+// Create key resolver delegate
+KeyResolver resolver = keyId =>
+{
+    if (keyStore.TryGetValue(keyId, out var key))
+    {
+        return key;
+    }
+
+    // Log missing key for monitoring
+    Console.WriteLine($"Warning: Unknown key ID requested: {keyId}");
+    return null;
+};
+
+// Verify presentation using resolver
+var verifier = new SdJwtVerifier(
+    new SdJwtVerificationOptions(),
+    new EcPublicKeyConverter(),
+    new SignatureValidator(),
+    new DigestValidator(),
+    new KeyBindingValidator(),
+    new ClaimValidator());
+
+var result = verifier.TryVerifyPresentation(presentation, resolver);
+
+if (result.IsValid)
+{
+    Console.WriteLine($"Verified successfully with key: {result.KeyId}");
+    var role = result.DisclosedClaims["role"].GetString();
+}
+else
+{
+    Console.WriteLine($"Verification failed: {result.ErrorMessage}");
+}
+```
+
+### Key Rotation Workflow
+
+Complete example of rotating keys in production:
+
+```csharp
+public class KeyRotationService
+{
+    private readonly Dictionary<string, KeyMetadata> _keys = new();
+
+    public class KeyMetadata
+    {
+        public byte[] Key { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? RotatedAt { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public string IssueToken(Dictionary<string, object> claims, string[] selectiveClaims)
+    {
+        // Get current active key
+        var activeKey = _keys.First(k => k.Value.IsActive);
+
+        var sdJwt = SdJwtBuilder.Create()
+            .WithClaims(claims)
+            .MakeSelective(selectiveClaims)
+            .WithKeyId(activeKey.Key)  // Use active key ID
+            .SignWithHmac(activeKey.Value.Key)
+            .Build();
+
+        return sdJwt.EncodedSdJwt;
+    }
+
+    public void RotateKey()
+    {
+        var keyGen = KeyGenerator.Instance;
+        var newKeyId = $"key-{DateTime.UtcNow:yyyy-MM}";
+        var newKey = keyGen.GenerateHmacKey();
+
+        // Add new key (not active yet)
+        _keys[newKeyId] = new KeyMetadata
+        {
+            Key = newKey,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = false
+        };
+
+        Console.WriteLine($"New key deployed: {newKeyId}");
+    }
+
+    public void ActivateKey(string keyId)
+    {
+        // Deactivate current key
+        foreach (var key in _keys.Where(k => k.Value.IsActive))
+        {
+            key.Value.IsActive = false;
+            key.Value.RotatedAt = DateTime.UtcNow;
+        }
+
+        // Activate new key
+        _keys[keyId].IsActive = true;
+        Console.WriteLine($"Activated key: {keyId}");
+    }
+
+    public void RemoveOldKeys(TimeSpan retention)
+    {
+        var cutoff = DateTime.UtcNow - retention;
+        var oldKeys = _keys
+            .Where(k => k.Value.RotatedAt.HasValue && k.Value.RotatedAt < cutoff)
+            .Select(k => k.Key)
+            .ToList();
+
+        foreach (var keyId in oldKeys)
+        {
+            _keys.Remove(keyId);
+            Console.WriteLine($"Removed old key: {keyId}");
+        }
+    }
+
+    public KeyResolver GetKeyResolver()
+    {
+        return keyId => _keys.GetValueOrDefault(keyId)?.Key;
+    }
+}
+
+// Usage
+var rotationService = new KeyRotationService();
+
+// 1. Deploy new key (overlap period begins)
+rotationService.RotateKey();
+Thread.Sleep(TimeSpan.FromHours(1)); // Wait for propagation
+
+// 2. Activate new key (new tokens use new key)
+rotationService.ActivateKey("key-2024-11");
+
+// 3. Keep old keys for validation during grace period
+Thread.Sleep(TimeSpan.FromDays(7));
+
+// 4. Remove old keys after retention period
+rotationService.RemoveOldKeys(TimeSpan.FromDays(30));
 ```
 
 ## Next Steps
