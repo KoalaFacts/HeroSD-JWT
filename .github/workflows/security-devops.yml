@@ -59,7 +59,7 @@ jobs:
         dotnet-version: ${{ matrix.dotnet-version }}
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore -p:TargetFramework=${{ matrix.framework }}
 
     - name: Build solution
       run: dotnet build --configuration Release --no-restore --framework ${{ matrix.framework }}
