@@ -110,7 +110,6 @@ jobs:
 
   code-quality:
     name: Code Quality
-    needs: setup-matrix
     runs-on: ubuntu-latest
 
     steps:
@@ -122,8 +121,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
       with:
-        # Use the latest SDK version from supported versions
-        dotnet-version: ${{ fromJson(needs.setup-matrix.outputs.dotnet-versions)[2] }}
+        dotnet-version: '10.0.x'
         cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
@@ -138,7 +136,7 @@ jobs:
   pack:
     name: Pack NuGet
     runs-on: ubuntu-latest
-    needs: [setup-matrix, build-and-test, code-quality]
+    needs: [build-and-test, code-quality]
 
     steps:
     - name: Checkout code
@@ -149,8 +147,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
       with:
-        # Use the latest SDK version from supported versions
-        dotnet-version: ${{ fromJson(needs.setup-matrix.outputs.dotnet-versions)[2] }}
+        dotnet-version: '10.0.x'
         cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
