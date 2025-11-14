@@ -301,7 +301,7 @@ var result = verifier.TryVerifyPresentation(
 );
 ```
 
-### 🔧 Advanced API (Full Control)
+### Advanced API (Full Control)
 
 For advanced scenarios, use the low-level API:
 
