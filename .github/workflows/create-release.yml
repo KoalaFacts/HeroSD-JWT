@@ -16,7 +16,6 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  # Build, test, and create release (fast path)
   create-release:
     name: Create Release v${{ inputs.version }}
     runs-on: ubuntu-latest
@@ -98,6 +97,46 @@ jobs:
           echo "Packages verified:"
           ls -lh src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.*
 
+      - name: Install Microsoft SBOM tool
+        run: dotnet tool install --global Microsoft.Sbom.DotNetTool
+
+      - name: Generate SBOMs
+        run: |
+          mkdir -p release-sboms
+
+          # Generate SBOMs for each framework and SPDX version
+          for framework in net8.0 net9.0 net10.0; do
+            for spdx_version in 2.2 3.0; do
+              echo "Generating SBOM for $framework, SPDX $spdx_version..."
+
+              mkdir -p sbom-output-$framework-$spdx_version
+
+              sbom-tool generate \
+                -b src/HeroSdJwt/bin/Release/$framework \
+                -bc src/HeroSdJwt \
+                -pn HeroSD-JWT \
+                -pv ${{ inputs.version }} \
+                -ps KoalaFacts \
+                -nsb https://github.com/KoalaFacts/HeroSD-JWT \
+                -mi SPDX:$spdx_version \
+                -m sbom-output-$framework-$spdx_version \
+                -V Verbose
+
+              # Find and copy SBOM file
+              SBOM_FILE=$(find sbom-output-$framework-$spdx_version -type f -name "*.spdx.json" | head -n 1)
+              if [ -n "$SBOM_FILE" ]; then
+                cp "$SBOM_FILE" release-sboms/HeroSD-JWT.${{ inputs.version }}.$framework.spdx-$spdx_version.json
+                echo "Created: HeroSD-JWT.${{ inputs.version }}.$framework.spdx-$spdx_version.json"
+              else
+                echo "Error: No SBOM file found for $framework SPDX $spdx_version"
+                exit 1
+              fi
+            done
+          done
+
+          echo "All SBOMs generated:"
+          ls -lh release-sboms/
+
       - name: Generate release notes
         id: release-notes
         run: |
@@ -107,16 +146,16 @@ jobs:
           **Production-ready .NET library for SD-JWT (Selective Disclosure JWT)**
 
           ### Features
-          - ✅ Complete SD-JWT implementation per IETF draft-ietf-oauth-selective-disclosure-jwt
-          - ✅ Array element disclosure support
-          - ✅ Nested claims with recursive processing
-          - ✅ Key binding (holder binding)
-          - ✅ Multiple signature algorithms: HS256, RS256, ES256
-          - ✅ Zero third-party dependencies (BCL only)
-          - ✅ Multi-targeting: .NET 8.0 (LTS), 9.0, 10.0
-          - ✅ Native AOT compatible
-          - ✅ Full XML documentation
-          - ✅ Symbol package (.snupkg) with Source Link debugging
+          - Complete SD-JWT implementation per IETF draft-ietf-oauth-selective-disclosure-jwt
+          - Array element disclosure support
+          - Nested claims with recursive processing
+          - Key binding (holder binding)
+          - Multiple signature algorithms: HS256, RS256, ES256
+          - Minimal dependencies (BCL only)
+          - Multi-targeting: .NET 8.0 (LTS), 9.0, 10.0
+          - Native AOT compatible
+          - Full XML documentation
+          - Symbol package (.snupkg) with Source Link debugging
 
           ### Installation
           \`\`\`bash
@@ -132,10 +171,12 @@ jobs:
           - [NuGet Package](https://www.nuget.org/packages/HeroSD-JWT/${{ inputs.version }})
 
           ### SBOMs (Software Bill of Materials)
-          SBOMs are being generated asynchronously and will be attached to this release shortly.
+          Per-framework SBOMs included:
+          - SPDX 2.2 format (net8.0, net9.0, net10.0)
+          - SPDX 3.0 format (net8.0, net9.0, net10.0)
 
           ---
-          🎯 **Production ready** - Fully tested and verified!
+          Production ready - Fully tested and verified!
           EOF
           echo "Release notes generated"
 
@@ -143,14 +184,14 @@ jobs:
         run: |
           echo "Creating release v${{ inputs.version }}..."
 
-          # Create release with packages (SBOMs will be added asynchronously by generate-sboms workflow)
           gh release create v${{ inputs.version }} \
             --title "Release v${{ inputs.version }}" \
             --notes-file release-notes.md \
             src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg \
-            src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg
+            src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg \
+            release-sboms/*.json
 
-          echo "✅ Release created and published!"
+          echo "Release created and published!"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -163,15 +204,19 @@ jobs:
 
       - name: Release summary
         run: |
-          echo "## Release Created Successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "## Release Created Successfully!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version**: v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Release URL**: https://github.com/${{ github.repository }}/releases/tag/v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. ✅ **Publish to NuGet** - The publish-nuget workflow will automatically trigger" >> $GITHUB_STEP_SUMMARY
-          echo "2. ⏳ **Generate SBOMs** - The generate-sboms workflow is running asynchronously and will attach SBOMs to this release when ready" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Packages:**" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts Published" >> $GITHUB_STEP_SUMMARY
+          echo "**NuGet Packages:**" >> $GITHUB_STEP_SUMMARY
           echo "- HeroSD-JWT.${{ inputs.version }}.nupkg" >> $GITHUB_STEP_SUMMARY
           echo "- HeroSD-JWT.${{ inputs.version }}.snupkg (symbols)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**SBOMs (Software Bill of Materials):**" >> $GITHUB_STEP_SUMMARY
+          echo "- 6 SBOMs total (3 frameworks × 2 SPDX formats)" >> $GITHUB_STEP_SUMMARY
+          echo "- Per-framework dependency tracking" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "The publish-nuget workflow will automatically trigger to publish packages to NuGet.org" >> $GITHUB_STEP_SUMMARY
