@@ -5,9 +5,7 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/KoalaFacts/HeroSD-JWT/ci.yml?branch=main&style=flat-square&logo=github&label=Build)](https://github.com/KoalaFacts/HeroSD-JWT/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-512BD4?style=flat-square&logo=.net)](https://dotnet.microsoft.com/)
-[![C#](https://img.shields.io/badge/C%23-12.0-239120?style=flat-square&logo=c-sharp)](https://docs.microsoft.com/en-us/dotnet/csharp/)
 [![AOT Compatible](https://img.shields.io/badge/AOT-Compatible-blue?style=flat-square)](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)
-[![Minimal Dependencies](https://img.shields.io/badge/Dependencies-Minimal%20(BCL%20Only)-green?style=flat-square)](https://www.nuget.org/packages/HeroSD-JWT/)
 
 A .NET library implementing SD-JWT (Selective Disclosure for JSON Web Tokens) according to the IETF [draft-ietf-oauth-selective-disclosure-jwt](https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/) specification.
 
@@ -21,11 +19,11 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
 - [Key Features](#key-features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-  - [Simple API](#-simple-api-recommended)
-  - [Nested Object Disclosure](#-nested-object-selective-disclosure)
-  - [Array Element Disclosure](#-array-element-selective-disclosure)
-  - [Signature Algorithms](#-different-signature-algorithms)
-  - [Advanced API](#-advanced-api-full-control)
+  - [Simple API](#simple-api-recommended)
+  - [Nested Object Disclosure](#nested-object-selective-disclosure)
+  - [Array Element Disclosure](#array-element-selective-disclosure)
+  - [Signature Algorithms](#different-signature-algorithms)
+  - [Advanced API](#advanced-api-full-control)
 - [Architecture](#architecture)
 - [Security](#security)
 - [Requirements](#requirements)
@@ -67,7 +65,7 @@ Install-Package HeroSD-JWT
 
 ## Quick Start
 
-### ✨ Simple API (Recommended)
+### Simple API (Recommended)
 
 The fluent builder provides an easy, discoverable API:
 
@@ -94,7 +92,7 @@ var sdJwt = SdJwtBuilder.Create()
 var presentation = sdJwt.ToPresentation("email");
 ```
 
-### 🏢 Nested Object Selective Disclosure
+### Nested Object Selective Disclosure
 
 Selectively disclose nested properties with full JSONPath-style syntax:
 
@@ -136,7 +134,7 @@ var address = result.GetDisclosedObject("address");
 // Returns: { "street": "123 Main Street", "geo": { "lat": 42.3601 } }
 ```
 
-### 📊 Array Element Selective Disclosure
+### Array Element Selective Disclosure
 
 ```csharp
 var sdJwt = SdJwtBuilder.Create()
@@ -154,7 +152,7 @@ var degrees = result.GetDisclosedArray("degrees");
 // Returns: [null, null, "PhD"] - sparse array with only disclosed element
 ```
 
-### 🔑 Different Signature Algorithms
+### Different Signature Algorithms
 
 ```csharp
 var keyGen = KeyGenerator.Instance;
@@ -184,7 +182,7 @@ var sdJwt = SdJwtBuilder.Create()
     .Build();
 ```
 
-### 🔄 JWT Key Rotation Support
+### JWT Key Rotation Support
 
 HeroSD-JWT supports JWT key rotation using the `kid` (key ID) parameter per RFC 7515 Section 4.1.4. This enables secure key management practices including regular key rotation, emergency revocation, and multi-key deployments.
 
