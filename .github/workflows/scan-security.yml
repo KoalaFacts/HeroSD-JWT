@@ -129,10 +129,9 @@ jobs:
         if: always()
         with:
           name: security-devops-${{ matrix.framework }}
-          path: |
-            .gdn/**
-            ${{ steps.msdo.outputs.sarifFile }}
+          path: .gdn
           retention-days: 90
+          if-no-files-found: warn
 
   # Consolidated security summary
   security-summary:
