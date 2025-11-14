@@ -53,7 +53,7 @@ jobs:
         cache: false  # Disabled until packages.lock.json is generated
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore --framework ${{ matrix.framework }}
 
     - name: Build
       run: dotnet build --configuration Release --no-restore --framework ${{ matrix.framework }}
