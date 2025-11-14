@@ -32,36 +32,7 @@ jobs:
           fi
           echo "Version validated: $VERSION"
 
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup .NET SDKs
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: |
-            8.0.x
-            9.0.x
-            10.0.x
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build Release
-        run: dotnet build --configuration Release --no-restore
-
-      - name: Run tests
-        run: dotnet test --configuration Release --no-build --verbosity normal
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
-        with:
-          name: build-output
-          path: |
-            src/HeroSdJwt/bin/Release/
-            src/HeroSdJwt/obj/
-          retention-days: 1
-
-  # Pack NuGet packages (parallel with SBOM generation)
+  # Pack NuGet packages
   pack-nuget:
     name: Pack NuGet Packages
     needs: build-and-test
@@ -82,17 +53,10 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Download build artifacts
-        uses: actions/download-artifact@v5
-        with:
-          name: build-output
-          path: src/HeroSdJwt/
-
       - name: Pack NuGet packages
         run: |
           dotnet pack src/HeroSdJwt/HeroSdJwt.csproj \
             --configuration Release \
-            --no-build \
             -p:PackageVersion=${{ inputs.version }} \
             -p:Version=${{ inputs.version }}
 
@@ -124,6 +88,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+        dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
         framework: ['net8.0', 'net9.0', 'net10.0']
         spdx-version: ['2.2', '3.0']
 
@@ -134,49 +99,27 @@ jobs:
       - name: Setup .NET SDKs
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: |
-            8.0.x
-            9.0.x
-            10.0.x
+          dotnet-version: ${{ matrix.dotnet-version }}
 
       - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v5
-        with:
-          name: build-output
-          path: src/HeroSdJwt/
+        run: dotnet restore -p:TargetFramework=${{ matrix.framework }}
 
       - name: Install Microsoft SBOM tool
         run: dotnet tool install --global Microsoft.Sbom.DotNetTool
 
       - name: Generate SBOM (SPDX ${{ matrix.spdx-version }})
         run: |
-          if [ "${{ matrix.spdx-version }}" == "2.2" ]; then
-            sbom-tool generate \
-              -b src/HeroSdJwt/bin/Release/${{ matrix.framework }} \
-              -bc src/HeroSdJwt \
-              -pn HeroSD-JWT \
-              -pv ${{ inputs.version }} \
-              -ps KoalaFacts \
-              -nsb https://github.com/KoalaFacts/HeroSD-JWT \
-              -m sbom-output \
-              -ManifestDirPath sbom-output \
-              -V Verbose
-          else
-            sbom-tool generate \
-              -b src/HeroSdJwt/bin/Release/${{ matrix.framework }} \
-              -bc src/HeroSdJwt \
-              -pn HeroSD-JWT \
-              -pv ${{ inputs.version }} \
-              -ps KoalaFacts \
-              -nsb https://github.com/KoalaFacts/HeroSD-JWT \
-              -mi SPDX:3.0 \
-              -m sbom-output \
-              -ManifestDirPath sbom-output \
-              -V Verbose
-          fi
+          sbom-tool generate \
+            -b src/HeroSdJwt/bin/Release/${{ matrix.framework }} \
+            -bc src/HeroSdJwt \
+            -pn HeroSD-JWT \
+            -pv ${{ inputs.version }} \
+            -ps KoalaFacts \
+            -nsb https://github.com/KoalaFacts/HeroSD-JWT \
+            -mi SPDX:${{ matrix.spdx-version }} \
+            -m sbom-output \
+            -ManifestDirPath sbom-output \
+            -V Verbose
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v5
