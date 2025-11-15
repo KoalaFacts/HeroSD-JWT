@@ -1,3 +1,5 @@
+using HeroSdJwt.Primitives;
+
 namespace HeroSdJwt.Cryptography;
 
 /// <summary>
@@ -17,18 +19,40 @@ public interface IKeyGenerator
     /// Generates an RSA key pair.
     /// </summary>
     /// <param name="keySizeBits">RSA key size in bits (minimum 2048, default 2048).</param>
-    /// <returns>Tuple of (privateKey, publicKey) in PKCS#8 and SubjectPublicKeyInfo formats.</returns>
-    (byte[] privateKey, byte[] publicKey) GenerateRsaKeyPair(int keySizeBits = 2048);
+    /// <returns>Key pair with private key and public key in PKCS#8 and SubjectPublicKeyInfo formats.</returns>
+    KeyPair GenerateRsaKeyPair(int keySizeBits = 2048);
 
     /// <summary>
     /// Generates an ECDSA key pair for ES256 (P-256 curve).
     /// </summary>
-    /// <returns>Tuple of (privateKey, publicKey) in PKCS#8 and SubjectPublicKeyInfo formats.</returns>
-    (byte[] privateKey, byte[] publicKey) GenerateEcdsaKeyPair();
+    /// <returns>Key pair with private key and public key in PKCS#8 and SubjectPublicKeyInfo formats.</returns>
+    KeyPair GenerateEcdsaKeyPair();
 
     /// <summary>
     /// Generates an Ed25519 key pair for EdDSA.
     /// </summary>
-    /// <returns>Tuple of (privateKey, publicKey). PrivateKey is 64-byte expanded key, publicKey is 32-byte raw key.</returns>
-    (byte[] privateKey, byte[] publicKey) GenerateEd25519KeyPair();
+    /// <returns>Key pair with 64-byte expanded private key and 32-byte raw public key.</returns>
+    KeyPair GenerateEd25519KeyPair();
+
+#if NET10_0_OR_GREATER
+    /// <summary>
+    /// Generates an ML-DSA-65 key pair for post-quantum digital signatures.
+    /// ML-DSA (Module-Lattice-Based Digital Signature Algorithm) provides security level 3 (~192-bit classical equivalent).
+    /// </summary>
+    /// <returns>Key pair with ML-DSA-65 private key (~2,560 bytes) and public key (~1,952 bytes) in FIPS 204 format.</returns>
+    /// <remarks>
+    /// Requires .NET 10 or later.
+    /// </remarks>
+    KeyPair GenerateMlDsa65KeyPair();
+
+    /// <summary>
+    /// Generates an ML-DSA-87 key pair for post-quantum digital signatures.
+    /// ML-DSA (Module-Lattice-Based Digital Signature Algorithm) provides security level 5 (~256-bit classical equivalent).
+    /// </summary>
+    /// <returns>Key pair with ML-DSA-87 private key (~4,896 bytes) and public key (~2,592 bytes) in FIPS 204 format.</returns>
+    /// <remarks>
+    /// Requires .NET 10 or later.
+    /// </remarks>
+    KeyPair GenerateMlDsa87KeyPair();
+#endif
 }

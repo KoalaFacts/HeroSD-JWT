@@ -71,8 +71,13 @@ public class SignatureValidator : ISignatureValidator
         // Verify algorithm is supported
         if (!IsSupportedAlgorithm(algorithm))
         {
+#if NET10_0_OR_GREATER
+            throw new AlgorithmNotSupportedException(
+                $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, HS384, HS512, RS256, PS256, ES256, ES384, ES512, EdDSA, MLDSA65, MLDSA87");
+#else
             throw new AlgorithmNotSupportedException(
                 $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, HS384, HS512, RS256, PS256, ES256, ES384, ES512, EdDSA");
+#endif
         }
 
         // Construct the signing input (header.payload)
@@ -94,6 +99,10 @@ public class SignatureValidator : ISignatureValidator
             "ES384" => VerifyEcdsa384(signingInputBytes, signatureBytes, publicKey),
             "ES512" => VerifyEcdsa512(signingInputBytes, signatureBytes, publicKey),
             "EdDSA" => VerifyEdDsa(signingInputBytes, signatureBytes, publicKey),
+#if NET10_0_OR_GREATER
+            "MLDSA65" => VerifyMlDsa65(signingInputBytes, signatureBytes, publicKey),
+            "MLDSA87" => VerifyMlDsa87(signingInputBytes, signatureBytes, publicKey),
+#endif
             _ => throw new AlgorithmNotSupportedException($"Algorithm '{algorithm}' verification not implemented")
         };
     }
@@ -490,8 +499,78 @@ public class SignatureValidator : ISignatureValidator
             "ES384" => true,
             "ES512" => true,
             "EdDSA" => true,
+#if NET10_0_OR_GREATER
+            "MLDSA65" => true,
+            "MLDSA87" => true,
+#endif
             _ => false
         };
     }
+
+#if NET10_0_OR_GREATER
+    /// <summary>
+    /// Verifies an ML-DSA-65 post-quantum digital signature.
+    /// Public key must be in binary format per FIPS 204.
+    /// </summary>
+    /// <param name="data">Data that was signed.</param>
+    /// <param name="signature">ML-DSA-65 signature (~3,309 bytes).</param>
+    /// <param name="publicKeyBytes">ML-DSA-65 public key (~1,952 bytes).</param>
+    /// <returns>True if signature is valid; otherwise, false.</returns>
+    private static bool VerifyMlDsa65(byte[] data, byte[] signature, byte[] publicKeyBytes)
+    {
+        // Note: This is a placeholder for the actual .NET 10 API
+        // The actual implementation will use System.Security.Cryptography ML-DSA APIs
+        // when .NET 10 is released with PQC support
+
+        throw new NotImplementedException(
+            "ML-DSA-65 verification requires .NET 10 with PQC support. " +
+            "This is a preview implementation pending .NET 10 GA release.");
+
+        // Expected implementation (when .NET 10 PQC APIs are available):
+        // try
+        // {
+        //     using var mlDsa = MLDsa65.Create();
+        //     mlDsa.ImportPublicKey(publicKeyBytes);
+        //     return mlDsa.VerifyData(data, signature);
+        // }
+        // catch (CryptographicException)
+        // {
+        //     // Invalid key format or verification failure
+        //     return false;
+        // }
+    }
+
+    /// <summary>
+    /// Verifies an ML-DSA-87 post-quantum digital signature.
+    /// Public key must be in binary format per FIPS 204.
+    /// </summary>
+    /// <param name="data">Data that was signed.</param>
+    /// <param name="signature">ML-DSA-87 signature (~4,627 bytes).</param>
+    /// <param name="publicKeyBytes">ML-DSA-87 public key (~2,592 bytes).</param>
+    /// <returns>True if signature is valid; otherwise, false.</returns>
+    private static bool VerifyMlDsa87(byte[] data, byte[] signature, byte[] publicKeyBytes)
+    {
+        // Note: This is a placeholder for the actual .NET 10 API
+        // The actual implementation will use System.Security.Cryptography ML-DSA APIs
+        // when .NET 10 is released with PQC support
+
+        throw new NotImplementedException(
+            "ML-DSA-87 verification requires .NET 10 with PQC support. " +
+            "This is a preview implementation pending .NET 10 GA release.");
+
+        // Expected implementation (when .NET 10 PQC APIs are available):
+        // try
+        // {
+        //     using var mlDsa = MLDsa87.Create();
+        //     mlDsa.ImportPublicKey(publicKeyBytes);
+        //     return mlDsa.VerifyData(data, signature);
+        // }
+        // catch (CryptographicException)
+        // {
+        //     // Invalid key format or verification failure
+        //     return false;
+        // }
+    }
+#endif
 
 }

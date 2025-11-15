@@ -49,6 +49,10 @@ public class JwtSigner : IJwtSigner
             SignatureAlgorithm.PS256 => "PS256",
             SignatureAlgorithm.ES384 => "ES384",
             SignatureAlgorithm.ES512 => "ES512",
+#if NET10_0_OR_GREATER
+            SignatureAlgorithm.MLDSA65 => "MLDSA65",
+            SignatureAlgorithm.MLDSA87 => "MLDSA87",
+#endif
             _ => throw new ArgumentException($"Unsupported algorithm: {algorithm}", nameof(algorithm))
         };
 
@@ -87,6 +91,10 @@ public class JwtSigner : IJwtSigner
             SignatureAlgorithm.PS256 => SignPss256(signingInputBytes, signingKey),
             SignatureAlgorithm.ES384 => SignEcdsa384(signingInputBytes, signingKey),
             SignatureAlgorithm.ES512 => SignEcdsa512(signingInputBytes, signingKey),
+#if NET10_0_OR_GREATER
+            SignatureAlgorithm.MLDSA65 => SignMlDsa65(signingInputBytes, signingKey),
+            SignatureAlgorithm.MLDSA87 => SignMlDsa87(signingInputBytes, signingKey),
+#endif
             _ => throw new ArgumentException($"Algorithm {algorithm} not implemented", nameof(algorithm))
         };
 
@@ -394,4 +402,72 @@ public class JwtSigner : IJwtSigner
                 break;
         }
     }
+
+#if NET10_0_OR_GREATER
+    /// <summary>
+    /// Signs data using ML-DSA-65 post-quantum digital signature algorithm.
+    /// Key must be in binary format per FIPS 204.
+    /// </summary>
+    /// <param name="data">Data to sign.</param>
+    /// <param name="privateKeyBytes">ML-DSA-65 private key (~2,560 bytes).</param>
+    /// <returns>ML-DSA-65 signature (~3,309 bytes).</returns>
+    private static byte[] SignMlDsa65(byte[] data, byte[] privateKeyBytes)
+    {
+        // Note: This is a placeholder for the actual .NET 10 API
+        // The actual implementation will use System.Security.Cryptography ML-DSA APIs
+        // when .NET 10 is released with PQC support
+
+        throw new NotImplementedException(
+            "ML-DSA-65 signing requires .NET 10 with PQC support. " +
+            "This is a preview implementation pending .NET 10 GA release.");
+
+        // Expected implementation (when .NET 10 PQC APIs are available):
+        // try
+        // {
+        //     using var mlDsa = MLDsa65.Create();
+        //     mlDsa.ImportPrivateKey(privateKeyBytes);
+        //     return mlDsa.SignData(data);
+        // }
+        // catch (CryptographicException ex)
+        // {
+        //     throw new ArgumentException(
+        //         "Invalid ML-DSA-65 private key format. Expected binary format per FIPS 204.",
+        //         nameof(privateKeyBytes),
+        //         ex);
+        // }
+    }
+
+    /// <summary>
+    /// Signs data using ML-DSA-87 post-quantum digital signature algorithm.
+    /// Key must be in binary format per FIPS 204.
+    /// </summary>
+    /// <param name="data">Data to sign.</param>
+    /// <param name="privateKeyBytes">ML-DSA-87 private key (~4,896 bytes).</param>
+    /// <returns>ML-DSA-87 signature (~4,627 bytes).</returns>
+    private static byte[] SignMlDsa87(byte[] data, byte[] privateKeyBytes)
+    {
+        // Note: This is a placeholder for the actual .NET 10 API
+        // The actual implementation will use System.Security.Cryptography ML-DSA APIs
+        // when .NET 10 is released with PQC support
+
+        throw new NotImplementedException(
+            "ML-DSA-87 signing requires .NET 10 with PQC support. " +
+            "This is a preview implementation pending .NET 10 GA release.");
+
+        // Expected implementation (when .NET 10 PQC APIs are available):
+        // try
+        // {
+        //     using var mlDsa = MLDsa87.Create();
+        //     mlDsa.ImportPrivateKey(privateKeyBytes);
+        //     return mlDsa.SignData(data);
+        // }
+        // catch (CryptographicException ex)
+        // {
+        //     throw new ArgumentException(
+        //         "Invalid ML-DSA-87 private key format. Expected binary format per FIPS 204.",
+        //         nameof(privateKeyBytes),
+        //         ex);
+        // }
+    }
+#endif
 }
