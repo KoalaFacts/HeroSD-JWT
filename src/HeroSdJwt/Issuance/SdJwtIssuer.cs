@@ -15,20 +15,20 @@ namespace HeroSdJwt.Issuance;
 /// Initializes a new instance of the <see cref="SdJwtIssuer"/> class with dependencies.
 /// For simple usage: new SdJwtIssuer(new DisclosureGenerator(), new DigestCalculator(), new EcPublicKeyConverter(), new JwtSigner())
 /// </remarks>
-/// <param name="disclosureGenerator">The disclosure generator.</param>
-/// <param name="digestCalculator">The digest calculator.</param>
+/// <param name="_disclosureGenerator">The disclosure generator.</param>
+/// <param name="_digestCalculator">The digest calculator.</param>
 /// <param name="ecPublicKeyConverter">The EC public key converter.</param>
-/// <param name="jwtSigner">The JWT signer.</param>
+/// <param name="_jwtSigner">The JWT signer.</param>
 public class SdJwtIssuer(
-    IDisclosureGenerator disclosureGenerator,
-    IDigestCalculator digestCalculator,
+    IDisclosureGenerator _disclosureGenerator,
+    IDigestCalculator _digestCalculator,
     IEcPublicKeyConverter ecPublicKeyConverter,
-    IJwtSigner jwtSigner) : ISdJwtIssuer
+    IJwtSigner _jwtSigner) : ISdJwtIssuer
 {
-    private readonly IDisclosureGenerator disclosureGenerator = disclosureGenerator ?? throw new ArgumentNullException(nameof(disclosureGenerator));
-    private readonly IDigestCalculator digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
+    private readonly IDisclosureGenerator _disclosureGenerator = _disclosureGenerator ?? throw new ArgumentNullException(nameof(_disclosureGenerator));
+    private readonly IDigestCalculator _digestCalculator = _digestCalculator ?? throw new ArgumentNullException(nameof(_digestCalculator));
     private readonly IEcPublicKeyConverter ecPublicKeyConverter = ecPublicKeyConverter ?? throw new ArgumentNullException(nameof(ecPublicKeyConverter));
-    private readonly IJwtSigner jwtSigner = jwtSigner ?? throw new ArgumentNullException(nameof(jwtSigner));
+    private readonly IJwtSigner _jwtSigner = _jwtSigner ?? throw new ArgumentNullException(nameof(_jwtSigner));
 
     /// <summary>
     /// Creates an SD-JWT with the specified claims and selective disclosure settings.
@@ -124,11 +124,11 @@ public class SdJwtIssuer(
 #pragma warning restore IL2026, IL3050
 
                     // Generate disclosure
-                    var disclosure = disclosureGenerator.GenerateDisclosure(claimPath.BaseName, jsonElement);
+                    var disclosure = _disclosureGenerator.GenerateDisclosure(claimPath.BaseName, jsonElement);
                     disclosures.Add(disclosure);
 
                     // Compute digest
-                    var digest = digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
+                    var digest = _digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
                     digests.Add(digest);
                 }
             }
@@ -139,9 +139,9 @@ public class SdJwtIssuer(
             // disclosing information about the End-User."
             if (decoyDigestCount > 0)
             {
-                var decoyGenerator = new DecoyDigestGenerator(digestCalculator);
-                var decoyDigests = decoyGenerator.GenerateDecoyDigests(decoyDigestCount, hashAlgorithm);
-                digests = decoyGenerator.InterleaveDecoys(digests, decoyDigests);
+                var _decoyGenerator = new DecoyDigestGenerator(_digestCalculator);
+                var decoyDigests = _decoyGenerator.GenerateDecoyDigests(decoyDigestCount, hashAlgorithm);
+                digests = _decoyGenerator.InterleaveDecoys(digests, decoyDigests);
             }
 
             // Step 1.5: Process nested claims and build objects with _sd arrays
@@ -149,7 +149,7 @@ public class SdJwtIssuer(
 
             if (nestedClaims.Count > 0)
             {
-                var nestedProcessor = new NestedClaimProcessor(disclosureGenerator, digestCalculator);
+                var nestedProcessor = new NestedClaimProcessor(_disclosureGenerator, _digestCalculator);
                 modifiedClaims = nestedProcessor.ProcessNestedClaims(
                     modifiedClaims,
                     nestedClaims,
@@ -205,11 +205,11 @@ public class SdJwtIssuer(
                         var elementValue = arrayElement[i];
 
                         // Generate array element disclosure (2-element format)
-                        var disclosure = disclosureGenerator.GenerateArrayElementDisclosure(elementValue);
+                        var disclosure = _disclosureGenerator.GenerateArrayElementDisclosure(elementValue);
                         disclosures.Add(disclosure);
 
                         // Compute digest
-                        var digest = digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
+                        var digest = _digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
                         digests.Add(digest);
 
                         // Replace element with placeholder
@@ -284,11 +284,11 @@ public class SdJwtIssuer(
             }
 
             // Step 3: Create JWT using the specified signature algorithm
-            var jwt = jwtSigner.CreateJwt(payload, signingKey, signatureAlgorithm, keyId);
+            var jwt = _jwtSigner.CreateJwt(payload, signingKey, signatureAlgorithm, keyId);
 
             // Step 4: Compute claim path mapping for presentation performance optimization
             // This caches the mapping at issuance time to avoid recomputation on every presentation
-            var claimPathMapper = new DisclosureClaimPathMapper(digestCalculator, new DisclosureParser());
+            var claimPathMapper = new DisclosureClaimPathMapper(_digestCalculator, new DisclosureParser());
 
             // Create temporary SdJwt to compute the mapping
             var tempSdJwt = new SdJwt(jwt, disclosures, hashAlgorithm);

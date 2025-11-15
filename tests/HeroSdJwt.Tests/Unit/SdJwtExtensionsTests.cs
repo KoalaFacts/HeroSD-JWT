@@ -10,13 +10,13 @@ namespace HeroSdJwt.Tests.Unit;
 /// </summary>
 public class SdJwtExtensionsTests
 {
-    private readonly IKeyGenerator keyGenerator = KeyGenerator.Instance;
+    private readonly IKeyGenerator _keyGenerator = KeyGenerator.Instance;
 
     [Fact]
     public void ToPresentation_WithSelectedClaims_ReturnsValidPresentation()
     {
         // Arrange
-        var key = keyGenerator.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -43,7 +43,7 @@ public class SdJwtExtensionsTests
     public void ToPresentation_CanBeVerified()
     {
         // Arrange
-        var key = keyGenerator.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -71,7 +71,7 @@ public class SdJwtExtensionsTests
     public void ToPresentationWithAllClaims_RevealsEverything()
     {
         // Arrange
-        var key = keyGenerator.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -119,7 +119,7 @@ public class SdJwtExtensionsTests
     public void ToPresentationWithKeyBinding_WithNullKeyBinding_ThrowsArgumentNullException()
     {
         // Arrange
-        var key = keyGenerator.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
         var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
@@ -135,7 +135,7 @@ public class SdJwtExtensionsTests
     public void ToPresentation_WithNoClaimsToReveal_ReturnsJwtOnly()
     {
         // Arrange
-        var key = keyGenerator.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -161,7 +161,7 @@ public class SdJwtExtensionsTests
     public void ExtensionMethods_WorkWithBuilderAPI()
     {
         // Arrange & Act - Fluent chain from builder to presentation
-        var key = keyGenerator.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var presentation = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user123")
             .WithClaim("email", "user@example.com")

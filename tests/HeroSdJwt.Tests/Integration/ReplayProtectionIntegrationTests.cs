@@ -18,18 +18,18 @@ namespace HeroSdJwt.Tests.Integration;
 /// </summary>
 public class ReplayProtectionIntegrationTests : IDisposable
 {
-    private readonly InMemoryJtiCache cache;
-    private readonly ReplayProtectionOptions replayOptions;
+    private readonly InMemoryJtiCache _cache;
+    private readonly ReplayProtectionOptions _replayOptions;
     private readonly CancellationToken _ct = TestContext.Current.CancellationToken;
 
     public ReplayProtectionIntegrationTests()
     {
-        replayOptions = new ReplayProtectionOptions
+        _replayOptions = new ReplayProtectionOptions
         {
             Enabled = true,
             RequireJtiClaim = true
         };
-        cache = new InMemoryJtiCache(replayOptions);
+        _cache = new InMemoryJtiCache(_replayOptions);
     }
 
     private static byte[] GenerateSecureTestKey()
@@ -109,7 +109,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Create verifier WITH JtiValidator
-        var jtiValidator = new JtiValidator(cache, replayOptions);
+        var jtiValidator = new JtiValidator(_cache, _replayOptions);
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - First verification
@@ -151,7 +151,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Create verifier WITH JtiValidator
-        var jtiValidator = new JtiValidator(cache, replayOptions);
+        var jtiValidator = new JtiValidator(_cache, _replayOptions);
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - First verification
@@ -246,7 +246,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Create verifier WITH JtiValidator (RequireJtiClaim = true)
-        var jtiValidator = new JtiValidator(cache, replayOptions);
+        var jtiValidator = new JtiValidator(_cache, _replayOptions);
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act & Assert - Should throw SdJwtException for missing jti
@@ -287,7 +287,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Create verifier WITH JtiValidator
-        var jtiValidator = new JtiValidator(cache, replayOptions);
+        var jtiValidator = new JtiValidator(_cache, _replayOptions);
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act & Assert - Should throw SdJwtException for missing issuer
@@ -335,7 +335,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var presentation2 = presenter.FormatPresentation(presenter.CreatePresentationWithAllClaims(sdJwt2));
 
         // Create verifier WITH JtiValidator
-        var jtiValidator = new JtiValidator(cache, replayOptions);
+        var jtiValidator = new JtiValidator(_cache, _replayOptions);
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - Verify both presentations
@@ -379,7 +379,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Create verifier WITH JtiValidator
-        var jtiValidator = new JtiValidator(cache, replayOptions);
+        var jtiValidator = new JtiValidator(_cache, _replayOptions);
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - First verification using TryVerify
@@ -438,6 +438,6 @@ public class ReplayProtectionIntegrationTests : IDisposable
 
     public void Dispose()
     {
-        cache?.Dispose();
+        _cache?.Dispose();
     }
 }

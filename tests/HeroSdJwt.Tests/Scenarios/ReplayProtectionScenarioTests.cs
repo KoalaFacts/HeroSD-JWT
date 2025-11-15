@@ -18,20 +18,20 @@ namespace HeroSdJwt.Tests.Scenarios;
 /// </summary>
 public class ReplayProtectionScenarioTests : IDisposable
 {
-    private readonly InMemoryJtiCache cache;
-    private readonly ReplayProtectionOptions replayOptions;
-    private readonly byte[] signingKey;
+    private readonly InMemoryJtiCache _cache;
+    private readonly ReplayProtectionOptions _replayOptions;
+    private readonly byte[] _signingKey;
 
     public ReplayProtectionScenarioTests()
     {
-        replayOptions = new ReplayProtectionOptions
+        _replayOptions = new ReplayProtectionOptions
         {
             Enabled = true,
             RequireJtiClaim = true,
             FailureMode = CacheFailureMode.FailClosed
         };
-        cache = new InMemoryJtiCache(replayOptions);
-        signingKey = GenerateSecureTestKey();
+        _cache = new InMemoryJtiCache(_replayOptions);
+        _signingKey = GenerateSecureTestKey();
     }
 
     private static byte[] GenerateSecureTestKey()
@@ -46,7 +46,7 @@ public class ReplayProtectionScenarioTests : IDisposable
     /// <summary>
     /// T016 Scenario 1: Multiple concurrent verification attempts of the same token.
     /// Expected: Exactly 1 succeeds, 99 throw ReplayAttackException.
-    /// Validates atomic cache operations work under load.
+    /// Validates atomic _cache operations work under load.
     /// </summary>
     [Fact]
     public async Task ConcurrentVerifications_SameToken_OnlyFirstSucceeds()
@@ -67,7 +67,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256
         );
 
@@ -75,7 +75,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
         var presentationString = presenter.FormatPresentation(presentation);
 
-        var jtiValidator = new JtiValidator(cache, replayOptions);
+        var jtiValidator = new JtiValidator(_cache, _replayOptions);
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - Spawn 100 concurrent verification tasks
@@ -88,7 +88,7 @@ public class ReplayProtectionScenarioTests : IDisposable
             {
                 try
                 {
-                    await VerifyPresentationAsync(verifier, presentationString, signingKey, TestContext.Current.CancellationToken);
+                    await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
                     return true; // Verification succeeded
                 }
                 catch (ReplayAttackException ex)
@@ -139,7 +139,7 @@ public class ReplayProtectionScenarioTests : IDisposable
             var sdJwt = issuer.CreateSdJwt(
                 claims,
                 new[] { "email" },
-                signingKey,
+                _signingKey,
                 HashAlgorithm.Sha256
             );
 
@@ -148,13 +148,13 @@ public class ReplayProtectionScenarioTests : IDisposable
             presentationStrings[i] = presenter.FormatPresentation(presentation);
         }
 
-        var jtiValidator = new JtiValidator(cache, replayOptions);
+        var jtiValidator = new JtiValidator(_cache, _replayOptions);
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - Verify all 100 tokens concurrently
         var tasks = presentationStrings.Select(presentation =>
             Task.Run(async () =>
-                await VerifyPresentationAsync(verifier, presentation, signingKey, TestContext.Current.CancellationToken)
+                await VerifyPresentationAsync(verifier, presentation, _signingKey, TestContext.Current.CancellationToken)
             )
         ).ToArray();
 
@@ -176,7 +176,7 @@ public class ReplayProtectionScenarioTests : IDisposable
 
     /// <summary>
     /// T017 Scenario 1: Verify token after TTL expiration allows reuse.
-    /// Expected: Second verification succeeds after TTL expired (cache entry gone).
+    /// Expected: Second verification succeeds after TTL expired (_cache entry gone).
     /// </summary>
     [Fact]
     public async Task VerifyAfterTtlExpiration_AllowsReuse()
@@ -197,7 +197,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256
         );
 
@@ -205,11 +205,11 @@ public class ReplayProtectionScenarioTests : IDisposable
         var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
         var presentationString = presenter.FormatPresentation(presentation);
 
-        var jtiValidator = new JtiValidator(cache, replayOptions);
+        var jtiValidator = new JtiValidator(_cache, _replayOptions);
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - First verification succeeds
-        var result1 = await VerifyPresentationAsync(verifier, presentationString, signingKey, TestContext.Current.CancellationToken);
+        var result1 = await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         Assert.True(result1.IsValid, "First verification should succeed");
 
         // Wait for TTL to expire (3 seconds + clock skew tolerance + buffer)
@@ -217,14 +217,14 @@ public class ReplayProtectionScenarioTests : IDisposable
 
         // Act - Second verification after TTL expiration
         // Note: This will fail because the token's exp claim has expired (TokenExpired error)
-        // The cache entry would be gone, but token expiration validation happens first
+        // The _cache entry would be gone, but token expiration validation happens first
         var exception = await Assert.ThrowsAsync<SdJwtException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, signingKey, TestContext.Current.CancellationToken);
+            await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         });
 
         // Assert - Should fail with TokenExpired (not ReplayAttack)
-        // This validates that cache entry was cleaned up, but token expiration takes precedence
+        // This validates that _cache entry was cleaned up, but token expiration takes precedence
         Assert.Equal(ErrorCode.TokenExpired, exception.ErrorCode);
     }
 
@@ -251,7 +251,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256
         );
 
@@ -259,17 +259,17 @@ public class ReplayProtectionScenarioTests : IDisposable
         var presentation = presenter.CreatePresentationWithAllClaims(sdJwt);
         var presentationString = presenter.FormatPresentation(presentation);
 
-        var jtiValidator = new JtiValidator(cache, replayOptions);
+        var jtiValidator = new JtiValidator(_cache, _replayOptions);
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - First verification succeeds
-        var result1 = await VerifyPresentationAsync(verifier, presentationString, signingKey, TestContext.Current.CancellationToken);
+        var result1 = await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         Assert.True(result1.IsValid, "First verification should succeed");
 
         // Act - Immediately verify again (within TTL)
         var exception = await Assert.ThrowsAsync<ReplayAttackException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, signingKey, TestContext.Current.CancellationToken);
+            await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         });
 
         // Assert
@@ -307,7 +307,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var sdJwt = issuer.CreateSdJwt(
             issuerClaims,
             new[] { "email", "birthdate" },
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256
         );
 
@@ -317,11 +317,11 @@ public class ReplayProtectionScenarioTests : IDisposable
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Verifier validates (with replay protection)
-        var jtiValidator = new JtiValidator(cache, replayOptions);
+        var jtiValidator = new JtiValidator(_cache, _replayOptions);
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - Legitimate presentation from holder
-        var result = await VerifyPresentationAsync(verifier, presentationString, signingKey, TestContext.Current.CancellationToken);
+        var result = await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
 
         // Assert - Legitimate presentation succeeds
         Assert.True(result.IsValid, "Holder's legitimate presentation should succeed");
@@ -334,7 +334,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         // Act - Attacker captures token and tries to replay
         var attackException = await Assert.ThrowsAsync<ReplayAttackException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, signingKey, TestContext.Current.CancellationToken);
+            await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         });
 
         // Assert - Replay attack is detected
@@ -344,8 +344,8 @@ public class ReplayProtectionScenarioTests : IDisposable
     }
 
     /// <summary>
-    /// T018 Scenario 2: Multiple issuers with same jti have independent cache entries.
-    /// Expected: Both tokens succeed (cache keys are (issuer,jti) tuples).
+    /// T018 Scenario 2: Multiple issuers with same jti have independent _cache entries.
+    /// Expected: Both tokens succeed (_cache keys are (issuer,jti) tuples).
     /// </summary>
     [Fact]
     public async Task MultipleIssuers_SameJti_IndependentCaches()
@@ -373,19 +373,19 @@ public class ReplayProtectionScenarioTests : IDisposable
         };
 
         var issuer = TestHelpers.CreateIssuer();
-        var sdJwt1 = issuer.CreateSdJwt(issuer1Claims, new[] { "email" }, signingKey, HashAlgorithm.Sha256);
-        var sdJwt2 = issuer.CreateSdJwt(issuer2Claims, new[] { "email" }, signingKey, HashAlgorithm.Sha256);
+        var sdJwt1 = issuer.CreateSdJwt(issuer1Claims, new[] { "email" }, _signingKey, HashAlgorithm.Sha256);
+        var sdJwt2 = issuer.CreateSdJwt(issuer2Claims, new[] { "email" }, _signingKey, HashAlgorithm.Sha256);
 
         var presenter = new SdJwtPresenter();
         var presentation1 = presenter.FormatPresentation(presenter.CreatePresentationWithAllClaims(sdJwt1));
         var presentation2 = presenter.FormatPresentation(presenter.CreatePresentationWithAllClaims(sdJwt2));
 
-        var jtiValidator = new JtiValidator(cache, replayOptions);
+        var jtiValidator = new JtiValidator(_cache, _replayOptions);
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - Verify both presentations
-        var result1 = await VerifyPresentationAsync(verifier, presentation1, signingKey, TestContext.Current.CancellationToken);
-        var result2 = await VerifyPresentationAsync(verifier, presentation2, signingKey, TestContext.Current.CancellationToken);
+        var result1 = await VerifyPresentationAsync(verifier, presentation1, _signingKey, TestContext.Current.CancellationToken);
+        var result2 = await VerifyPresentationAsync(verifier, presentation2, _signingKey, TestContext.Current.CancellationToken);
 
         // Assert - Both should succeed because they have different issuers
         Assert.True(result1.IsValid, "First verification (issuer-a) should succeed");
@@ -425,7 +425,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256
         );
 
@@ -437,7 +437,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var results = new List<Models.VerificationResult>();
         for (int i = 0; i < 10; i++)
         {
-            var result = await VerifyPresentationAsync(verifier, presentationString, signingKey, TestContext.Current.CancellationToken);
+            var result = await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
             results.Add(result);
         }
 
@@ -455,7 +455,7 @@ public class ReplayProtectionScenarioTests : IDisposable
     /// <summary>
     /// T018 Scenario 4: Fail-closed mode configuration test.
     /// Expected: FailureMode can be configured, demonstrating fail-closed vs fail-open options.
-    /// Note: Testing actual cache failures requires mocking. This test verifies configuration.
+    /// Note: Testing actual _cache failures requires mocking. This test verifies configuration.
     /// </summary>
     [Fact]
     public async Task FailClosedMode_ConfigurationTest()
@@ -486,7 +486,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var sdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email" },
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256
         );
 
@@ -499,13 +499,13 @@ public class ReplayProtectionScenarioTests : IDisposable
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - First verification succeeds
-        var result1 = await VerifyPresentationAsync(verifier, presentationString, signingKey, TestContext.Current.CancellationToken);
+        var result1 = await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         Assert.True(result1.IsValid, "First verification should succeed");
 
         // Act - Second verification is prevented (replay protection)
         var exception = await Assert.ThrowsAsync<ReplayAttackException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, signingKey, TestContext.Current.CancellationToken);
+            await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         });
 
         // Assert - Replay attack is detected
@@ -548,7 +548,7 @@ public class ReplayProtectionScenarioTests : IDisposable
 
     public void Dispose()
     {
-        cache?.Dispose();
+        _cache?.Dispose();
     }
 
     #endregion

@@ -11,13 +11,13 @@ namespace HeroSdJwt.Tests.Contract;
 /// </summary>
 public class SdJwtIssuerBuilderKeyIdTests
 {
-    private readonly KeyGenerator keyGen = KeyGenerator.Instance;
+    private readonly KeyGenerator _keyGen = KeyGenerator.Instance;
 
     [Fact]
     public void WithKeyId_ValidKeyId_IncludesKidInJwtHeader()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var keyId = "key-2024-10";
 
         // Act
@@ -44,7 +44,7 @@ public class SdJwtIssuerBuilderKeyIdTests
     public void WithKeyId_EmptyString_ThrowsArgumentException()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -61,7 +61,7 @@ public class SdJwtIssuerBuilderKeyIdTests
     public void WithKeyId_ExceedsMaxLength_ThrowsArgumentException()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var longKeyId = new string('x', 257); // 257 characters (max is 256)
 
         // Act & Assert
@@ -79,7 +79,7 @@ public class SdJwtIssuerBuilderKeyIdTests
     public void WithKeyId_NonPrintableCharacters_ThrowsArgumentException()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var invalidKeyId = "key\nwith\nnewlines"; // Contains newline (ASCII 10)
 
         // Act & Assert
@@ -97,7 +97,7 @@ public class SdJwtIssuerBuilderKeyIdTests
     public void WithKeyId_CaseSensitive_PreservesCase()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var keyId = "Key-MiXeD-CaSe-2024";
 
         // Act
@@ -120,7 +120,7 @@ public class SdJwtIssuerBuilderKeyIdTests
     public void WithoutKeyId_DoesNotIncludeKidInJwtHeader()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         // Act
         var sdJwt = SdJwtIssuerBuilder.Create()
@@ -152,15 +152,15 @@ public class SdJwtIssuerBuilderKeyIdTests
         switch (algorithmName)
         {
             case "HS256":
-                signingKey = keyGen.GenerateHmacKey();
+                signingKey = _keyGen.GenerateHmacKey();
                 signMethod = builder => builder.SignWithHmac(signingKey);
                 break;
             case "RS256":
-                (signingKey, _) = keyGen.GenerateRsaKeyPair();
+                (signingKey, _) = _keyGen.GenerateRsaKeyPair();
                 signMethod = builder => builder.SignWithRsa(signingKey);
                 break;
             case "ES256":
-                (signingKey, _) = keyGen.GenerateEcdsaKeyPair();
+                (signingKey, _) = _keyGen.GenerateEcdsaKeyPair();
                 signMethod = builder => builder.SignWithEcdsa(signingKey);
                 break;
             default:
@@ -189,7 +189,7 @@ public class SdJwtIssuerBuilderKeyIdTests
     public void WithKeyId_WhitespaceOnly_ThrowsArgumentException()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -206,7 +206,7 @@ public class SdJwtIssuerBuilderKeyIdTests
     public void WithKeyId_Null_ThrowsArgumentNullException()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
@@ -221,7 +221,7 @@ public class SdJwtIssuerBuilderKeyIdTests
     public void WithKeyId_MaxLength_IncludesKidInHeader()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var keyId = new string('x', 256); // Exactly 256 characters (at the limit)
 
         // Act

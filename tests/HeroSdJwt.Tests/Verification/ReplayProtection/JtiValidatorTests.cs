@@ -10,13 +10,13 @@ namespace HeroSdJwt.Tests.Verification.ReplayProtection;
 /// </summary>
 public class JtiValidatorTests
 {
-    private readonly IJtiCache cache;
-    private readonly ReplayProtectionOptions options;
-    private readonly JtiValidator validator;
+    private readonly IJtiCache _cache;
+    private readonly ReplayProtectionOptions _options;
+    private readonly JtiValidator _validator;
 
     public JtiValidatorTests()
     {
-        options = new ReplayProtectionOptions
+        _options = new ReplayProtectionOptions
         {
             Enabled = true,
             RequireJtiClaim = true,
@@ -25,8 +25,8 @@ public class JtiValidatorTests
             ClockSkewTolerance = TimeSpan.FromSeconds(30),
             FailureMode = CacheFailureMode.FailClosed
         };
-        cache = new InMemoryJtiCache(options);
-        validator = new JtiValidator(cache, options);
+        _cache = new InMemoryJtiCache(_options);
+        _validator = new JtiValidator(_cache, _options);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class JtiValidatorTests
         };
 
         // Act & Assert - Should not throw
-        await validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
+        await _validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -61,11 +61,11 @@ public class JtiValidatorTests
             ["exp"] = JsonSerializer.SerializeToElement(exp)
         };
 
-        await validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
+        await _validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
 
         // Act & Assert - Second validation should throw
         var ex = await Assert.ThrowsAsync<ReplayAttackException>(() =>
-            validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
+            _validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
 
         Assert.Equal(jti, ex.Jti);
         Assert.Equal(issuer, ex.Issuer);
@@ -84,7 +84,7 @@ public class JtiValidatorTests
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<SdJwtException>(() =>
-            validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
+            _validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
 
         Assert.Contains("jti", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -98,7 +98,7 @@ public class JtiValidatorTests
             Enabled = true,
             RequireJtiClaim = false // Allow missing jti
         };
-        var permissiveValidator = new JtiValidator(cache, permissiveOptions);
+        var permissiveValidator = new JtiValidator(_cache, permissiveOptions);
 
         var issuer = "https://issuer.example";
         var claims = new Dictionary<string, JsonElement>
@@ -124,7 +124,7 @@ public class JtiValidatorTests
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<SdJwtException>(() =>
-            validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
+            _validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
 
         Assert.Contains("iss", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -144,10 +144,10 @@ public class JtiValidatorTests
         };
 
         // Act
-        await validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
+        await _validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
 
-        // Assert - Entry should exist in cache
-        var exists = await cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken);
+        // Assert - Entry should exist in _cache
+        var exists = await _cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken);
         Assert.True(exists);
     }
 
@@ -165,10 +165,10 @@ public class JtiValidatorTests
         };
 
         // Act
-        await validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
+        await _validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
 
-        // Assert - Entry should exist in cache
-        var exists = await cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken);
+        // Assert - Entry should exist in _cache
+        var exists = await _cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken);
         Assert.True(exists);
     }
 
@@ -188,7 +188,7 @@ public class JtiValidatorTests
 
         // Act & Assert - Should throw due to expiration
         await Assert.ThrowsAsync<SdJwtException>(() =>
-            validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
+            _validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -206,10 +206,10 @@ public class JtiValidatorTests
         };
 
         // Act - Should cap TTL at MaximumTtl (24 hours)
-        await validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
+        await _validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
 
         // Assert - Entry exists (capped TTL used)
-        var exists = await cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken);
+        var exists = await _cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken);
         Assert.True(exists);
     }
 
@@ -236,9 +236,9 @@ public class JtiValidatorTests
             ["exp"] = JsonSerializer.SerializeToElement(exp)
         };
 
-        // Act & Assert - Both should succeed (different cache keys)
-        await validator.ValidateAsync(claims1, TestContext.Current.CancellationToken);
-        await validator.ValidateAsync(claims2, TestContext.Current.CancellationToken);
+        // Act & Assert - Both should succeed (different _cache keys)
+        await _validator.ValidateAsync(claims1, TestContext.Current.CancellationToken);
+        await _validator.ValidateAsync(claims2, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -246,7 +246,7 @@ public class JtiValidatorTests
     {
         // Arrange
         var disabledOptions = new ReplayProtectionOptions { Enabled = false };
-        var disabledValidator = new JtiValidator(cache, disabledOptions);
+        var disabledValidator = new JtiValidator(_cache, disabledOptions);
 
         var issuer = "https://issuer.example";
         var jti = Guid.NewGuid().ToString();

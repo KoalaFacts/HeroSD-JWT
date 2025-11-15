@@ -10,14 +10,14 @@ namespace HeroSdJwt.Tests.Unit;
 /// </summary>
 public class JwtSignerKeyIdTests
 {
-    private readonly KeyGenerator keyGen = KeyGenerator.Instance;
+    private readonly KeyGenerator _keyGen = KeyGenerator.Instance;
     private readonly JwtSigner signer = new();
 
     [Fact]
     public void CreateJwt_WithKeyId_IncludesKidInHeader()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var _hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object>
         {
             ["sub"] = "user-123",
@@ -26,7 +26,7 @@ public class JwtSignerKeyIdTests
         var keyId = "test-key-2024";
 
         // Act
-        var jwt = signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
         // Assert
         var parts = jwt.Split('.');
@@ -43,7 +43,7 @@ public class JwtSignerKeyIdTests
     public void CreateJwt_WithoutKeyId_NoKidInHeader()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var _hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object>
         {
             ["sub"] = "user-123",
@@ -51,7 +51,7 @@ public class JwtSignerKeyIdTests
         };
 
         // Act
-        var jwt = signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256);
+        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256);
 
         // Assert
         var parts = jwt.Split('.');
@@ -65,14 +65,14 @@ public class JwtSignerKeyIdTests
     public void CreateJwt_WithNullKeyId_NoKidInHeader()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var _hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object>
         {
             ["sub"] = "user-123"
         };
 
         // Act
-        var jwt = signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, null);
+        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, null);
 
         // Assert
         var parts = jwt.Split('.');
@@ -86,14 +86,14 @@ public class JwtSignerKeyIdTests
     public void CreateJwt_WithEmptyKeyId_NoKidInHeader()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var _hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object>
         {
             ["sub"] = "user-123"
         };
 
         // Act
-        var jwt = signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, "");
+        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, "");
 
         // Assert
         var parts = jwt.Split('.');
@@ -107,14 +107,14 @@ public class JwtSignerKeyIdTests
     public void CreateJwt_WithWhitespaceKeyId_NoKidInHeader()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var _hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object>
         {
             ["sub"] = "user-123"
         };
 
         // Act
-        var jwt = signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, "   ");
+        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, "   ");
 
         // Assert
         var parts = jwt.Split('.');
@@ -141,9 +141,9 @@ public class JwtSignerKeyIdTests
 
         byte[] signingKey = algorithm switch
         {
-            SignatureAlgorithm.HS256 => keyGen.GenerateHmacKey(),
-            SignatureAlgorithm.RS256 => keyGen.GenerateRsaKeyPair().PrivateKey,
-            SignatureAlgorithm.ES256 => keyGen.GenerateEcdsaKeyPair().PrivateKey,
+            SignatureAlgorithm.HS256 => _keyGen.GenerateHmacKey(),
+            SignatureAlgorithm.RS256 => _keyGen.GenerateRsaKeyPair().PrivateKey,
+            SignatureAlgorithm.ES256 => _keyGen.GenerateEcdsaKeyPair().PrivateKey,
             _ => throw new ArgumentException()
         };
 
@@ -171,7 +171,7 @@ public class JwtSignerKeyIdTests
     public void CreateJwt_WithKeyIdAndOtherClaims_PreservesAllClaims()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var _hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object>
         {
             ["sub"] = "user-123",
@@ -182,7 +182,7 @@ public class JwtSignerKeyIdTests
         var keyId = "test-key";
 
         // Act
-        var jwt = signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
         // Assert - Verify JWT is valid and contains all claims
         var parts = jwt.Split('.');

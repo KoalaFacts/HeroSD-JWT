@@ -12,14 +12,14 @@ namespace HeroSdJwt.Tests.Integration;
 /// </summary>
 public class KeyRotationEndToEndTests
 {
-    private readonly KeyGenerator keyGen = new();
+    private readonly KeyGenerator _keyGen = new();
 
     [Fact]
     public void KeyRotation_OverlapPeriod_BothKeysVerify()
     {
         // Arrange - Simulate Day 1-30 of key rotation with overlap period
-        var keyV1 = keyGen.GenerateHmacKey();
-        var keyV2 = keyGen.GenerateHmacKey();
+        var keyV1 = _keyGen.GenerateHmacKey();
+        var keyV2 = _keyGen.GenerateHmacKey();
 
         // Day 1: Only key-v1 exists
         var issuer = SdJwtIssuerBuilder.Create()
@@ -69,8 +69,8 @@ public class KeyRotationEndToEndTests
     public void KeyRotation_RemoveOldKey_OnlyNewKeyVerifies()
     {
         // Arrange - Simulate Day 30+ where old key is removed
-        var keyV1 = keyGen.GenerateHmacKey();
-        var keyV2 = keyGen.GenerateHmacKey();
+        var keyV1 = _keyGen.GenerateHmacKey();
+        var keyV2 = _keyGen.GenerateHmacKey();
 
         // Create tokens with both keys
         var tokenWithV1 = SdJwtIssuerBuilder.Create()
@@ -111,8 +111,8 @@ public class KeyRotationEndToEndTests
     public void KeyRotation_EmergencyRevocation_ImmediateFailure()
     {
         // Arrange - Simulate compromised key requiring immediate revocation
-        var compromisedKey = keyGen.GenerateHmacKey();
-        var emergencyKey = keyGen.GenerateHmacKey();
+        var compromisedKey = _keyGen.GenerateHmacKey();
+        var emergencyKey = _keyGen.GenerateHmacKey();
 
         // Token issued with compromised key
         var compromisedToken = SdJwtIssuerBuilder.Create()
@@ -146,9 +146,9 @@ public class KeyRotationEndToEndTests
     public void KeyRotation_ThreeGenerations_SequentialRotation()
     {
         // Arrange - Simulate v1 → v2 → v3 sequential rotation
-        var keyV1 = keyGen.GenerateHmacKey();
-        var keyV2 = keyGen.GenerateHmacKey();
-        var keyV3 = keyGen.GenerateHmacKey();
+        var keyV1 = _keyGen.GenerateHmacKey();
+        var keyV2 = _keyGen.GenerateHmacKey();
+        var keyV3 = _keyGen.GenerateHmacKey();
 
         // Generate tokens for each generation
         var tokenV1 = SdJwtIssuerBuilder.Create()

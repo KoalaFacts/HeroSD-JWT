@@ -17,7 +17,7 @@ namespace HeroSdJwt.Tests.Security;
 /// </summary>
 public class KeyIdSecurityTests
 {
-    private readonly KeyGenerator keyGen = new();
+    private readonly KeyGenerator _keyGen = new();
 
     [Theory]
     [InlineData("\n")]
@@ -32,7 +32,7 @@ public class KeyIdSecurityTests
     public void KeyId_InjectionAttempt_Rejected(string maliciousKeyId)
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         // Act & Assert - Attempt to use key ID with non-printable characters
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -61,7 +61,7 @@ public class KeyIdSecurityTests
     public void KeyId_ExcessiveLength_Rejected(int length)
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var excessiveKeyId = new string('k', length);
 
         // Act & Assert - Attempt to use key ID exceeding 256 character limit
@@ -87,7 +87,7 @@ public class KeyIdSecurityTests
     public void KeyId_EmptyString_Rejected(string emptyKeyId)
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         // Act & Assert - Attempt to use empty/whitespace key ID
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -107,7 +107,7 @@ public class KeyIdSecurityTests
     public void KeyId_MaxLengthBoundary_Accepts256Characters()
     {
         // Arrange - Test exactly 256 characters (maximum allowed)
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var maxLengthKeyId = new string('k', 256);
 
         // Act - Should succeed with exactly 256 characters
@@ -134,7 +134,7 @@ public class KeyIdSecurityTests
     public void KeyId_MinLengthBoundary_Accepts1Character()
     {
         // Arrange - Test minimum valid length (1 character)
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var minLengthKeyId = "k";
 
         // Act - Should succeed with single character
@@ -168,7 +168,7 @@ public class KeyIdSecurityTests
     public void KeyId_PrintableAscii_Accepted(string validKeyId)
     {
         // Arrange - Test various valid printable ASCII characters
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         // Act - Should succeed with all printable ASCII
         var sdJwt = SdJwtIssuerBuilder.Create()
@@ -186,7 +186,7 @@ public class KeyIdSecurityTests
     public void KeyId_Null_ThrowsArgumentNullException()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         // Act & Assert - Null key ID should throw ArgumentNullException
         Assert.Throws<ArgumentNullException>(() =>
@@ -208,7 +208,7 @@ public class KeyIdSecurityTests
     public void KeyId_InjectionPatterns_SafelyHandled(string injectionAttempt)
     {
         // Arrange - Test common injection patterns are safely rejected or escaped
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         // Act - These strings contain only printable ASCII, so they should be accepted
         // (injection protection relies on printable ASCII validation, not pattern matching)

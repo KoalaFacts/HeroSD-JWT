@@ -12,13 +12,13 @@ namespace HeroSdJwt.Tests.Contract;
 /// </summary>
 public class KeyResolverContractTests
 {
-    private readonly KeyGenerator keyGen = KeyGenerator.Instance;
+    private readonly KeyGenerator _keyGen = KeyGenerator.Instance;
 
     [Fact]
     public void VerifyPresentation_WithKeyResolver_ResolvesKeyId()
     {
         // Arrange - Create SD-JWT with key ID
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var keyId = "key-v1";
 
         var sdJwt = SdJwtIssuerBuilder.Create()
@@ -57,7 +57,7 @@ public class KeyResolverContractTests
     public void VerifyPresentation_UnknownKeyId_ThrowsException()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var keyId = "unknown-key";
 
         var sdJwt = SdJwtIssuerBuilder.Create()
@@ -83,7 +83,7 @@ public class KeyResolverContractTests
     public void TryVerifyPresentation_UnknownKeyId_ReturnsInvalidResult()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var keyId = "unknown-key";
 
         var sdJwt = SdJwtIssuerBuilder.Create()
@@ -108,7 +108,7 @@ public class KeyResolverContractTests
     public void VerifyPresentation_WithFallbackKey_UsesWhenNoKid()
     {
         // Arrange - Create SD-JWT WITHOUT key ID
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
@@ -133,7 +133,7 @@ public class KeyResolverContractTests
     public void VerifyPresentation_NoResolverNoFallback_ThrowsArgumentException()
     {
         // Arrange - JWT with kid but no resolver or fallback
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
@@ -154,7 +154,7 @@ public class KeyResolverContractTests
     public void VerifyPresentation_KeyResolverThrowsException_FailsVerification()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
@@ -179,7 +179,7 @@ public class KeyResolverContractTests
     public void TryVerifyPresentation_KeyResolverThrowsException_ReturnsInvalidResult()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
@@ -203,9 +203,9 @@ public class KeyResolverContractTests
     public void VerifyPresentation_MultipleKeys_SelectsCorrectKey()
     {
         // Arrange - Create multiple JWTs with different keys
-        var key1 = keyGen.GenerateHmacKey();
-        var key2 = keyGen.GenerateHmacKey();
-        var key3 = keyGen.GenerateHmacKey();
+        var key1 = _keyGen.GenerateHmacKey();
+        var key2 = _keyGen.GenerateHmacKey();
+        var key3 = _keyGen.GenerateHmacKey();
 
         var sdJwt1 = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-1")
@@ -253,8 +253,8 @@ public class KeyResolverContractTests
     public void VerifyPresentation_WrongKeyForKeyId_FailsVerification()
     {
         // Arrange - Sign with key1 but resolver returns key2
-        var key1 = keyGen.GenerateHmacKey();
-        var key2 = keyGen.GenerateHmacKey();
+        var key1 = _keyGen.GenerateHmacKey();
+        var key2 = _keyGen.GenerateHmacKey();
 
         var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
@@ -288,14 +288,14 @@ public class KeyResolverContractTests
         switch (algorithmName)
         {
             case "HS256":
-                signingKey = keyGen.GenerateHmacKey();
+                signingKey = _keyGen.GenerateHmacKey();
                 verificationKey = signingKey;
                 break;
             case "RS256":
-                (signingKey, verificationKey) = keyGen.GenerateRsaKeyPair();
+                (signingKey, verificationKey) = _keyGen.GenerateRsaKeyPair();
                 break;
             case "ES256":
-                (signingKey, verificationKey) = keyGen.GenerateEcdsaKeyPair();
+                (signingKey, verificationKey) = _keyGen.GenerateEcdsaKeyPair();
                 break;
             default:
                 throw new InvalidOperationException($"Unknown algorithm: {algorithmName}");
@@ -329,7 +329,7 @@ public class KeyResolverContractTests
     public void VerifyPresentation_NullResolver_WithFallbackKey_Succeeds()
     {
         // Arrange
-        var hmacKey = keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
 
         var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")

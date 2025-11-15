@@ -12,14 +12,14 @@ namespace HeroSdJwt.Tests.Integration;
 /// </summary>
 public class NestedDisclosureIntegrationTests
 {
-    private readonly byte[] signingKey;
-    private readonly SdJwtIssuer issuer;
+    private readonly byte[] _signingKey;
+    private readonly SdJwtIssuer _issuer;
 
     public NestedDisclosureIntegrationTests()
     {
-        this.signingKey = new byte[32];
-        RandomNumberGenerator.Fill(this.signingKey);
-        this.issuer = TestHelpers.CreateIssuer();
+        this._signingKey = new byte[32];
+        RandomNumberGenerator.Fill(this._signingKey);
+        this._issuer = TestHelpers.CreateIssuer();
     }
 
     [Fact]
@@ -41,10 +41,10 @@ public class NestedDisclosureIntegrationTests
         var selectiveClaims = new[] { "address.zipcode" };
 
         // Act
-        var sdJwt = issuer.CreateSdJwt(
+        var sdJwt = _issuer.CreateSdJwt(
             claims,
             selectiveClaims,
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256);
 
         // Assert
@@ -96,10 +96,10 @@ public class NestedDisclosureIntegrationTests
         var selectiveClaims = new[] { "address.city", "address.zipcode" };
 
         // Act
-        var sdJwt = issuer.CreateSdJwt(
+        var sdJwt = _issuer.CreateSdJwt(
             claims,
             selectiveClaims,
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256);
 
         // Assert
@@ -144,10 +144,10 @@ public class NestedDisclosureIntegrationTests
         var selectiveClaims = new[] { "email", "address.city" };
 
         // Act
-        var sdJwt = issuer.CreateSdJwt(
+        var sdJwt = _issuer.CreateSdJwt(
             claims,
             selectiveClaims,
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256);
 
         // Assert
@@ -189,7 +189,7 @@ public class NestedDisclosureIntegrationTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            issuer.CreateSdJwt(claims, selectiveClaims, signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, selectiveClaims, _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("not an object", exception.Message);
         Assert.Contains("email", exception.Message);
@@ -213,10 +213,10 @@ public class NestedDisclosureIntegrationTests
         var selectiveClaims = new[] { "credentials.username", "credentials.password_hash" };
 
         // Act
-        var sdJwt = issuer.CreateSdJwt(
+        var sdJwt = _issuer.CreateSdJwt(
             claims,
             selectiveClaims,
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256);
 
         // Assert
@@ -264,10 +264,10 @@ public class NestedDisclosureIntegrationTests
         var selectiveClaims = new[] { "profile.age" };
 
         // Act
-        var sdJwt = issuer.CreateSdJwt(
+        var sdJwt = _issuer.CreateSdJwt(
             claims,
             selectiveClaims,
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256);
 
         // Assert

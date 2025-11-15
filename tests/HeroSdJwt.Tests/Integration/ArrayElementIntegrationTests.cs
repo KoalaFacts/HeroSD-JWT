@@ -9,22 +9,22 @@ namespace HeroSdJwt.Tests.Integration;
 
 /// <summary>
 /// End-to-end integration tests for array element selective disclosure.
-/// Tests the full flow: issuer creates SD-JWT with array elements -> verifier validates and extracts claims.
+/// Tests the full flow: _issuer creates SD-JWT with array elements -> _verifier validates and extracts claims.
 /// </summary>
 public class ArrayElementIntegrationTests
 {
-    private readonly byte[] signingKey;
-    private readonly SdJwtIssuer issuer;
-    private readonly SdJwtVerifier verifier;
+    private readonly byte[] _signingKey;
+    private readonly SdJwtIssuer _issuer;
+    private readonly SdJwtVerifier _verifier;
 
     public ArrayElementIntegrationTests()
     {
         // Generate a signing key for tests
-        this.signingKey = new byte[32];
-        RandomNumberGenerator.Fill(this.signingKey);
+        this._signingKey = new byte[32];
+        RandomNumberGenerator.Fill(this._signingKey);
 
-        this.issuer = TestHelpers.CreateIssuer();
-        this.verifier = TestHelpers.CreateVerifier();
+        this._issuer = TestHelpers.CreateIssuer();
+        this._verifier = TestHelpers.CreateVerifier();
     }
 
     [Fact]
@@ -41,10 +41,10 @@ public class ArrayElementIntegrationTests
         var selectiveClaims = new[] { "degrees[1]", "degrees[2]" };
 
         // Act - Issue SD-JWT
-        var sdJwt = issuer.CreateSdJwt(
+        var sdJwt = _issuer.CreateSdJwt(
             claims,
             selectiveClaims,
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256);
 
         // Assert - Check JWT structure
@@ -94,10 +94,10 @@ public class ArrayElementIntegrationTests
         var selectiveClaims = new[] { "certifications[1]", "certifications[3]" };
 
         // Act
-        var sdJwt = issuer.CreateSdJwt(
+        var sdJwt = _issuer.CreateSdJwt(
             claims,
             selectiveClaims,
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256);
 
         // Assert
@@ -140,10 +140,10 @@ public class ArrayElementIntegrationTests
         var selectiveClaims = new[] { "education[1]", "education[2]" };
 
         // Act
-        var sdJwt = issuer.CreateSdJwt(
+        var sdJwt = _issuer.CreateSdJwt(
             claims,
             selectiveClaims,
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256);
 
         // Assert
@@ -176,7 +176,7 @@ public class ArrayElementIntegrationTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            issuer.CreateSdJwt(claims, selectiveClaims, signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, selectiveClaims, _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("out of bounds", exception.Message);
         Assert.Contains("items", exception.Message);
@@ -195,7 +195,7 @@ public class ArrayElementIntegrationTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            issuer.CreateSdJwt(claims, selectiveClaims, signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, selectiveClaims, _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("not an array", exception.Message);
         Assert.Contains("email", exception.Message);
@@ -217,10 +217,10 @@ public class ArrayElementIntegrationTests
         var selectiveClaims = new[] { "email", "roles[0]", "roles[2]" };
 
         // Act
-        var sdJwt = issuer.CreateSdJwt(
+        var sdJwt = _issuer.CreateSdJwt(
             claims,
             selectiveClaims,
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256);
 
         // Assert
@@ -255,10 +255,10 @@ public class ArrayElementIntegrationTests
         };
 
         // Act - No selective claims for the empty array
-        var sdJwt = issuer.CreateSdJwt(
+        var sdJwt = _issuer.CreateSdJwt(
             claims,
             Array.Empty<string>(),
-            signingKey,
+            _signingKey,
             HashAlgorithm.Sha256);
 
         // Assert

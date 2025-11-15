@@ -11,11 +11,11 @@ namespace HeroSdJwt.Tests.Unit.Presentation;
 /// </summary>
 public class DisclosureParserTests
 {
-    private readonly DisclosureParser parser;
+    private readonly DisclosureParser _parser;
 
     public DisclosureParserTests()
     {
-        parser = new DisclosureParser();
+        _parser = new DisclosureParser();
     }
 
     #region Parse - Valid Cases
@@ -28,7 +28,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         Assert.Equal("salt123", disclosure.Salt);
@@ -44,7 +44,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         Assert.Equal("salt456", disclosure.Salt);
@@ -60,7 +60,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         Assert.Equal("John Doe", disclosure.ClaimValue.GetString());
@@ -74,7 +74,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         Assert.Equal(42, disclosure.ClaimValue.GetInt32());
@@ -88,7 +88,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         Assert.Equal(JsonValueKind.Object, disclosure.ClaimValue.ValueKind);
@@ -104,7 +104,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         Assert.Equal(JsonValueKind.Array, disclosure.ClaimValue.ValueKind);
@@ -121,7 +121,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         Assert.True(disclosure.ClaimValue.GetBoolean());
@@ -135,7 +135,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         Assert.Equal(JsonValueKind.Null, disclosure.ClaimValue.ValueKind);
@@ -149,7 +149,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         Assert.Equal("abc-123_XYZ!@#", disclosure.Salt);
@@ -163,7 +163,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         Assert.Equal(string.Empty, disclosure.ClaimValue.GetString());
@@ -177,7 +177,7 @@ public class DisclosureParserTests
     public void Parse_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => parser.Parse(null!));
+        Assert.Throws<ArgumentNullException>(() => _parser.Parse(null!));
     }
 
     [Fact]
@@ -187,7 +187,7 @@ public class DisclosureParserTests
         var invalidBase64 = "!!!not-valid-base64!!!";
 
         // Act & Assert
-        Assert.ThrowsAny<Exception>(() => parser.Parse(invalidBase64));
+        Assert.ThrowsAny<Exception>(() => _parser.Parse(invalidBase64));
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act & Assert
-        var exception = Assert.Throws<MalformedDisclosureException>(() => parser.Parse(base64Url));
+        var exception = Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(base64Url));
         Assert.Contains("Disclosure must be a JSON array", exception.Message);
     }
 
@@ -210,7 +210,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act & Assert
-        var exception = Assert.Throws<MalformedDisclosureException>(() => parser.Parse(base64Url));
+        var exception = Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(base64Url));
         Assert.Contains("Disclosure must be a JSON array with 2 elements", exception.Message);
     }
 
@@ -222,7 +222,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act & Assert
-        var exception = Assert.Throws<MalformedDisclosureException>(() => parser.Parse(base64Url));
+        var exception = Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(base64Url));
         Assert.Contains("Disclosure must be a JSON array with 2 elements", exception.Message);
     }
 
@@ -234,7 +234,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act & Assert
-        var exception = Assert.Throws<MalformedDisclosureException>(() => parser.Parse(base64Url));
+        var exception = Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(base64Url));
         Assert.Contains("Disclosure must be a JSON array with 2 elements", exception.Message);
     }
 
@@ -246,7 +246,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act & Assert
-        var exception = Assert.Throws<MalformedDisclosureException>(() => parser.Parse(base64Url));
+        var exception = Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(base64Url));
         Assert.Contains("Disclosure must be a JSON array with 2 elements", exception.Message);
     }
 
@@ -258,7 +258,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act & Assert
-        var exception = Assert.Throws<MalformedDisclosureException>(() => parser.Parse(base64Url));
+        var exception = Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(base64Url));
         Assert.Contains("Disclosure salt cannot be null", exception.Message);
     }
 
@@ -270,7 +270,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act & Assert
-        var exception = Assert.Throws<MalformedDisclosureException>(() => parser.Parse(base64Url));
+        var exception = Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(base64Url));
         Assert.Contains("Disclosure claim name cannot be null", exception.Message);
     }
 
@@ -282,7 +282,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act & Assert
-        Assert.ThrowsAny<JsonException>(() => parser.Parse(base64Url));
+        Assert.ThrowsAny<JsonException>(() => _parser.Parse(base64Url));
     }
 
     #endregion
@@ -297,7 +297,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var claimName = parser.GetClaimName(base64Url);
+        var claimName = _parser.GetClaimName(base64Url);
 
         // Assert
         Assert.Equal("email", claimName);
@@ -311,7 +311,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var claimName = parser.GetClaimName(base64Url);
+        var claimName = _parser.GetClaimName(base64Url);
 
         // Assert
         Assert.Null(claimName);
@@ -326,9 +326,9 @@ public class DisclosureParserTests
         var disclosure3 = Base64UrlEncoder.Encode("[\"salt3\",\"verified\",true]");
 
         // Act & Assert
-        Assert.Equal("name", parser.GetClaimName(disclosure1));
-        Assert.Equal("age", parser.GetClaimName(disclosure2));
-        Assert.Equal("verified", parser.GetClaimName(disclosure3));
+        Assert.Equal("name", _parser.GetClaimName(disclosure1));
+        Assert.Equal("age", _parser.GetClaimName(disclosure2));
+        Assert.Equal("verified", _parser.GetClaimName(disclosure3));
     }
 
     #endregion
@@ -343,7 +343,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         Assert.Equal("6qMQvRL5haj", disclosure.Salt);
@@ -359,7 +359,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         Assert.Equal("Zoë 日本語 émoji🎉", disclosure.ClaimValue.GetString());
@@ -373,7 +373,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
-        var disclosure = parser.Parse(base64Url);
+        var disclosure = _parser.Parse(base64Url);
 
         // Assert
         var address = disclosure.ClaimValue;
