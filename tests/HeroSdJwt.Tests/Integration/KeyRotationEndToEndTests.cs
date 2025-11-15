@@ -22,7 +22,7 @@ public class KeyRotationEndToEndTests
         var keyV2 = keyGen.GenerateHmacKey();
 
         // Day 1: Only key-v1 exists
-        var issuer = SdJwtBuilder.Create()
+        var issuer = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithClaim("email", "alice@example.com")
@@ -34,7 +34,7 @@ public class KeyRotationEndToEndTests
 
         // Day 15: Add key-v2 (overlap period begins)
         // Day 20: Start issuing tokens with key-v2
-        var issuerV2 = SdJwtBuilder.Create()
+        var issuerV2 = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-456")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithClaim("role", "admin")
@@ -73,14 +73,14 @@ public class KeyRotationEndToEndTests
         var keyV2 = keyGen.GenerateHmacKey();
 
         // Create tokens with both keys
-        var tokenWithV1 = SdJwtBuilder.Create()
+        var tokenWithV1 = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v1")
             .SignWithHmac(keyV1)
             .Build();
 
-        var tokenWithV2 = SdJwtBuilder.Create()
+        var tokenWithV2 = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-456")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v2")
@@ -115,7 +115,7 @@ public class KeyRotationEndToEndTests
         var emergencyKey = keyGen.GenerateHmacKey();
 
         // Token issued with compromised key
-        var compromisedToken = SdJwtBuilder.Create()
+        var compromisedToken = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithClaim("admin", true)
@@ -151,7 +151,7 @@ public class KeyRotationEndToEndTests
         var keyV3 = keyGen.GenerateHmacKey();
 
         // Generate tokens for each generation
-        var tokenV1 = SdJwtBuilder.Create()
+        var tokenV1 = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-v1")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithClaim("gen", 1)
@@ -160,7 +160,7 @@ public class KeyRotationEndToEndTests
             .SignWithHmac(keyV1)
             .Build();
 
-        var tokenV2 = SdJwtBuilder.Create()
+        var tokenV2 = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-v2")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithClaim("gen", 2)
@@ -169,7 +169,7 @@ public class KeyRotationEndToEndTests
             .SignWithHmac(keyV2)
             .Build();
 
-        var tokenV3 = SdJwtBuilder.Create()
+        var tokenV3 = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-v3")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithClaim("gen", 3)

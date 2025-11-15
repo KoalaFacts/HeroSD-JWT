@@ -58,7 +58,7 @@ public class VerificationBenchmarks
             }
         };
 
-        var builder = new SdJwtBuilder()
+        var builder = new SdJwtIssuerBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
             .MakeSelective("email", "name", "birthdate");
@@ -73,7 +73,7 @@ public class VerificationBenchmarks
         // Create presentation with key binding
         var holderPublicKey = holderKey.ExportSubjectPublicKeyInfo();
 
-        var builderWithKeyBinding = new SdJwtBuilder()
+        var builderWithKeyBinding = new SdJwtIssuerBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
             .WithKeyBinding(holderPublicKey)

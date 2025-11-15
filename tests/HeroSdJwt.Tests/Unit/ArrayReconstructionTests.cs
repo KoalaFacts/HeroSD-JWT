@@ -79,7 +79,7 @@ public class ArrayReconstructionTests
     {
         // Arrange - indices disclosed in reverse order
         var signingKey = GenerateSecureTestKey();
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("items", new[] { "A", "B", "C", "D" })
             .MakeSelective("items[3]")

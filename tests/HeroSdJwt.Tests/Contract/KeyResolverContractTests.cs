@@ -21,7 +21,7 @@ public class KeyResolverContractTests
         var hmacKey = keyGen.GenerateHmacKey();
         var keyId = "key-v1";
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithClaim("email", "alice@example.com")
@@ -60,7 +60,7 @@ public class KeyResolverContractTests
         var hmacKey = keyGen.GenerateHmacKey();
         var keyId = "unknown-key";
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId(keyId)
@@ -86,7 +86,7 @@ public class KeyResolverContractTests
         var hmacKey = keyGen.GenerateHmacKey();
         var keyId = "unknown-key";
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId(keyId)
@@ -110,7 +110,7 @@ public class KeyResolverContractTests
         // Arrange - Create SD-JWT WITHOUT key ID
         var hmacKey = keyGen.GenerateHmacKey();
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("email", "alice@example.com")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
@@ -135,7 +135,7 @@ public class KeyResolverContractTests
         // Arrange - JWT with kid but no resolver or fallback
         var hmacKey = keyGen.GenerateHmacKey();
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v1")
@@ -156,7 +156,7 @@ public class KeyResolverContractTests
         // Arrange
         var hmacKey = keyGen.GenerateHmacKey();
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v1")
@@ -181,7 +181,7 @@ public class KeyResolverContractTests
         // Arrange
         var hmacKey = keyGen.GenerateHmacKey();
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v1")
@@ -207,21 +207,21 @@ public class KeyResolverContractTests
         var key2 = keyGen.GenerateHmacKey();
         var key3 = keyGen.GenerateHmacKey();
 
-        var sdJwt1 = SdJwtBuilder.Create()
+        var sdJwt1 = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-1")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v1")
             .SignWithHmac(key1)
             .Build();
 
-        var sdJwt2 = SdJwtBuilder.Create()
+        var sdJwt2 = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-2")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v2")
             .SignWithHmac(key2)
             .Build();
 
-        var sdJwt3 = SdJwtBuilder.Create()
+        var sdJwt3 = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-3")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v3")
@@ -256,7 +256,7 @@ public class KeyResolverContractTests
         var key1 = keyGen.GenerateHmacKey();
         var key2 = keyGen.GenerateHmacKey();
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId("key-v1")
@@ -301,7 +301,7 @@ public class KeyResolverContractTests
                 throw new InvalidOperationException($"Unknown algorithm: {algorithmName}");
         }
 
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId(keyId);
@@ -331,7 +331,7 @@ public class KeyResolverContractTests
         // Arrange
         var hmacKey = keyGen.GenerateHmacKey();
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .SignWithHmac(hmacKey)

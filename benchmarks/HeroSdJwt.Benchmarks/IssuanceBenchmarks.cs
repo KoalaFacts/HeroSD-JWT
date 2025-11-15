@@ -74,7 +74,7 @@ public class IssuanceBenchmarks
             _ => throw new ArgumentException(nameof(claimCount))
         };
 
-        var builder = new SdJwtBuilder()
+        var builder = new SdJwtIssuerBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
             .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
@@ -96,7 +96,7 @@ public class IssuanceBenchmarks
             _ => throw new ArgumentException(nameof(claimCount))
         };
 
-        var builder = new SdJwtBuilder()
+        var builder = new SdJwtIssuerBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
             .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
@@ -119,7 +119,7 @@ public class IssuanceBenchmarks
             _ => throw new ArgumentException(nameof(claimCount))
         };
 
-        var builder = new SdJwtBuilder()
+        var builder = new SdJwtIssuerBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
             .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());

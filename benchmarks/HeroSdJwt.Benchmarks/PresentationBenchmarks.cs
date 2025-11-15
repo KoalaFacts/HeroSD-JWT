@@ -41,7 +41,7 @@ public class PresentationBenchmarks
             claims[$"claim_{i}"] = $"value_{i}";
         }
 
-        var builder = new SdJwtBuilder()
+        var builder = new SdJwtIssuerBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
             .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());

@@ -107,7 +107,7 @@ public class VerificationResultReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("degrees", new string[] { })
             .SignWithHmac(signingKey)
@@ -169,7 +169,7 @@ public class VerificationResultReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("mixed", new object[] { "string", 42, new { name = "object" } })
             .MakeSelective("mixed[0]")
@@ -267,7 +267,7 @@ public class VerificationResultReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("address", new { })
             .SignWithHmac(signingKey)
@@ -355,7 +355,7 @@ public class VerificationResultReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("data", new { str = "text", num = 42, flag = true })
             .MakeSelective("data.str")
@@ -439,7 +439,7 @@ public class VerificationResultReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("email", "alice@example.com")
             .MakeSelective("email")
@@ -500,7 +500,7 @@ public class VerificationResultReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("email", "alice@example.com")
             .WithClaim("degrees", new[] { "PhD", "MBA" })
@@ -534,7 +534,7 @@ public class VerificationResultReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("email", "alice@example.com")
             .WithClaim("name", "Alice")

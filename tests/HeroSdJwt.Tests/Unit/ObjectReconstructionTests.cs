@@ -55,7 +55,7 @@ public class ObjectReconstructionTests
             }
         };
 
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("data", deepObject)
             .MakeSelective("data.level1.level2.level3.level4.level5.level6.level7.level8.level9.level10")
@@ -92,7 +92,7 @@ public class ObjectReconstructionTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("address", new { street = "Main St", city = "Boston" })
             .MakeSelective("address.street")
@@ -124,7 +124,7 @@ public class ObjectReconstructionTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("person", new
             {

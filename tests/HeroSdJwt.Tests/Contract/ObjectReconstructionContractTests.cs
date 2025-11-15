@@ -26,7 +26,7 @@ public class ObjectReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test-user")
             .WithClaim("address", new { street = "123 Main St", city = "Boston", state = "MA" })
             .MakeSelective("address.street", "address.city")
@@ -57,7 +57,7 @@ public class ObjectReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test-user")
             .WithClaim("address", new
             {
@@ -96,7 +96,7 @@ public class ObjectReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test-user")
             .WithClaim("profile", new
             {
@@ -141,7 +141,7 @@ public class ObjectReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test-user")
             .WithClaim("address", new { street = "Main St" })
             .MakeSelective("address.street")
@@ -196,7 +196,7 @@ public class ObjectReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test-user")
             .WithClaim("address", new { street = "Main St", city = "Boston" })
             .WithClaim("contact", new { email = "test@example.com", phone = "555-0100" })
@@ -228,7 +228,7 @@ public class ObjectReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test-user")
             .WithClaim("email", "alice@example.com")
             .WithClaim("name", "Alice")
@@ -258,7 +258,7 @@ public class ObjectReconstructionContractTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test-user")
             .WithClaim("email", "alice@example.com")
             .WithClaim("name", "Alice")
@@ -284,7 +284,7 @@ public class ObjectReconstructionContractTests
     {
         // Arrange - Issuer creates SD-JWT with nested object
         var signingKey = GenerateSecureTestKey();
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "alice@example.com")
             .WithClaim("address", new
             {

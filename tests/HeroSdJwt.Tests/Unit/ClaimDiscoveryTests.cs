@@ -24,7 +24,7 @@ public class ClaimDiscoveryTests
     {
         // Arrange
         var signingKey = GenerateSecureTestKey();
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("degrees", new[] { "PhD", "MBA" })
             .WithClaim("address", new { street = "Main St" })
@@ -56,7 +56,7 @@ public class ClaimDiscoveryTests
     {
         // Arrange - multiple arrays and objects
         var signingKey = GenerateSecureTestKey();
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("degrees", new[] { "PhD" })
             .WithClaim("certifications", new[] { "AWS", "Azure" })
