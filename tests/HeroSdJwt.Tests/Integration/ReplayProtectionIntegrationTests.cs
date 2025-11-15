@@ -40,7 +40,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task VerifyPresentation_WithoutJtiValidator_BackwardCompatibility_Succeeds()
+    public void VerifyPresentation_WithoutJtiValidator_BackwardCompatibility_Succeeds()
     {
         // Arrange - Create verifier WITHOUT JtiValidator (backward compatibility)
         var signingKey = GenerateSecureTestKey();
