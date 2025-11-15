@@ -76,5 +76,27 @@ public enum SignatureAlgorithm
     /// Provides 256-bit security level.
     /// Per RFC 7518 Section 3.4.
     /// </summary>
-    ES512
+    ES512,
+
+#if NET10_0_OR_GREATER
+    /// <summary>
+    /// ML-DSA-65 post-quantum digital signature algorithm (asymmetric key).
+    /// Module-Lattice-Based Digital Signature Algorithm, security level 3.
+    /// Provides ~192-bit classical security (equivalent to AES-192).
+    /// Requires ML-DSA private key for signing, public key for verification.
+    /// Per FIPS 204 (formerly CRYSTALS-Dilithium).
+    /// Requires .NET 10 or later.
+    /// </summary>
+    MLDSA65,
+
+    /// <summary>
+    /// ML-DSA-87 post-quantum digital signature algorithm (asymmetric key).
+    /// Module-Lattice-Based Digital Signature Algorithm, security level 5.
+    /// Provides ~256-bit classical security (equivalent to AES-256).
+    /// Requires ML-DSA private key for signing, public key for verification.
+    /// Per FIPS 204 (formerly CRYSTALS-Dilithium).
+    /// Requires .NET 10 or later.
+    /// </summary>
+    MLDSA87
+#endif
 }

@@ -142,8 +142,8 @@ public class JwtSignerKeyIdTests
         byte[] signingKey = algorithm switch
         {
             SignatureAlgorithm.HS256 => keyGen.GenerateHmacKey(),
-            SignatureAlgorithm.RS256 => keyGen.GenerateRsaKeyPair().privateKey,
-            SignatureAlgorithm.ES256 => keyGen.GenerateEcdsaKeyPair().privateKey,
+            SignatureAlgorithm.RS256 => keyGen.GenerateRsaKeyPair().PrivateKey,
+            SignatureAlgorithm.ES256 => keyGen.GenerateEcdsaKeyPair().PrivateKey,
             _ => throw new ArgumentException()
         };
 

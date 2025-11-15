@@ -1,3 +1,4 @@
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
@@ -12,11 +13,12 @@ namespace HeroSdJwt.Tests.Unit.Verification;
 /// </summary>
 public class SignatureValidatorTests
 {
+    private readonly IKeyGenerator _keyGen = KeyGenerator.Instance;
     [Fact]
     public void VerifyJwtSignature_WithValidHs256Signature_ReturnsTrue()
     {
         // Arrange
-        var key = GenerateHmacKey();
+        var key = _keyGen.GenerateHmacKey();
         var jwt = CreateSignedJwt("HS256", key, new { sub = "user123" });
 
         // Act
@@ -30,8 +32,8 @@ public class SignatureValidatorTests
     public void VerifyJwtSignature_WithInvalidHs256Signature_ReturnsFalse()
     {
         // Arrange
-        var key = GenerateHmacKey();
-        var wrongKey = GenerateHmacKey();
+        var key = _keyGen.GenerateHmacKey();
+        var wrongKey = _keyGen.GenerateHmacKey();
         var jwt = CreateSignedJwt("HS256", key, new { sub = "user123" });
 
         // Act
@@ -45,13 +47,11 @@ public class SignatureValidatorTests
     public void VerifyJwtSignature_WithValidRs256Signature_ReturnsTrue()
     {
         // Arrange
-        using var rsa = RSA.Create(2048); // 2048-bit key
-        var privateKey = rsa.ExportRSAPrivateKey();
-        var publicKey = rsa.ExportSubjectPublicKeyInfo();
-        var jwt = CreateSignedJwt("RS256", privateKey, new { sub = "user123" }, useRsa: true);
+        var keyPair = _keyGen.GenerateRsaKeyPair();
+        var jwt = CreateSignedJwt("RS256", keyPair.PrivateKey, new { sub = "user123" }, useRsaPkcs8: true);
 
         // Act
-        var result = new SignatureValidator().VerifyJwtSignature(jwt, publicKey);
+        var result = new SignatureValidator().VerifyJwtSignature(jwt, keyPair.PublicKey);
 
         // Assert
         Assert.True(result, "Valid RS256 signature should verify successfully");
@@ -61,14 +61,12 @@ public class SignatureValidatorTests
     public void VerifyJwtSignature_WithInvalidRs256Signature_ReturnsFalse()
     {
         // Arrange
-        using var rsa1 = RSA.Create(2048);
-        using var rsa2 = RSA.Create(2048); // Different key
-        var privateKey = rsa1.ExportRSAPrivateKey();
-        var wrongPublicKey = rsa2.ExportSubjectPublicKeyInfo();
-        var jwt = CreateSignedJwt("RS256", privateKey, new { sub = "user123" }, useRsa: true);
+        var keyPair1 = _keyGen.GenerateRsaKeyPair();
+        var keyPair2 = _keyGen.GenerateRsaKeyPair(); // Different key
+        var jwt = CreateSignedJwt("RS256", keyPair1.PrivateKey, new { sub = "user123" }, useRsaPkcs8: true);
 
         // Act
-        var result = new SignatureValidator().VerifyJwtSignature(jwt, wrongPublicKey);
+        var result = new SignatureValidator().VerifyJwtSignature(jwt, keyPair2.PublicKey);
 
         // Assert
         Assert.False(result, "Invalid RS256 signature should fail verification");
@@ -94,13 +92,11 @@ public class SignatureValidatorTests
     public void VerifyJwtSignature_WithValidEs256Signature_ReturnsTrue()
     {
         // Arrange
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var privateKey = ecdsa.ExportECPrivateKey();
-        var publicKey = ecdsa.ExportSubjectPublicKeyInfo();
-        var jwt = CreateSignedJwt("ES256", privateKey, new { sub = "user123" }, useEcdsa: true);
+        var keyPair = _keyGen.GenerateEcdsaKeyPair();
+        var jwt = CreateSignedJwt("ES256", keyPair.PrivateKey, new { sub = "user123" }, useEcdsaPkcs8: true);
 
         // Act
-        var result = new SignatureValidator().VerifyJwtSignature(jwt, publicKey);
+        var result = new SignatureValidator().VerifyJwtSignature(jwt, keyPair.PublicKey);
 
         // Assert
         Assert.True(result, "Valid ES256 signature should verify successfully");
@@ -110,14 +106,12 @@ public class SignatureValidatorTests
     public void VerifyJwtSignature_WithInvalidEs256Signature_ReturnsFalse()
     {
         // Arrange
-        using var ecdsa1 = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        using var ecdsa2 = ECDsa.Create(ECCurve.NamedCurves.nistP256); // Different key
-        var privateKey = ecdsa1.ExportECPrivateKey();
-        var wrongPublicKey = ecdsa2.ExportSubjectPublicKeyInfo();
-        var jwt = CreateSignedJwt("ES256", privateKey, new { sub = "user123" }, useEcdsa: true);
+        var keyPair1 = _keyGen.GenerateEcdsaKeyPair();
+        var keyPair2 = _keyGen.GenerateEcdsaKeyPair(); // Different key
+        var jwt = CreateSignedJwt("ES256", keyPair1.PrivateKey, new { sub = "user123" }, useEcdsaPkcs8: true);
 
         // Act
-        var result = new SignatureValidator().VerifyJwtSignature(jwt, wrongPublicKey);
+        var result = new SignatureValidator().VerifyJwtSignature(jwt, keyPair2.PublicKey);
 
         // Assert
         Assert.False(result, "Invalid ES256 signature should fail verification");
@@ -144,7 +138,7 @@ public class SignatureValidatorTests
     {
         // Arrange
         var jwt = CreateUnsignedJwt(new { sub = "user123" });
-        var key = GenerateHmacKey();
+        var key = _keyGen.GenerateHmacKey();
 
         // Act & Assert
         var exception = Assert.Throws<AlgorithmConfusionException>(() =>
@@ -157,7 +151,7 @@ public class SignatureValidatorTests
     {
         // Test case-insensitive "none" algorithm detection
         var testCases = new[] { "none", "None", "NONE", "nOnE" };
-        var key = GenerateHmacKey();
+        var key = _keyGen.GenerateHmacKey();
 
         foreach (var noneVariant in testCases)
         {
@@ -175,7 +169,7 @@ public class SignatureValidatorTests
     {
         // Arrange
         var jwt = CreateJwtWithAlgorithm("HS512", new { sub = "user123" });
-        var key = GenerateHmacKey();
+        var key = _keyGen.GenerateHmacKey();
 
         // Act & Assert
         var exception = Assert.Throws<AlgorithmNotSupportedException>(() =>
@@ -188,7 +182,7 @@ public class SignatureValidatorTests
     {
         // Arrange - JWT with only 2 parts instead of 3
         var malformedJwt = "header.payload";
-        var key = GenerateHmacKey();
+        var key = _keyGen.GenerateHmacKey();
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>
@@ -209,7 +203,7 @@ public class SignatureValidatorTests
         var payloadBase64 = Base64UrlEncode(payloadJson);
         var jwt = $"{headerBase64}.{payloadBase64}.signature";
 
-        var key = GenerateHmacKey();
+        var key = _keyGen.GenerateHmacKey();
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>
@@ -223,7 +217,7 @@ public class SignatureValidatorTests
     {
         // Arrange
         var jwt = CreateJwtWithAlgorithm("", new { sub = "user123" });
-        var key = GenerateHmacKey();
+        var key = _keyGen.GenerateHmacKey();
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>
@@ -236,7 +230,7 @@ public class SignatureValidatorTests
     public void VerifyJwtSignature_WithNullJwt_ThrowsArgumentNullException()
     {
         // Arrange
-        var key = GenerateHmacKey();
+        var key = _keyGen.GenerateHmacKey();
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
@@ -247,7 +241,7 @@ public class SignatureValidatorTests
     public void VerifyJwtSignature_WithNullKey_ThrowsArgumentNullException()
     {
         // Arrange
-        var key = GenerateHmacKey();
+        var key = _keyGen.GenerateHmacKey();
         var jwt = CreateSignedJwt("HS256", key, new { sub = "user123" });
 
         // Act & Assert
@@ -259,7 +253,7 @@ public class SignatureValidatorTests
     public void VerifyJwtSignature_WithTamperedPayload_ReturnsFalse()
     {
         // Arrange
-        var key = GenerateHmacKey();
+        var key = _keyGen.GenerateHmacKey();
         var jwt = CreateSignedJwt("HS256", key, new { sub = "user123" });
 
         // Tamper with payload
@@ -278,7 +272,7 @@ public class SignatureValidatorTests
     public void VerifyJwtSignature_WithTamperedHeader_ReturnsFalse()
     {
         // Arrange
-        var key = GenerateHmacKey();
+        var key = _keyGen.GenerateHmacKey();
         var jwt = CreateSignedJwt("HS256", key, new { sub = "user123" });
 
         // Tamper with header
@@ -295,14 +289,7 @@ public class SignatureValidatorTests
 
     // Helper methods
 
-    private static byte[] GenerateHmacKey()
-    {
-        var key = new byte[32];
-        RandomNumberGenerator.Fill(key);
-        return key;
-    }
-
-    private static string CreateSignedJwt(string algorithm, byte[] key, object payload, bool useRsa = false, bool useEcdsa = false)
+    private static string CreateSignedJwt(string algorithm, byte[] key, object payload, bool useRsa = false, bool useEcdsa = false, bool useRsaPkcs8 = false, bool useEcdsaPkcs8 = false)
     {
         var header = new { alg = algorithm, typ = "JWT" };
         var headerJson = JsonSerializer.Serialize(header);
@@ -314,16 +301,22 @@ public class SignatureValidatorTests
 
         byte[] signature;
 
-        if (useRsa)
+        if (useRsa || useRsaPkcs8)
         {
             using var rsa = RSA.Create();
-            rsa.ImportRSAPrivateKey(key, out _);
+            if (useRsaPkcs8)
+                rsa.ImportPkcs8PrivateKey(key, out _);
+            else
+                rsa.ImportRSAPrivateKey(key, out _);
             signature = rsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         }
-        else if (useEcdsa)
+        else if (useEcdsa || useEcdsaPkcs8)
         {
             using var ecdsa = ECDsa.Create();
-            ecdsa.ImportECPrivateKey(key, out _);
+            if (useEcdsaPkcs8)
+                ecdsa.ImportPkcs8PrivateKey(key, out _);
+            else
+                ecdsa.ImportECPrivateKey(key, out _);
             signature = ecdsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256);
         }
         else // HMAC
