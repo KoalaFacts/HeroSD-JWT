@@ -21,22 +21,22 @@ internal static class Ed25519
     /// <summary>
     /// Size of Ed25519 public keys in bytes (32 bytes).
     /// </summary>
-    public const int PublicKeySizeInBytes = 32;
+    public const int PUBLIC_KEY_SIZE_IN_BYTES = 32;
 
     /// <summary>
     /// Size of Ed25519 signatures in bytes (64 bytes).
     /// </summary>
-    public const int SignatureSizeInBytes = 64;
+    public const int SIGNATURE_SIZE_IN_BYTES = 64;
 
     /// <summary>
     /// Size of expanded private keys in bytes (64 bytes).
     /// </summary>
-    public const int ExpandedPrivateKeySizeInBytes = 64;
+    public const int EXPANDED_PRIVATE_KEY_SIZE_IN_BYTES = 64;
 
     /// <summary>
     /// Size of private key seeds in bytes (32 bytes).
     /// </summary>
-    public const int PrivateKeySeedSizeInBytes = 32;
+    public const int PRIVATE_KEY_SEED_SIZE_IN_BYTES = 32;
 
     /// <summary>
     /// Verifies an Ed25519 signature.
@@ -53,10 +53,10 @@ internal static class Ed25519
             throw new ArgumentNullException(nameof(message));
         if (publicKey == null)
             throw new ArgumentNullException(nameof(publicKey));
-        if (signature.Length != SignatureSizeInBytes)
-            throw new ArgumentException($"Signature must be {SignatureSizeInBytes} bytes", nameof(signature));
-        if (publicKey.Length != PublicKeySizeInBytes)
-            throw new ArgumentException($"Public key must be {PublicKeySizeInBytes} bytes", nameof(publicKey));
+        if (signature.Length != SIGNATURE_SIZE_IN_BYTES)
+            throw new ArgumentException($"Signature must be {SIGNATURE_SIZE_IN_BYTES} bytes", nameof(signature));
+        if (publicKey.Length != PUBLIC_KEY_SIZE_IN_BYTES)
+            throw new ArgumentException($"Public key must be {PUBLIC_KEY_SIZE_IN_BYTES} bytes", nameof(publicKey));
 
         return Ed25519Operations.CryptoSignVerify(signature, 0, message, 0, message.Length, publicKey, 0);
     }
@@ -73,10 +73,10 @@ internal static class Ed25519
             throw new ArgumentNullException(nameof(message));
         if (expandedPrivateKey == null)
             throw new ArgumentNullException(nameof(expandedPrivateKey));
-        if (expandedPrivateKey.Length != ExpandedPrivateKeySizeInBytes)
-            throw new ArgumentException($"Expanded private key must be {ExpandedPrivateKeySizeInBytes} bytes", nameof(expandedPrivateKey));
+        if (expandedPrivateKey.Length != EXPANDED_PRIVATE_KEY_SIZE_IN_BYTES)
+            throw new ArgumentException($"Expanded private key must be {EXPANDED_PRIVATE_KEY_SIZE_IN_BYTES} bytes", nameof(expandedPrivateKey));
 
-        var signature = new byte[SignatureSizeInBytes];
+        var signature = new byte[SIGNATURE_SIZE_IN_BYTES];
         Ed25519Operations.CryptoSign(signature, 0, message, 0, message.Length, expandedPrivateKey, 0);
         return signature;
     }
@@ -90,11 +90,11 @@ internal static class Ed25519
     {
         if (privateKeySeed == null)
             throw new ArgumentNullException(nameof(privateKeySeed));
-        if (privateKeySeed.Length != PrivateKeySeedSizeInBytes)
-            throw new ArgumentException($"Private key seed must be {PrivateKeySeedSizeInBytes} bytes", nameof(privateKeySeed));
+        if (privateKeySeed.Length != PRIVATE_KEY_SEED_SIZE_IN_BYTES)
+            throw new ArgumentException($"Private key seed must be {PRIVATE_KEY_SEED_SIZE_IN_BYTES} bytes", nameof(privateKeySeed));
 
-        var publicKey = new byte[PublicKeySizeInBytes];
-        var expandedPrivateKey = new byte[ExpandedPrivateKeySizeInBytes];
+        var publicKey = new byte[PUBLIC_KEY_SIZE_IN_BYTES];
+        var expandedPrivateKey = new byte[EXPANDED_PRIVATE_KEY_SIZE_IN_BYTES];
 
         Ed25519Operations.CryptoSignKeypair(publicKey, 0, expandedPrivateKey, 0, privateKeySeed, 0);
 
@@ -110,11 +110,11 @@ internal static class Ed25519
     {
         if (privateKeySeed == null)
             throw new ArgumentNullException(nameof(privateKeySeed));
-        if (privateKeySeed.Length != PrivateKeySeedSizeInBytes)
-            throw new ArgumentException($"Private key seed must be {PrivateKeySeedSizeInBytes} bytes", nameof(privateKeySeed));
+        if (privateKeySeed.Length != PRIVATE_KEY_SEED_SIZE_IN_BYTES)
+            throw new ArgumentException($"Private key seed must be {PRIVATE_KEY_SEED_SIZE_IN_BYTES} bytes", nameof(privateKeySeed));
 
-        var publicKey = new byte[PublicKeySizeInBytes];
-        var expandedPrivateKey = new byte[ExpandedPrivateKeySizeInBytes];
+        var publicKey = new byte[PUBLIC_KEY_SIZE_IN_BYTES];
+        var expandedPrivateKey = new byte[EXPANDED_PRIVATE_KEY_SIZE_IN_BYTES];
 
         Ed25519Operations.CryptoSignKeypair(publicKey, 0, expandedPrivateKey, 0, privateKeySeed, 0);
 

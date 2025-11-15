@@ -10,11 +10,11 @@ namespace HeroSdJwt.Issuance;
 /// </summary>
 internal class NestedClaimProcessor(IDisclosureGenerator disclosureGenerator, IDigestCalculator digestCalculator)
 {
-    private readonly IDisclosureGenerator disclosureGenerator = disclosureGenerator;
-    private readonly IDigestCalculator digestCalculator = digestCalculator;
+    private readonly IDisclosureGenerator _disclosureGenerator = disclosureGenerator;
+    private readonly IDigestCalculator _digestCalculator = digestCalculator;
 
     // Security: Maximum nesting depth to prevent stack overflow attacks
-    private const int MaxNestingDepth = 10;
+    private const int MAX_NESTING_DEPTH = 10;
 
 
     /// <summary>
@@ -90,9 +90,9 @@ internal class NestedClaimProcessor(IDisclosureGenerator disclosureGenerator, ID
         int depth = 0)
     {
         // Security: Prevent stack overflow with deeply nested structures
-        if (depth > MaxNestingDepth)
+        if (depth > MAX_NESTING_DEPTH)
         {
-            throw new ArgumentException($"Maximum nesting depth of {MaxNestingDepth} exceeded. This may indicate a malformed or malicious JSON structure.");
+            throw new ArgumentException($"Maximum nesting depth of {MAX_NESTING_DEPTH} exceeded. This may indicate a malformed or malicious JSON structure.");
         }
         var result = new Dictionary<string, object>();
         var sdDigests = new List<string>();
@@ -160,11 +160,11 @@ internal class NestedClaimProcessor(IDisclosureGenerator disclosureGenerator, ID
                 }
 
                 // Generate disclosure for this property (with potentially modified nested value)
-                var disclosure = disclosureGenerator.GenerateDisclosure(propertyName, valueToDisclose);
+                var disclosure = _disclosureGenerator.GenerateDisclosure(propertyName, valueToDisclose);
                 disclosures.Add(disclosure);
 
                 // Compute digest
-                var digest = digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
+                var digest = _digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
                 sdDigests.Add(digest);
 
                 // Don't add this property to the result object - it's now hidden in disclosure

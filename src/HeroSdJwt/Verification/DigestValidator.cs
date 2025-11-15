@@ -13,7 +13,7 @@ namespace HeroSdJwt.Verification;
 /// <param name="digestCalculator">The digest calculator to use.</param>
 public class DigestValidator(IDigestCalculator digestCalculator) : IDigestValidator
 {
-    private readonly IDigestCalculator digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
+    private readonly IDigestCalculator _digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DigestValidator"/> class.
@@ -37,7 +37,7 @@ public class DigestValidator(IDigestCalculator digestCalculator) : IDigestValida
         ArgumentNullException.ThrowIfNull(disclosure);
 
         // Compute the digest for the given disclosure
-        var computedDigestValue = digestCalculator.ComputeDigest(disclosure, algorithm);
+        var computedDigestValue = _digestCalculator.ComputeDigest(disclosure, algorithm);
         var computedDigest = new Digest(computedDigestValue, algorithm);
 
         // Use constant-time comparison from Digest.Equals (which uses CryptographicOperations.FixedTimeEquals)
@@ -64,7 +64,7 @@ public class DigestValidator(IDigestCalculator digestCalculator) : IDigestValida
 
         foreach (var disclosure in disclosures)
         {
-            var digestValue = digestCalculator.ComputeDigest(disclosure, algorithm);
+            var digestValue = _digestCalculator.ComputeDigest(disclosure, algorithm);
             computedDigests.Add(new Digest(digestValue, algorithm));
         }
 

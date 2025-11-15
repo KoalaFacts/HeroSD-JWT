@@ -11,7 +11,7 @@ namespace HeroSdJwt.KeyBinding;
 /// </summary>
 public class KeyBindingGenerator : IKeyBindingGenerator
 {
-    private readonly TimeProvider timeProvider;
+    private readonly TimeProvider _timeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="KeyBindingGenerator"/> class.
@@ -27,7 +27,7 @@ public class KeyBindingGenerator : IKeyBindingGenerator
     /// <param name="timeProvider">The time provider for timestamp generation.</param>
     internal KeyBindingGenerator(TimeProvider timeProvider)
     {
-        this.timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     /// <summary>
@@ -53,7 +53,7 @@ public class KeyBindingGenerator : IKeyBindingGenerator
         // Encode header and payload using AOT-compatible serialization
         var headerJson = SerializeKeyBindingHeader();
         var payloadJson = SerializeKeyBindingPayload(
-            timeProvider.GetUtcNow().ToUnixTimeSeconds(),
+            _timeProvider.GetUtcNow().ToUnixTimeSeconds(),
             audience,
             nonce,
             sdJwtHash);

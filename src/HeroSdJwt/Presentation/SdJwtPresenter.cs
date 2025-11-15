@@ -11,7 +11,7 @@ namespace HeroSdJwt.Presentation;
 /// <param name="claimPathMapper">The claim path mapper to use.</param>
 public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwtPresenter
 {
-    private readonly IDisclosureClaimPathMapper claimPathMapper = claimPathMapper ?? throw new ArgumentNullException(nameof(claimPathMapper));
+    private readonly IDisclosureClaimPathMapper _claimPathMapper = claimPathMapper ?? throw new ArgumentNullException(nameof(claimPathMapper));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtPresenter"/> class.
@@ -44,7 +44,7 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
             // Use cached claim path mapping if available (computed at issuance time for performance),
             // otherwise compute on-demand per SD-JWT spec: "it is up to the Holder how to maintain the mapping"
             IReadOnlyDictionary<string, int> claimPathToIndex = sdJwt.ClaimPathMapping
-                ?? claimPathMapper.BuildClaimPathMapping(sdJwt);
+                ?? _claimPathMapper.BuildClaimPathMapping(sdJwt);
 
             // Select disclosures based on requested claim paths
             // Also include parent disclosures for nested paths (e.g., for "address.geo.lat", include "address.geo")

@@ -8,55 +8,55 @@ public static class Constants
     /// <summary>
     /// The claim name for the selective disclosure array in the JWT payload.
     /// </summary>
-    public const string SdClaimName = "_sd";
+    public const string SD_CLAIM_NAME = "_sd";
 
     /// <summary>
     /// The claim name for the hash algorithm in the JWT payload.
     /// </summary>
-    public const string SdAlgClaimName = "_sd_alg";
+    public const string SD_ALG_CLAIM_NAME = "_sd_alg";
 
     /// <summary>
     /// The claim name for the confirmation claim (holder's public key) in the JWT payload.
     /// Used for key binding.
     /// </summary>
-    public const string CnfClaimName = "cnf";
+    public const string CNF_CLAIM_NAME = "cnf";
 
     /// <summary>
     /// The claim name for nonce in the key binding JWT.
     /// </summary>
-    public const string NonceClaimName = "nonce";
+    public const string NONCE_CLAIM_NAME = "nonce";
 
     /// <summary>
     /// The claim name for audience in the key binding JWT.
     /// </summary>
-    public const string AudienceClaimName = "aud";
+    public const string AUDIENCE_CLAIM_NAME = "aud";
 
     /// <summary>
     /// The claim name for issued at time in the key binding JWT.
     /// </summary>
-    public const string IssuedAtClaimName = "iat";
+    public const string ISSUED_AT_CLAIM_NAME = "iat";
 
     /// <summary>
     /// The claim name for the SD-JWT hash in the key binding JWT.
     /// </summary>
-    public const string SdHashClaimName = "sd_hash";
+    public const string SD_HASH_CLAIM_NAME = "sd_hash";
 
     /// <summary>
     /// The minimum recommended salt length in bytes (128 bits = 16 bytes).
     /// </summary>
-    public const int MinimumSaltLengthBytes = 16;
+    public const int MINIMUM_SALT_LENGTH_BYTES = 16;
 
     /// <summary>
     /// The maximum number of disclosures allowed in an SD-JWT presentation.
     /// Prevents DoS attacks via excessive disclosures.
     /// </summary>
-    public const int MaxDisclosures = 100;
+    public const int MAX_DISCLOSURES = 100;
 
     /// <summary>
     /// The maximum size of a JWT string in bytes.
     /// Prevents DoS attacks via excessively large JWT payloads.
     /// </summary>
-    public const int MaxJwtSizeBytes = 65536; // 64 KB
+    public const int MAX_JWT_SIZE_BYTES = 65536; // 64 KB
 
     /// <summary>
     /// Security-critical JWT claims that MUST NOT be selectively disclosable.
@@ -80,17 +80,17 @@ public static class Constants
     /// Maximum age of key binding JWT in seconds (default: 5 minutes).
     /// KB-JWTs older than this are rejected to prevent replay attacks.
     /// </summary>
-    public const int MaxKeyBindingJwtAgeSeconds = 300;
+    public const int MAX_KEY_BINDING_JWT_AGE_SECONDS = 300;
 
     /// <summary>
     /// The separator character used in combined SD-JWT presentation format.
     /// </summary>
-    public const char CombinedFormatSeparator = '~';
+    public const char COMBINED_FORMAT_SEPARATOR = '~';
 
     /// <summary>
     /// The default hash algorithm for SD-JWT.
     /// </summary>
-    public const string DefaultHashAlgorithmName = "sha-256";
+    public const string DEFAULT_HASH_ALGORITHM_NAME = "sha-256";
 
     /// <summary>
     /// Mapping of hash algorithm enum to string representation in JWT.

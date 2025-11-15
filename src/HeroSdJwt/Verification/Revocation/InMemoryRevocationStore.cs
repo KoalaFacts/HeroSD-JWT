@@ -39,7 +39,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     private readonly Timer _cleanupTimer;
 
     // Cleanup interval (default: 5 minutes)
-    private static readonly TimeSpan CleanupInterval = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InMemoryRevocationStore"/> class.
@@ -50,8 +50,8 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         _cleanupTimer = new Timer(
             callback: _ => CleanupExpiredEntriesAsync().GetAwaiter().GetResult(),
             state: null,
-            dueTime: CleanupInterval,
-            period: CleanupInterval);
+            dueTime: _cleanupInterval,
+            period: _cleanupInterval);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

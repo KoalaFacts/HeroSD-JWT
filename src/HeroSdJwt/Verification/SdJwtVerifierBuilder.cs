@@ -35,22 +35,22 @@ namespace HeroSdJwt.Verification;
 /// </example>
 public class SdJwtVerifierBuilder
 {
-    private TimeSpan clockSkew = TimeSpan.FromMinutes(5);
-    private bool requireKeyBinding = false;
-    private string? expectedIssuer;
-    private string? expectedAudience;
-    private HashAlgorithm? expectedHashAlgorithm;
-    private string? expectedNonce;
-    private RevocationFailureMode revocationFailureMode = RevocationFailureMode.FailClosed;
-    private IRevocationStore? revocationStore;
-    private JtiValidator? jtiValidator;
+    private TimeSpan _clockSkew = TimeSpan.FromMinutes(5);
+    private bool _requireKeyBinding = false;
+    private string? _expectedIssuer;
+    private string? _expectedAudience;
+    private HashAlgorithm? _expectedHashAlgorithm;
+    private string? _expectedNonce;
+    private RevocationFailureMode _revocationFailureMode = RevocationFailureMode.FailClosed;
+    private IRevocationStore? _revocationStore;
+    private JtiValidator? _jtiValidator;
 
     // Optional dependency overrides for testing
-    private IEcPublicKeyConverter? ecPublicKeyConverter;
-    private ISignatureValidator? signatureValidator;
-    private IDigestValidator? digestValidator;
-    private IKeyBindingValidator? keyBindingValidator;
-    private IClaimValidator? claimValidator;
+    private IEcPublicKeyConverter? _ecPublicKeyConverter;
+    private ISignatureValidator? _signatureValidator;
+    private IDigestValidator? _digestValidator;
+    private IKeyBindingValidator? _keyBindingValidator;
+    private IClaimValidator? _claimValidator;
 
     /// <summary>
     /// Creates a new builder instance with default settings.
@@ -64,7 +64,7 @@ public class SdJwtVerifierBuilder
     /// <param name="clockSkew">Clock skew duration (0-5 minutes).</param>
     public SdJwtVerifierBuilder WithClockSkew(TimeSpan clockSkew)
     {
-        this.clockSkew = clockSkew;
+        _clockSkew = clockSkew;
         return this;
     }
 
@@ -75,7 +75,7 @@ public class SdJwtVerifierBuilder
     /// </summary>
     public SdJwtVerifierBuilder RequireKeyBinding()
     {
-        requireKeyBinding = true;
+        _requireKeyBinding = true;
         return this;
     }
 
@@ -86,7 +86,7 @@ public class SdJwtVerifierBuilder
     /// <param name="issuer">Expected issuer URI.</param>
     public SdJwtVerifierBuilder WithExpectedIssuer(string issuer)
     {
-        expectedIssuer = issuer ?? throw new ArgumentNullException(nameof(issuer));
+        _expectedIssuer = issuer ?? throw new ArgumentNullException(nameof(issuer));
         return this;
     }
 
@@ -97,7 +97,7 @@ public class SdJwtVerifierBuilder
     /// <param name="audience">Expected audience URI.</param>
     public SdJwtVerifierBuilder WithExpectedAudience(string audience)
     {
-        expectedAudience = audience ?? throw new ArgumentNullException(nameof(audience));
+        _expectedAudience = audience ?? throw new ArgumentNullException(nameof(audience));
         return this;
     }
 
@@ -109,7 +109,7 @@ public class SdJwtVerifierBuilder
     /// <param name="algorithm">Expected hash algorithm.</param>
     public SdJwtVerifierBuilder WithExpectedHashAlgorithm(HashAlgorithm algorithm)
     {
-        expectedHashAlgorithm = algorithm;
+        _expectedHashAlgorithm = algorithm;
         return this;
     }
 
@@ -120,7 +120,7 @@ public class SdJwtVerifierBuilder
     /// <param name="nonce">Expected nonce value.</param>
     public SdJwtVerifierBuilder WithExpectedNonce(string nonce)
     {
-        expectedNonce = nonce ?? throw new ArgumentNullException(nameof(nonce));
+        _expectedNonce = nonce ?? throw new ArgumentNullException(nameof(nonce));
         return this;
     }
 
@@ -134,8 +134,8 @@ public class SdJwtVerifierBuilder
         IRevocationStore store,
         RevocationFailureMode failureMode = RevocationFailureMode.FailClosed)
     {
-        revocationStore = store ?? throw new ArgumentNullException(nameof(store));
-        revocationFailureMode = failureMode;
+        _revocationStore = store ?? throw new ArgumentNullException(nameof(store));
+        _revocationFailureMode = failureMode;
         return this;
     }
 
@@ -146,7 +146,7 @@ public class SdJwtVerifierBuilder
     /// </summary>
     public SdJwtVerifierBuilder WithFailClosed()
     {
-        revocationFailureMode = RevocationFailureMode.FailClosed;
+        _revocationFailureMode = RevocationFailureMode.FailClosed;
         return this;
     }
 
@@ -158,7 +158,7 @@ public class SdJwtVerifierBuilder
     /// </summary>
     public SdJwtVerifierBuilder WithFailOpen()
     {
-        revocationFailureMode = RevocationFailureMode.FailOpen;
+        _revocationFailureMode = RevocationFailureMode.FailOpen;
         return this;
     }
 
@@ -169,7 +169,7 @@ public class SdJwtVerifierBuilder
     /// <param name="validator">JTI validator implementation.</param>
     public SdJwtVerifierBuilder WithReplayProtection(JtiValidator validator)
     {
-        jtiValidator = validator ?? throw new ArgumentNullException(nameof(validator));
+        _jtiValidator = validator ?? throw new ArgumentNullException(nameof(validator));
         return this;
     }
 
@@ -178,7 +178,7 @@ public class SdJwtVerifierBuilder
     /// </summary>
     public SdJwtVerifierBuilder WithEcPublicKeyConverter(IEcPublicKeyConverter converter)
     {
-        ecPublicKeyConverter = converter ?? throw new ArgumentNullException(nameof(converter));
+        _ecPublicKeyConverter = converter ?? throw new ArgumentNullException(nameof(converter));
         return this;
     }
 
@@ -187,7 +187,7 @@ public class SdJwtVerifierBuilder
     /// </summary>
     public SdJwtVerifierBuilder WithSignatureValidator(ISignatureValidator validator)
     {
-        signatureValidator = validator ?? throw new ArgumentNullException(nameof(validator));
+        _signatureValidator = validator ?? throw new ArgumentNullException(nameof(validator));
         return this;
     }
 
@@ -196,7 +196,7 @@ public class SdJwtVerifierBuilder
     /// </summary>
     public SdJwtVerifierBuilder WithDigestValidator(IDigestValidator validator)
     {
-        digestValidator = validator ?? throw new ArgumentNullException(nameof(validator));
+        _digestValidator = validator ?? throw new ArgumentNullException(nameof(validator));
         return this;
     }
 
@@ -205,7 +205,7 @@ public class SdJwtVerifierBuilder
     /// </summary>
     public SdJwtVerifierBuilder WithKeyBindingValidator(IKeyBindingValidator validator)
     {
-        keyBindingValidator = validator ?? throw new ArgumentNullException(nameof(validator));
+        _keyBindingValidator = validator ?? throw new ArgumentNullException(nameof(validator));
         return this;
     }
 
@@ -214,7 +214,7 @@ public class SdJwtVerifierBuilder
     /// </summary>
     public SdJwtVerifierBuilder WithClaimValidator(IClaimValidator validator)
     {
-        claimValidator = validator ?? throw new ArgumentNullException(nameof(validator));
+        _claimValidator = validator ?? throw new ArgumentNullException(nameof(validator));
         return this;
     }
 
@@ -228,15 +228,15 @@ public class SdJwtVerifierBuilder
         // Build verification options
         var options = new SdJwtVerificationOptions
         {
-            ClockSkew = clockSkew,
-            RequireKeyBinding = requireKeyBinding,
-            ExpectedIssuer = expectedIssuer,
-            ExpectedAudience = expectedAudience,
-            ExpectedHashAlgorithm = expectedHashAlgorithm,
-            ExpectedNonce = expectedNonce,
+            ClockSkew = _clockSkew,
+            RequireKeyBinding = _requireKeyBinding,
+            ExpectedIssuer = _expectedIssuer,
+            ExpectedAudience = _expectedAudience,
+            ExpectedHashAlgorithm = _expectedHashAlgorithm,
+            ExpectedNonce = _expectedNonce,
             Revocation = new RevocationOptions
             {
-                FailureMode = revocationFailureMode
+                FailureMode = _revocationFailureMode
             }
         };
 
@@ -246,12 +246,12 @@ public class SdJwtVerifierBuilder
         // Create verifier with dependencies (use defaults if not overridden)
         return new SdJwtVerifier(
             options,
-            ecPublicKeyConverter ?? new EcPublicKeyConverter(),
-            signatureValidator ?? new SignatureValidator(),
-            digestValidator ?? new DigestValidator(),
-            keyBindingValidator ?? new KeyBindingValidator(),
-            claimValidator ?? new ClaimValidator(),
-            jtiValidator,
-            revocationStore);
+            _ecPublicKeyConverter ?? new EcPublicKeyConverter(),
+            _signatureValidator ?? new SignatureValidator(),
+            _digestValidator ?? new DigestValidator(),
+            _keyBindingValidator ?? new KeyBindingValidator(),
+            _claimValidator ?? new ClaimValidator(),
+            _jtiValidator,
+            _revocationStore);
     }
 }

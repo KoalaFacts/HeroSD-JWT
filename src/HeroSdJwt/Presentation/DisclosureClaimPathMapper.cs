@@ -15,11 +15,11 @@ namespace HeroSdJwt.Presentation;
 /// </remarks>
 public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisclosureParser disclosureParser) : IDisclosureClaimPathMapper
 {
-    private readonly IDigestCalculator digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
-    private readonly IDisclosureParser disclosureParser = disclosureParser ?? throw new ArgumentNullException(nameof(disclosureParser));
+    private readonly IDigestCalculator _digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
+    private readonly IDisclosureParser _disclosureParser = disclosureParser ?? throw new ArgumentNullException(nameof(disclosureParser));
 
     // Security: Maximum nesting depth to prevent stack overflow attacks
-    private const int MaxNestingDepth = 10;
+    private const int MAX_NESTING_DEPTH = 10;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DisclosureClaimPathMapper"/> class.
@@ -53,7 +53,7 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
         var digestToIndex = new Dictionary<string, int>();
         for (int i = 0; i < sdJwt.Disclosures.Count; i++)
         {
-            var digest = digestCalculator.ComputeDigest(sdJwt.Disclosures[i], sdJwt.HashAlgorithm);
+            var digest = _digestCalculator.ComputeDigest(sdJwt.Disclosures[i], sdJwt.HashAlgorithm);
             digestToIndex[digest] = i;
         }
 
@@ -127,7 +127,7 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                 if (digestToIndex.TryGetValue(digest, out var disclosureIndex))
                 {
                     // Parse the disclosure to get the claim name and value
-                    var disclosure = disclosureParser.Parse(disclosures[disclosureIndex]);
+                    var disclosure = _disclosureParser.Parse(disclosures[disclosureIndex]);
                     if (disclosure.ClaimName != null)
                     {
                         // Build the full path: currentPath + claim name
@@ -173,7 +173,7 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                     mapping[arrayPath] = disclosureIndex;
 
                     // Recursively process the array element value
-                    var disclosure = disclosureParser.Parse(disclosures[disclosureIndex]);
+                    var disclosure = _disclosureParser.Parse(disclosures[disclosureIndex]);
                     ProcessElement(disclosure.ClaimValue, arrayPath, digestToIndex, disclosures, mapping);
                 }
             }

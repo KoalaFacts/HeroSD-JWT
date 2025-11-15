@@ -31,7 +31,7 @@ public class DisclosureGenerator : IDisclosureGenerator
         }
 
         // Generate cryptographically secure random salt (128 bits = 16 bytes minimum)
-        var saltBytes = new byte[Constants.MinimumSaltLengthBytes];
+        var saltBytes = new byte[Constants.MINIMUM_SALT_LENGTH_BYTES];
         RandomNumberGenerator.Fill(saltBytes);
 
         // Convert salt to base64url
@@ -56,7 +56,7 @@ public class DisclosureGenerator : IDisclosureGenerator
     public string GenerateArrayElementDisclosure(JsonElement claimValue)
     {
         // Generate cryptographically secure random salt (128 bits = 16 bytes minimum)
-        var saltBytes = new byte[Constants.MinimumSaltLengthBytes];
+        var saltBytes = new byte[Constants.MINIMUM_SALT_LENGTH_BYTES];
         RandomNumberGenerator.Fill(saltBytes);
 
         // Convert salt to base64url

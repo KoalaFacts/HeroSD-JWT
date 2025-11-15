@@ -30,14 +30,14 @@ namespace HeroSdJwt.Issuance;
 /// </example>
 public class SdJwtBuilder
 {
-    private Dictionary<string, object>? claims;
-    private readonly List<string> selectiveClaims = [];
-    private byte[]? signingKey;
-    private HashAlgorithm hashAlgorithm = HashAlgorithm.Sha256;
-    private SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
-    private byte[]? holderPublicKey;
-    private int decoyDigestCount = 0;
-    private string? keyId;
+    private Dictionary<string, object>? _claims;
+    private readonly List<string> _selectiveClaims = [];
+    private byte[]? _signingKey;
+    private HashAlgorithm _hashAlgorithm = HashAlgorithm.Sha256;
+    private SignatureAlgorithm _signatureAlgorithm = SignatureAlgorithm.HS256;
+    private byte[]? _holderPublicKey;
+    private int _decoyDigestCount = 0;
+    private string? _keyId;
 
     /// <summary>
     /// Creates a new builder instance.
@@ -50,7 +50,7 @@ public class SdJwtBuilder
     /// <param name="claims">The claims to include in the JWT.</param>
     public SdJwtBuilder WithClaims(Dictionary<string, object> claims)
     {
-        this.claims = claims ?? throw new ArgumentNullException(nameof(claims));
+        _claims = claims ?? throw new ArgumentNullException(nameof(claims));
         return this;
     }
 
@@ -61,8 +61,8 @@ public class SdJwtBuilder
     /// <param name="value">Claim value.</param>
     public SdJwtBuilder WithClaim(string name, object value)
     {
-        claims ??= [];
-        claims[name] = value;
+        _claims ??= [];
+        _claims[name] = value;
         return this;
     }
 
@@ -74,7 +74,7 @@ public class SdJwtBuilder
     /// <param name="claimNames">Names of claims to make selectively disclosable.</param>
     public SdJwtBuilder MakeSelective(params string[] claimNames)
     {
-        selectiveClaims.AddRange(claimNames);
+        _selectiveClaims.AddRange(claimNames);
         return this;
     }
 
@@ -85,8 +85,8 @@ public class SdJwtBuilder
     /// <param name="key">HMAC key (recommended: 256 bits / 32 bytes).</param>
     public SdJwtBuilder SignWithHmac(byte[] key)
     {
-        signingKey = key ?? throw new ArgumentNullException(nameof(key));
-        signatureAlgorithm = SignatureAlgorithm.HS256;
+        _signingKey = key ?? throw new ArgumentNullException(nameof(key));
+        _signatureAlgorithm = SignatureAlgorithm.HS256;
         return this;
     }
 
@@ -97,8 +97,8 @@ public class SdJwtBuilder
     /// <param name="privateKey">RSA private key in PKCS#8 format.</param>
     public SdJwtBuilder SignWithRsa(byte[] privateKey)
     {
-        signingKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
-        signatureAlgorithm = SignatureAlgorithm.RS256;
+        _signingKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
+        _signatureAlgorithm = SignatureAlgorithm.RS256;
         return this;
     }
 
@@ -109,8 +109,8 @@ public class SdJwtBuilder
     /// <param name="privateKey">ECDSA private key in PKCS#8 format.</param>
     public SdJwtBuilder SignWithEcdsa(byte[] privateKey)
     {
-        signingKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
-        signatureAlgorithm = SignatureAlgorithm.ES256;
+        _signingKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
+        _signatureAlgorithm = SignatureAlgorithm.ES256;
         return this;
     }
 
@@ -122,8 +122,8 @@ public class SdJwtBuilder
     /// <param name="privateKey">Ed25519 private key in PKCS#8 format.</param>
     public SdJwtBuilder SignWithEd25519(byte[] privateKey)
     {
-        signingKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
-        signatureAlgorithm = SignatureAlgorithm.EdDSA;
+        _signingKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
+        _signatureAlgorithm = SignatureAlgorithm.EdDSA;
         return this;
     }
 
@@ -134,7 +134,7 @@ public class SdJwtBuilder
     /// <param name="algorithm">Hash algorithm to use.</param>
     public SdJwtBuilder WithHashAlgorithm(HashAlgorithm algorithm)
     {
-        hashAlgorithm = algorithm;
+        _hashAlgorithm = algorithm;
         return this;
     }
 
@@ -146,7 +146,7 @@ public class SdJwtBuilder
     /// <param name="holderPublicKey">Holder's public key in SubjectPublicKeyInfo format.</param>
     public SdJwtBuilder WithKeyBinding(byte[] holderPublicKey)
     {
-        this.holderPublicKey = holderPublicKey ?? throw new ArgumentNullException(nameof(holderPublicKey));
+        _holderPublicKey = holderPublicKey ?? throw new ArgumentNullException(nameof(holderPublicKey));
         return this;
     }
 
@@ -161,7 +161,7 @@ public class SdJwtBuilder
         if (count < 0)
             throw new ArgumentOutOfRangeException(nameof(count), "Decoy count cannot be negative");
 
-        decoyDigestCount = count;
+        _decoyDigestCount = count;
         return this;
     }
 
@@ -176,7 +176,7 @@ public class SdJwtBuilder
     public SdJwtBuilder WithKeyId(string keyId)
     {
         Primitives.KeyIdValidator.Validate(keyId);
-        this.keyId = keyId;
+        _keyId = keyId;
         return this;
     }
 
@@ -187,10 +187,10 @@ public class SdJwtBuilder
     /// <exception cref="InvalidOperationException">Thrown when required properties are not set.</exception>
     public SdJwt Build()
     {
-        if (claims == null)
+        if (_claims == null)
             throw new InvalidOperationException("Claims must be set. Call WithClaims() or WithClaim().");
 
-        if (signingKey == null)
+        if (_signingKey == null)
             throw new InvalidOperationException("Signing key must be set. Call SignWithHmac(), SignWithRsa(), SignWithEcdsa(), or SignWithEd25519().");
 
         var issuer = new SdJwtIssuer(
@@ -199,13 +199,13 @@ public class SdJwtBuilder
             new EcPublicKeyConverter(),
             new JwtSigner());
         return issuer.CreateSdJwt(
-            claims,
-            selectiveClaims,
-            signingKey,
-            hashAlgorithm,
-            signatureAlgorithm,
-            holderPublicKey,
-            decoyDigestCount,
-            keyId);
+            _claims,
+            _selectiveClaims,
+            _signingKey,
+            _hashAlgorithm,
+            _signatureAlgorithm,
+            _holderPublicKey,
+            _decoyDigestCount,
+            _keyId);
     }
 }

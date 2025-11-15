@@ -249,10 +249,10 @@ public class SdJwtIssuer(
                     // Validate _sd_alg placement - MUST only appear at top level
                     // Per SD-JWT spec section 4.2.3: "_sd_alg MUST appear at the top level
                     // of the SD-JWT payload and MUST NOT be used in any object nested within the payload"
-                    if (claim.Key == Constants.SdAlgClaimName)
+                    if (claim.Key == Constants.SD_ALG_CLAIM_NAME)
                     {
                         throw new ArgumentException(
-                            $"The claim '{Constants.SdAlgClaimName}' is reserved for internal use and cannot be explicitly set. " +
+                            $"The claim '{Constants.SD_ALG_CLAIM_NAME}' is reserved for internal use and cannot be explicitly set. " +
                             "The hash algorithm is specified via the hashAlgorithm parameter.",
                             nameof(claims));
                     }
@@ -267,10 +267,10 @@ public class SdJwtIssuer(
             // Add SD-JWT specific claims
             if (digests.Count > 0)
             {
-                payload[Constants.SdClaimName] = digests;
+                payload[Constants.SD_CLAIM_NAME] = digests;
             }
 
-            payload[Constants.SdAlgClaimName] = Constants.HashAlgorithmNames[hashAlgorithm];
+            payload[Constants.SD_ALG_CLAIM_NAME] = Constants.HashAlgorithmNames[hashAlgorithm];
 
             // Add cnf claim if holder public key is provided (for key binding)
             // Per RFC 7800 and SD-JWT spec section 4.3, use proper JWK format
@@ -315,10 +315,10 @@ public class SdJwtIssuer(
         {
             foreach (var kvp in dict)
             {
-                if (kvp.Key == Constants.SdAlgClaimName)
+                if (kvp.Key == Constants.SD_ALG_CLAIM_NAME)
                 {
                     throw new ArgumentException(
-                        $"The claim '{Constants.SdAlgClaimName}' was found in nested object at path '{claimPath}.{kvp.Key}'. " +
+                        $"The claim '{Constants.SD_ALG_CLAIM_NAME}' was found in nested object at path '{claimPath}.{kvp.Key}'. " +
                         "Per SD-JWT specification section 4.2.3, _sd_alg MUST appear at the top level of the SD-JWT payload " +
                         "and MUST NOT be used in any object nested within the payload.",
                         nameof(value));

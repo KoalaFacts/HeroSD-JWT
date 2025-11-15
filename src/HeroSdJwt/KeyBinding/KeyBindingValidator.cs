@@ -15,7 +15,7 @@ namespace HeroSdJwt.KeyBinding;
 /// <param name="timeProvider">The time provider for temporal validation.</param>
 public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidator
 {
-    private readonly TimeProvider timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+    private readonly TimeProvider _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="KeyBindingValidator"/> class.
@@ -118,10 +118,10 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             }
 
             var iat = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds);
-            var now = timeProvider.GetUtcNow();
+            var now = _timeProvider.GetUtcNow();
 
             // Reject if KB-JWT is too old (replay attack prevention)
-            var maxAge = TimeSpan.FromSeconds(Constants.MaxKeyBindingJwtAgeSeconds);
+            var maxAge = TimeSpan.FromSeconds(Constants.MAX_KEY_BINDING_JWT_AGE_SECONDS);
             if (now - iat > maxAge)
             {
                 return false; // KB-JWT is too old

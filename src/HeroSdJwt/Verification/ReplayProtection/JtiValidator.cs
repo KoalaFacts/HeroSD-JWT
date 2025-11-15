@@ -9,8 +9,8 @@ namespace HeroSdJwt.Verification.ReplayProtection;
 /// </summary>
 public class JtiValidator
 {
-    private readonly IJtiCache cache;
-    private readonly ReplayProtectionOptions options;
+    private readonly IJtiCache _cache;
+    private readonly ReplayProtectionOptions _options;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JtiValidator"/> class.
@@ -20,8 +20,8 @@ public class JtiValidator
     /// <exception cref="ArgumentNullException">Thrown when cache or options is null.</exception>
     public JtiValidator(IJtiCache cache, ReplayProtectionOptions options)
     {
-        this.cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        this.options = options ?? throw new ArgumentNullException(nameof(options));
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
     /// <summary>
@@ -34,7 +34,7 @@ public class JtiValidator
     public async Task ValidateAsync(Dictionary<string, JsonElement> claims, CancellationToken cancellationToken = default)
     {
         // If replay protection disabled, skip validation
-        if (!options.Enabled)
+        if (!_options.Enabled)
         {
             return;
         }
@@ -54,7 +54,7 @@ public class JtiValidator
         // Extract jti
         if (!claims.TryGetValue("jti", out var jtiElement))
         {
-            if (options.RequireJtiClaim)
+            if (_options.RequireJtiClaim)
             {
                 throw new SdJwtException("JWT ID claim (jti) is required when replay protection is enabled", Primitives.ErrorCode.MissingRequiredClaim);
             }
@@ -72,7 +72,7 @@ public class JtiValidator
         var ttl = CalculateTtl(claims);
 
         // Try to add jti to cache (atomic operation)
-        var wasAdded = await cache.TryAddAsync(issuer, jti, ttl, cancellationToken);
+        var wasAdded = await _cache.TryAddAsync(issuer, jti, ttl, cancellationToken);
 
         if (!wasAdded)
         {
@@ -90,14 +90,14 @@ public class JtiValidator
         if (!claims.TryGetValue("exp", out var expElement))
         {
             // No exp claim - use default TTL
-            return options.DefaultTtl;
+            return _options.DefaultTtl;
         }
 
         // Parse exp as Unix timestamp
         if (!expElement.TryGetInt64(out var expUnixSeconds))
         {
             // Invalid exp format - use default TTL
-            return options.DefaultTtl;
+            return _options.DefaultTtl;
         }
 
         var exp = DateTimeOffset.FromUnixTimeSeconds(expUnixSeconds);
@@ -112,12 +112,12 @@ public class JtiValidator
         }
 
         // Calculate TTL with clock skew tolerance
-        var ttl = (exp - now) + options.ClockSkewTolerance;
+        var ttl = (exp - now) + _options.ClockSkewTolerance;
 
         // Cap at maximum TTL
-        if (ttl > options.MaximumTtl)
+        if (ttl > _options.MaximumTtl)
         {
-            ttl = options.MaximumTtl;
+            ttl = _options.MaximumTtl;
         }
 
         // Ensure minimum TTL to prevent immediate expiration

@@ -9,10 +9,10 @@ namespace HeroSdJwt.Verification.ReplayProtection;
 /// </summary>
 public class InMemoryJtiCache : IJtiCache, IDisposable
 {
-    private readonly ConcurrentDictionary<JtiCacheKey, DateTimeOffset> cache;
-    private readonly ReplayProtectionOptions options;
-    private readonly Timer? cleanupTimer;
-    private bool disposed;
+    private readonly ConcurrentDictionary<JtiCacheKey, DateTimeOffset> _cache;
+    private readonly ReplayProtectionOptions _options;
+    private readonly Timer? _cleanupTimer;
+    private bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InMemoryJtiCache"/> class.
@@ -21,11 +21,11 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
     public InMemoryJtiCache(ReplayProtectionOptions options)
     {
-        this.options = options ?? throw new ArgumentNullException(nameof(options));
-        this.cache = new ConcurrentDictionary<JtiCacheKey, DateTimeOffset>();
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _cache = new ConcurrentDictionary<JtiCacheKey, DateTimeOffset>();
 
         // Start periodic cleanup timer (every 5 minutes)
-        this.cleanupTimer = new Timer(
+        _cleanupTimer = new Timer(
             CleanupExpiredEntries,
             null,
             TimeSpan.FromMinutes(5),
@@ -44,16 +44,16 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
         var expiration = now.Add(ttl);
 
         // Check if key exists and is expired - remove it first
-        if (cache.TryGetValue(cacheKey, out var existingExpiration) && existingExpiration < now)
+        if (_cache.TryGetValue(cacheKey, out var existingExpiration) && existingExpiration < now)
         {
-            cache.TryRemove(cacheKey, out _);
+            _cache.TryRemove(cacheKey, out _);
         }
 
         // Atomic operation: TryAdd returns false if key already exists
-        var wasAdded = cache.TryAdd(cacheKey, expiration);
+        var wasAdded = _cache.TryAdd(cacheKey, expiration);
 
         // Check capacity and evict if needed
-        if (wasAdded && cache.Count > options.MaxCacheEntries)
+        if (wasAdded && _cache.Count > _options.MaxCacheEntries)
         {
             EvictOldestEntries();
         }
@@ -67,12 +67,12 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     public Task<bool> ExistsAsync(string issuer, string jti, CancellationToken cancellationToken = default)
     {
         var cacheKey = new JtiCacheKey(issuer, jti);
-        var exists = cache.TryGetValue(cacheKey, out var expiration);
+        var exists = _cache.TryGetValue(cacheKey, out var expiration);
 
         // If entry exists but expired, remove it and return false
         if (exists && expiration < DateTimeOffset.UtcNow)
         {
-            cache.TryRemove(cacheKey, out _);
+            _cache.TryRemove(cacheKey, out _);
             return Task.FromResult(false);
         }
 
@@ -85,7 +85,7 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     public Task RemoveAsync(string issuer, string jti, CancellationToken cancellationToken = default)
     {
         var cacheKey = new JtiCacheKey(issuer, jti);
-        cache.TryRemove(cacheKey, out _);
+        _cache.TryRemove(cacheKey, out _);
         return Task.CompletedTask;
     }
 
@@ -94,17 +94,17 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     /// </summary>
     private void CleanupExpiredEntries(object? state)
     {
-        if (disposed) return;
+        if (_disposed) return;
 
         var now = DateTimeOffset.UtcNow;
-        var expiredKeys = cache
+        var expiredKeys = _cache
             .Where(kvp => kvp.Value < now)
             .Select(kvp => kvp.Key)
             .ToList();
 
         foreach (var key in expiredKeys)
         {
-            cache.TryRemove(key, out _);
+            _cache.TryRemove(key, out _);
         }
     }
 
@@ -115,9 +115,9 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     private void EvictOldestEntries()
     {
         // Evict 10% of entries when capacity reached
-        var evictionCount = (int)(options.MaxCacheEntries * 0.1);
+        var evictionCount = (int)(_options.MaxCacheEntries * 0.1);
 
-        var oldestEntries = cache
+        var oldestEntries = _cache
             .OrderBy(kvp => kvp.Value)
             .Take(evictionCount)
             .Select(kvp => kvp.Key)
@@ -125,7 +125,7 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
 
         foreach (var key in oldestEntries)
         {
-            cache.TryRemove(key, out _);
+            _cache.TryRemove(key, out _);
         }
     }
 
@@ -156,11 +156,11 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (!disposed)
+        if (!_disposed)
         {
-            disposed = true;
-            cleanupTimer?.Dispose();
-            cache.Clear();
+            _disposed = true;
+            _cleanupTimer?.Dispose();
+            _cache.Clear();
         }
     }
 }

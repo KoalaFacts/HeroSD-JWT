@@ -15,7 +15,7 @@ public static class Base64UrlEncoder
     /// Maximum input length to prevent DoS attacks through memory exhaustion.
     /// 10MB limit is reasonable for SD-JWT use cases.
     /// </summary>
-    private const int MaxInputLength = 10 * 1024 * 1024; // 10MB
+    private const int MAX_INPUT_LENGTH = 10 * 1024 * 1024; // 10MB
 
     /// <summary>
     /// Converts a byte array to a base64url-encoded string.
@@ -30,10 +30,10 @@ public static class Base64UrlEncoder
     {
         ArgumentNullException.ThrowIfNull(bytes);
 
-        if (bytes.Length > MaxInputLength)
+        if (bytes.Length > MAX_INPUT_LENGTH)
         {
             throw new ArgumentException(
-                $"Input exceeds maximum length of {MaxInputLength} bytes",
+                $"Input exceeds maximum length of {MAX_INPUT_LENGTH} bytes",
                 nameof(bytes));
         }
 
@@ -66,10 +66,10 @@ public static class Base64UrlEncoder
     {
         ArgumentNullException.ThrowIfNull(base64Url);
 
-        if (base64Url.Length > MaxInputLength)
+        if (base64Url.Length > MAX_INPUT_LENGTH)
         {
             throw new ArgumentException(
-                $"Input exceeds maximum length of {MaxInputLength} characters",
+                $"Input exceeds maximum length of {MAX_INPUT_LENGTH} characters",
                 nameof(base64Url));
         }
 

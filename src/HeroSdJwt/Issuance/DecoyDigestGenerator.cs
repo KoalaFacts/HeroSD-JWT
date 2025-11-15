@@ -16,7 +16,7 @@ namespace HeroSdJwt.Issuance;
 /// <param name="digestCalculator">The digest calculator to use.</param>
 public class DecoyDigestGenerator(IDigestCalculator digestCalculator) : IDecoyDigestGenerator
 {
-    private readonly IDigestCalculator digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
+    private readonly IDigestCalculator _digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
 
     /// <summary>
     /// Generates the specified number of decoy digests using cryptographically secure random data.
@@ -50,7 +50,7 @@ public class DecoyDigestGenerator(IDigestCalculator digestCalculator) : IDecoyDi
             var randomDisclosure = Base64UrlEncoder.Encode(randomBytes);
 
             // Compute digest of the random data
-            var decoyDigest = digestCalculator.ComputeDigest(randomDisclosure, hashAlgorithm);
+            var decoyDigest = _digestCalculator.ComputeDigest(randomDisclosure, hashAlgorithm);
             decoys.Add(decoyDigest);
         }
 

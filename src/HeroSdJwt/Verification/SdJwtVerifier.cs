@@ -21,14 +21,14 @@ namespace HeroSdJwt.Verification;
 /// </summary>
 public class SdJwtVerifier : ISdJwtVerifier
 {
-    private readonly SdJwtVerificationOptions options;
-    private readonly IEcPublicKeyConverter ecPublicKeyConverter;
-    private readonly ISignatureValidator signatureValidator;
-    private readonly IDigestValidator digestValidator;
-    private readonly IKeyBindingValidator keyBindingValidator;
-    private readonly IClaimValidator claimValidator;
-    private readonly IRevocationStore? revocationStore;
-    private readonly JtiValidator? jtiValidator;
+    private readonly SdJwtVerificationOptions _options;
+    private readonly IEcPublicKeyConverter _ecPublicKeyConverter;
+    private readonly ISignatureValidator _signatureValidator;
+    private readonly IDigestValidator _digestValidator;
+    private readonly IKeyBindingValidator _keyBindingValidator;
+    private readonly IClaimValidator _claimValidator;
+    private readonly IRevocationStore? _revocationStore;
+    private readonly JtiValidator? _jtiValidator;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwtVerifier"/> class with dependencies.
@@ -59,14 +59,14 @@ public class SdJwtVerifier : ISdJwtVerifier
         ArgumentNullException.ThrowIfNull(claimValidator);
 
         options.Validate();
-        this.options = options;
-        this.ecPublicKeyConverter = ecPublicKeyConverter;
-        this.signatureValidator = signatureValidator;
-        this.digestValidator = digestValidator;
-        this.keyBindingValidator = keyBindingValidator;
-        this.claimValidator = claimValidator;
-        this.jtiValidator = jtiValidator;
-        this.revocationStore = revocationStore;
+        _options = options;
+        _ecPublicKeyConverter = ecPublicKeyConverter;
+        _signatureValidator = signatureValidator;
+        _digestValidator = digestValidator;
+        _keyBindingValidator = keyBindingValidator;
+        _claimValidator = claimValidator;
+        _jtiValidator = jtiValidator;
+        _revocationStore = revocationStore;
     }
 
     /// <summary>
@@ -234,13 +234,13 @@ public class SdJwtVerifier : ISdJwtVerifier
         var errors = new List<ErrorCode>();
         var errorDetails = new List<string>();
 
-        // Validate presentation size to prevent DoS attacks
-        if (presentation.Length > Constants.MaxJwtSizeBytes)
-        {
-            errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add($"Presentation exceeds maximum allowed size of {Constants.MaxJwtSizeBytes} bytes");
-            return new VerificationResult(errors, string.Join("; ", errorDetails));
-        }
+            // Validate presentation size to prevent DoS attacks
+            if (presentation.Length > Constants.MAX_JWT_SIZE_BYTES)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add($"Presentation exceeds maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
 
         // Parse presentation into parts: JWT~disclosure1~disclosure2~...~keyBinding
         var parts = presentation.Split('~');
@@ -352,10 +352,10 @@ public class SdJwtVerifier : ISdJwtVerifier
         try
         {
             // Validate presentation size to prevent DoS attacks
-            if (presentation.Length > Constants.MaxJwtSizeBytes)
+            if (presentation.Length > Constants.MAX_JWT_SIZE_BYTES)
             {
                 errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add($"Presentation exceeds maximum allowed size of {Constants.MaxJwtSizeBytes} bytes");
+                errorDetails.Add($"Presentation exceeds maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
@@ -371,7 +371,7 @@ public class SdJwtVerifier : ISdJwtVerifier
             var jwt = parts[0];
 
             // Validate JWT size
-            if (jwt.Length > Constants.MaxJwtSizeBytes / 2)
+            if (jwt.Length > Constants.MAX_JWT_SIZE_BYTES / 2)
             {
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add("JWT component exceeds reasonable size limit");
@@ -386,10 +386,10 @@ public class SdJwtVerifier : ISdJwtVerifier
             {
                 if (!string.IsNullOrWhiteSpace(parts[i]))
                 {
-                    if (disclosures.Count >= Constants.MaxDisclosures)
+                    if (disclosures.Count >= Constants.MAX_DISCLOSURES)
                     {
                         errors.Add(ErrorCode.InvalidInput);
-                        errorDetails.Add($"Too many disclosures: exceeds maximum of {Constants.MaxDisclosures}");
+                        errorDetails.Add($"Too many disclosures: exceeds maximum of {Constants.MAX_DISCLOSURES}");
                         return new VerificationResult(errors, string.Join("; ", errorDetails));
                     }
 
@@ -401,7 +401,7 @@ public class SdJwtVerifier : ISdJwtVerifier
             bool signatureValid = false;
             try
             {
-                signatureValid = signatureValidator.VerifyJwtSignature(jwt, publicKey);
+                signatureValid = _signatureValidator.VerifyJwtSignature(jwt, publicKey);
             }
             catch (AlgorithmConfusionException)
             {
@@ -460,7 +460,7 @@ public class SdJwtVerifier : ISdJwtVerifier
             }
 
             // Step 3: Validate temporal claims (exp, nbf, iat)
-            bool claimsValid = claimValidator.ValidateTemporalClaims(payload, options);
+            bool claimsValid = _claimValidator.ValidateTemporalClaims(payload, _options);
             if (!claimsValid)
             {
                 errors.Add(ErrorCode.TokenExpired);
@@ -468,14 +468,14 @@ public class SdJwtVerifier : ISdJwtVerifier
             }
 
             // Validate issuer if configured
-            if (!claimValidator.ValidateIssuer(payload, options.ExpectedIssuer))
+            if (!_claimValidator.ValidateIssuer(payload, _options.ExpectedIssuer))
             {
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add("Issuer validation failed");
             }
 
             // Validate audience if configured
-            if (!claimValidator.ValidateAudience(payload, options.ExpectedAudience))
+            if (!_claimValidator.ValidateAudience(payload, _options.ExpectedAudience))
             {
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add("Audience validation failed");
@@ -528,7 +528,7 @@ public class SdJwtVerifier : ISdJwtVerifier
 
             if (disclosures.Count > 0 && expectedDigests.Count > 0)
             {
-                bool digestsValid = digestValidator.ValidateAllDigests(disclosures, expectedDigests, algorithm);
+                bool digestsValid = _digestValidator.ValidateAllDigests(disclosures, expectedDigests, algorithm);
                 if (!digestsValid)
                 {
                     errors.Add(ErrorCode.DigestMismatch);
@@ -567,7 +567,7 @@ public class SdJwtVerifier : ISdJwtVerifier
                     else if (jwkElement.ValueKind == JsonValueKind.Object)
                     {
                         // RFC 7800 format: proper JWK with kty, crv, x, y
-                        holderPublicKey = ecPublicKeyConverter.FromJwk(jwkElement);
+                        holderPublicKey = _ecPublicKeyConverter.FromJwk(jwkElement);
                     }
                     else
                     {
@@ -627,12 +627,12 @@ public class SdJwtVerifier : ISdJwtVerifier
                 }
 
                 // Validate key binding JWT
-                bool keyBindingValid = keyBindingValidator.ValidateKeyBinding(
+                bool keyBindingValid = _keyBindingValidator.ValidateKeyBinding(
                     keyBindingJwt,
                     holderPublicKey,
                     sdJwtHash,
-                    options.ExpectedAudience,
-                    options.ExpectedNonce);
+                    _options.ExpectedAudience,
+                    _options.ExpectedNonce);
 
                 if (!keyBindingValid)
                 {
@@ -640,7 +640,7 @@ public class SdJwtVerifier : ISdJwtVerifier
                     errorDetails.Add("Key binding JWT validation failed");
                 }
             }
-            else if (options.RequireKeyBinding)
+            else if (_options.RequireKeyBinding)
             {
                 // Key binding is required but not present
                 errors.Add(ErrorCode.InvalidInput);
@@ -649,7 +649,7 @@ public class SdJwtVerifier : ISdJwtVerifier
             }
 
             // Step 5.5: Validate replay protection (jti) if JtiValidator is present
-            if (jtiValidator != null)
+            if (_jtiValidator != null)
             {
                 try
                 {
@@ -662,7 +662,7 @@ public class SdJwtVerifier : ISdJwtVerifier
 
                     // ValidateAsync will throw if replay detected or validation fails
                     // Note: This is a synchronous context, so we use GetAwaiter().GetResult()
-                    jtiValidator.ValidateAsync(claimsDict, CancellationToken.None).GetAwaiter().GetResult();
+                    _jtiValidator.ValidateAsync(claimsDict, CancellationToken.None).GetAwaiter().GetResult();
                 }
                 catch (ReplayAttackException)
                 {
@@ -819,10 +819,10 @@ public class SdJwtVerifier : ISdJwtVerifier
     private static void CollectAllSdDigests(JsonElement element, List<Digest> digests, HashAlgorithm algorithm, int depth = 0)
     {
         // Security: Prevent stack overflow with deeply nested structures
-        const int MaxNestingDepth = 10;
-        if (depth > MaxNestingDepth)
+        const int MAX_NESTING_DEPTH = 10;
+        if (depth > MAX_NESTING_DEPTH)
         {
-            throw new ArgumentException($"Maximum nesting depth of {MaxNestingDepth} exceeded during digest collection");
+            throw new ArgumentException($"Maximum nesting depth of {MAX_NESTING_DEPTH} exceeded during digest collection");
         }
 
         if (element.ValueKind == JsonValueKind.Object)
@@ -868,7 +868,7 @@ public class SdJwtVerifier : ISdJwtVerifier
         List<string> errorDetails)
     {
         // Skip if no revocation store provided
-        if (revocationStore == null)
+        if (_revocationStore == null)
             return;
 
         try
@@ -877,7 +877,7 @@ public class SdJwtVerifier : ISdJwtVerifier
             if (payload.TryGetProperty("jti", out var jtiElement) && jtiElement.ValueKind == JsonValueKind.String)
             {
                 var jti = jtiElement.GetString()!;
-                var isRevoked = revocationStore.IsJtiRevokedAsync(jti).GetAwaiter().GetResult();
+                var isRevoked = _revocationStore.IsJtiRevokedAsync(jti).GetAwaiter().GetResult();
                 if (isRevoked)
                 {
                     errors.Add(ErrorCode.TokenRevoked);
@@ -890,7 +890,7 @@ public class SdJwtVerifier : ISdJwtVerifier
             if (header.TryGetProperty("kid", out var kidElement) && kidElement.ValueKind == JsonValueKind.String)
             {
                 var keyId = kidElement.GetString()!;
-                var isRevoked = revocationStore.IsKeyRevokedAsync(keyId).GetAwaiter().GetResult();
+                var isRevoked = _revocationStore.IsKeyRevokedAsync(keyId).GetAwaiter().GetResult();
                 if (isRevoked)
                 {
                     errors.Add(ErrorCode.TokenRevokedByKey);
@@ -903,7 +903,7 @@ public class SdJwtVerifier : ISdJwtVerifier
             if (payload.TryGetProperty("sub", out var subElement) && subElement.ValueKind == JsonValueKind.String)
             {
                 var userId = subElement.GetString()!;
-                var isRevoked = revocationStore.IsUserRevokedAsync(userId).GetAwaiter().GetResult();
+                var isRevoked = _revocationStore.IsUserRevokedAsync(userId).GetAwaiter().GetResult();
                 if (isRevoked)
                 {
                     errors.Add(ErrorCode.TokenRevokedByUser);
@@ -920,7 +920,7 @@ public class SdJwtVerifier : ISdJwtVerifier
             // Re-throw revocation exceptions
             throw;
         }
-        catch (Exception ex) when (options.Revocation.FailureMode == RevocationFailureMode.FailOpen)
+        catch (Exception ex) when (_options.Revocation.FailureMode == RevocationFailureMode.FailOpen)
         {
             // Fail-open: Log error but allow token (availability over security)
             errorDetails.Add($"Revocation check failed but allowing token (fail-open mode): {ex.Message}");
