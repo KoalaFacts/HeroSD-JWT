@@ -1,4 +1,5 @@
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
+using HeroSdJwt.Verification.Revocation;
 
 namespace HeroSdJwt.Verification;
 
@@ -49,6 +50,13 @@ public class SdJwtVerificationOptions
     /// Default is null (nonce not validated).
     /// </summary>
     public string? ExpectedNonce { get; init; }
+
+    /// <summary>
+    /// Gets the revocation options for token revocation checking.
+    /// When null, revocation checking is disabled.
+    /// Default is null (revocation disabled).
+    /// </summary>
+    public RevocationOptions? Revocation { get; init; }
 
     /// <summary>
     /// Validates the options and throws if configuration is invalid.

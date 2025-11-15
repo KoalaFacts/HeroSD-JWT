@@ -102,5 +102,23 @@ public enum ErrorCode
     /// Token replay attack detected.
     /// The jti (JWT ID) has already been used for verification.
     /// </summary>
-    ReplayAttack
+    ReplayAttack,
+
+    /// <summary>
+    /// Token was explicitly revoked by its JTI (JWT ID).
+    /// The token is in the revocation list and cannot be used.
+    /// </summary>
+    TokenRevoked,
+
+    /// <summary>
+    /// Tokens signing key has been revoked.
+    /// All tokens signed with this key ID are invalid.
+    /// </summary>
+    TokenRevokedByKey,
+
+    /// <summary>
+    /// Users tokens have been revoked.
+    /// All tokens for this user ID are invalid (logout/emergency scenario).
+    /// </summary>
+    TokenRevokedByUser
 }
