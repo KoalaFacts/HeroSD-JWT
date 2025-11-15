@@ -189,7 +189,8 @@ public class SignatureValidatorES512Tests
 
         var smallPayload = new { sub = "u" };
         var mediumPayload = new { sub = "user123", iss = "https://example.com", aud = "test-audience" };
-        var largePayload = new {
+        var largePayload = new
+        {
             sub = "user123",
             iss = "https://example.com",
             aud = "test-audience",
