@@ -9,7 +9,7 @@ namespace HeroSdJwt.Tests.Unit.Models;
 /// </summary>
 public class SdJwtTests
 {
-    private const string ValidJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature";
+    private const string VALID_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature";
 
     #region Constructor Tests
 
@@ -17,7 +17,7 @@ public class SdJwtTests
     public void Constructor_WithValidParameters_CreatesSdJwt()
     {
         // Arrange
-        var jwt = ValidJwt;
+        var jwt = VALID_JWT;
         var disclosures = new List<string> { "disclosure1", "disclosure2" };
         var hashAlgorithm = HashAlgorithm.Sha256;
         var keyBindingJwt = "kb.jwt.here";
@@ -38,7 +38,7 @@ public class SdJwtTests
     public void Constructor_WithoutKeyBinding_CreatesValidSdJwt()
     {
         // Arrange
-        var jwt = ValidJwt;
+        var jwt = VALID_JWT;
         var disclosures = new List<string> { "disclosure1" };
         var hashAlgorithm = HashAlgorithm.Sha512;
 
@@ -56,7 +56,7 @@ public class SdJwtTests
     public void Constructor_WithEmptyDisclosures_CreatesValidSdJwt()
     {
         // Arrange
-        var jwt = ValidJwt;
+        var jwt = VALID_JWT;
         var disclosures = new List<string>();
         var hashAlgorithm = HashAlgorithm.Sha256;
 
@@ -85,7 +85,7 @@ public class SdJwtTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            new SdJwt(ValidJwt, null!, HashAlgorithm.Sha256));
+            new SdJwt(VALID_JWT, null!, HashAlgorithm.Sha256));
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public class SdJwtTests
     {
         // Arrange
         var disclosures = new List<string> { "disclosure1", "disclosure2" };
-        var sdJwt = new SdJwt(ValidJwt, disclosures, HashAlgorithm.Sha256);
+        var sdJwt = new SdJwt(VALID_JWT, disclosures, HashAlgorithm.Sha256);
 
         // Act & Assert
         Assert.IsAssignableFrom<IReadOnlyList<string>>(sdJwt.Disclosures);
@@ -131,7 +131,7 @@ public class SdJwtTests
     {
         // Arrange
         var disclosures = new List<string> { "disclosure1" };
-        var sdJwt = new SdJwt(ValidJwt, disclosures, HashAlgorithm.Sha256);
+        var sdJwt = new SdJwt(VALID_JWT, disclosures, HashAlgorithm.Sha256);
 
         // Act - Modify original list
         disclosures.Add("disclosure2");
@@ -149,7 +149,7 @@ public class SdJwtTests
     public void ToCombinedFormat_WithNoDisclosuresAndNoKeyBinding_ReturnsJwtWithEmptyEnd()
     {
         // Arrange
-        var jwt = ValidJwt;
+        var jwt = VALID_JWT;
         var sdJwt = new SdJwt(jwt, new List<string>(), HashAlgorithm.Sha256);
 
         // Act
@@ -163,7 +163,7 @@ public class SdJwtTests
     public void ToCombinedFormat_WithDisclosuresNoKeyBinding_ReturnsCorrectFormat()
     {
         // Arrange
-        var jwt = ValidJwt;
+        var jwt = VALID_JWT;
         var disclosures = new List<string> { "disc1", "disc2", "disc3" };
         var sdJwt = new SdJwt(jwt, disclosures, HashAlgorithm.Sha256);
 
@@ -178,7 +178,7 @@ public class SdJwtTests
     public void ToCombinedFormat_WithKeyBindingNoDisclosures_ReturnsCorrectFormat()
     {
         // Arrange
-        var jwt = ValidJwt;
+        var jwt = VALID_JWT;
         var keyBinding = "kb.jwt";
         var sdJwt = new SdJwt(jwt, new List<string>(), HashAlgorithm.Sha256, keyBinding);
 
@@ -193,7 +193,7 @@ public class SdJwtTests
     public void ToCombinedFormat_WithDisclosuresAndKeyBinding_ReturnsCorrectFormat()
     {
         // Arrange
-        var jwt = ValidJwt;
+        var jwt = VALID_JWT;
         var disclosures = new List<string> { "disc1", "disc2" };
         var keyBinding = "kb.jwt";
         var sdJwt = new SdJwt(jwt, disclosures, HashAlgorithm.Sha256, keyBinding);
@@ -209,7 +209,7 @@ public class SdJwtTests
     public void ToCombinedFormat_WithEmptyStringKeyBinding_TreatsAsNoKeyBinding()
     {
         // Arrange
-        var jwt = ValidJwt;
+        var jwt = VALID_JWT;
         var disclosures = new List<string> { "disc1" };
         var sdJwt = new SdJwt(jwt, disclosures, HashAlgorithm.Sha256, string.Empty);
 
@@ -224,7 +224,7 @@ public class SdJwtTests
     public void ToCombinedFormat_WithManyDisclosures_ReturnsCorrectFormat()
     {
         // Arrange
-        var jwt = ValidJwt;
+        var jwt = VALID_JWT;
         var disclosures = Enumerable.Range(1, 10).Select(i => $"disclosure{i}").ToList();
         var sdJwt = new SdJwt(jwt, disclosures, HashAlgorithm.Sha256);
 
@@ -249,7 +249,7 @@ public class SdJwtTests
     {
         // Arrange
         var disclosures = new List<string> { "disc1", "disc2" };
-        var sdJwt = new SdJwt(ValidJwt, disclosures, HashAlgorithm.Sha256, "kb.jwt");
+        var sdJwt = new SdJwt(VALID_JWT, disclosures, HashAlgorithm.Sha256, "kb.jwt");
 
         // Act
         var result = sdJwt.ToString();
@@ -267,7 +267,7 @@ public class SdJwtTests
     {
         // Arrange
         var disclosures = new List<string> { "disc1" };
-        var sdJwt = new SdJwt(ValidJwt, disclosures, HashAlgorithm.Sha512);
+        var sdJwt = new SdJwt(VALID_JWT, disclosures, HashAlgorithm.Sha512);
 
         // Act
         var result = sdJwt.ToString();
@@ -284,7 +284,7 @@ public class SdJwtTests
     public void ToString_WithNoDisclosures_ShowsZeroDisclosures()
     {
         // Arrange
-        var sdJwt = new SdJwt(ValidJwt, new List<string>(), HashAlgorithm.Sha384);
+        var sdJwt = new SdJwt(VALID_JWT, new List<string>(), HashAlgorithm.Sha384);
 
         // Act
         var result = sdJwt.ToString();
@@ -299,7 +299,7 @@ public class SdJwtTests
     {
         // Arrange
         var disclosures = new List<string> { "d1", "d2", "d3", "d4", "d5" };
-        var sdJwt = new SdJwt(ValidJwt, disclosures, HashAlgorithm.Sha256);
+        var sdJwt = new SdJwt(VALID_JWT, disclosures, HashAlgorithm.Sha256);
 
         // Act
         var result = sdJwt.ToString();
@@ -331,7 +331,7 @@ public class SdJwtTests
     {
         // Arrange
         var disclosures = new List<string> { "disc1", "disc2", "disc3" };
-        var sdJwt = new SdJwt(ValidJwt, disclosures, HashAlgorithm.Sha256);
+        var sdJwt = new SdJwt(VALID_JWT, disclosures, HashAlgorithm.Sha256);
 
         // Act
         var result = sdJwt.Disclosures;
@@ -347,9 +347,9 @@ public class SdJwtTests
     public void HashAlgorithm_Property_ReturnsCorrectAlgorithm()
     {
         // Arrange & Act
-        var sha256SdJwt = new SdJwt(ValidJwt, new List<string>(), HashAlgorithm.Sha256);
-        var sha384SdJwt = new SdJwt(ValidJwt, new List<string>(), HashAlgorithm.Sha384);
-        var sha512SdJwt = new SdJwt(ValidJwt, new List<string>(), HashAlgorithm.Sha512);
+        var sha256SdJwt = new SdJwt(VALID_JWT, new List<string>(), HashAlgorithm.Sha256);
+        var sha384SdJwt = new SdJwt(VALID_JWT, new List<string>(), HashAlgorithm.Sha384);
+        var sha512SdJwt = new SdJwt(VALID_JWT, new List<string>(), HashAlgorithm.Sha512);
 
         // Assert
         Assert.Equal(HashAlgorithm.Sha256, sha256SdJwt.HashAlgorithm);
@@ -362,7 +362,7 @@ public class SdJwtTests
     {
         // Arrange
         var keyBinding = "my.kb.jwt";
-        var sdJwt = new SdJwt(ValidJwt, new List<string>(), HashAlgorithm.Sha256, keyBinding);
+        var sdJwt = new SdJwt(VALID_JWT, new List<string>(), HashAlgorithm.Sha256, keyBinding);
 
         // Act
         var result = sdJwt.KeyBindingJwt;
@@ -375,7 +375,7 @@ public class SdJwtTests
     public void KeyBindingJwt_Property_WithoutKeyBinding_ReturnsNull()
     {
         // Arrange
-        var sdJwt = new SdJwt(ValidJwt, new List<string>(), HashAlgorithm.Sha256);
+        var sdJwt = new SdJwt(VALID_JWT, new List<string>(), HashAlgorithm.Sha256);
 
         // Act
         var result = sdJwt.KeyBindingJwt;
@@ -427,7 +427,7 @@ public class SdJwtTests
             "disclosure_with_underscore",
             "disclosure+with+plus"
         };
-        var sdJwt = new SdJwt(ValidJwt, disclosures, HashAlgorithm.Sha256);
+        var sdJwt = new SdJwt(VALID_JWT, disclosures, HashAlgorithm.Sha256);
 
         // Act
         var combined = sdJwt.ToCombinedFormat();
@@ -443,7 +443,7 @@ public class SdJwtTests
     {
         // Arrange
         var disclosures = new List<string> { "d1", "d2", "d3" };
-        var sdJwt = new SdJwt(ValidJwt, disclosures, HashAlgorithm.Sha256);
+        var sdJwt = new SdJwt(VALID_JWT, disclosures, HashAlgorithm.Sha256);
 
         // Act
         var enumerated = new List<string>();
@@ -462,7 +462,7 @@ public class SdJwtTests
     {
         // Arrange
         var disclosures = new List<string> { "first", "second", "third" };
-        var sdJwt = new SdJwt(ValidJwt, disclosures, HashAlgorithm.Sha256);
+        var sdJwt = new SdJwt(VALID_JWT, disclosures, HashAlgorithm.Sha256);
 
         // Act & Assert
         Assert.Equal("first", sdJwt.Disclosures[0]);

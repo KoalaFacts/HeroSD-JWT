@@ -8,8 +8,8 @@ namespace HeroSdJwt.Tests.Unit.Presentation;
 /// </summary>
 public class SdJwtPresentationTests
 {
-    private const string TestJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
-    private const string TestKeyBindingJwt = "eyJhbGciOiJFUzI1NiIsInR5cCI6ImtiK2p3dCJ9.eyJpYXQiOjE2ODkzNDcyMDB9.signature";
+    private const string TEST_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
+    private const string TEST_KEY_BINDING_JWT = "eyJhbGciOiJFUzI1NiIsInR5cCI6ImtiK2p3dCJ9.eyJpYXQiOjE2ODkzNDcyMDB9.signature";
 
     #region Constructor Tests
 
@@ -20,11 +20,11 @@ public class SdJwtPresentationTests
         var disclosures = new[] { "disclosure1", "disclosure2", "disclosure3" };
 
         // Act
-        var presentation = new SdJwtPresentation(TestJwt, disclosures);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures);
 
         // Assert
         Assert.NotNull(presentation);
-        Assert.Equal(TestJwt, presentation.Jwt);
+        Assert.Equal(TEST_JWT, presentation.Jwt);
         Assert.Equal(3, presentation.SelectedDisclosures.Count);
         Assert.Null(presentation.KeyBindingJwt);
     }
@@ -36,10 +36,10 @@ public class SdJwtPresentationTests
         var disclosures = new[] { "disclosure1" };
 
         // Act
-        var presentation = new SdJwtPresentation(TestJwt, disclosures, TestKeyBindingJwt);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures, TEST_KEY_BINDING_JWT);
 
         // Assert
-        Assert.Equal(TestKeyBindingJwt, presentation.KeyBindingJwt);
+        Assert.Equal(TEST_KEY_BINDING_JWT, presentation.KeyBindingJwt);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class SdJwtPresentationTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            new SdJwtPresentation(TestJwt, null!));
+            new SdJwtPresentation(TEST_JWT, null!));
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class SdJwtPresentationTests
         var emptyDisclosures = Array.Empty<string>();
 
         // Act
-        var presentation = new SdJwtPresentation(TestJwt, emptyDisclosures);
+        var presentation = new SdJwtPresentation(TEST_JWT, emptyDisclosures);
 
         // Assert
         Assert.NotNull(presentation);
@@ -82,7 +82,7 @@ public class SdJwtPresentationTests
         var disclosures = new[] { "single-disclosure" };
 
         // Act
-        var presentation = new SdJwtPresentation(TestJwt, disclosures);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures);
 
         // Assert
         Assert.Single(presentation.SelectedDisclosures);
@@ -96,7 +96,7 @@ public class SdJwtPresentationTests
         var disclosures = new[] { "disclosure1", "disclosure2", "disclosure3", "disclosure4" };
 
         // Act
-        var presentation = new SdJwtPresentation(TestJwt, disclosures);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures);
 
         // Assert
         Assert.Equal(4, presentation.SelectedDisclosures.Count);
@@ -115,13 +115,13 @@ public class SdJwtPresentationTests
     {
         // Arrange
         var disclosures = new[] { "disclosure1" };
-        var presentation = new SdJwtPresentation(TestJwt, disclosures);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures);
 
         // Act
         var jwt = presentation.Jwt;
 
         // Assert
-        Assert.Equal(TestJwt, jwt);
+        Assert.Equal(TEST_JWT, jwt);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class SdJwtPresentationTests
     {
         // Arrange
         var disclosures = new[] { "disclosure1", "disclosure2" };
-        var presentation = new SdJwtPresentation(TestJwt, disclosures);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures);
 
         // Act
         var selectedDisclosures = presentation.SelectedDisclosures;
@@ -143,7 +143,7 @@ public class SdJwtPresentationTests
     {
         // Arrange
         var disclosures = new List<string> { "disclosure1", "disclosure2" };
-        var presentation = new SdJwtPresentation(TestJwt, disclosures);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures);
 
         // Act - Modify original list
         disclosures.Add("disclosure3");
@@ -160,7 +160,7 @@ public class SdJwtPresentationTests
     {
         // Arrange
         var disclosures = new[] { "disclosure1" };
-        var presentation = new SdJwtPresentation(TestJwt, disclosures);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures);
 
         // Act & Assert
         Assert.Null(presentation.KeyBindingJwt);
@@ -171,10 +171,10 @@ public class SdJwtPresentationTests
     {
         // Arrange
         var disclosures = new[] { "disclosure1" };
-        var presentation = new SdJwtPresentation(TestJwt, disclosures, TestKeyBindingJwt);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures, TEST_KEY_BINDING_JWT);
 
         // Act & Assert
-        Assert.Equal(TestKeyBindingJwt, presentation.KeyBindingJwt);
+        Assert.Equal(TEST_KEY_BINDING_JWT, presentation.KeyBindingJwt);
     }
 
     #endregion
@@ -186,7 +186,7 @@ public class SdJwtPresentationTests
     {
         // Arrange
         var disclosures = new[] { "disclosure1", "disclosure2", "disclosure3" };
-        var presentation = new SdJwtPresentation(TestJwt, disclosures);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures);
 
         // Act
         var result = presentation.ToString();
@@ -200,7 +200,7 @@ public class SdJwtPresentationTests
     {
         // Arrange
         var disclosures = new[] { "disclosure1", "disclosure2" };
-        var presentation = new SdJwtPresentation(TestJwt, disclosures, TestKeyBindingJwt);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures, TEST_KEY_BINDING_JWT);
 
         // Act
         var result = presentation.ToString();
@@ -213,7 +213,7 @@ public class SdJwtPresentationTests
     public void ToString_WithZeroDisclosures_ReturnsZeroCount()
     {
         // Arrange
-        var presentation = new SdJwtPresentation(TestJwt, Array.Empty<string>());
+        var presentation = new SdJwtPresentation(TEST_JWT, Array.Empty<string>());
 
         // Act
         var result = presentation.ToString();
@@ -227,7 +227,7 @@ public class SdJwtPresentationTests
     {
         // Arrange
         var disclosures = new[] { "disclosure1" };
-        var presentation = new SdJwtPresentation(TestJwt, disclosures);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures);
 
         // Act
         var result = presentation.ToString();
@@ -241,7 +241,7 @@ public class SdJwtPresentationTests
     {
         // Arrange
         var disclosures = new[] { "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "d10" };
-        var presentation = new SdJwtPresentation(TestJwt, disclosures, TestKeyBindingJwt);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures, TEST_KEY_BINDING_JWT);
 
         // Act
         var result = presentation.ToString();
@@ -255,7 +255,7 @@ public class SdJwtPresentationTests
     {
         // Arrange
         var disclosures = new[] { "disclosure1", "disclosure2" };
-        var presentation = new SdJwtPresentation(TestJwt, disclosures, TestKeyBindingJwt);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures, TEST_KEY_BINDING_JWT);
 
         // Act
         var result1 = presentation.ToString();
@@ -278,7 +278,7 @@ public class SdJwtPresentationTests
         var disclosures = new[] { "disclosure1", "disclosure1", "disclosure1" };
 
         // Act
-        var presentation = new SdJwtPresentation(TestJwt, disclosures);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures);
 
         // Assert
         Assert.Equal(3, presentation.SelectedDisclosures.Count);
@@ -305,7 +305,7 @@ public class SdJwtPresentationTests
         var disclosures = new[] { "disclosure1" };
 
         // Act
-        var presentation = new SdJwtPresentation(TestJwt, disclosures, string.Empty);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures, string.Empty);
 
         // Assert
         Assert.Equal(string.Empty, presentation.KeyBindingJwt);
@@ -331,7 +331,7 @@ public class SdJwtPresentationTests
         var disclosures = new[] { "disclosure1", "", "disclosure2", "" };
 
         // Act
-        var presentation = new SdJwtPresentation(TestJwt, disclosures);
+        var presentation = new SdJwtPresentation(TEST_JWT, disclosures);
 
         // Assert
         Assert.Equal(4, presentation.SelectedDisclosures.Count);
