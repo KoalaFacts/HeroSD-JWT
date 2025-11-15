@@ -9,7 +9,7 @@ namespace HeroSdJwt.Tests.Integration;
 
 /// <summary>
 /// End-to-end integration tests for the full reconstruction workflow.
-/// Tests complete flow: SdJwtBuilder → Presentation → Verifier → Reconstruction
+/// Tests complete flow: SdJwtIssuerBuilder → Presentation → Verifier → Reconstruction
 /// </summary>
 public class ArrayReconstructionEndToEndTests
 {
@@ -25,7 +25,7 @@ public class ArrayReconstructionEndToEndTests
     {
         // Arrange - Issuer creates SD-JWT with array
         var signingKey = GenerateSecureTestKey();
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "alice@example.com")
             .WithClaim("degrees", new[] { "PhD in Computer Science", "MBA", "BSc in Mathematics" })
             .MakeSelective("degrees[0]")
@@ -58,7 +58,7 @@ public class ArrayReconstructionEndToEndTests
     {
         // Arrange - Issuer creates SD-JWT with nested object
         var signingKey = GenerateSecureTestKey();
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "alice@example.com")
             .WithClaim("address", new
             {
@@ -100,7 +100,7 @@ public class ArrayReconstructionEndToEndTests
     {
         // Arrange - Issuer creates SD-JWT with mixed claims
         var signingKey = GenerateSecureTestKey();
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "alice@example.com")
             .WithClaim("email", "alice@example.com")
             .WithClaim("degrees", new[] { "PhD", "MBA" })
@@ -136,7 +136,7 @@ public class ArrayReconstructionEndToEndTests
         var signingKey = GenerateSecureTestKey();
         var largeArray = Enumerable.Range(0, 100).Select(i => $"Element-{i}").ToArray();
 
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("items", largeArray);
 
@@ -206,7 +206,7 @@ public class ArrayReconstructionEndToEndTests
             }
         };
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
             .WithClaim("data", deepObject)
             .MakeSelective("data.level1.level2.level3.level4.level5.level6.level7.level8.level9.level10")

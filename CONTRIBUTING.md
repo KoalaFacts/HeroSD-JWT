@@ -184,7 +184,7 @@ Follow these principles:
 public void Should_ThrowException_When_ClaimIsNull()
 {
     // Arrange
-    var builder = SdJwtBuilder.Create();
+    var builder = SdJwtIssuerBuilder.Create();
 
     // Act & Assert
     Assert.Throws<ArgumentNullException>(() =>
@@ -211,7 +211,7 @@ We aim for high test coverage:
 
 ### Naming Conventions
 
-- **Classes**: PascalCase (`SdJwtBuilder`)
+- **Classes**: PascalCase (`SdJwtIssuerBuilder`)
 - **Methods**: PascalCase (`CreateSdJwt`)
 - **Parameters**: camelCase (`claimName`)
 - **Private fields**: camelCase with underscore (`_signingKey`)

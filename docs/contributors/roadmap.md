@@ -31,7 +31,7 @@ Most classes already have interfaces for DI, but some retain convenience constru
 
 **Classes MISSING interfaces** ❌:
 - ❌ `SdJwtIssuer` (CRITICAL - main issuer class)
-- ⚠️ `SdJwtBuilder` (fluent API - interface may not be needed)
+- ⚠️ `SdJwtIssuerBuilder` (fluent API - interface may not be needed)
 - ⚠️ `SdJwtVerificationOptions` (DTO/config - doesn't need interface)
 
 ### Problem: Convenience Constructors
@@ -221,7 +221,7 @@ var verifier = new SdJwtVerifier(
 
 ```csharp
 // Key ID is validated at method call time
-public SdJwtBuilder WithKeyId(string keyId)
+public SdJwtIssuerBuilder WithKeyId(string keyId)
 {
     Primitives.KeyIdValidator.Validate(keyId);  // Runtime validation
     this.keyId = keyId;
@@ -261,7 +261,7 @@ public readonly struct KeyId
 }
 
 // Usage
-public SdJwtBuilder WithKeyId(KeyId keyId)  // Validation guaranteed by type system
+public SdJwtIssuerBuilder WithKeyId(KeyId keyId)  // Validation guaranteed by type system
 {
     this.keyId = keyId;  // Can't be invalid!
     return this;
@@ -363,7 +363,7 @@ When implementing the full DI refactoring:
 - [ ] Add XML doc comments showing "simple usage" example
 
 ### Phase 3: Update Source Code
-- [ ] Update `SdJwtBuilder` internal usage
+- [ ] Update `SdJwtIssuerBuilder` internal usage
 - [ ] Update any other internal usages in src/
 - [ ] Add `using HeroSdJwt.Cryptography;` where needed
 

@@ -5,10 +5,10 @@ using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 namespace HeroSdJwt.Tests.Unit;
 
 /// <summary>
-/// Tests for the fluent SdJwtBuilder API.
+/// Tests for the fluent SdJwtIssuerBuilder API.
 /// Validates the simplified, developer-friendly interface.
 /// </summary>
-public class SdJwtBuilderTests
+public class SdJwtIssuerBuilderTests
 {
     private readonly IKeyGenerator keyGenerator = KeyGenerator.Instance;
 
@@ -24,7 +24,7 @@ public class SdJwtBuilderTests
         };
 
         // Act
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .MakeSelective("email")
             .SignWithHmac(key)
@@ -43,7 +43,7 @@ public class SdJwtBuilderTests
         var key = keyGenerator.GenerateHmacKey();
 
         // Act
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user123")
             .WithClaim("email", "user@example.com")
             .WithClaim("age", 30)
@@ -64,7 +64,7 @@ public class SdJwtBuilderTests
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .SignWithRsa(privateKey)
             .Build();
@@ -82,7 +82,7 @@ public class SdJwtBuilderTests
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .SignWithEcdsa(privateKey)
             .Build();
@@ -100,7 +100,7 @@ public class SdJwtBuilderTests
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .SignWithEd25519(privateKey)
             .Build();
@@ -119,7 +119,7 @@ public class SdJwtBuilderTests
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .SignWithHmac(issuerKey)
             .WithKeyBinding(holderPublicKey)
@@ -143,7 +143,7 @@ public class SdJwtBuilderTests
         };
 
         // Act
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .MakeSelective("email")
             .SignWithHmac(key)
@@ -164,7 +164,7 @@ public class SdJwtBuilderTests
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            SdJwtBuilder.Create()
+            SdJwtIssuerBuilder.Create()
                 .SignWithHmac(key)
                 .Build());
 
@@ -179,7 +179,7 @@ public class SdJwtBuilderTests
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            SdJwtBuilder.Create()
+            SdJwtIssuerBuilder.Create()
                 .WithClaims(claims)
                 .Build());
 
@@ -191,7 +191,7 @@ public class SdJwtBuilderTests
     {
         // Act & Assert
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            SdJwtBuilder.Create().WithDecoys(-1));
+            SdJwtIssuerBuilder.Create().WithDecoys(-1));
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public class SdJwtBuilderTests
         };
 
         // Act
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .MakeSelective("email")
             .WithHashAlgorithm(HashAlgorithm.Sha512)
@@ -229,7 +229,7 @@ public class SdJwtBuilderTests
         var (_, holderPublicKey) = keyGenerator.GenerateEcdsaKeyPair();
 
         // Act - Chain all methods to verify fluent interface
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user123")
             .WithClaim("email", "user@example.com")
             .WithClaim("age", 30)
@@ -256,7 +256,7 @@ public class SdJwtBuilderTests
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act - Call SignWithHmac then SignWithRsa (last one should win)
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .SignWithHmac(hmacKey)
             .SignWithRsa(rsaKey)  // This should override

@@ -17,7 +17,7 @@ public static class ExtensionsToSdJwt
     /// <returns>Formatted presentation string (JWT~disclosure1~disclosure2~...~).</returns>
     /// <example>
     /// <code>
-    /// var sdJwt = SdJwtBuilder.Create()
+    /// var sdJwt = SdJwtIssuerBuilder.Create()
     ///     .WithClaims(claims)
     ///     .MakeSelective("email", "age", "address")
     ///     .SignWithHmac(key)

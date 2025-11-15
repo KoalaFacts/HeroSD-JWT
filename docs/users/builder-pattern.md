@@ -2,7 +2,7 @@
 
 HeroSD-JWT provides fluent builder APIs for both token issuance and verification, making the library easy to use and discover.
 
-## SdJwtBuilder (Issuance)
+## SdJwtIssuerBuilder (Issuance)
 
 Create and sign SD-JWTs with a clean, fluent API:
 
@@ -10,7 +10,7 @@ Create and sign SD-JWTs with a clean, fluent API:
 using HeroSdJwt.Issuance;
 
 // Simple HMAC signing
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user@example.com")
     .WithClaim("email", "user@example.com")
     .WithClaim("age", 30)
@@ -19,7 +19,7 @@ var sdJwt = SdJwtBuilder.Create()
     .Build();
 
 // RSA signing with key binding and decoys
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaims(claims)
     .MakeSelective("email", "phone", "address")
     .SignWithRsa(rsaPrivateKey)
@@ -29,7 +29,7 @@ var sdJwt = SdJwtBuilder.Create()
     .Build();
 
 // EC signing (EdDSA)
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "alice@example.com")
     .WithClaim("jti", Guid.NewGuid().ToString())
     .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
