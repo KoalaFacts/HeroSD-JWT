@@ -30,9 +30,9 @@ dotnet_naming_rule.non_field_members_should_be_pascal_case.severity = warning
 dotnet_naming_rule.non_field_members_should_be_pascal_case.symbols = non_field_members
 dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case
 
-dotnet_naming_rule.private_field_should_be_camel_case.severity = warning
-dotnet_naming_rule.private_field_should_be_camel_case.symbols = private_field
-dotnet_naming_rule.private_field_should_be_camel_case.style = camel_case
+dotnet_naming_rule.private_field_should_be_underscore_camel_case.severity = warning
+dotnet_naming_rule.private_field_should_be_underscore_camel_case.symbols = private_field
+dotnet_naming_rule.private_field_should_be_underscore_camel_case.style = underscore_camel_case
 
 # Symbol specifications
 dotnet_naming_symbols.interface.applicable_kinds = interface
@@ -70,6 +70,11 @@ dotnet_naming_style.camel_case.required_prefix =
 dotnet_naming_style.camel_case.required_suffix =
 dotnet_naming_style.camel_case.word_separator =
 dotnet_naming_style.camel_case.capitalization = camel_case
+
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.required_suffix =
+dotnet_naming_style.underscore_camel_case.word_separator =
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
 
 # Code quality
 dotnet_code_quality_unused_parameters = all:warning
