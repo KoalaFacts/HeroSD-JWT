@@ -98,14 +98,11 @@ public class SignatureValidatorPS256Tests
         // Arrange - Create a weak 1024-bit RSA key (below minimum 2048-bit requirement)
         using var rsa = RSA.Create(1024);
         var privateKey = rsa.ExportPkcs8PrivateKey();
-        var publicKey = rsa.ExportSubjectPublicKeyInfo();
-        var jwt = _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, privateKey, SignatureAlgorithm.PS256);
 
-        // Act & Assert
-        var exception = Assert.Throws<SdJwtException>(() =>
-            _validator.VerifyJwtSignature(jwt, publicKey));
+        // Act & Assert - Signer now validates key size during signing
+        var exception = Assert.Throws<ArgumentException>(() =>
+            _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, privateKey, SignatureAlgorithm.PS256));
         Assert.Contains("2048", exception.Message);
-        Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
     }
 
     [Fact]

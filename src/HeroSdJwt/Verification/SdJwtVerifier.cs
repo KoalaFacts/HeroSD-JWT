@@ -5,6 +5,7 @@ using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
 using HeroSdJwt.Verification.ReplayProtection;
+using HeroSdJwt.Verification.Revocation;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Constants = HeroSdJwt.Primitives.Constants;
@@ -26,6 +27,7 @@ public class SdJwtVerifier : ISdJwtVerifier
     private readonly IDigestValidator digestValidator;
     private readonly IKeyBindingValidator keyBindingValidator;
     private readonly IClaimValidator claimValidator;
+    private readonly IRevocationStore? revocationStore;
     private readonly JtiValidator? jtiValidator;
 
     /// <summary>
@@ -39,6 +41,7 @@ public class SdJwtVerifier : ISdJwtVerifier
     /// <param name="keyBindingValidator">Key binding validator.</param>
     /// <param name="claimValidator">Claim validator.</param>
     /// <param name="jtiValidator">Optional JTI validator for replay attack prevention. If null, replay protection is disabled (backward compatibility).</param>
+    /// <param name="revocationStore">Optional revocation store for token revocation checking. If null, revocation checks are skipped (backward compatibility).</param>
     public SdJwtVerifier(
         SdJwtVerificationOptions options,
         IEcPublicKeyConverter ecPublicKeyConverter,
@@ -46,7 +49,8 @@ public class SdJwtVerifier : ISdJwtVerifier
         IDigestValidator digestValidator,
         IKeyBindingValidator keyBindingValidator,
         IClaimValidator claimValidator,
-        JtiValidator? jtiValidator = null)
+        JtiValidator? jtiValidator = null,
+        IRevocationStore? revocationStore = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(signatureValidator);
@@ -62,6 +66,7 @@ public class SdJwtVerifier : ISdJwtVerifier
         this.keyBindingValidator = keyBindingValidator;
         this.claimValidator = claimValidator;
         this.jtiValidator = jtiValidator;
+        this.revocationStore = revocationStore;
     }
 
     /// <summary>
@@ -118,6 +123,7 @@ public class SdJwtVerifier : ISdJwtVerifier
         {
             return VerifyPresentationInternal(presentation, publicKey, expectedHashAlgorithm);
         }
+catch (TokenRevokedException ex)        {            return new VerificationResult(ex.ErrorCode, ex.Message);        }
         catch (ReplayAttackException ex)
         {
             return new VerificationResult(ErrorCode.ReplayAttack, ex.Message);
@@ -193,6 +199,7 @@ public class SdJwtVerifier : ISdJwtVerifier
         {
             return VerifyPresentationInternalWithResolver(presentation, keyResolver, fallbackKey, expectedHashAlgorithm);
         }
+catch (TokenRevokedException ex)        {            return new VerificationResult(ex.ErrorCode, ex.Message);        }
         catch (ReplayAttackException ex)
         {
             return new VerificationResult(ErrorCode.ReplayAttack, ex.Message);
@@ -438,6 +445,20 @@ public class SdJwtVerifier : ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
+            // Parse JWT header for kid extraction (needed for key revocation check)
+            JsonElement header;
+            try
+            {
+                var headerJson = Base64UrlEncoder.DecodeString(jwtParts[0]);
+                header = JsonDocument.Parse(headerJson).RootElement;
+            }
+            catch (Exception ex)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add($"Failed to parse JWT header: {ex.Message}");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
             // Step 3: Validate temporal claims (exp, nbf, iat)
             bool claimsValid = claimValidator.ValidateTemporalClaims(payload, options);
             if (!claimsValid)
@@ -459,6 +480,11 @@ public class SdJwtVerifier : ISdJwtVerifier
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add("Audience validation failed");
             }
+
+            // Step 3.5: Check token revocation (JTI, Key ID, User ID)
+            // Inserted after temporal/issuer/audience validation, before digest validation
+            // Per research.md: Early rejection saves CPU on expensive cryptographic operations
+            CheckRevocation(payload, header, errors, errorDetails);
 
             // Step 4: Validate disclosure digests
             HashAlgorithm algorithm;
@@ -828,6 +854,82 @@ public class SdJwtVerifier : ISdJwtVerifier
             {
                 CollectAllSdDigests(item, digests, algorithm, depth + 1);
             }
+        }
+    }
+    /// <summary>
+    /// Checks if the token has been revoked via JTI, Key ID, or User ID.
+    /// Called after temporal claims validation, before digest validation.
+    /// </summary>
+    private void CheckRevocation(
+        JsonElement payload,
+        JsonElement header,
+        List<ErrorCode> errors,
+        List<string> errorDetails)
+    {
+        // Skip if revocation is not enabled
+        if (options.Revocation?.Enabled != true || revocationStore == null)
+            return;
+
+        try
+        {
+            // Check 1: JTI revocation (individual token blacklisting)
+            if (payload.TryGetProperty("jti", out var jtiElement) && jtiElement.ValueKind == JsonValueKind.String)
+            {
+                var jti = jtiElement.GetString()!;
+                var isRevoked = revocationStore.IsJtiRevokedAsync(jti).GetAwaiter().GetResult();
+                if (isRevoked)
+                {
+                    errors.Add(ErrorCode.TokenRevoked);
+                    errorDetails.Add($"Token with JTI '{jti}' has been revoked");
+                    throw new TokenRevokedException(jti);
+                }
+            }
+
+            // Check 2: Key ID revocation (all tokens from signing key)
+            if (header.TryGetProperty("kid", out var kidElement) && kidElement.ValueKind == JsonValueKind.String)
+            {
+                var keyId = kidElement.GetString()!;
+                var isRevoked = revocationStore.IsKeyRevokedAsync(keyId).GetAwaiter().GetResult();
+                if (isRevoked)
+                {
+                    errors.Add(ErrorCode.TokenRevokedByKey);
+                    errorDetails.Add($"Signing key '{keyId}' has been revoked");
+                    throw new TokenRevokedException(keyId, RevocationReason.KeyRevoked);
+                }
+            }
+
+            // Check 3: User ID revocation (all tokens for user)
+            if (payload.TryGetProperty("sub", out var subElement) && subElement.ValueKind == JsonValueKind.String)
+            {
+                var userId = subElement.GetString()!;
+                var isRevoked = revocationStore.IsUserRevokedAsync(userId).GetAwaiter().GetResult();
+                if (isRevoked)
+                {
+                    errors.Add(ErrorCode.TokenRevokedByUser);
+                    var jti = payload.TryGetProperty("jti", out var j) && j.ValueKind == JsonValueKind.String
+                        ? j.GetString()
+                        : null;
+                    errorDetails.Add($"User '{userId}' tokens have been revoked");
+                    throw new TokenRevokedException(userId, RevocationReason.UserRevoked, jti);
+                }
+            }
+        }
+        catch (TokenRevokedException)
+        {
+            // Re-throw revocation exceptions
+            throw;
+        }
+        catch (Exception ex) when (options.Revocation.FailureMode == RevocationFailureMode.FailOpen)
+        {
+            // Fail-open: Log error but allow token (availability over security)
+            errorDetails.Add($"Revocation check failed but allowing token (fail-open mode): {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            // Fail-closed (default): Reject token on revocation check failure
+            errors.Add(ErrorCode.InvalidInput);
+            errorDetails.Add($"Revocation check failed: {ex.Message}");
+            throw new SdJwtException("Revocation check failed (fail-closed mode)", ErrorCode.InvalidInput, ex);
         }
     }
 }
