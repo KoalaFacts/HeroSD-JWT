@@ -123,7 +123,7 @@ public class SdJwtVerifier : ISdJwtVerifier
         {
             return VerifyPresentationInternal(presentation, publicKey, expectedHashAlgorithm);
         }
-catch (TokenRevokedException ex)        {            return new VerificationResult(ex.ErrorCode, ex.Message);        }
+        catch (TokenRevokedException ex) { return new VerificationResult(ex.ErrorCode, ex.Message); }
         catch (ReplayAttackException ex)
         {
             return new VerificationResult(ErrorCode.ReplayAttack, ex.Message);
@@ -199,7 +199,7 @@ catch (TokenRevokedException ex)        {            return new VerificationResu
         {
             return VerifyPresentationInternalWithResolver(presentation, keyResolver, fallbackKey, expectedHashAlgorithm);
         }
-catch (TokenRevokedException ex)        {            return new VerificationResult(ex.ErrorCode, ex.Message);        }
+        catch (TokenRevokedException ex) { return new VerificationResult(ex.ErrorCode, ex.Message); }
         catch (ReplayAttackException ex)
         {
             return new VerificationResult(ErrorCode.ReplayAttack, ex.Message);
