@@ -2,6 +2,7 @@ using HeroSdJwt.Cryptography;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Verification;
+using HeroSdJwt.Verification.Revocation;
 
 namespace HeroSdJwt.Tests;
 
@@ -23,6 +24,24 @@ internal static class TestHelpers
             new DigestValidator(),
             new KeyBindingValidator(),
             new ClaimValidator());
+    }
+
+    /// <summary>
+    /// Creates an SdJwtVerifier with revocation support for testing.
+    /// </summary>
+    public static SdJwtVerifier CreateVerifierWithRevocation(
+        SdJwtVerificationOptions? options = null,
+        IRevocationStore? revocationStore = null)
+    {
+        return new SdJwtVerifier(
+            options ?? new SdJwtVerificationOptions(),
+            new EcPublicKeyConverter(),
+            new SignatureValidator(),
+            new DigestValidator(),
+            new KeyBindingValidator(),
+            new ClaimValidator(),
+            jtiValidator: null,
+            revocationStore: revocationStore);
     }
 
     /// <summary>

@@ -64,9 +64,9 @@ public class AlgorithmSecurityTests
         // Arrange
         var verifier = TestHelpers.CreateVerifier();
 
-        // Create a JWT with an unsupported algorithm (e.g., "HS384")
-        // Header: {"alg":"HS384","typ":"JWT"}
-        var header = "eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9";
+        // Create a JWT with an unsupported algorithm (e.g., "RS384")
+        // Header: {"alg":"RS384","typ":"JWT"}
+        var header = "eyJhbGciOiJSUzM4NCIsInR5cCI6IkpXVCJ9";
         var payload = "eyJzdWIiOiJ1c2VyMTIzIiwiX3NkX2FsZyI6InNoYS0yNTYiLCJfc2QiOltdfQ";
         var signature = "dW5zdXBwb3J0ZWQ"; // Dummy signature
 

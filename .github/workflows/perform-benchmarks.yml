@@ -67,12 +67,14 @@ jobs:
     - name: Run benchmarks ${{ matrix.dotnet-version }}
       run: |
         cd benchmarks/HeroSdJwt.Benchmarks
-        dotnet run -c Release --framework ${{ matrix.framework }} \
+        dotnet run -c Release \
+          --framework ${{ matrix.framework }} \
           --filter "*" \
           --job short \
           --exporters json
 
     - name: Store benchmark result ${{ matrix.dotnet-version }}
+      id: storebenchmark
       uses: benchmark-action/github-action-benchmark@v1
       with:
         tool: 'benchmarkdotnet'
@@ -90,8 +92,8 @@ jobs:
 
     - name: Upload benchmark artifacts ${{ matrix.dotnet-version }}
       uses: actions/upload-artifact@v5
-      if: always()
+      if: always() && steps.storebenchmark.outputs.benchmark-result-file-path != ''
       with:
         name: benchmark-results-${{ matrix.framework }}
-        path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/combined-report-full-${{ matrix.framework }}.json
+        path: ${{ steps.storebenchmark.outputs.benchmark-result-file-path }}
         retention-days: 30

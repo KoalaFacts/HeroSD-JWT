@@ -168,13 +168,13 @@ public class SignatureValidatorTests
     public void VerifyJwtSignature_WithUnsupportedAlgorithm_ThrowsAlgorithmNotSupportedException()
     {
         // Arrange
-        var jwt = CreateJwtWithAlgorithm("HS512", new { sub = "user123" });
+        var jwt = CreateJwtWithAlgorithm("RS384", new { sub = "user123" });
         var key = _keyGen.GenerateHmacKey();
 
         // Act & Assert
         var exception = Assert.Throws<AlgorithmNotSupportedException>(() =>
             new SignatureValidator().VerifyJwtSignature(jwt, key));
-        Assert.Contains("HS512", exception.Message);
+        Assert.Contains("RS384", exception.Message);
     }
 
     [Fact]
@@ -349,8 +349,9 @@ public class SignatureValidatorTests
 
         var headerBase64 = Base64UrlEncode(headerJson);
         var payloadBase64 = Base64UrlEncode(payloadJson);
+        var fakeSignature = Base64UrlEncode("fakesignature");
 
-        return $"{headerBase64}.{payloadBase64}.fakesignature";
+        return $"{headerBase64}.{payloadBase64}.{fakeSignature}";
     }
 
     private static string Base64UrlEncode(string input)

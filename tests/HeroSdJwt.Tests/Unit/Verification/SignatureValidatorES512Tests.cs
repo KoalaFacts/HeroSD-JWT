@@ -98,14 +98,11 @@ public class SignatureValidatorES512Tests
         // Arrange - Use P-256 instead of required P-521 for ES512
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var privateKey = ecdsa.ExportPkcs8PrivateKey();
-        var publicKey = ecdsa.ExportSubjectPublicKeyInfo();
-        var jwt = _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, privateKey, SignatureAlgorithm.ES512);
 
-        // Act & Assert
-        var exception = Assert.Throws<SdJwtException>(() =>
-            _validator.VerifyJwtSignature(jwt, publicKey));
+        // Act & Assert - Signer now validates curve during signing
+        var exception = Assert.Throws<ArgumentException>(() =>
+            _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, privateKey, SignatureAlgorithm.ES512));
         Assert.Contains("P-521", exception.Message);
-        Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
     }
 
     [Fact]
@@ -114,14 +111,11 @@ public class SignatureValidatorES512Tests
         // Arrange - Use P-384 instead of required P-521 for ES512
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP384);
         var privateKey = ecdsa.ExportPkcs8PrivateKey();
-        var publicKey = ecdsa.ExportSubjectPublicKeyInfo();
-        var jwt = _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, privateKey, SignatureAlgorithm.ES512);
 
-        // Act & Assert
-        var exception = Assert.Throws<SdJwtException>(() =>
-            _validator.VerifyJwtSignature(jwt, publicKey));
+        // Act & Assert - Signer now validates curve during signing
+        var exception = Assert.Throws<ArgumentException>(() =>
+            _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, privateKey, SignatureAlgorithm.ES512));
         Assert.Contains("P-521", exception.Message);
-        Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
     }
 
     [Fact]
@@ -157,7 +151,7 @@ public class SignatureValidatorES512Tests
     {
         // Arrange
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP521);
-        var privateKey = ecdsa.ExportECPrivateKey();
+        var privateKey = ecdsa.ExportPkcs8PrivateKey();
         var jwt = _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, privateKey, SignatureAlgorithm.ES512);
 
         // Act & Assert
