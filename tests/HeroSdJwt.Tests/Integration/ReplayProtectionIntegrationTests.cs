@@ -20,6 +20,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
 {
     private readonly InMemoryJtiCache cache;
     private readonly ReplayProtectionOptions replayOptions;
+    private readonly CancellationToken _ct = TestContext.Current.CancellationToken;
 
     public ReplayProtectionIntegrationTests()
     {
@@ -112,7 +113,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - First verification
-        var result = await VerifyPresentationAsync(verifier, presentationString, signingKey);
+        var result = await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
 
         // Assert
         Assert.NotNull(result);
@@ -154,13 +155,13 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - First verification
-        var result1 = await VerifyPresentationAsync(verifier, presentationString, signingKey);
+        var result1 = await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
         Assert.True(result1.IsValid, "First verification should succeed");
 
         // Act & Assert - Second verification should throw ReplayAttackException
         var exception = await Assert.ThrowsAsync<ReplayAttackException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, signingKey);
+            await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
         });
 
         Assert.Equal(jti, exception.Jti);
@@ -205,9 +206,9 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Act - Multiple verifications
-        var result1 = await VerifyPresentationAsync(verifier, presentationString, signingKey);
-        var result2 = await VerifyPresentationAsync(verifier, presentationString, signingKey);
-        var result3 = await VerifyPresentationAsync(verifier, presentationString, signingKey);
+        var result1 = await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
+        var result2 = await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
+        var result3 = await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
 
         // Assert - All should succeed because replay protection is disabled
         Assert.True(result1.IsValid, "First verification with disabled replay protection should succeed");
@@ -251,7 +252,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         // Act & Assert - Should throw SdJwtException for missing jti
         var exception = await Assert.ThrowsAsync<SdJwtException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, signingKey);
+            await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
         });
 
         Assert.Equal(ErrorCode.MissingRequiredClaim, exception.ErrorCode);
@@ -292,7 +293,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         // Act & Assert - Should throw SdJwtException for missing issuer
         var exception = await Assert.ThrowsAsync<SdJwtException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, signingKey);
+            await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
         });
 
         Assert.Equal(ErrorCode.MissingRequiredClaim, exception.ErrorCode);
@@ -338,8 +339,8 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - Verify both presentations
-        var result1 = await VerifyPresentationAsync(verifier, presentation1, signingKey);
-        var result2 = await VerifyPresentationAsync(verifier, presentation2, signingKey);
+        var result1 = await VerifyPresentationAsync(verifier, presentation1, signingKey, cancellationToken: _ct);
+        var result2 = await VerifyPresentationAsync(verifier, presentation2, signingKey, cancellationToken: _ct);
 
         // Assert - Both should succeed because they have different issuers
         Assert.True(result1.IsValid, "First verification (issuer1) should succeed");
@@ -382,11 +383,11 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var verifier = CreateVerifierWithReplayProtection(jtiValidator);
 
         // Act - First verification using TryVerify
-        var result1 = await TryVerifyPresentationAsync(verifier, presentationString, signingKey);
+        var result1 = await TryVerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
         Assert.True(result1.IsValid, "First TryVerify should succeed");
 
         // Act - Second verification using TryVerify (replay attack)
-        var result2 = await TryVerifyPresentationAsync(verifier, presentationString, signingKey);
+        var result2 = await TryVerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
 
         // Assert - Should return false with ReplayAttack error
         Assert.False(result2.IsValid, "Second TryVerify should fail");
