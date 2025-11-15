@@ -295,6 +295,33 @@ var presentation = sdJwt.ToPresentation("email");
 var result = verifier.VerifyPresentation(presentation, ecPublic);
 ```
 
+### EdDSA with Ed25519
+
+Ed25519 provides strong security with smaller keys and faster performance than RSA.
+
+```csharp
+var (ed25519Private, ed25519Public) = keyGen.GenerateEd25519KeyPair();
+
+// Issuer signs with private key (64 bytes expanded)
+var sdJwt = SdJwtIssuerBuilder.Create()
+    .WithClaim("sub", "user-123")
+    .WithClaim("email", "alice@example.com")
+    .MakeSelective("email")
+    .SignWithEd25519(ed25519Private)
+    .Build();
+
+// Verifier verifies with public key (32 bytes)
+var presentation = sdJwt.ToPresentation("email");
+var result = verifier.VerifyPresentation(presentation, ed25519Public);
+```
+
+**Benefits of Ed25519:**
+- Small keys: 32-byte public keys, 64-byte private keys
+- Fast signing and verification
+- High security: 128-bit security level
+- Deterministic signatures (no random number generation needed)
+- Collision-resistant
+
 ## Error Handling
 
 ### Using Try* Pattern

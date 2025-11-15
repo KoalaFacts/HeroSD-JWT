@@ -180,6 +180,14 @@ var sdJwt = SdJwtIssuerBuilder.Create()
     .MakeSelective("email")
     .SignWithEcdsa(ecPrivate)
     .Build();
+
+// Ed25519 (asymmetric, fast, small keys)
+var (ed25519Private, ed25519Public) = keyGen.GenerateEd25519KeyPair();
+var sdJwt = SdJwtIssuerBuilder.Create()
+    .WithClaims(claims)
+    .MakeSelective("email")
+    .SignWithEd25519(ed25519Private)
+    .Build();
 ```
 
 ### JWT Key Rotation Support

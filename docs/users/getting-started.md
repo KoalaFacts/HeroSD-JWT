@@ -113,7 +113,7 @@ if (result.IsValid)
 
 ## Signature Algorithms
 
-HeroSD-JWT supports three signature algorithms:
+HeroSD-JWT supports multiple signature algorithms for different security and performance requirements:
 
 ### HMAC-SHA256 (HS256) - Symmetric
 
@@ -153,6 +153,31 @@ var sdJwt = SdJwtIssuerBuilder.Create()
 // Verify with public key
 var result = verifier.VerifyPresentation(presentation, ecPublic);
 ```
+
+### EdDSA with Ed25519 - Asymmetric
+
+Ed25519 provides excellent security with smaller keys and faster performance than RSA or ECDSA.
+
+```csharp
+var (ed25519Private, ed25519Public) = keyGen.GenerateEd25519KeyPair();
+var sdJwt = SdJwtIssuerBuilder.Create()
+    .WithClaims(claims)
+    .MakeSelective("email")
+    .SignWithEd25519(ed25519Private)
+    .Build();
+
+// Verify with public key
+var result = verifier.VerifyPresentation(presentation, ed25519Public);
+```
+
+**Why choose Ed25519?**
+- ✅ Smaller keys: 32-byte public keys vs 256+ bytes for RSA
+- ✅ Faster performance: 2-5x faster than RSA/ECDSA
+- ✅ High security: 128-bit security level
+- ✅ Deterministic signatures (no RNG required)
+- ✅ Modern and widely supported
+
+> **Note:** HeroSD-JWT also supports post-quantum algorithms (MLDSA65, MLDSA87) on .NET 10.0+. See the [API Reference](api-reference.md) for details.
 
 ## Next Steps
 
