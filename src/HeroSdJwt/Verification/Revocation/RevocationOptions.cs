@@ -2,37 +2,10 @@ namespace HeroSdJwt.Verification.Revocation;
 
 /// <summary>
 /// Configuration options for JWT token revocation during verification.
+/// Revocation is always enabled when a RevocationStore is provided.
 /// </summary>
 public sealed class RevocationOptions
 {
-    /// <summary>
-    /// Gets or sets a value indicating whether revocation checking is enabled.
-    /// </summary>
-    /// <remarks>
-    /// When false, all revocation checks are skipped during verification.
-    /// Default: false (revocation disabled).
-    /// </remarks>
-    public bool Enabled { get; set; } = false;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether tokens without a 'jti' claim
-    /// should fail verification when JTI revocation is attempted.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// When true, tokens without a 'jti' claim will fail verification if any
-    /// JTI revocation entries exist in the store.
-    /// </para>
-    /// <para>
-    /// When false, tokens without a 'jti' claim will pass JTI revocation checks
-    /// (they cannot be individually revoked).
-    /// </para>
-    /// <para>
-    /// Default: true (require JTI for revocation).
-    /// </para>
-    /// </remarks>
-    public bool RequireJtiForRevocation { get; set; } = true;
-
     /// <summary>
     /// Gets or sets the failure mode when revocation checks fail due to storage errors.
     /// </summary>
