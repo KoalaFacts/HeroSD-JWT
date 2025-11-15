@@ -6,7 +6,7 @@ Complete API reference for HeroSD-JWT.
 
 - [Namespaces](#namespaces)
 - [Issuance](#issuance)
-  - [SdJwtBuilder](#sdjwtbuilder)
+  - [SdJwtIssuerBuilder](#sdjwtbuilder)
   - [SdJwtIssuer](#sdjwtissuer)
 - [Verification](#verification)
   - [SdJwtVerifier](#sdjwtverifier)
@@ -30,7 +30,7 @@ Complete API reference for HeroSD-JWT.
 
 ## Issuance
 
-### SdJwtBuilder
+### SdJwtIssuerBuilder
 
 Fluent builder for creating SD-JWTs.
 
@@ -41,12 +41,12 @@ Fluent builder for creating SD-JWTs.
 Creates a new builder instance.
 
 ```csharp
-public static SdJwtBuilder Create()
+public static SdJwtIssuerBuilder Create()
 ```
 
 **Example:**
 ```csharp
-var builder = SdJwtBuilder.Create();
+var builder = SdJwtIssuerBuilder.Create();
 ```
 
 ##### `WithClaim(string claimName, object claimValue)`
@@ -54,7 +54,7 @@ var builder = SdJwtBuilder.Create();
 Adds a claim to the SD-JWT.
 
 ```csharp
-public SdJwtBuilder WithClaim(string claimName, object claimValue)
+public SdJwtIssuerBuilder WithClaim(string claimName, object claimValue)
 ```
 
 **Parameters:**
@@ -75,7 +75,7 @@ builder.WithClaim("sub", "user-123")
 Adds multiple claims at once.
 
 ```csharp
-public SdJwtBuilder WithClaims(Dictionary<string, object> claims)
+public SdJwtIssuerBuilder WithClaims(Dictionary<string, object> claims)
 ```
 
 **Parameters:**
@@ -99,7 +99,7 @@ builder.WithClaims(claims);
 Marks claims as selectively disclosable.
 
 ```csharp
-public SdJwtBuilder MakeSelective(params string[] claimPaths)
+public SdJwtIssuerBuilder MakeSelective(params string[] claimPaths)
 ```
 
 **Parameters:**
@@ -120,7 +120,7 @@ builder.MakeSelective("email", "address.street", "degrees[1]");
 Adds decoy digests for privacy protection.
 
 ```csharp
-public SdJwtBuilder WithDecoys(int count)
+public SdJwtIssuerBuilder WithDecoys(int count)
 ```
 
 **Parameters:**
@@ -138,7 +138,7 @@ builder.WithDecoys(3);
 Binds the SD-JWT to a holder's public key.
 
 ```csharp
-public SdJwtBuilder WithHolderPublicKey(byte[] publicKey, string algorithm)
+public SdJwtIssuerBuilder WithHolderPublicKey(byte[] publicKey, string algorithm)
 ```
 
 **Parameters:**
@@ -159,7 +159,7 @@ builder.WithHolderPublicKey(publicKey, "ES256");
 Signs the SD-JWT with HMAC-SHA256.
 
 ```csharp
-public SdJwtBuilder SignWithHmac(byte[] key)
+public SdJwtIssuerBuilder SignWithHmac(byte[] key)
 ```
 
 **Parameters:**
@@ -178,7 +178,7 @@ builder.SignWithHmac(key);
 Signs the SD-JWT with RSA-SHA256.
 
 ```csharp
-public SdJwtBuilder SignWithRsa(byte[] privateKey)
+public SdJwtIssuerBuilder SignWithRsa(byte[] privateKey)
 ```
 
 **Parameters:**
@@ -197,7 +197,7 @@ builder.SignWithRsa(privateKey);
 Signs the SD-JWT with ECDSA-P256-SHA256.
 
 ```csharp
-public SdJwtBuilder SignWithEcdsa(byte[] privateKey)
+public SdJwtIssuerBuilder SignWithEcdsa(byte[] privateKey)
 ```
 
 **Parameters:**
@@ -624,7 +624,7 @@ All types are AOT-compatible when using standard JSON-serializable types. For cu
 ## Thread Safety
 
 All public types are thread-safe for read operations. For write operations:
-- `SdJwtBuilder` - Not thread-safe (single-threaded builder pattern)
+- `SdJwtIssuerBuilder` - Not thread-safe (single-threaded builder pattern)
 - `SdJwtIssuer` - Thread-safe (reusable, stateless)
 - `SdJwtVerifier` - Thread-safe (reusable, stateless)
 - `KeyGenerator` - Thread-safe (singleton)

@@ -24,7 +24,7 @@ public class SdJwtExtensionsTests
             ["age"] = 30
         };
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .MakeSelective("email", "age")
             .SignWithHmac(key)
@@ -50,7 +50,7 @@ public class SdJwtExtensionsTests
             ["email"] = "user@example.com"
         };
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .MakeSelective("email")
             .SignWithHmac(key)
@@ -80,7 +80,7 @@ public class SdJwtExtensionsTests
             ["name"] = "Alice"
         };
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .MakeSelective("email", "age", "name")
             .SignWithHmac(key)
@@ -121,7 +121,7 @@ public class SdJwtExtensionsTests
         // Arrange
         var key = keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .SignWithHmac(key)
             .Build();
@@ -142,7 +142,7 @@ public class SdJwtExtensionsTests
             ["email"] = "user@example.com"
         };
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .MakeSelective("email")
             .SignWithHmac(key)
@@ -162,7 +162,7 @@ public class SdJwtExtensionsTests
     {
         // Arrange & Act - Fluent chain from builder to presentation
         var key = keyGenerator.GenerateHmacKey();
-        var presentation = SdJwtBuilder.Create()
+        var presentation = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user123")
             .WithClaim("email", "user@example.com")
             .WithClaim("age", 30)

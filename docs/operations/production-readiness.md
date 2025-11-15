@@ -79,7 +79,7 @@ HeroSD-JWT is a **mature and well-implemented SD-JWT library** with strong funda
 - `TreatWarningsAsErrors` enabled
 
 #### Developer Experience ✅
-- Fluent builder API (`SdJwtBuilder`)
+- Fluent builder API (`SdJwtIssuerBuilder`)
 - Extension methods (`ToPresentation()`, `ToPresentationWithAllClaims()`)
 - `KeyGenerator` helper with `IKeyGenerator` interface
 - Try* pattern for verification (returns result without throwing)

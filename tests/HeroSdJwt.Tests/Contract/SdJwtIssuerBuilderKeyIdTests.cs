@@ -6,10 +6,10 @@ using System.Text.Json;
 namespace HeroSdJwt.Tests.Contract;
 
 /// <summary>
-/// Contract tests for SdJwtBuilder.WithKeyId() method.
+/// Contract tests for SdJwtIssuerBuilder.WithKeyId() method.
 /// Validates that key IDs are properly included in JWT headers.
 /// </summary>
-public class SdJwtBuilderKeyIdTests
+public class SdJwtIssuerBuilderKeyIdTests
 {
     private readonly KeyGenerator keyGen = KeyGenerator.Instance;
 
@@ -21,7 +21,7 @@ public class SdJwtBuilderKeyIdTests
         var keyId = "key-2024-10";
 
         // Act
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("email", "test@example.com")
             .MakeSelective("email")
@@ -48,7 +48,7 @@ public class SdJwtBuilderKeyIdTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            SdJwtBuilder.Create()
+            SdJwtIssuerBuilder.Create()
                 .WithClaim("sub", "user-123")
                 .WithKeyId("")
                 .SignWithHmac(hmacKey)
@@ -66,7 +66,7 @@ public class SdJwtBuilderKeyIdTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            SdJwtBuilder.Create()
+            SdJwtIssuerBuilder.Create()
                 .WithClaim("sub", "user-123")
                 .WithKeyId(longKeyId)
                 .SignWithHmac(hmacKey)
@@ -84,7 +84,7 @@ public class SdJwtBuilderKeyIdTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            SdJwtBuilder.Create()
+            SdJwtIssuerBuilder.Create()
                 .WithClaim("sub", "user-123")
                 .WithKeyId(invalidKeyId)
                 .SignWithHmac(hmacKey)
@@ -101,7 +101,7 @@ public class SdJwtBuilderKeyIdTests
         var keyId = "Key-MiXeD-CaSe-2024";
 
         // Act
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithKeyId(keyId)
             .SignWithHmac(hmacKey)
@@ -123,7 +123,7 @@ public class SdJwtBuilderKeyIdTests
         var hmacKey = keyGen.GenerateHmacKey();
 
         // Act
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("email", "test@example.com")
             .MakeSelective("email")
@@ -147,7 +147,7 @@ public class SdJwtBuilderKeyIdTests
         // Arrange
         var keyId = $"test-key-{algorithmName}";
         byte[] signingKey;
-        Action<SdJwtBuilder> signMethod;
+        Action<SdJwtIssuerBuilder> signMethod;
 
         switch (algorithmName)
         {
@@ -168,7 +168,7 @@ public class SdJwtBuilderKeyIdTests
         }
 
         // Act
-        var builder = SdJwtBuilder.Create()
+        var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithKeyId(keyId);
         signMethod(builder);
@@ -193,7 +193,7 @@ public class SdJwtBuilderKeyIdTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            SdJwtBuilder.Create()
+            SdJwtIssuerBuilder.Create()
                 .WithClaim("sub", "user-123")
                 .WithKeyId("   ")
                 .SignWithHmac(hmacKey)
@@ -210,7 +210,7 @@ public class SdJwtBuilderKeyIdTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            SdJwtBuilder.Create()
+            SdJwtIssuerBuilder.Create()
                 .WithClaim("sub", "user-123")
                 .WithKeyId(null!)
                 .SignWithHmac(hmacKey)
@@ -225,7 +225,7 @@ public class SdJwtBuilderKeyIdTests
         var keyId = new string('x', 256); // Exactly 256 characters (at the limit)
 
         // Act
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithKeyId(keyId)
             .SignWithHmac(hmacKey)

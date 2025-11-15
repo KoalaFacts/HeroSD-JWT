@@ -79,7 +79,7 @@ var keyGen = KeyGenerator.Instance;
 var key = keyGen.GenerateHmacKey();
 
 // Create SD-JWT with fluent builder
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .WithClaim("name", "Alice")
     .WithClaim("email", "alice@example.com")
@@ -102,7 +102,7 @@ using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Verification;
 
 // Create SD-JWT with nested object claims
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-456")
     .WithClaim("address", new
     {
@@ -137,7 +137,7 @@ var address = result.GetDisclosedObject("address");
 ### Array Element Selective Disclosure
 
 ```csharp
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("degrees", new[] { "BS", "MS", "PhD" })
     .MakeSelective("degrees[1]", "degrees[2]") // Only MS and PhD are selective
     .SignWithHmac(key)
@@ -159,7 +159,7 @@ var keyGen = KeyGenerator.Instance;
 
 // HMAC (simple, symmetric)
 var key = keyGen.GenerateHmacKey();
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaims(claims)
     .MakeSelective("email")
     .SignWithHmac(key)
@@ -167,7 +167,7 @@ var sdJwt = SdJwtBuilder.Create()
 
 // RSA (asymmetric, widely supported)
 var (rsaPrivate, rsaPublic) = keyGen.GenerateRsaKeyPair();
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaims(claims)
     .MakeSelective("email")
     .SignWithRsa(rsaPrivate)
@@ -175,7 +175,7 @@ var sdJwt = SdJwtBuilder.Create()
 
 // ECDSA (asymmetric, compact)
 var (ecPrivate, ecPublic) = keyGen.GenerateEcdsaKeyPair();
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaims(claims)
     .MakeSelective("email")
     .SignWithEcdsa(ecPrivate)
@@ -195,7 +195,7 @@ var keyGen = KeyGenerator.Instance;
 var key = keyGen.GenerateHmacKey();
 
 // Issue SD-JWT with key ID
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .WithClaim("email", "alice@example.com")
     .MakeSelective("email")

@@ -47,7 +47,7 @@ All salts are generated using `RandomNumberGenerator` with a minimum of 128 bits
 
 ```csharp
 // ✅ Library automatically generates secure salts
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("email", "alice@example.com")
     .MakeSelective("email")  // Secure salt generated internally
     .SignWithHmac(key)
@@ -60,7 +60,7 @@ Critical JWT claims cannot be made selectively disclosable:
 
 ```csharp
 // ❌ This will throw an exception
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("iss", "https://issuer.example.com")
     .MakeSelective("iss")  // Error! "iss" is a critical claim
     .Build();
@@ -127,7 +127,7 @@ var keyGen = KeyGenerator.Instance;
 var key = keyGen.GenerateHmacKey();
 
 // Issue with key ID
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .WithClaim("email", "alice@example.com")
     .MakeSelective("email")
@@ -191,7 +191,7 @@ public class ProductionKeyRotationService
         if (activeKey.Key == null)
             throw new InvalidOperationException("No active signing key available");
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .MakeSelective(selectiveClaims)
             .WithKeyId(activeKey.Key)
@@ -353,7 +353,7 @@ public class ProductionKeyRotationService
 ```csharp
 // Good for internal systems where both parties trust each other
 var key = keyGen.GenerateHmacKey();
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaims(claims)
     .SignWithHmac(key)
     .Build();
@@ -376,7 +376,7 @@ var sdJwt = SdJwtBuilder.Create()
 ```csharp
 // Good for scenarios where verifiers don't need the private key
 var (privateKey, publicKey) = keyGen.GenerateRsaKeyPair();
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaims(claims)
     .SignWithRsa(privateKey)
     .Build();
@@ -402,7 +402,7 @@ var sdJwt = SdJwtBuilder.Create()
 ```csharp
 // Good for resource-constrained environments or mobile apps
 var (privateKey, publicKey) = keyGen.GenerateEcdsaKeyPair();
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaims(claims)
     .SignWithEcdsa(privateKey)
     .Build();
@@ -420,7 +420,7 @@ var holderKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
 var holderPublicKey = holderKey.ExportSubjectPublicKeyInfo();
 
 // Issuer binds SD-JWT to holder's key
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .WithHolderPublicKey(holderPublicKey, "ES256")
     .SignWithHmac(issuerKey)
@@ -478,7 +478,7 @@ Never make these claims selectively disclosable:
 
 ```csharp
 // ✅ Good - Critical claims are always visible
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("iss", "https://issuer.example.com")
     .WithClaim("sub", "user-123")
     .WithClaim("email", "alice@example.com")
@@ -495,7 +495,7 @@ Use decoy digests to prevent claim enumeration:
 
 ```csharp
 // Add decoy digests to hide the number of selective claims
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("email", "alice@example.com")
     .WithClaim("phone", "+1-555-0100")
     .MakeSelective("email", "phone")
@@ -524,7 +524,7 @@ var presentation = sdJwt.ToPresentation("birthdate");  // Only what's needed
 Use nested objects for fine-grained disclosure:
 
 ```csharp
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("address", new
     {
         street = "123 Main St",
@@ -573,13 +573,13 @@ var result = verifier.VerifyPresentation(
 
 ```csharp
 // ❌ BAD - No expiration check
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .SignWithHmac(key)
     .Build();
 
 // ✅ GOOD - Include expiration
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
     .SignWithHmac(key)

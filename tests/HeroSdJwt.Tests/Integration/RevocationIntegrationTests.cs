@@ -33,7 +33,7 @@ public class RevocationIntegrationTests
 
         // Act 1: Issue a token with JTI
         var jti = Guid.NewGuid().ToString();
-        var token = SdJwtBuilder.Create()
+        var token = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "alice@example.com")
             .WithClaim("jti", jti)
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
@@ -64,7 +64,7 @@ public class RevocationIntegrationTests
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore);
 
         var jti = "revoked-token-123";
-        var token = SdJwtBuilder.Create()
+        var token = SdJwtIssuerBuilder.Create()
             .WithClaim("jti", jti)
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .SignWithHmac(key)
@@ -97,14 +97,14 @@ public class RevocationIntegrationTests
 
         // Act 1: Issue multiple tokens with same kid
         var kid = "key-2024-10";
-        var token1 = SdJwtBuilder.Create()
+        var token1 = SdJwtIssuerBuilder.Create()
             .WithKeyId(kid)
             .WithClaim("sub", "alice@example.com")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .SignWithHmac(key)
             .Build();
 
-        var token2 = SdJwtBuilder.Create()
+        var token2 = SdJwtIssuerBuilder.Create()
             .WithKeyId(kid)
             .WithClaim("sub", "bob@example.com")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
@@ -143,14 +143,14 @@ public class RevocationIntegrationTests
 
         // Act 1: Issue multiple tokens for the same user (different devices)
         var userId = "alice@example.com";
-        var tokenDevice1 = SdJwtBuilder.Create()
+        var tokenDevice1 = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", userId)
             .WithClaim("jti", "token-device-1")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .SignWithHmac(key)
             .Build();
 
-        var tokenDevice2 = SdJwtBuilder.Create()
+        var tokenDevice2 = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", userId)
             .WithClaim("jti", "token-device-2")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
@@ -189,7 +189,7 @@ public class RevocationIntegrationTests
         await revocationStore.RevokeUserAsync(userId, _ct);
 
         // Assert 1: Token fails verification
-        var revokedToken = SdJwtBuilder.Create()
+        var revokedToken = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", userId)
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .SignWithHmac(key)
@@ -201,7 +201,7 @@ public class RevocationIntegrationTests
         await revocationStore.UnrevokeUserAsync(userId, _ct);
 
         // Assert 2: New token is now valid
-        var newToken = SdJwtBuilder.Create()
+        var newToken = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", userId)
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .SignWithHmac(key)
@@ -224,7 +224,7 @@ public class RevocationIntegrationTests
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore: null);
 
         // Act: Issue token
-        var token = SdJwtBuilder.Create()
+        var token = SdJwtIssuerBuilder.Create()
             .WithClaim("jti", "test-jti")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .SignWithHmac(key)

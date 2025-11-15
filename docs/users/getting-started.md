@@ -46,7 +46,7 @@ var keyGen = KeyGenerator.Instance;
 var key = keyGen.GenerateHmacKey();
 
 // 2. Create SD-JWT with the fluent builder
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .WithClaim("name", "Alice Smith")
     .WithClaim("email", "alice@example.com")
@@ -78,7 +78,7 @@ SD-JWT follows a three-party model:
 The issuer creates the SD-JWT and decides which claims can be selectively disclosed.
 
 ```csharp
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .WithClaim("email", "alice@example.com")
     .MakeSelective("email")  // Email can be selectively disclosed
@@ -119,7 +119,7 @@ HeroSD-JWT supports three signature algorithms:
 
 ```csharp
 var key = keyGen.GenerateHmacKey();
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaims(claims)
     .MakeSelective("email")
     .SignWithHmac(key)
@@ -130,7 +130,7 @@ var sdJwt = SdJwtBuilder.Create()
 
 ```csharp
 var (rsaPrivate, rsaPublic) = keyGen.GenerateRsaKeyPair();
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaims(claims)
     .MakeSelective("email")
     .SignWithRsa(rsaPrivate)
@@ -144,7 +144,7 @@ var result = verifier.VerifyPresentation(presentation, rsaPublic);
 
 ```csharp
 var (ecPrivate, ecPublic) = keyGen.GenerateEcdsaKeyPair();
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaims(claims)
     .MakeSelective("email")
     .SignWithEcdsa(ecPrivate)

@@ -57,7 +57,7 @@ using HeroSdJwt.Verification;
 var keyGen = KeyGenerator.Instance;
 var key = keyGen.GenerateHmacKey();
 
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .WithClaim("name", "Alice Smith")
     .WithClaim("email", "alice@example.com")
@@ -85,7 +85,7 @@ Console.WriteLine($"Birthdate: {result.DisclosedClaims["birthdate"]}"); // Discl
 ### Address with Selective Disclosure
 
 ```csharp
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-456")
     .WithClaim("name", "Bob Johnson")
     .WithClaim("address", new
@@ -128,7 +128,7 @@ var address = result.GetDisclosedObject("address");
 ### Multi-Level Nesting
 
 ```csharp
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("profile", new
     {
         personal = new
@@ -168,7 +168,7 @@ var presentation = sdJwt.ToPresentation(
 ### Education Degrees
 
 ```csharp
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-789")
     .WithClaim("name", "Carol White")
     .WithClaim("degrees", new[] { "BS", "MS", "PhD" })
@@ -193,7 +193,7 @@ var certs = result.GetDisclosedArray("certifications");
 ### Array of Objects
 
 ```csharp
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("experiences", new[]
     {
         new { company = "Acme Corp", years = 3 },
@@ -221,7 +221,7 @@ using System.Security.Cryptography;
 var holderEcdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
 var holderPublicKey = holderEcdsa.ExportSubjectPublicKeyInfo();
 
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .WithClaim("email", "alice@example.com")
     .WithHolderPublicKey(holderPublicKey, "ES256")  // Bind to holder's key
@@ -265,7 +265,7 @@ var keyGen = KeyGenerator.Instance;
 var (rsaPrivate, rsaPublic) = keyGen.GenerateRsaKeyPair();
 
 // Issuer signs with private key
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .WithClaim("email", "alice@example.com")
     .MakeSelective("email")
@@ -283,7 +283,7 @@ var result = verifier.VerifyPresentation(presentation, rsaPublic);
 var (ecPrivate, ecPublic) = keyGen.GenerateEcdsaKeyPair();
 
 // Issuer signs with private key
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .WithClaim("email", "alice@example.com")
     .MakeSelective("email")
@@ -335,7 +335,7 @@ catch (InvalidOperationException ex)
 ### Driver's License
 
 ```csharp
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("iss", "state-dmv")
     .WithClaim("sub", "license-123456")
     .WithClaim("name", "Alice Smith")
@@ -371,7 +371,7 @@ var addressPresentation = sdJwt.ToPresentation(
 ### Medical Record
 
 ```csharp
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("patient_id", "P123456")
     .WithClaim("name", "Bob Johnson")
     .WithClaim("medications", new[]
@@ -402,7 +402,7 @@ var emergencyPresentation = sdJwt.ToPresentation(
 ### Employee Credential
 
 ```csharp
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("employee_id", "E123456")
     .WithClaim("name", "Carol White")
     .WithClaim("department", "Engineering")
@@ -435,7 +435,7 @@ var contactPresentation = sdJwt.ToPresentation("email", "phone");
 When working with complex presentations, use `GetReconstructibleClaims()` to discover which claims can be reconstructed from the disclosed data:
 
 ```csharp
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("user", new
     {
         name = "Alice",
@@ -486,7 +486,7 @@ var addresses = result.GetDisclosedArray("user.addresses");
 Combine arrays and objects in hierarchical structures:
 
 ```csharp
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("education", new[]
     {
         new
@@ -549,7 +549,7 @@ var keyGen = KeyGenerator.Instance;
 var currentKey = keyGen.GenerateHmacKey();
 
 // Issue SD-JWT with key identifier
-var sdJwt = SdJwtBuilder.Create()
+var sdJwt = SdJwtIssuerBuilder.Create()
     .WithClaim("sub", "user-123")
     .WithClaim("email", "alice@example.com")
     .WithClaim("role", "admin")
@@ -637,7 +637,7 @@ public class KeyRotationService
         // Get current active key
         var activeKey = _keys.First(k => k.Value.IsActive);
 
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .MakeSelective(selectiveClaims)
             .WithKeyId(activeKey.Key)  // Use active key ID

@@ -445,7 +445,7 @@ public class EndToEndVerificationFlowTests
         };
 
         // Act - Use builder with Ed25519
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaims(claims)
             .MakeSelective("email", "department")
             .SignWithEd25519(privateKey)

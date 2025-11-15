@@ -37,7 +37,7 @@ public class KeyIdSecurityTests
         // Act & Assert - Attempt to use key ID with non-printable characters
         var exception = Assert.Throws<ArgumentException>(() =>
         {
-            SdJwtBuilder.Create()
+            SdJwtIssuerBuilder.Create()
                 .WithClaim("sub", "user-123")
                 .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
                 .WithKeyId(maliciousKeyId)
@@ -67,7 +67,7 @@ public class KeyIdSecurityTests
         // Act & Assert - Attempt to use key ID exceeding 256 character limit
         var exception = Assert.Throws<ArgumentException>(() =>
         {
-            SdJwtBuilder.Create()
+            SdJwtIssuerBuilder.Create()
                 .WithClaim("sub", "user-123")
                 .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
                 .WithKeyId(excessiveKeyId)
@@ -92,7 +92,7 @@ public class KeyIdSecurityTests
         // Act & Assert - Attempt to use empty/whitespace key ID
         var exception = Assert.Throws<ArgumentException>(() =>
         {
-            SdJwtBuilder.Create()
+            SdJwtIssuerBuilder.Create()
                 .WithClaim("sub", "user-123")
                 .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
                 .WithKeyId(emptyKeyId)
@@ -111,7 +111,7 @@ public class KeyIdSecurityTests
         var maxLengthKeyId = new string('k', 256);
 
         // Act - Should succeed with exactly 256 characters
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId(maxLengthKeyId)
@@ -138,7 +138,7 @@ public class KeyIdSecurityTests
         var minLengthKeyId = "k";
 
         // Act - Should succeed with single character
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId(minLengthKeyId)
@@ -171,7 +171,7 @@ public class KeyIdSecurityTests
         var hmacKey = keyGen.GenerateHmacKey();
 
         // Act - Should succeed with all printable ASCII
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId(validKeyId)
@@ -191,7 +191,7 @@ public class KeyIdSecurityTests
         // Act & Assert - Null key ID should throw ArgumentNullException
         Assert.Throws<ArgumentNullException>(() =>
         {
-            SdJwtBuilder.Create()
+            SdJwtIssuerBuilder.Create()
                 .WithClaim("sub", "user-123")
                 .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
                 .WithKeyId(null!)
@@ -212,7 +212,7 @@ public class KeyIdSecurityTests
 
         // Act - These strings contain only printable ASCII, so they should be accepted
         // (injection protection relies on printable ASCII validation, not pattern matching)
-        var sdJwt = SdJwtBuilder.Create()
+        var sdJwt = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "user-123")
             .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
             .WithKeyId(injectionAttempt)

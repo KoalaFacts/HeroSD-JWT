@@ -91,7 +91,7 @@ git tag v1.1.0-beta.1
 **Guaranteed Stable (No breaking changes without MAJOR version bump):**
 
 1. **Public Classes and Interfaces:**
-   - `SdJwtBuilder`
+   - `SdJwtIssuerBuilder`
    - `ISdJwtIssuer`, `ISdJwtVerifier`, `ISdJwtPresenter`
    - `SdJwt`, `VerificationResult`, `ReconstructedClaims`
    - `SdJwtException`, `ErrorCode` enum
@@ -244,7 +244,7 @@ git tag v1.1.0-beta.1
 
 ```csharp
 // ✅ CORRECT - Clear message with version
-[Obsolete("Use SdJwtBuilder.SignWithHmac() instead. Removed in v2.0.0.", error: false)]
+[Obsolete("Use SdJwtIssuerBuilder.SignWithHmac() instead. Removed in v2.0.0.", error: false)]
 public SdJwt SignWithHS256(byte[] key) { ... }
 
 // ❌ WRONG - Vague message, no version
