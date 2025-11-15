@@ -859,6 +859,7 @@ catch (TokenRevokedException ex)        {            return new VerificationResu
     /// <summary>
     /// Checks if the token has been revoked via JTI, Key ID, or User ID.
     /// Called after temporal claims validation, before digest validation.
+    /// Only runs if a revocation store was provided.
     /// </summary>
     private void CheckRevocation(
         JsonElement payload,
@@ -866,8 +867,8 @@ catch (TokenRevokedException ex)        {            return new VerificationResu
         List<ErrorCode> errors,
         List<string> errorDetails)
     {
-        // Skip if revocation is not enabled
-        if (options.Revocation?.Enabled != true || revocationStore == null)
+        // Skip if no revocation store provided
+        if (revocationStore == null)
             return;
 
         try

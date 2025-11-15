@@ -53,10 +53,9 @@ public class SdJwtVerificationOptions
 
     /// <summary>
     /// Gets the revocation options for token revocation checking.
-    /// When null, revocation checking is disabled.
-    /// Default is null (revocation disabled).
+    /// Revocation is always enabled when a RevocationStore is provided to the verifier.
     /// </summary>
-    public RevocationOptions? Revocation { get; init; }
+    public RevocationOptions Revocation { get; init; } = new();
 
     /// <summary>
     /// Validates the options and throws if configuration is invalid.

@@ -28,10 +28,7 @@ public class RevocationIntegrationTests
         // Arrange: Create issuer and verifier with revocation enabled
         var key = _keyGen.GenerateHmacKey();
         var revocationStore = new InMemoryRevocationStore();
-        var options = new SdJwtVerificationOptions
-        {
-            Revocation = new RevocationOptions { Enabled = true }
-        };
+        var options = new SdJwtVerificationOptions();
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore);
 
         // Act 1: Issue a token with JTI
@@ -63,10 +60,7 @@ public class RevocationIntegrationTests
         // Arrange
         var key = _keyGen.GenerateHmacKey();
         var revocationStore = new InMemoryRevocationStore();
-        var options = new SdJwtVerificationOptions
-        {
-            Revocation = new RevocationOptions { Enabled = true }
-        };
+        var options = new SdJwtVerificationOptions();
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore);
 
         var jti = "revoked-token-123";
@@ -98,10 +92,7 @@ public class RevocationIntegrationTests
         // Arrange
         var key = _keyGen.GenerateHmacKey();
         var revocationStore = new InMemoryRevocationStore();
-        var options = new SdJwtVerificationOptions
-        {
-            Revocation = new RevocationOptions { Enabled = true }
-        };
+        var options = new SdJwtVerificationOptions();
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore);
 
         // Act 1: Issue multiple tokens with same kid
@@ -147,10 +138,7 @@ public class RevocationIntegrationTests
         // Arrange
         var key = _keyGen.GenerateHmacKey();
         var revocationStore = new InMemoryRevocationStore();
-        var options = new SdJwtVerificationOptions
-        {
-            Revocation = new RevocationOptions { Enabled = true }
-        };
+        var options = new SdJwtVerificationOptions();
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore);
 
         // Act 1: Issue multiple tokens for the same user (different devices)
@@ -192,10 +180,7 @@ public class RevocationIntegrationTests
         // Arrange
         var key = _keyGen.GenerateHmacKey();
         var revocationStore = new InMemoryRevocationStore();
-        var options = new SdJwtVerificationOptions
-        {
-            Revocation = new RevocationOptions { Enabled = true }
-        };
+        var options = new SdJwtVerificationOptions();
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore);
 
         var userId = "charlie@example.com";
@@ -227,45 +212,15 @@ public class RevocationIntegrationTests
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Revocation Disabled Tests (Backward Compatibility)
+    // No Revocation Store Test
     // ═══════════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public async Task RevocationDisabled_RevokedTokenStillWorks()
-    {
-        // Arrange: Revocation is disabled (default)
-        var key = _keyGen.GenerateHmacKey();
-        var revocationStore = new InMemoryRevocationStore();
-        var options = new SdJwtVerificationOptions
-        {
-            Revocation = new RevocationOptions { Enabled = false }
-        };
-        var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore);
-
-        // Act: Issue token and revoke it
-        var jti = "test-jti";
-        var token = SdJwtBuilder.Create()
-            .WithClaim("jti", jti)
-            .WithClaim("exp", DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds())
-            .SignWithHmac(key)
-            .Build();
-
-        await revocationStore.RevokeJtiAsync(jti, DateTimeOffset.UtcNow.AddHours(1), _ct);
-
-        // Assert: Token still works because revocation is disabled
-        var result = verifier.TryVerifyPresentation(token.ToPresentation(), key);
-        Assert.True(result.IsValid, "Revoked token should still work when revocation is disabled");
-    }
 
     [Fact]
     public void NoRevocationStore_TokenWorksNormally()
     {
-        // Arrange: No revocation store provided (backward compatibility)
+        // Arrange: No revocation store provided - revocation checks are skipped
         var key = _keyGen.GenerateHmacKey();
-        var options = new SdJwtVerificationOptions
-        {
-            Revocation = new RevocationOptions { Enabled = true }
-        };
+        var options = new SdJwtVerificationOptions();
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore: null);
 
         // Act: Issue token
@@ -275,7 +230,7 @@ public class RevocationIntegrationTests
             .SignWithHmac(key)
             .Build();
 
-        // Assert: Token works normally (revocation checks are skipped)
+        // Assert: Token works normally (revocation checks are skipped when no store)
         var result = verifier.TryVerifyPresentation(token.ToPresentation(), key);
         Assert.True(result.IsValid);
     }
