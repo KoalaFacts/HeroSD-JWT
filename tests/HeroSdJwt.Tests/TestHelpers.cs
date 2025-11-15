@@ -45,6 +45,23 @@ internal static class TestHelpers
     }
 
     /// <summary>
+    /// Creates a new SdJwtVerifierBuilder for fluent configuration.
+    /// Recommended for new code - provides a cleaner, more discoverable API.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// var verifier = TestHelpers.CreateVerifierBuilder()
+    ///     .WithRevocation(store)
+    ///     .WithExpectedIssuer("https://issuer.example.com")
+    ///     .Build();
+    /// </code>
+    /// </example>
+    public static SdJwtVerifierBuilder CreateVerifierBuilder()
+    {
+        return SdJwtVerifierBuilder.Create();
+    }
+
+    /// <summary>
     /// Creates an SdJwtIssuer with default dependencies for testing.
     /// </summary>
     public static SdJwtIssuer CreateIssuer()
