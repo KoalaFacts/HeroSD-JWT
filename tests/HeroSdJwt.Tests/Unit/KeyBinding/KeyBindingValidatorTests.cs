@@ -11,22 +11,22 @@ namespace HeroSdJwt.Tests.Unit.KeyBinding;
 /// </summary>
 public class KeyBindingValidatorTests
 {
-    private readonly KeyBindingGenerator generator;
-    private readonly KeyBindingValidator validator;
-    private readonly byte[] privateKey;
-    private readonly byte[] publicKey;
-    private readonly FakeTimeProvider timeProvider;
+    private readonly KeyBindingGenerator _generator;
+    private readonly KeyBindingValidator _validator;
+    private readonly byte[] _privateKey;
+    private readonly byte[] _publicKey;
+    private readonly FakeTimeProvider _timeProvider;
 
     public KeyBindingValidatorTests()
     {
-        timeProvider = new FakeTimeProvider();
-        generator = new KeyBindingGenerator(timeProvider);
-        validator = new KeyBindingValidator(timeProvider);
+        _timeProvider = new FakeTimeProvider();
+        _generator = new KeyBindingGenerator(_timeProvider);
+        _validator = new KeyBindingValidator(_timeProvider);
 
         // Generate a test key pair in the format expected by KeyBindingGenerator
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        privateKey = ecdsa.ExportECPrivateKey();
-        publicKey = ecdsa.ExportSubjectPublicKeyInfo();
+        _privateKey = ecdsa.ExportECPrivateKey();
+        _publicKey = ecdsa.ExportSubjectPublicKeyInfo();
     }
 
     #region Constructor Tests
@@ -73,10 +73,10 @@ public class KeyBindingValidatorTests
         var sdJwtHash = "test-hash-123";
         var audience = "https://verifier.example.com";
         var nonce = "test-nonce";
-        var keyBindingJwt = generator.CreateKeyBindingJwt(privateKey, sdJwtHash, audience, nonce);
+        var keyBindingJwt = _generator.CreateKeyBindingJwt(_privateKey, sdJwtHash, audience, nonce);
 
         // Act
-        var result = validator.ValidateKeyBinding(keyBindingJwt, publicKey, sdJwtHash, audience, nonce);
+        var result = _validator.ValidateKeyBinding(keyBindingJwt, _publicKey, sdJwtHash, audience, nonce);
 
         // Assert
         Assert.True(result);
@@ -89,10 +89,10 @@ public class KeyBindingValidatorTests
         var sdJwtHash = "test-hash-456";
         var audience = "https://verifier.example.com";
         var nonce = "nonce-456";
-        var keyBindingJwt = generator.CreateKeyBindingJwt(privateKey, sdJwtHash, audience, nonce);
+        var keyBindingJwt = _generator.CreateKeyBindingJwt(_privateKey, sdJwtHash, audience, nonce);
 
         // Act - Validate without checking audience/nonce
-        var result = validator.ValidateKeyBinding(keyBindingJwt, publicKey, sdJwtHash);
+        var result = _validator.ValidateKeyBinding(keyBindingJwt, _publicKey, sdJwtHash);
 
         // Assert
         Assert.True(result);
@@ -105,10 +105,10 @@ public class KeyBindingValidatorTests
         var sdJwtHash = "hash-789";
         var audience = "https://example.com";
         var nonce = "nonce-789";
-        var keyBindingJwt = generator.CreateKeyBindingJwt(privateKey, sdJwtHash, audience, nonce);
+        var keyBindingJwt = _generator.CreateKeyBindingJwt(_privateKey, sdJwtHash, audience, nonce);
 
         // Act
-        var result = validator.ValidateKeyBinding(keyBindingJwt, publicKey, sdJwtHash, audience);
+        var result = _validator.ValidateKeyBinding(keyBindingJwt, _publicKey, sdJwtHash, audience);
 
         // Assert
         Assert.True(result);
@@ -121,10 +121,10 @@ public class KeyBindingValidatorTests
         var sdJwtHash = "hash-abc";
         var audience = "aud";
         var nonce = "special-nonce";
-        var keyBindingJwt = generator.CreateKeyBindingJwt(privateKey, sdJwtHash, audience, nonce);
+        var keyBindingJwt = _generator.CreateKeyBindingJwt(_privateKey, sdJwtHash, audience, nonce);
 
         // Act
-        var result = validator.ValidateKeyBinding(keyBindingJwt, publicKey, sdJwtHash, null, nonce);
+        var result = _validator.ValidateKeyBinding(keyBindingJwt, _publicKey, sdJwtHash, null, nonce);
 
         // Assert
         Assert.True(result);
@@ -139,29 +139,29 @@ public class KeyBindingValidatorTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            validator.ValidateKeyBinding(null!, publicKey, "hash"));
+            _validator.ValidateKeyBinding(null!, _publicKey, "hash"));
     }
 
     [Fact]
     public void ValidateKeyBinding_WithNullPublicKey_ThrowsArgumentNullException()
     {
         // Arrange
-        var jwt = generator.CreateKeyBindingJwt(privateKey, "hash", "aud", "nonce");
+        var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "aud", "nonce");
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            validator.ValidateKeyBinding(jwt, null!, "hash"));
+            _validator.ValidateKeyBinding(jwt, null!, "hash"));
     }
 
     [Fact]
     public void ValidateKeyBinding_WithNullSdJwtHash_ThrowsArgumentNullException()
     {
         // Arrange
-        var jwt = generator.CreateKeyBindingJwt(privateKey, "hash", "aud", "nonce");
+        var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "aud", "nonce");
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            validator.ValidateKeyBinding(jwt, publicKey, null!));
+            _validator.ValidateKeyBinding(jwt, _publicKey, null!));
     }
 
     #endregion
@@ -175,7 +175,7 @@ public class KeyBindingValidatorTests
         var invalidJwt = "header.payload";
 
         // Act
-        var result = validator.ValidateKeyBinding(invalidJwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(invalidJwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -188,7 +188,7 @@ public class KeyBindingValidatorTests
         var invalidJwt = "header.payload.signature.extra";
 
         // Act
-        var result = validator.ValidateKeyBinding(invalidJwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(invalidJwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -198,7 +198,7 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithEmptyJwt_ReturnsFalse()
     {
         // Act
-        var result = validator.ValidateKeyBinding(string.Empty, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(string.Empty, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -213,13 +213,13 @@ public class KeyBindingValidatorTests
     {
         // Arrange - Create JWT with missing typ
         var header = JsonSerializer.Serialize(new { alg = "ES256" });
-        var payload = JsonSerializer.Serialize(new { sd_hash = "hash", iat = timeProvider.GetUtcNow().ToUnixTimeSeconds() });
+        var payload = JsonSerializer.Serialize(new { sd_hash = "hash", iat = _timeProvider.GetUtcNow().ToUnixTimeSeconds() });
         var headerBase64 = Base64UrlEncoder.Encode(header);
         var payloadBase64 = Base64UrlEncoder.Encode(payload);
         var jwt = $"{headerBase64}.{payloadBase64}.fakesignature";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -230,13 +230,13 @@ public class KeyBindingValidatorTests
     {
         // Arrange - Create JWT with wrong typ
         var header = JsonSerializer.Serialize(new { alg = "ES256", typ = "JWT" });
-        var payload = JsonSerializer.Serialize(new { sd_hash = "hash", iat = timeProvider.GetUtcNow().ToUnixTimeSeconds() });
+        var payload = JsonSerializer.Serialize(new { sd_hash = "hash", iat = _timeProvider.GetUtcNow().ToUnixTimeSeconds() });
         var headerBase64 = Base64UrlEncoder.Encode(header);
         var payloadBase64 = Base64UrlEncoder.Encode(payload);
         var jwt = $"{headerBase64}.{payloadBase64}.fakesignature";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -251,13 +251,13 @@ public class KeyBindingValidatorTests
     {
         // Arrange - Create JWT without sd_hash
         var header = JsonSerializer.Serialize(new { alg = "ES256", typ = "kb+jwt" });
-        var payload = JsonSerializer.Serialize(new { iat = timeProvider.GetUtcNow().ToUnixTimeSeconds() });
+        var payload = JsonSerializer.Serialize(new { iat = _timeProvider.GetUtcNow().ToUnixTimeSeconds() });
         var headerBase64 = Base64UrlEncoder.Encode(header);
         var payloadBase64 = Base64UrlEncoder.Encode(payload);
         var jwt = $"{headerBase64}.{payloadBase64}.fakesignature";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "expected-hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "expected-hash");
 
         // Assert
         Assert.False(result);
@@ -268,10 +268,10 @@ public class KeyBindingValidatorTests
     {
         // Arrange
         var sdJwtHash = "original-hash";
-        var jwt = generator.CreateKeyBindingJwt(privateKey, sdJwtHash, "aud", "nonce");
+        var jwt = _generator.CreateKeyBindingJwt(_privateKey, sdJwtHash, "aud", "nonce");
 
         // Act - Validate with different hash
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "different-hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "different-hash");
 
         // Assert
         Assert.False(result);
@@ -281,10 +281,10 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithMismatchedAudience_ReturnsFalse()
     {
         // Arrange
-        var jwt = generator.CreateKeyBindingJwt(privateKey, "hash", "original-aud", "nonce");
+        var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "original-aud", "nonce");
 
         // Act - Validate with different audience
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash", "different-aud");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash", "different-aud");
 
         // Assert
         Assert.False(result);
@@ -294,10 +294,10 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithMismatchedNonce_ReturnsFalse()
     {
         // Arrange
-        var jwt = generator.CreateKeyBindingJwt(privateKey, "hash", "aud", "original-nonce");
+        var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "aud", "original-nonce");
 
         // Act - Validate with different nonce
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash", null, "different-nonce");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash", null, "different-nonce");
 
         // Assert
         Assert.False(result);
@@ -311,7 +311,7 @@ public class KeyBindingValidatorTests
         var payload = JsonSerializer.Serialize(new
         {
             sd_hash = "hash",
-            iat = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
+            iat = _timeProvider.GetUtcNow().ToUnixTimeSeconds(),
             nonce = "nonce"
         });
         var headerBase64 = Base64UrlEncoder.Encode(header);
@@ -319,14 +319,14 @@ public class KeyBindingValidatorTests
 
         // Sign the JWT
         using var ecdsa = ECDsa.Create();
-        ecdsa.ImportECPrivateKey(privateKey, out _);
+        ecdsa.ImportECPrivateKey(_privateKey, out _);
         var signingInput = $"{headerBase64}.{payloadBase64}";
         var signature = ecdsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256);
         var signatureBase64 = Base64UrlEncoder.Encode(signature);
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act - Validate expecting audience
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash", "expected-aud");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash", "expected-aud");
 
         // Assert
         Assert.False(result);
@@ -340,7 +340,7 @@ public class KeyBindingValidatorTests
         var payload = JsonSerializer.Serialize(new
         {
             sd_hash = "hash",
-            iat = timeProvider.GetUtcNow().ToUnixTimeSeconds(),
+            iat = _timeProvider.GetUtcNow().ToUnixTimeSeconds(),
             aud = "audience"
         });
         var headerBase64 = Base64UrlEncoder.Encode(header);
@@ -348,14 +348,14 @@ public class KeyBindingValidatorTests
 
         // Sign the JWT
         using var ecdsa = ECDsa.Create();
-        ecdsa.ImportECPrivateKey(privateKey, out _);
+        ecdsa.ImportECPrivateKey(_privateKey, out _);
         var signingInput = $"{headerBase64}.{payloadBase64}";
         var signature = ecdsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256);
         var signatureBase64 = Base64UrlEncoder.Encode(signature);
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act - Validate expecting nonce
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash", null, "expected-nonce");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash", null, "expected-nonce");
 
         // Assert
         Assert.False(result);
@@ -376,7 +376,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{headerBase64}.{payloadBase64}.fakesignature";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -386,7 +386,7 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithTooOldIat_ReturnsFalse()
     {
         // Arrange - Create JWT with old iat (> 300 seconds)
-        var oldTime = timeProvider.GetUtcNow().AddSeconds(-301);
+        var oldTime = _timeProvider.GetUtcNow().AddSeconds(-301);
         var header = JsonSerializer.Serialize(new { alg = "ES256", typ = "kb+jwt" });
         var payload = JsonSerializer.Serialize(new
         {
@@ -400,14 +400,14 @@ public class KeyBindingValidatorTests
 
         // Sign it
         using var ecdsa = ECDsa.Create();
-        ecdsa.ImportECPrivateKey(privateKey, out _);
+        ecdsa.ImportECPrivateKey(_privateKey, out _);
         var signingInput = $"{headerBase64}.{payloadBase64}";
         var signature = ecdsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256);
         var signatureBase64 = Base64UrlEncoder.Encode(signature);
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -417,7 +417,7 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithFutureIat_ReturnsFalse()
     {
         // Arrange - Create JWT with future iat (> 60 seconds in the future)
-        var futureTime = timeProvider.GetUtcNow().AddSeconds(61);
+        var futureTime = _timeProvider.GetUtcNow().AddSeconds(61);
         var header = JsonSerializer.Serialize(new { alg = "ES256", typ = "kb+jwt" });
         var payload = JsonSerializer.Serialize(new
         {
@@ -431,14 +431,14 @@ public class KeyBindingValidatorTests
 
         // Sign it
         using var ecdsa = ECDsa.Create();
-        ecdsa.ImportECPrivateKey(privateKey, out _);
+        ecdsa.ImportECPrivateKey(_privateKey, out _);
         var signingInput = $"{headerBase64}.{payloadBase64}";
         var signature = ecdsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256);
         var signatureBase64 = Base64UrlEncoder.Encode(signature);
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -452,7 +452,7 @@ public class KeyBindingValidatorTests
         var generator = new KeyBindingGenerator(timeProvider);
         var validator = new KeyBindingValidator(timeProvider);
 
-        var futureTime = timeProvider.GetUtcNow().AddSeconds(59);
+        var futureTime = _timeProvider.GetUtcNow().AddSeconds(59);
         var header = JsonSerializer.Serialize(new { alg = "ES256", typ = "kb+jwt" });
         var payload = JsonSerializer.Serialize(new
         {
@@ -466,14 +466,14 @@ public class KeyBindingValidatorTests
 
         // Sign it
         using var ecdsa = ECDsa.Create();
-        ecdsa.ImportECPrivateKey(privateKey, out _);
+        ecdsa.ImportECPrivateKey(_privateKey, out _);
         var signingInput = $"{headerBase64}.{payloadBase64}";
         var signature = ecdsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256);
         var signatureBase64 = Base64UrlEncoder.Encode(signature);
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.True(result);
@@ -483,10 +483,10 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithRecentIat_ReturnsTrue()
     {
         // Arrange - JWT created just now
-        var jwt = generator.CreateKeyBindingJwt(privateKey, "hash", "aud", "nonce");
+        var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "aud", "nonce");
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.True(result);
@@ -496,7 +496,7 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithIatAtMaxAge_ReturnsFalse()
     {
         // Arrange - Create JWT with iat exactly 300 seconds ago
-        var oldTime = timeProvider.GetUtcNow().AddSeconds(-300);
+        var oldTime = _timeProvider.GetUtcNow().AddSeconds(-300);
         var header = JsonSerializer.Serialize(new { alg = "ES256", typ = "kb+jwt" });
         var payload = JsonSerializer.Serialize(new
         {
@@ -510,14 +510,14 @@ public class KeyBindingValidatorTests
 
         // Sign it
         using var ecdsa = ECDsa.Create();
-        ecdsa.ImportECPrivateKey(privateKey, out _);
+        ecdsa.ImportECPrivateKey(_privateKey, out _);
         var signingInput = $"{headerBase64}.{payloadBase64}";
         var signature = ecdsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256);
         var signatureBase64 = Base64UrlEncoder.Encode(signature);
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -531,12 +531,12 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithInvalidSignature_ReturnsFalse()
     {
         // Arrange - Create valid JWT then tamper with signature
-        var jwt = generator.CreateKeyBindingJwt(privateKey, "hash", "aud", "nonce");
+        var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "aud", "nonce");
         var parts = jwt.Split('.');
         var tamperedJwt = $"{parts[0]}.{parts[1]}.AAAAAAAAAA";
 
         // Act
-        var result = validator.ValidateKeyBinding(tamperedJwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(tamperedJwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -546,13 +546,13 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithWrongPublicKey_ReturnsFalse()
     {
         // Arrange - Create JWT with one key, validate with different key
-        var jwt = generator.CreateKeyBindingJwt(privateKey, "hash", "aud", "nonce");
+        var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "aud", "nonce");
 
         using var differentEcdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var differentPublicKey = differentEcdsa.ExportSubjectPublicKeyInfo();
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, differentPublicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, differentPublicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -562,7 +562,7 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithTamperedPayload_ReturnsFalse()
     {
         // Arrange - Create valid JWT then tamper with payload
-        var jwt = generator.CreateKeyBindingJwt(privateKey, "hash", "aud", "nonce");
+        var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "aud", "nonce");
         var parts = jwt.Split('.');
 
         // Change the payload
@@ -570,7 +570,7 @@ public class KeyBindingValidatorTests
         var tamperedJwt = $"{parts[0]}.{tamperedPayload}.{parts[2]}";
 
         // Act
-        var result = validator.ValidateKeyBinding(tamperedJwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(tamperedJwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -580,11 +580,11 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithInvalidPublicKeyFormat_ReturnsFalse()
     {
         // Arrange
-        var jwt = generator.CreateKeyBindingJwt(privateKey, "hash", "aud", "nonce");
+        var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "aud", "nonce");
         var invalidPublicKey = new byte[] { 1, 2, 3, 4, 5 };
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, invalidPublicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, invalidPublicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -599,13 +599,13 @@ public class KeyBindingValidatorTests
         var publicKey384 = ecdsa384.ExportSubjectPublicKeyInfo();
 
         // Create JWT signed with P-384 key
-        var generator384 = new KeyBindingGenerator(timeProvider);
+        var generator384 = new KeyBindingGenerator(_timeProvider);
         try
         {
             var jwt = generator384.CreateKeyBindingJwt(privateKey384, "hash", "aud", "nonce");
 
             // Act - This should fail because only P-256 is supported
-            var result = validator.ValidateKeyBinding(jwt, publicKey384, "hash");
+            var result = _validator.ValidateKeyBinding(jwt, publicKey384, "hash");
 
             // Assert
             Assert.False(result);
@@ -628,7 +628,7 @@ public class KeyBindingValidatorTests
         var jwt = "!!!invalid!!!.validpayload.validsignature";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -643,7 +643,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{invalidHeader}.{validPayload}.signature";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -658,7 +658,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{validHeader}.{invalidPayload}.signature";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -675,7 +675,7 @@ public class KeyBindingValidatorTests
         var generator = new KeyBindingGenerator(timeProvider);
         var validator = new KeyBindingValidator(timeProvider);
 
-        var boundaryTime = timeProvider.GetUtcNow().AddSeconds(-299);
+        var boundaryTime = _timeProvider.GetUtcNow().AddSeconds(-299);
         var header = JsonSerializer.Serialize(new { alg = "ES256", typ = "kb+jwt" });
         var payload = JsonSerializer.Serialize(new
         {
@@ -689,14 +689,14 @@ public class KeyBindingValidatorTests
 
         // Sign it
         using var ecdsa = ECDsa.Create();
-        ecdsa.ImportECPrivateKey(privateKey, out _);
+        ecdsa.ImportECPrivateKey(_privateKey, out _);
         var signingInput = $"{headerBase64}.{payloadBase64}";
         var signature = ecdsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256);
         var signatureBase64 = Base64UrlEncoder.Encode(signature);
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.True(result);
@@ -707,11 +707,11 @@ public class KeyBindingValidatorTests
     {
         // Arrange - Create valid JWT but with invalid base64 signature
         var header = Base64UrlEncoder.Encode("{\"alg\":\"ES256\",\"typ\":\"kb+jwt\"}");
-        var payload = Base64UrlEncoder.Encode($"{{\"sd_hash\":\"hash\",\"iat\":{timeProvider.GetUtcNow().ToUnixTimeSeconds()}}}");
+        var payload = Base64UrlEncoder.Encode($"{{\"sd_hash\":\"hash\",\"iat\":{_timeProvider.GetUtcNow().ToUnixTimeSeconds()}}}");
         var jwt = $"{header}.{payload}.!!!invalid-base64!!!";
 
         // Act
-        var result = validator.ValidateKeyBinding(jwt, publicKey, "hash");
+        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -728,11 +728,11 @@ public class KeyBindingValidatorTests
 
     private class FakeTimeProvider : TimeProvider
     {
-        private DateTimeOffset now = DateTimeOffset.UtcNow;
+        private DateTimeOffset _now = DateTimeOffset.UtcNow;
 
-        public override DateTimeOffset GetUtcNow() => now;
+        public override DateTimeOffset GetUtcNow() => _now;
 
-        public void SetUtcNow(DateTimeOffset value) => now = value;
+        public void SetUtcNow(DateTimeOffset value) => _now = value;
     }
 
     #endregion

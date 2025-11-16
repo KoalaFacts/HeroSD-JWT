@@ -11,7 +11,7 @@ namespace HeroSdJwt.Tests.Unit.Verification;
 public class SignatureValidatorKeyResolverTests
 {
     private readonly KeyGenerator _keyGen = KeyGenerator.Instance;
-    private readonly JwtSigner signer = new();
+    private readonly JwtSigner _signer = new();
     private readonly SignatureValidator _validator = new();
 
     [Fact]
@@ -22,7 +22,7 @@ public class SignatureValidatorKeyResolverTests
         var keyId = "test-key-123";
         var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
 
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
         var keys = new Dictionary<string, byte[]> { [keyId] = _hmacKey };
         KeyResolver resolver = kid => keys.GetValueOrDefault(kid);
@@ -41,7 +41,7 @@ public class SignatureValidatorKeyResolverTests
         var _hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
 
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256);
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256);
 
         KeyResolver resolver = kid => throw new InvalidOperationException("Should not be called");
 
@@ -60,7 +60,7 @@ public class SignatureValidatorKeyResolverTests
         var keyId = "unknown-key";
         var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
 
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
         KeyResolver resolver = kid => null; // Returns null for unknown key
 
@@ -79,7 +79,7 @@ public class SignatureValidatorKeyResolverTests
         var keyId = "key-123";
         var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
 
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>
@@ -96,7 +96,7 @@ public class SignatureValidatorKeyResolverTests
         var keyId = "key-123";
         var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
 
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
         KeyResolver resolver = kid => throw new InvalidOperationException("Database connection failed");
 
@@ -117,7 +117,7 @@ public class SignatureValidatorKeyResolverTests
         var keyId = "key-1";
         var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
 
-        var jwt = signer.CreateJwt(payload, key1, SignatureAlgorithm.HS256, keyId);
+        var jwt = _signer.CreateJwt(payload, key1, SignatureAlgorithm.HS256, keyId);
 
         KeyResolver resolver = kid => key2; // Returns wrong key
 
@@ -135,7 +135,7 @@ public class SignatureValidatorKeyResolverTests
         var _hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
 
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256);
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256);
 
         // Act - No kid, no resolver, but fallback provided (backward compat)
         var isValid = _validator.VerifyJwtSignature(jwt, keyResolver: null, fallbackKey: _hmacKey);
@@ -152,7 +152,7 @@ public class SignatureValidatorKeyResolverTests
         var keyId = "valid-key-id";
         var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
 
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
         KeyResolver resolver = kid =>
         {
@@ -200,7 +200,7 @@ public class SignatureValidatorKeyResolverTests
         }
 
         var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
-        var jwt = signer.CreateJwt(payload, signingKey, algorithm, keyId);
+        var jwt = _signer.CreateJwt(payload, signingKey, algorithm, keyId);
 
         KeyResolver resolver = kid => kid == keyId ? verificationKey : null;
 
@@ -218,7 +218,7 @@ public class SignatureValidatorKeyResolverTests
         var _hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
 
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256);
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256);
 
         // Act - Old method signature (should still work)
         var isValid = _validator.VerifyJwtSignature(jwt, _hmacKey);

@@ -15,29 +15,29 @@ namespace HeroSdJwt.Benchmarks;
 [SimpleJob(launchCount: 1, warmupCount: 3, iterationCount: 10)]
 public class VerificationBenchmarks
 {
-    private byte[] hmacKey = null!;
-    private RSA rsa = null!;
-    private ECDsa ecdsa = null!;
-    private ECDsa holderKey = null!;
+    private byte[] _hmacKey = null!;
+    private RSA _rsa = null!;
+    private ECDsa _ecdsa = null!;
+    private ECDsa _holderKey = null!;
 
-    private SdJwt sdJwtHmac = null!;
-    private SdJwt sdJwtRsa = null!;
-    private SdJwtVerifier verifier = null!;
-    private SdJwtVerifier verifierWithKeyBinding = null!;
+    private SdJwt _sdJwtHmac = null!;
+    private SdJwt _sdJwtRsa = null!;
+    private SdJwtVerifier _verifier = null!;
+    private SdJwtVerifier _verifierWithKeyBinding = null!;
 
-    private string presentation = null!;
-    private string presentationWithKeyBinding = null!;
+    private string _presentation = null!;
+    private string _presentationWithKeyBinding = null!;
 
     [GlobalSetup]
     public void Setup()
     {
         // Generate keys
-        hmacKey = new byte[32];
-        RandomNumberGenerator.Fill(hmacKey);
+        _hmacKey = new byte[32];
+        RandomNumberGenerator.Fill(_hmacKey);
 
-        rsa = RSA.Create(2048);
-        ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        holderKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        _rsa = RSA.Create(2048);
+        _ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        _holderKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
 
         // Generate SD-JWTs
         var claims = new Dictionary<string, object>
@@ -63,15 +63,15 @@ public class VerificationBenchmarks
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
             .MakeSelective("email", "name", "birthdate");
 
-        sdJwtHmac = builder.SignWithHmac(hmacKey).Build();
-        var rsaPrivateKey = rsa.ExportPkcs8PrivateKey();
-        sdJwtRsa = builder.SignWithRsa(rsaPrivateKey).Build();
+        _sdJwtHmac = builder.SignWithHmac(_hmacKey).Build();
+        var rsaPrivateKey = _rsa.ExportPkcs8PrivateKey();
+        _sdJwtRsa = builder.SignWithRsa(rsaPrivateKey).Build();
 
         // Create presentations
-        presentation = sdJwtHmac.ToPresentation("email", "name");
+        _presentation = _sdJwtHmac.ToPresentation("email", "name");
 
         // Create presentation with key binding
-        var holderPublicKey = holderKey.ExportSubjectPublicKeyInfo();
+        var holderPublicKey = _holderKey.ExportSubjectPublicKeyInfo();
 
         var builderWithKeyBinding = new SdJwtIssuerBuilder()
             .WithClaims(claims)
@@ -90,14 +90,14 @@ public class VerificationBenchmarks
         var sdJwtHash = Base64Url.EncodeToString(hashBytes);
 
         var kbGenerator = new KeyBindingGenerator();
-        var holderPrivateKeyBytes = holderKey.ExportECPrivateKey();
+        var holderPrivateKeyBytes = _holderKey.ExportECPrivateKey();
         var keyBindingJwt = kbGenerator.CreateKeyBindingJwt(
             holderPrivateKeyBytes,
             sdJwtHash,
             "https://verifier.example.com",
             "nonce-123");
 
-        presentationWithKeyBinding = sdJwtWithKeyBinding.ToPresentationWithKeyBinding(
+        _presentationWithKeyBinding = sdJwtWithKeyBinding.ToPresentationWithKeyBinding(
             keyBindingJwt,
             "email", "name");
 
@@ -113,7 +113,7 @@ public class VerificationBenchmarks
             ExpectedIssuer = "https://issuer.example.com"
         };
 
-        verifier = new SdJwtVerifier(
+        _verifier = new SdJwtVerifier(
             verifierOptions,
             ecPublicKeyConverter,
             signatureValidator,
@@ -129,7 +129,7 @@ public class VerificationBenchmarks
             RequireKeyBinding = true
         };
 
-        verifierWithKeyBinding = new SdJwtVerifier(
+        _verifierWithKeyBinding = new SdJwtVerifier(
             verifierWithKbOptions,
             ecPublicKeyConverter,
             signatureValidator,
@@ -141,28 +141,28 @@ public class VerificationBenchmarks
     [GlobalCleanup]
     public void Cleanup()
     {
-        rsa.Dispose();
-        ecdsa.Dispose();
-        holderKey.Dispose();
+        _rsa.Dispose();
+        _ecdsa.Dispose();
+        _holderKey.Dispose();
     }
 
     [Benchmark]
     public VerificationResult VerifyWithoutKeyBinding()
     {
-        return verifier.VerifyPresentation(presentation, hmacKey);
+        return _verifier.VerifyPresentation(_presentation, _hmacKey);
     }
 
     [Benchmark]
     public VerificationResult VerifyWithKeyBinding()
     {
         // Export RSA public key for verification
-        var rsaPublicKey = rsa.ExportSubjectPublicKeyInfo();
-        return verifierWithKeyBinding.VerifyPresentation(presentationWithKeyBinding, rsaPublicKey);
+        var rsaPublicKey = _rsa.ExportSubjectPublicKeyInfo();
+        return _verifierWithKeyBinding.VerifyPresentation(_presentationWithKeyBinding, rsaPublicKey);
     }
 
     [Benchmark]
     public VerificationResult TryVerifyWithoutKeyBinding()
     {
-        return verifier.TryVerifyPresentation(presentation, hmacKey);
+        return _verifier.TryVerifyPresentation(_presentation, _hmacKey);
     }
 }

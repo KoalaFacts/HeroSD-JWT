@@ -11,7 +11,7 @@ namespace HeroSdJwt.Tests.Unit;
 public class JwtSignerKeyIdTests
 {
     private readonly KeyGenerator _keyGen = KeyGenerator.Instance;
-    private readonly JwtSigner signer = new();
+    private readonly JwtSigner _signer = new();
 
     [Fact]
     public void CreateJwt_WithKeyId_IncludesKidInHeader()
@@ -26,7 +26,7 @@ public class JwtSignerKeyIdTests
         var keyId = "test-key-2024";
 
         // Act
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
         // Assert
         var parts = jwt.Split('.');
@@ -51,7 +51,7 @@ public class JwtSignerKeyIdTests
         };
 
         // Act
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256);
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256);
 
         // Assert
         var parts = jwt.Split('.');
@@ -72,7 +72,7 @@ public class JwtSignerKeyIdTests
         };
 
         // Act
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, null);
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, null);
 
         // Assert
         var parts = jwt.Split('.');
@@ -93,7 +93,7 @@ public class JwtSignerKeyIdTests
         };
 
         // Act
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, "");
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, "");
 
         // Assert
         var parts = jwt.Split('.');
@@ -114,7 +114,7 @@ public class JwtSignerKeyIdTests
         };
 
         // Act
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, "   ");
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, "   ");
 
         // Assert
         var parts = jwt.Split('.');
@@ -154,7 +154,7 @@ public class JwtSignerKeyIdTests
         var keyId = $"test-key-{algorithmName}";
 
         // Act
-        var jwt = signer.CreateJwt(payload, signingKey, algorithm, keyId);
+        var jwt = _signer.CreateJwt(payload, signingKey, algorithm, keyId);
 
         // Assert
         var parts = jwt.Split('.');
@@ -182,7 +182,7 @@ public class JwtSignerKeyIdTests
         var keyId = "test-key";
 
         // Act
-        var jwt = signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
         // Assert - Verify JWT is valid and contains all claims
         var parts = jwt.Split('.');

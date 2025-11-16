@@ -27,7 +27,7 @@ public class SdJwtIssuer(
 {
     private readonly IDisclosureGenerator _disclosureGenerator = _disclosureGenerator ?? throw new ArgumentNullException(nameof(_disclosureGenerator));
     private readonly IDigestCalculator _digestCalculator = _digestCalculator ?? throw new ArgumentNullException(nameof(_digestCalculator));
-    private readonly IEcPublicKeyConverter ecPublicKeyConverter = ecPublicKeyConverter ?? throw new ArgumentNullException(nameof(ecPublicKeyConverter));
+    private readonly IEcPublicKeyConverter _ecPublicKeyConverter = ecPublicKeyConverter ?? throw new ArgumentNullException(nameof(ecPublicKeyConverter));
     private readonly IJwtSigner _jwtSigner = _jwtSigner ?? throw new ArgumentNullException(nameof(_jwtSigner));
 
     /// <summary>
@@ -276,7 +276,7 @@ public class SdJwtIssuer(
             // Per RFC 7800 and SD-JWT spec section 4.3, use proper JWK format
             if (holderPublicKey != null)
             {
-                var jwk = ecPublicKeyConverter.ToJwk(holderPublicKey);
+                var jwk = _ecPublicKeyConverter.ToJwk(holderPublicKey);
                 payload["cnf"] = new Dictionary<string, object>
             {
                 { "jwk", jwk }

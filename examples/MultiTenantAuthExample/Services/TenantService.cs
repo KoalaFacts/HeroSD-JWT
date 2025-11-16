@@ -10,15 +10,15 @@ namespace MultiTenantAuthExample.Services;
 /// </summary>
 public class TenantService : ITenantService
 {
-    private readonly ConcurrentDictionary<string, TenantConfiguration> tenants;
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte[]>> tenantKeys;
-    private readonly ILogger<TenantService> logger;
+    private readonly ConcurrentDictionary<string, TenantConfiguration> _tenants;
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte[]>> _tenantKeys;
+    private readonly ILogger<TenantService> _logger;
 
     public TenantService(IConfiguration configuration, ILogger<TenantService> logger)
     {
-        this.logger = logger;
-        tenants = new ConcurrentDictionary<string, TenantConfiguration>(StringComparer.OrdinalIgnoreCase);
-        tenantKeys = new ConcurrentDictionary<string, ConcurrentDictionary<string, byte[]>>(StringComparer.OrdinalIgnoreCase);
+        _logger = logger;
+        _tenants = new ConcurrentDictionary<string, TenantConfiguration>(StringComparer.OrdinalIgnoreCase);
+        _tenantKeys = new ConcurrentDictionary<string, ConcurrentDictionary<string, byte[]>>(StringComparer.OrdinalIgnoreCase);
 
         LoadTenantsFromConfiguration(configuration);
     }
@@ -30,7 +30,7 @@ public class TenantService : ITenantService
 
         if (tenantList == null || tenantList.Count == 0)
         {
-            logger.LogWarning("No tenants configured. Service will operate without tenant data.");
+            _logger.LogWarning("No tenants configured. Service will operate without tenant data.");
             return;
         }
 
@@ -38,11 +38,11 @@ public class TenantService : ITenantService
         {
             if (string.IsNullOrWhiteSpace(tenant.TenantId))
             {
-                logger.LogWarning("Skipping tenant with empty TenantId");
+                _logger.LogWarning("Skipping tenant with empty TenantId");
                 continue;
             }
 
-            tenants[tenant.TenantId] = tenant;
+            _tenants[tenant.TenantId] = tenant;
 
             // Decode and cache signing keys
             var keyCache = new ConcurrentDictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
@@ -52,21 +52,21 @@ public class TenantService : ITenantService
                 {
                     var keyBytes = Convert.FromBase64String(base64Key);
                     keyCache[keyId] = keyBytes;
-                    logger.LogInformation(
+                    _logger.LogInformation(
                         "Loaded key {KeyId} for tenant {TenantId} ({KeySize} bytes)",
                         keyId, tenant.TenantId, keyBytes.Length);
                 }
                 catch (FormatException ex)
                 {
-                    logger.LogError(ex,
+                    _logger.LogError(ex,
                         "Failed to decode signing key {KeyId} for tenant {TenantId}",
                         keyId, tenant.TenantId);
                 }
             }
 
-            tenantKeys[tenant.TenantId] = keyCache;
+            _tenantKeys[tenant.TenantId] = keyCache;
 
-            logger.LogInformation(
+            _logger.LogInformation(
                 "Registered tenant: {TenantId} ({TenantName}) with {KeyCount} key(s), current key: {CurrentKeyId}",
                 tenant.TenantId, tenant.TenantName, keyCache.Count, tenant.CurrentKeyId);
         }
@@ -74,13 +74,13 @@ public class TenantService : ITenantService
 
     public TenantConfiguration? GetTenant(string tenantId)
     {
-        tenants.TryGetValue(tenantId, out var tenant);
+        _tenants.TryGetValue(tenantId, out var tenant);
         return tenant;
     }
 
     public IEnumerable<TenantConfiguration> GetAllTenants()
     {
-        return tenants.Values.Where(t => t.IsActive);
+        return _tenants.Values.Where(t => t.IsActive);
     }
 
     public byte[]? GetCurrentSigningKey(string tenantId)
@@ -88,7 +88,7 @@ public class TenantService : ITenantService
         var tenant = GetTenant(tenantId);
         if (tenant == null || !tenant.IsActive)
         {
-            logger.LogWarning("Attempted to get signing key for invalid/inactive tenant: {TenantId}", tenantId);
+            _logger.LogWarning("Attempted to get signing key for invalid/inactive tenant: {TenantId}", tenantId);
             return null;
         }
 
@@ -97,15 +97,15 @@ public class TenantService : ITenantService
 
     public byte[]? GetSigningKey(string tenantId, string keyId)
     {
-        if (!tenantKeys.TryGetValue(tenantId, out var keys))
+        if (!_tenantKeys.TryGetValue(tenantId, out var keys))
         {
-            logger.LogWarning("No keys found for tenant: {TenantId}", tenantId);
+            _logger.LogWarning("No keys found for tenant: {TenantId}", tenantId);
             return null;
         }
 
         if (!keys.TryGetValue(keyId, out var keyBytes))
         {
-            logger.LogWarning("Key {KeyId} not found for tenant {TenantId}", keyId, tenantId);
+            _logger.LogWarning("Key {KeyId} not found for tenant {TenantId}", keyId, tenantId);
             return null;
         }
 
@@ -119,14 +119,14 @@ public class TenantService : ITenantService
         {
             if (string.IsNullOrEmpty(keyId))
             {
-                logger.LogDebug("Key resolver called with null keyId for tenant {TenantId}, using current key", tenantId);
+                _logger.LogDebug("Key resolver called with null keyId for tenant {TenantId}, using current key", tenantId);
                 return GetCurrentSigningKey(tenantId);
             }
 
             var key = GetSigningKey(tenantId, keyId);
             if (key == null)
             {
-                logger.LogWarning(
+                _logger.LogWarning(
                     "Key resolver failed to find key {KeyId} for tenant {TenantId}",
                     keyId, tenantId);
             }

@@ -234,13 +234,13 @@ public class SdJwtVerifier : ISdJwtVerifier
         var errors = new List<ErrorCode>();
         var errorDetails = new List<string>();
 
-            // Validate presentation size to prevent DoS attacks
-            if (presentation.Length > Constants.MAX_JWT_SIZE_BYTES)
-            {
-                errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add($"Presentation exceeds maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes");
-                return new VerificationResult(errors, string.Join("; ", errorDetails));
-            }
+        // Validate presentation size to prevent DoS attacks
+        if (presentation.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            errors.Add(ErrorCode.InvalidInput);
+            errorDetails.Add($"Presentation exceeds maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes");
+            return new VerificationResult(errors, string.Join("; ", errorDetails));
+        }
 
         // Parse presentation into parts: JWT~disclosure1~disclosure2~...~keyBinding
         var parts = presentation.Split('~');

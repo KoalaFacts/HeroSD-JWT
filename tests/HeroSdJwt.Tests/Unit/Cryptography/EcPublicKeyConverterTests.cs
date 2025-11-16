@@ -12,9 +12,9 @@ namespace HeroSdJwt.Tests.Unit.Cryptography;
 public class EcPublicKeyConverterTests
 {
     private readonly EcPublicKeyConverter _converter;
-    private readonly byte[] validP256PublicKey;
-    private readonly Dictionary<string, object> validJwkDict;
-    private readonly JsonElement validJwkElement;
+    private readonly byte[] _validP256PublicKey;
+    private readonly Dictionary<string, object> _validJwkDict;
+    private readonly JsonElement _validJwkElement;
 
     public EcPublicKeyConverterTests()
     {
@@ -22,15 +22,15 @@ public class EcPublicKeyConverterTests
 
         // Create a valid P-256 public key for testing
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        validP256PublicKey = ecdsa.ExportSubjectPublicKeyInfo();
+        _validP256PublicKey = ecdsa.ExportSubjectPublicKeyInfo();
 
         // Create a valid JWK dictionary from the key
-        var jwk = _converter.ToJwk(validP256PublicKey);
-        validJwkDict = jwk;
+        var jwk = _converter.ToJwk(_validP256PublicKey);
+        _validJwkDict = jwk;
 
         // Create JsonElement version
         var json = JsonSerializer.Serialize(jwk);
-        validJwkElement = JsonDocument.Parse(json).RootElement;
+        _validJwkElement = JsonDocument.Parse(json).RootElement;
     }
 
     #region ToJwk Tests
@@ -39,7 +39,7 @@ public class EcPublicKeyConverterTests
     public void ToJwk_WithValidP256Key_ReturnsCorrectJwkStructure()
     {
         // Act
-        var jwk = _converter.ToJwk(validP256PublicKey);
+        var jwk = _converter.ToJwk(_validP256PublicKey);
 
         // Assert
         Assert.NotNull(jwk);
@@ -53,7 +53,7 @@ public class EcPublicKeyConverterTests
     public void ToJwk_WithValidP256Key_XAndYAreBase64UrlEncoded()
     {
         // Act
-        var jwk = _converter.ToJwk(validP256PublicKey);
+        var jwk = _converter.ToJwk(_validP256PublicKey);
 
         // Assert
         var x = jwk["x"] as string;
@@ -75,7 +75,7 @@ public class EcPublicKeyConverterTests
     public void ToJwk_WithValidP256Key_CoordinatesAre32Bytes()
     {
         // Act
-        var jwk = _converter.ToJwk(validP256PublicKey);
+        var jwk = _converter.ToJwk(_validP256PublicKey);
 
         // Assert - P-256 uses 32-byte coordinates
         var x = Base64UrlEncoder.DecodeBytes(jwk["x"] as string ?? "");
@@ -121,7 +121,7 @@ public class EcPublicKeyConverterTests
     public void ToJwk_RoundTrip_ProducesEquivalentKey()
     {
         // Act - Convert to JWK and back
-        var jwk = _converter.ToJwk(validP256PublicKey);
+        var jwk = _converter.ToJwk(_validP256PublicKey);
         var jsonElement = JsonSerializer.SerializeToElement(jwk);
         var reconstructedKey = _converter.FromJwk(jsonElement);
 
@@ -129,7 +129,7 @@ public class EcPublicKeyConverterTests
         using var original = ECDsa.Create();
         using var reconstructed = ECDsa.Create();
 
-        original.ImportSubjectPublicKeyInfo(validP256PublicKey, out _);
+        original.ImportSubjectPublicKeyInfo(_validP256PublicKey, out _);
         reconstructed.ImportSubjectPublicKeyInfo(reconstructedKey, out _);
 
         var originalParams = original.ExportParameters(false);
@@ -147,7 +147,7 @@ public class EcPublicKeyConverterTests
     public void FromJwk_WithValidJwk_ReturnsPublicKey()
     {
         // Act
-        var publicKey = _converter.FromJwk(validJwkElement);
+        var publicKey = _converter.FromJwk(_validJwkElement);
 
         // Assert
         Assert.NotNull(publicKey);
@@ -305,7 +305,7 @@ public class EcPublicKeyConverterTests
     public void FromJwkObject_WithJsonElement_CallsFromJwk()
     {
         // Act
-        var publicKey = _converter.FromJwkObject(validJwkElement);
+        var publicKey = _converter.FromJwkObject(_validJwkElement);
 
         // Assert
         Assert.NotNull(publicKey);
@@ -316,7 +316,7 @@ public class EcPublicKeyConverterTests
     public void FromJwkObject_WithDictionary_CallsFromJwkDictionary()
     {
         // Act
-        var publicKey = _converter.FromJwkObject(validJwkDict);
+        var publicKey = _converter.FromJwkObject(_validJwkDict);
 
         // Assert
         Assert.NotNull(publicKey);
@@ -338,8 +338,8 @@ public class EcPublicKeyConverterTests
         var dict = new Dictionary<string, object>
         {
             ["crv"] = "P-256",
-            ["x"] = validJwkDict["x"],
-            ["y"] = validJwkDict["y"]
+            ["x"] = _validJwkDict["x"],
+            ["y"] = _validJwkDict["y"]
         };
 
         // Act & Assert
@@ -355,8 +355,8 @@ public class EcPublicKeyConverterTests
         {
             ["kty"] = "RSA",
             ["crv"] = "P-256",
-            ["x"] = validJwkDict["x"],
-            ["y"] = validJwkDict["y"]
+            ["x"] = _validJwkDict["x"],
+            ["y"] = _validJwkDict["y"]
         };
 
         // Act & Assert
@@ -371,8 +371,8 @@ public class EcPublicKeyConverterTests
         var dict = new Dictionary<string, object>
         {
             ["kty"] = "EC",
-            ["x"] = validJwkDict["x"],
-            ["y"] = validJwkDict["y"]
+            ["x"] = _validJwkDict["x"],
+            ["y"] = _validJwkDict["y"]
         };
 
         // Act & Assert
@@ -388,8 +388,8 @@ public class EcPublicKeyConverterTests
         {
             ["kty"] = "EC",
             ["crv"] = "P-384",
-            ["x"] = validJwkDict["x"],
-            ["y"] = validJwkDict["y"]
+            ["x"] = _validJwkDict["x"],
+            ["y"] = _validJwkDict["y"]
         };
 
         // Act & Assert
@@ -405,7 +405,7 @@ public class EcPublicKeyConverterTests
         {
             ["kty"] = "EC",
             ["crv"] = "P-256",
-            ["y"] = validJwkDict["y"]
+            ["y"] = _validJwkDict["y"]
         };
 
         // Act & Assert
@@ -422,7 +422,7 @@ public class EcPublicKeyConverterTests
             ["kty"] = "EC",
             ["crv"] = "P-256",
             ["x"] = 123,
-            ["y"] = validJwkDict["y"]
+            ["y"] = _validJwkDict["y"]
         };
 
         // Act & Assert
@@ -438,7 +438,7 @@ public class EcPublicKeyConverterTests
         {
             ["kty"] = "EC",
             ["crv"] = "P-256",
-            ["x"] = validJwkDict["x"]
+            ["x"] = _validJwkDict["x"]
         };
 
         // Act & Assert
@@ -454,7 +454,7 @@ public class EcPublicKeyConverterTests
         {
             ["kty"] = "EC",
             ["crv"] = "P-256",
-            ["x"] = validJwkDict["x"],
+            ["x"] = _validJwkDict["x"],
             ["y"] = 123
         };
 
@@ -472,7 +472,7 @@ public class EcPublicKeyConverterTests
             ["kty"] = "EC",
             ["crv"] = "P-256",
             ["x"] = "invalid+base64/with=padding",
-            ["y"] = validJwkDict["y"]
+            ["y"] = _validJwkDict["y"]
         };
 
         // Act & Assert

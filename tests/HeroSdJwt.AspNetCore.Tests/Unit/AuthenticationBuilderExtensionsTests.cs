@@ -29,10 +29,10 @@ public class AuthenticationBuilderExtensionsTests
 
         // Assert - Authentication handler should be registered
         var schemeProvider = serviceProvider.GetRequiredService<IAuthenticationSchemeProvider>();
-        var scheme = await schemeProvider.GetSchemeAsync(SdJwtAuthenticationDefaults.AuthenticationScheme);
+        var scheme = await schemeProvider.GetSchemeAsync(SdJwtAuthenticationDefaults.AUTHENTICATION_SCHEME);
 
         Assert.NotNull(scheme);
-        Assert.Equal(SdJwtAuthenticationDefaults.AuthenticationScheme, scheme.Name);
+        Assert.Equal(SdJwtAuthenticationDefaults.AUTHENTICATION_SCHEME, scheme.Name);
         Assert.Equal(typeof(SdJwtAuthenticationHandler), scheme.HandlerType);
     }
 
@@ -72,7 +72,7 @@ public class AuthenticationBuilderExtensionsTests
         var schemeProvider = serviceProvider.GetRequiredService<IAuthenticationSchemeProvider>();
 
         // Assert
-        var scheme = await schemeProvider.GetSchemeAsync(SdJwtAuthenticationDefaults.AuthenticationScheme);
+        var scheme = await schemeProvider.GetSchemeAsync(SdJwtAuthenticationDefaults.AUTHENTICATION_SCHEME);
         Assert.NotNull(scheme);
         Assert.Equal("SdJwt", scheme?.Name);
     }
@@ -123,7 +123,7 @@ public class AuthenticationBuilderExtensionsTests
         var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<SdJwtAuthenticationOptions>>();
 
         // Assert
-        var options = optionsMonitor.Get(SdJwtAuthenticationDefaults.AuthenticationScheme);
+        var options = optionsMonitor.Get(SdJwtAuthenticationDefaults.AUTHENTICATION_SCHEME);
         Assert.Same(testKey, options.FallbackKey);
         Assert.Equal(TimeSpan.FromMinutes(3), options.VerificationOptions.ClockSkew);
         Assert.True(options.VerificationOptions.RequireKeyBinding);
@@ -143,7 +143,7 @@ public class AuthenticationBuilderExtensionsTests
         var schemeProvider = serviceProvider.GetRequiredService<IAuthenticationSchemeProvider>();
 
         // Assert - Should register even without configuration
-        var scheme = await schemeProvider.GetSchemeAsync(SdJwtAuthenticationDefaults.AuthenticationScheme);
+        var scheme = await schemeProvider.GetSchemeAsync(SdJwtAuthenticationDefaults.AUTHENTICATION_SCHEME);
         Assert.NotNull(scheme);
     }
 

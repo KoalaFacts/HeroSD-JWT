@@ -13,19 +13,19 @@ namespace HeroSdJwt.Benchmarks;
 [SimpleJob(launchCount: 1, warmupCount: 3, iterationCount: 10)]
 public class PresentationBenchmarks
 {
-    private byte[] hmacKey = null!;
-    private SdJwt sdJwt = null!;
-    private ECDsa holderKey = null!;
-    private string keyBindingJwt = null!;
-    private string sdJwtHash = null!;
+    private byte[] _hmacKey = null!;
+    private SdJwt _sdJwt = null!;
+    private ECDsa _holderKey = null!;
+    private string _keyBindingJwt = null!;
+    private string _sdJwtHash = null!;
 
     [GlobalSetup]
     public void Setup()
     {
         // Generate keys
-        hmacKey = new byte[32];
-        RandomNumberGenerator.Fill(hmacKey);
-        holderKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        _hmacKey = new byte[32];
+        RandomNumberGenerator.Fill(_hmacKey);
+        _holderKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
 
         // Generate SD-JWT with many selectable claims
         var claims = new Dictionary<string, object>
@@ -46,24 +46,24 @@ public class PresentationBenchmarks
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
             .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
 
-        sdJwt = builder.SignWithHmac(hmacKey).Build();
+        _sdJwt = builder.SignWithHmac(_hmacKey).Build();
 
         // Pre-generate key binding JWT for benchmarking
-        var presentation = sdJwt.ToPresentation("claim_0");
+        var presentation = _sdJwt.ToPresentation("claim_0");
         // Calculate SD-JWT hash (SHA-256 of ASCII presentation)
         using var sha256 = SHA256.Create();
         var hashBytes = sha256.ComputeHash(System.Text.Encoding.ASCII.GetBytes(presentation));
         // Base64Url encode (base64 with URL-safe characters and no padding)
-        sdJwtHash = Convert.ToBase64String(hashBytes)
+        _sdJwtHash = Convert.ToBase64String(hashBytes)
             .Replace('+', '-')
             .Replace('/', '_')
             .TrimEnd('=');
 
         var kbGenerator = new KeyBindingGenerator();
-        var holderPrivateKeyBytes = holderKey.ExportECPrivateKey();
-        keyBindingJwt = kbGenerator.CreateKeyBindingJwt(
+        var holderPrivateKeyBytes = _holderKey.ExportECPrivateKey();
+        _keyBindingJwt = kbGenerator.CreateKeyBindingJwt(
             holderPrivateKeyBytes,
-            sdJwtHash,
+            _sdJwtHash,
             "https://verifier.example.com",
             "nonce-123");
     }
@@ -71,14 +71,14 @@ public class PresentationBenchmarks
     [GlobalCleanup]
     public void Cleanup()
     {
-        holderKey.Dispose();
+        _holderKey.Dispose();
     }
 
     [Benchmark]
     public string CreatePresentationFewClaims()
     {
         // Disclose only 5 claims
-        return sdJwt.ToPresentation("claim_0", "claim_1", "claim_2", "claim_3", "claim_4");
+        return _sdJwt.ToPresentation("claim_0", "claim_1", "claim_2", "claim_3", "claim_4");
     }
 
     [Benchmark]
@@ -86,22 +86,22 @@ public class PresentationBenchmarks
     {
         // Disclose 25 claims
         var claimsToDisclose = Enumerable.Range(0, 25).Select(i => $"claim_{i}").ToArray();
-        return sdJwt.ToPresentation(claimsToDisclose);
+        return _sdJwt.ToPresentation(claimsToDisclose);
     }
 
     [Benchmark]
     public string CreatePresentationAllClaims()
     {
         // Disclose all 50 claims
-        return sdJwt.ToPresentationWithAllClaims();
+        return _sdJwt.ToPresentationWithAllClaims();
     }
 
     [Benchmark]
     public string CreatePresentationWithKeyBinding()
     {
         // Disclose 5 claims with key binding
-        return sdJwt.ToPresentationWithKeyBinding(
-            keyBindingJwt,
+        return _sdJwt.ToPresentationWithKeyBinding(
+            _keyBindingJwt,
             "claim_0", "claim_1", "claim_2", "claim_3", "claim_4");
     }
 }

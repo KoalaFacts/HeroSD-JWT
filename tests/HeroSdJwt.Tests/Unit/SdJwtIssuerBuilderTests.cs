@@ -10,13 +10,13 @@ namespace HeroSdJwt.Tests.Unit;
 /// </summary>
 public class SdJwtIssuerBuilderTests
 {
-    private readonly IKeyGenerator keyGenerator = KeyGenerator.Instance;
+    private readonly IKeyGenerator _keyGenerator = KeyGenerator.Instance;
 
     [Fact]
     public void Build_WithMinimalConfig_CreatesValidSdJwt()
     {
         // Arrange
-        var key = keyGenerator.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -40,7 +40,7 @@ public class SdJwtIssuerBuilderTests
     public void Build_WithIndividualClaims_CreatesValidSdJwt()
     {
         // Arrange
-        var key = keyGenerator.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
 
         // Act
         var sdJwt = SdJwtIssuerBuilder.Create()
@@ -60,7 +60,7 @@ public class SdJwtIssuerBuilderTests
     public void Build_WithRsaSignature_CreatesValidSdJwt()
     {
         // Arrange
-        var (privateKey, _) = keyGenerator.GenerateRsaKeyPair();
+        var (privateKey, _) = _keyGenerator.GenerateRsaKeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
@@ -78,7 +78,7 @@ public class SdJwtIssuerBuilderTests
     public void Build_WithEcdsaSignature_CreatesValidSdJwt()
     {
         // Arrange
-        var (privateKey, _) = keyGenerator.GenerateEcdsaKeyPair();
+        var (privateKey, _) = _keyGenerator.GenerateEcdsaKeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
@@ -96,7 +96,7 @@ public class SdJwtIssuerBuilderTests
     public void Build_WithEd25519Signature_CreatesValidSdJwt()
     {
         // Arrange
-        var (privateKey, _) = keyGenerator.GenerateEd25519KeyPair();
+        var (privateKey, _) = _keyGenerator.GenerateEd25519KeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
@@ -114,8 +114,8 @@ public class SdJwtIssuerBuilderTests
     public void Build_WithKeyBinding_IncludesCnfClaim()
     {
         // Arrange
-        var issuerKey = keyGenerator.GenerateHmacKey();
-        var (_, holderPublicKey) = keyGenerator.GenerateEcdsaKeyPair();
+        var issuerKey = _keyGenerator.GenerateHmacKey();
+        var (_, holderPublicKey) = _keyGenerator.GenerateEcdsaKeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act
@@ -135,7 +135,7 @@ public class SdJwtIssuerBuilderTests
     public void Build_WithDecoys_CreatesExtraDigests()
     {
         // Arrange
-        var key = keyGenerator.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -160,7 +160,7 @@ public class SdJwtIssuerBuilderTests
     public void Build_WithoutClaims_ThrowsInvalidOperationException()
     {
         // Arrange
-        var key = keyGenerator.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
 
         // Act & Assert
         var exception = Assert.Throws<InvalidOperationException>(() =>
@@ -198,7 +198,7 @@ public class SdJwtIssuerBuilderTests
     public void Build_WithCustomHashAlgorithm_UsesSha512()
     {
         // Arrange
-        var key = keyGenerator.GenerateHmacKey();
+        var key = _keyGenerator.GenerateHmacKey();
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
@@ -225,8 +225,8 @@ public class SdJwtIssuerBuilderTests
     public void FluentAPI_CanChainAllMethods()
     {
         // Arrange
-        var key = keyGenerator.GenerateHmacKey();
-        var (_, holderPublicKey) = keyGenerator.GenerateEcdsaKeyPair();
+        var key = _keyGenerator.GenerateHmacKey();
+        var (_, holderPublicKey) = _keyGenerator.GenerateEcdsaKeyPair();
 
         // Act - Chain all methods to verify fluent interface
         var sdJwt = SdJwtIssuerBuilder.Create()
@@ -251,8 +251,8 @@ public class SdJwtIssuerBuilderTests
     public void SignWith_MultipleCallsOverridePrevious()
     {
         // Arrange
-        var hmacKey = keyGenerator.GenerateHmacKey();
-        var (rsaKey, _) = keyGenerator.GenerateRsaKeyPair();
+        var hmacKey = _keyGenerator.GenerateHmacKey();
+        var (rsaKey, _) = _keyGenerator.GenerateRsaKeyPair();
         var claims = new Dictionary<string, object> { ["sub"] = "user123" };
 
         // Act - Call SignWithHmac then SignWithRsa (last one should win)

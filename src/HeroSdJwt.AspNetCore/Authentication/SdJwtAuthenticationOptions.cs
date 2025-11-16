@@ -40,7 +40,7 @@ public class SdJwtAuthenticationOptions : AuthenticationSchemeOptions
     /// Default is "Bearer".
     /// The authentication handler will look for tokens in the format: "Bearer {token}".
     /// </summary>
-    public string TokenScheme { get; set; } = SdJwtAuthenticationDefaults.BearerScheme;
+    public string TokenScheme { get; set; } = SdJwtAuthenticationDefaults.BEARER_SCHEME;
 
     /// <summary>
     /// Gets or sets whether to save the verified SD-JWT token in the AuthenticationProperties.

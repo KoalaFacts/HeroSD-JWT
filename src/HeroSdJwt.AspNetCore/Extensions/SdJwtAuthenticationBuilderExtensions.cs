@@ -37,7 +37,7 @@ public static class SdJwtAuthenticationBuilderExtensions
     /// </example>
     public static AuthenticationBuilder AddSdJwt(
         this AuthenticationBuilder builder)
-        => builder.AddSdJwt(SdJwtAuthenticationDefaults.AuthenticationScheme);
+        => builder.AddSdJwt(SdJwtAuthenticationDefaults.AUTHENTICATION_SCHEME);
 
     /// <summary>
     /// Adds SD-JWT authentication to the authentication builder with a specific scheme name.
@@ -70,7 +70,7 @@ public static class SdJwtAuthenticationBuilderExtensions
     public static AuthenticationBuilder AddSdJwt(
         this AuthenticationBuilder builder,
         Action<SdJwtAuthenticationOptions>? configureOptions)
-        => builder.AddSdJwt(SdJwtAuthenticationDefaults.AuthenticationScheme, configureOptions);
+        => builder.AddSdJwt(SdJwtAuthenticationDefaults.AUTHENTICATION_SCHEME, configureOptions);
 
     /// <summary>
     /// Adds SD-JWT authentication to the authentication builder with a custom scheme name and configuration.
@@ -100,7 +100,7 @@ public static class SdJwtAuthenticationBuilderExtensions
         this AuthenticationBuilder builder,
         string authenticationScheme,
         Action<SdJwtAuthenticationOptions>? configureOptions)
-        => builder.AddSdJwt(authenticationScheme, SdJwtAuthenticationDefaults.DisplayName, configureOptions);
+        => builder.AddSdJwt(authenticationScheme, SdJwtAuthenticationDefaults.DISPLAY_NAME, configureOptions);
 
     /// <summary>
     /// Adds SD-JWT authentication to the authentication builder with full customization.

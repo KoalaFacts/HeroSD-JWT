@@ -11,7 +11,7 @@ namespace HeroSdJwt.Tests.Unit.Presentation;
 public class SdJwtPresenterTests
 {
     private readonly SdJwtPresenter _presenter;
-    private readonly SdJwt testSdJwt;
+    private readonly SdJwt _testSdJwt;
 
     public SdJwtPresenterTests()
     {
@@ -39,7 +39,7 @@ public class SdJwtPresenterTests
             }
         };
 
-        testSdJwt = issuer.CreateSdJwt(
+        _testSdJwt = issuer.CreateSdJwt(
             claims,
             new[] { "email", "age", "address", "address.geo", "address.geo.lat" },
             hmacKey,
@@ -88,7 +88,7 @@ public class SdJwtPresenterTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _presenter.CreatePresentation(testSdJwt, null!));
+            _presenter.CreatePresentation(_testSdJwt, null!));
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class SdJwtPresenterTests
     {
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _presenter.CreatePresentation(testSdJwt, new[] { "nonexistent" }));
+            _presenter.CreatePresentation(_testSdJwt, new[] { "nonexistent" }));
 
         Assert.Contains("Claim path 'nonexistent' not found", exception.Message);
         Assert.Contains("Available paths:", exception.Message);
@@ -106,7 +106,7 @@ public class SdJwtPresenterTests
     public void CreatePresentation_WithEmptyClaimsList_CreatesEmptyPresentation()
     {
         // Act
-        var presentation = _presenter.CreatePresentation(testSdJwt, Array.Empty<string>());
+        var presentation = _presenter.CreatePresentation(_testSdJwt, Array.Empty<string>());
 
         // Assert
         Assert.NotNull(presentation);
@@ -124,7 +124,7 @@ public class SdJwtPresenterTests
         var selectedClaims = new[] { "email", "age" };
 
         // Act
-        var presentation = _presenter.CreatePresentation(testSdJwt, selectedClaims);
+        var presentation = _presenter.CreatePresentation(_testSdJwt, selectedClaims);
 
         // Assert
         Assert.NotNull(presentation);
@@ -138,7 +138,7 @@ public class SdJwtPresenterTests
         var selectedClaims = new[] { "email" };
 
         // Act
-        var presentation = _presenter.CreatePresentation(testSdJwt, selectedClaims);
+        var presentation = _presenter.CreatePresentation(_testSdJwt, selectedClaims);
 
         // Assert
         Assert.NotNull(presentation);
@@ -157,7 +157,7 @@ public class SdJwtPresenterTests
 
         // Act
         var presentation = _presenter.CreatePresentation(
-            testSdJwt,
+            _testSdJwt,
             new[] { "email" },
             customKeyBinding);
 
@@ -172,10 +172,10 @@ public class SdJwtPresenterTests
         var selectedClaims = new[] { "email" };
 
         // Act
-        var presentation = _presenter.CreatePresentation(testSdJwt, selectedClaims);
+        var presentation = _presenter.CreatePresentation(_testSdJwt, selectedClaims);
 
         // Assert - Should use key binding from SD-JWT (or null if not present)
-        Assert.Equal(testSdJwt.KeyBindingJwt, presentation.KeyBindingJwt);
+        Assert.Equal(_testSdJwt.KeyBindingJwt, presentation.KeyBindingJwt);
     }
 
     #endregion
@@ -186,10 +186,10 @@ public class SdJwtPresenterTests
     public void CreatePresentationWithAllClaims_ReturnsAllDisclosures()
     {
         // Act
-        var presentation = _presenter.CreatePresentationWithAllClaims(testSdJwt);
+        var presentation = _presenter.CreatePresentationWithAllClaims(_testSdJwt);
 
         // Assert
-        Assert.Equal(testSdJwt.Disclosures.Count, presentation.SelectedDisclosures.Count);
+        Assert.Equal(_testSdJwt.Disclosures.Count, presentation.SelectedDisclosures.Count);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class SdJwtPresenterTests
         var customKeyBinding = "custom.kb.jwt";
 
         // Act
-        var presentation = _presenter.CreatePresentationWithAllClaims(testSdJwt, customKeyBinding);
+        var presentation = _presenter.CreatePresentationWithAllClaims(_testSdJwt, customKeyBinding);
 
         // Assert
         Assert.Equal(customKeyBinding, presentation.KeyBindingJwt);
@@ -217,10 +217,10 @@ public class SdJwtPresenterTests
     public void CreatePresentationWithAllClaims_WithoutKeyBinding_UsesDefaultFromSdJwt()
     {
         // Act
-        var presentation = _presenter.CreatePresentationWithAllClaims(testSdJwt);
+        var presentation = _presenter.CreatePresentationWithAllClaims(_testSdJwt);
 
         // Assert
-        Assert.Equal(testSdJwt.KeyBindingJwt, presentation.KeyBindingJwt);
+        Assert.Equal(_testSdJwt.KeyBindingJwt, presentation.KeyBindingJwt);
     }
 
     #endregion
@@ -231,21 +231,21 @@ public class SdJwtPresenterTests
     public void FormatPresentation_WithDisclosures_ReturnsTildeSeparatedFormat()
     {
         // Arrange
-        var presentation = _presenter.CreatePresentation(testSdJwt, new[] { "email" });
+        var presentation = _presenter.CreatePresentation(_testSdJwt, new[] { "email" });
 
         // Act
         var formatted = _presenter.FormatPresentation(presentation);
 
         // Assert
         Assert.Contains("~", formatted);
-        Assert.StartsWith(testSdJwt.Jwt, formatted);
+        Assert.StartsWith(_testSdJwt.Jwt, formatted);
     }
 
     [Fact]
     public void FormatPresentation_WithNoDisclosures_IncludesEmptySlot()
     {
         // Arrange
-        var presentation = _presenter.CreatePresentation(testSdJwt, Array.Empty<string>());
+        var presentation = _presenter.CreatePresentation(_testSdJwt, Array.Empty<string>());
 
         // Act
         var formatted = _presenter.FormatPresentation(presentation);
@@ -267,7 +267,7 @@ public class SdJwtPresenterTests
     {
         // Arrange
         var keyBinding = "test.key.binding";
-        var presentation = _presenter.CreatePresentation(testSdJwt, new[] { "email" }, keyBinding);
+        var presentation = _presenter.CreatePresentation(_testSdJwt, new[] { "email" }, keyBinding);
 
         // Act
         var formatted = _presenter.FormatPresentation(presentation);
@@ -280,7 +280,7 @@ public class SdJwtPresenterTests
     public void FormatPresentation_WithoutKeyBinding_EndsWithEmptyString()
     {
         // Arrange
-        var presentation = _presenter.CreatePresentation(testSdJwt, new[] { "email" });
+        var presentation = _presenter.CreatePresentation(_testSdJwt, new[] { "email" });
 
         // Act
         var formatted = _presenter.FormatPresentation(presentation);
@@ -300,8 +300,8 @@ public class SdJwtPresenterTests
         var selectedClaims = new[] { "age", "email" };
 
         // Act
-        var presentation1 = _presenter.CreatePresentation(testSdJwt, selectedClaims);
-        var presentation2 = _presenter.CreatePresentation(testSdJwt, selectedClaims);
+        var presentation1 = _presenter.CreatePresentation(_testSdJwt, selectedClaims);
+        var presentation2 = _presenter.CreatePresentation(_testSdJwt, selectedClaims);
 
         // Assert - Both presentations should have same disclosure order
         Assert.Equal(presentation1.SelectedDisclosures.Count, presentation2.SelectedDisclosures.Count);
@@ -315,7 +315,7 @@ public class SdJwtPresenterTests
     public void FormatPresentation_RoundTrip_ProducesConsistentOutput()
     {
         // Arrange
-        var presentation = _presenter.CreatePresentation(testSdJwt, new[] { "email", "age" });
+        var presentation = _presenter.CreatePresentation(_testSdJwt, new[] { "email", "age" });
 
         // Act
         var formatted1 = _presenter.FormatPresentation(presentation);
