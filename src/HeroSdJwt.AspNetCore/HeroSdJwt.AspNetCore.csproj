@@ -50,11 +50,6 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
-  <!-- Source Link for debugging support -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-  </ItemGroup>
-
   <!-- Include icon in NuGet package -->
   <ItemGroup>
     <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
