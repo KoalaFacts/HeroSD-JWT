@@ -3,6 +3,7 @@ using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Verification;
 using HeroSdJwt.Verification.Revocation;
+using HeroSdJwt.Primitives;
 
 namespace HeroSdJwt.Tests;
 
@@ -18,7 +19,7 @@ internal static class TestHelpers
     public static SdJwtVerifier CreateVerifier(SdJwtVerificationOptions? options = null)
     {
         return new SdJwtVerifier(
-            options ?? new SdJwtVerificationOptions(),
+            options ?? new SdJwtVerificationOptions { ExpectedKeyType = VerificationKeyType.Either },
             new EcPublicKeyConverter(),
             new SignatureValidator(),
             new DigestValidator(),
@@ -34,7 +35,7 @@ internal static class TestHelpers
         IRevocationStore? revocationStore = null)
     {
         return new SdJwtVerifier(
-            options ?? new SdJwtVerificationOptions(),
+            options ?? new SdJwtVerificationOptions { ExpectedKeyType = VerificationKeyType.Either },
             new EcPublicKeyConverter(),
             new SignatureValidator(),
             new DigestValidator(),

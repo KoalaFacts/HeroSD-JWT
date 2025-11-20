@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+- Align ECDSA handling with JWS spec: ES256/384/512 signatures are emitted as JOSE raw R||S and verifiers accept JOSE format.
+- Signature verification hardening: Algorithm/key-type guardrails with default `ExpectedKeyType` tightened to `Asymmetric` (set to `Symmetric` for HS*).
+
 ## [1.1.7] - 2025-11-20
 
 See [GitHub Release](https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.1.7) for details.

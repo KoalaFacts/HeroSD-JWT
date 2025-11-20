@@ -118,7 +118,8 @@ public class KeyBindingEndToEndTests
         {
             RequireKeyBinding = true,
             ExpectedAudience = audience,
-            ExpectedNonce = nonce
+            ExpectedNonce = nonce,
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
         var verifier = TestHelpers.CreateVerifier(verificationOptions);
 
@@ -179,7 +180,8 @@ public class KeyBindingEndToEndTests
         {
             RequireKeyBinding = true,
             ExpectedAudience = "https://verifier.example.com",  // Expected audience
-            ExpectedNonce = "nonce123"
+            ExpectedNonce = "nonce123",
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
         var verifier = TestHelpers.CreateVerifier(verificationOptions);
 
@@ -237,7 +239,8 @@ public class KeyBindingEndToEndTests
         {
             RequireKeyBinding = true,
             ExpectedAudience = audience,
-            ExpectedNonce = "expected_nonce"  // Expected nonce
+            ExpectedNonce = "expected_nonce",  // Expected nonce
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
         var verifier = TestHelpers.CreateVerifier(verificationOptions);
 
@@ -301,7 +304,8 @@ public class KeyBindingEndToEndTests
         {
             RequireKeyBinding = true,
             ExpectedAudience = audience,
-            ExpectedNonce = nonce
+            ExpectedNonce = nonce,
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
         var verifier = TestHelpers.CreateVerifier(verificationOptions);
 
@@ -343,7 +347,8 @@ public class KeyBindingEndToEndTests
         {
             RequireKeyBinding = true,  // Key binding required but not provided
             ExpectedAudience = "https://verifier.example.com",
-            ExpectedNonce = "nonce123"
+            ExpectedNonce = "nonce123",
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
         var verifier = TestHelpers.CreateVerifier(verificationOptions);
 
@@ -398,7 +403,8 @@ public class KeyBindingEndToEndTests
         {
             RequireKeyBinding = true,
             ExpectedAudience = "https://verifier.example.com",
-            ExpectedNonce = "nonce123"
+            ExpectedNonce = "nonce123",
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
         var verifier = TestHelpers.CreateVerifier(verificationOptions);
 

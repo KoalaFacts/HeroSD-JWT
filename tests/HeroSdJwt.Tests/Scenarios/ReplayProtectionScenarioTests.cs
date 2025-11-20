@@ -523,8 +523,9 @@ public class ReplayProtectionScenarioTests : IDisposable
         JtiValidator? jtiValidator,
         SdJwtVerificationOptions? options = null)
     {
+        options ??= new SdJwtVerificationOptions { ExpectedKeyType = VerificationKeyType.Either };
         return new SdJwtVerifier(
-            options ?? new SdJwtVerificationOptions(),
+            options,
             new EcPublicKeyConverter(),
             new SignatureValidator(),
             new DigestValidator(),

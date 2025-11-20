@@ -1,5 +1,9 @@
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Presentation;
+using HeroSdJwt.KeyBinding;
+using HeroSdJwt.Verification;
+using HeroSdJwt.Primitives;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -7,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -213,9 +218,21 @@ public class EndToEndAuthenticationTests : IDisposable
                 {
                     services.AddRouting();
                     services.AddSdJwtServices();
+                    services.AddSingleton<ISdJwtVerifier>(_ =>
+                        new SdJwtVerifier(
+                            new SdJwtVerificationOptions { ExpectedKeyType = VerificationKeyType.Symmetric },
+                            new EcPublicKeyConverter(),
+                            new SignatureValidator(),
+                            new DigestValidator(),
+                            new KeyBindingValidator(TimeProvider.System),
+                            new ClaimValidator()));
                     services.AddAuthentication()
                         .AddSdJwt(options =>
                         {
+                            options.VerificationOptions = new SdJwtVerificationOptions
+                            {
+                                ExpectedKeyType = VerificationKeyType.Symmetric
+                            };
                             options.FallbackKey = _testKey;
                         });
                     services.AddAuthorization();

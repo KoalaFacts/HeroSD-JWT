@@ -28,7 +28,10 @@ public class RevocationIntegrationTests
         // Arrange: Create issuer and verifier with revocation enabled
         var key = _keyGen.GenerateHmacKey();
         var revocationStore = new InMemoryRevocationStore();
-        var options = new SdJwtVerificationOptions();
+        var options = new SdJwtVerificationOptions
+        {
+            ExpectedKeyType = VerificationKeyType.Symmetric
+        };
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore);
 
         // Act 1: Issue a token with JTI
@@ -60,7 +63,10 @@ public class RevocationIntegrationTests
         // Arrange
         var key = _keyGen.GenerateHmacKey();
         var revocationStore = new InMemoryRevocationStore();
-        var options = new SdJwtVerificationOptions();
+        var options = new SdJwtVerificationOptions
+        {
+            ExpectedKeyType = VerificationKeyType.Symmetric
+        };
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore);
 
         var jti = "revoked-token-123";
@@ -92,7 +98,10 @@ public class RevocationIntegrationTests
         // Arrange
         var key = _keyGen.GenerateHmacKey();
         var revocationStore = new InMemoryRevocationStore();
-        var options = new SdJwtVerificationOptions();
+        var options = new SdJwtVerificationOptions
+        {
+            ExpectedKeyType = VerificationKeyType.Symmetric
+        };
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore);
 
         // Act 1: Issue multiple tokens with same kid
@@ -138,7 +147,10 @@ public class RevocationIntegrationTests
         // Arrange
         var key = _keyGen.GenerateHmacKey();
         var revocationStore = new InMemoryRevocationStore();
-        var options = new SdJwtVerificationOptions();
+        var options = new SdJwtVerificationOptions
+        {
+            ExpectedKeyType = VerificationKeyType.Symmetric
+        };
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore);
 
         // Act 1: Issue multiple tokens for the same user (different devices)
@@ -180,7 +192,10 @@ public class RevocationIntegrationTests
         // Arrange
         var key = _keyGen.GenerateHmacKey();
         var revocationStore = new InMemoryRevocationStore();
-        var options = new SdJwtVerificationOptions();
+        var options = new SdJwtVerificationOptions
+        {
+            ExpectedKeyType = VerificationKeyType.Symmetric
+        };
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore);
 
         var userId = "charlie@example.com";
@@ -220,7 +235,10 @@ public class RevocationIntegrationTests
     {
         // Arrange: No revocation store provided - revocation checks are skipped
         var key = _keyGen.GenerateHmacKey();
-        var options = new SdJwtVerificationOptions();
+        var options = new SdJwtVerificationOptions
+        {
+            ExpectedKeyType = VerificationKeyType.Symmetric
+        };
         var verifier = TestHelpers.CreateVerifierWithRevocation(options, revocationStore: null);
 
         // Act: Issue token

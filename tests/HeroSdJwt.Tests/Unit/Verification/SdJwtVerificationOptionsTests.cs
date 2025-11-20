@@ -1,4 +1,5 @@
 using HeroSdJwt.Verification;
+using HeroSdJwt.Primitives;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Unit.Verification;
@@ -24,6 +25,7 @@ public class SdJwtVerificationOptionsTests
         Assert.Null(options.ExpectedAudience);
         Assert.Null(options.ExpectedHashAlgorithm);
         Assert.Null(options.ExpectedNonce);
+        Assert.Equal(VerificationKeyType.Asymmetric, options.ExpectedKeyType);
     }
 
     #endregion

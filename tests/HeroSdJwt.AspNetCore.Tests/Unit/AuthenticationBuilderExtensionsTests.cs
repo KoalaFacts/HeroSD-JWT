@@ -1,5 +1,6 @@
 using HeroSdJwt.AspNetCore.Authentication;
 using HeroSdJwt.Verification;
+using HeroSdJwt.Primitives;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -117,7 +118,8 @@ public class AuthenticationBuilderExtensionsTests
                 ClockSkew = TimeSpan.FromMinutes(3), // Within valid range (< 5 minutes)
                 RequireKeyBinding = true,
                 ExpectedAudience = "https://api.example.com",
-                ExpectedNonce = "test-nonce"
+                ExpectedNonce = "test-nonce",
+                ExpectedKeyType = VerificationKeyType.Symmetric
             };
         });
 

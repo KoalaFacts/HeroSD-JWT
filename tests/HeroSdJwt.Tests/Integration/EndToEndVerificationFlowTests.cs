@@ -128,7 +128,11 @@ public class EndToEndVerificationFlowTests
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Act
-        var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) };
+        var options = new SdJwtVerificationOptions
+        {
+            ClockSkew = TimeSpan.FromMinutes(5),
+            ExpectedKeyType = VerificationKeyType.Symmetric
+        };
         var verifier = TestHelpers.CreateVerifier(options);
         var result = verifier.VerifyPresentation(presentationString, signingKey);
 
@@ -343,7 +347,8 @@ public class EndToEndVerificationFlowTests
         // Act
         var options = new SdJwtVerificationOptions
         {
-            ExpectedIssuer = "https://issuer.example.com"
+            ExpectedIssuer = "https://issuer.example.com",
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
         var verifier = TestHelpers.CreateVerifier(options);
         var result = verifier.VerifyPresentation(presentationString, signingKey);
@@ -379,7 +384,8 @@ public class EndToEndVerificationFlowTests
         // Act
         var options = new SdJwtVerificationOptions
         {
-            ExpectedIssuer = "https://wrong-issuer.example.com"
+            ExpectedIssuer = "https://wrong-issuer.example.com",
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
         var verifier = TestHelpers.CreateVerifier(options);
         var result = verifier.TryVerifyPresentation(presentationString, signingKey);

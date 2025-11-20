@@ -31,7 +31,8 @@ public class SdJwtVerifierContractTests
 
         var options = new SdJwtVerificationOptions
         {
-            ClockSkew = TimeSpan.FromMinutes(5)
+            ClockSkew = TimeSpan.FromMinutes(5),
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
         var verifier = TestHelpers.CreateVerifier(options);
 
@@ -120,7 +121,8 @@ public class SdJwtVerifierContractTests
 
         var options = new SdJwtVerificationOptions
         {
-            ClockSkew = TimeSpan.FromMinutes(5) // Not enough to cover 1 hour expiry
+            ClockSkew = TimeSpan.FromMinutes(5), // Not enough to cover 1 hour expiry
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
         var verifier = TestHelpers.CreateVerifier(options);
 
@@ -160,7 +162,8 @@ public class SdJwtVerifierContractTests
 
         var options = new SdJwtVerificationOptions
         {
-            ClockSkew = TimeSpan.FromMinutes(5) // Not enough to cover 1 hour future
+            ClockSkew = TimeSpan.FromMinutes(5), // Not enough to cover 1 hour future
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
         var verifier = TestHelpers.CreateVerifier(options);
 
@@ -203,7 +206,8 @@ public class SdJwtVerifierContractTests
 
         var options = new SdJwtVerificationOptions
         {
-            ClockSkew = TimeSpan.FromMinutes(5)
+            ClockSkew = TimeSpan.FromMinutes(5),
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
         var verifier = TestHelpers.CreateVerifier(options);
 
