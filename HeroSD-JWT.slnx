@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/HeroSdJwt.Benchmarks/HeroSdJwt.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/examples/">
+    <Project Path="examples/AspNetCoreIntegrationExample/AspNetCoreIntegrationExample.csproj" />
+    <Project Path="examples/MultiTenantAuthExample/MultiTenantAuthExample.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HeroSdJwt.AspNetCore.Tests/HeroSdJwt.AspNetCore.Tests.csproj" />
+    <Project Path="tests/HeroSdJwt.Tests/HeroSdJwt.Tests.csproj" />
+  </Folder>
+  <Project Path="src/HeroSdJwt.AspNetCore/HeroSdJwt.AspNetCore.csproj" />
+  <Project Path="src/HeroSdJwt/HeroSdJwt.csproj" />
+</Solution>
