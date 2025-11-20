@@ -54,6 +54,4 @@ runs:
       with:
         dotnet-version: ${{ steps.extract.outputs.versions }}
         cache: ${{ inputs.cache }}
-        cache-dependency-path: |
-          **/packages.lock.json
-          **/*.csproj
+        cache-dependency-path: '**/packages.lock.json'
