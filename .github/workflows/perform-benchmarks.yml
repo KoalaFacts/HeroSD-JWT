@@ -88,7 +88,7 @@ jobs:
           exit 1
         fi
 
-        FILES=$(find "$REPORT_DIR" -maxdepth 1 -name "*-report-full.json" -print)
+        FILES=$(find "$REPORT_DIR" -maxdepth 1 -name "*-report-full*.json" -print)
 
         if [ -z "$FILES" ]; then
           echo "Error: No BenchmarkDotNet JSON reports found in $REPORT_DIR"
