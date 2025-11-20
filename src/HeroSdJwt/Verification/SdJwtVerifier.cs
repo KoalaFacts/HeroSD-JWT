@@ -9,6 +9,8 @@ using HeroSdJwt.Verification.Revocation;
 using HeroSdJwt.Primitives;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Constants = HeroSdJwt.Primitives.Constants;
 using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
@@ -20,7 +22,7 @@ namespace HeroSdJwt.Verification;
 /// Implements security measures including constant-time comparison, algorithm confusion prevention,
 /// and timing attack resistance.
 /// </summary>
-public class SdJwtVerifier : ISdJwtVerifier
+public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
 {
     private readonly SdJwtVerificationOptions _options;
     private readonly IEcPublicKeyConverter _ecPublicKeyConverter;
@@ -90,7 +92,12 @@ public class SdJwtVerifier : ISdJwtVerifier
         ArgumentNullException.ThrowIfNull(presentation);
         ArgumentNullException.ThrowIfNull(publicKey);
 
-        var result = VerifyPresentationInternal(presentation, publicKey, expectedHashAlgorithm);
+        // Synchronous API is retained for compatibility; it bridges to the async pipeline and blocks.
+        var result = VerifyPresentationInternalAsync(
+            presentation,
+            publicKey,
+            expectedHashAlgorithm,
+            CancellationToken.None).GetAwaiter().GetResult();
 
         // Throw exception if verification failed
         // Note: Error details are sanitized to prevent information disclosure
@@ -122,7 +129,12 @@ public class SdJwtVerifier : ISdJwtVerifier
 
         try
         {
-            return VerifyPresentationInternal(presentation, publicKey, expectedHashAlgorithm);
+            // Synchronous API is retained for compatibility; it bridges to the async pipeline and blocks.
+            return VerifyPresentationInternalAsync(
+                presentation,
+                publicKey,
+                expectedHashAlgorithm,
+                CancellationToken.None).GetAwaiter().GetResult();
         }
         catch (TokenRevokedException ex) { return new VerificationResult(ex.ErrorCode, ex.Message); }
         catch (ReplayAttackException ex)
@@ -149,6 +161,54 @@ public class SdJwtVerifier : ISdJwtVerifier
     }
 
     /// <summary>
+    /// Asynchronously verifies an SD-JWT presentation.
+    /// Throws exceptions on validation failures.
+    /// </summary>
+    public Task<VerificationResult> VerifyPresentationAsync(
+        string presentation,
+        byte[] publicKey,
+        HashAlgorithm? expectedHashAlgorithm = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(presentation);
+        ArgumentNullException.ThrowIfNull(publicKey);
+
+        return VerifyPresentationInternalAsync(
+            presentation,
+            publicKey,
+            expectedHashAlgorithm,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously attempts to verify an SD-JWT presentation without throwing exceptions.
+    /// </summary>
+    public async Task<VerificationResult> TryVerifyPresentationAsync(
+        string presentation,
+        byte[] publicKey,
+        HashAlgorithm? expectedHashAlgorithm = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(presentation);
+        ArgumentNullException.ThrowIfNull(publicKey);
+
+        try
+        {
+            return await VerifyPresentationInternalAsync(
+                presentation,
+                publicKey,
+                expectedHashAlgorithm,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (TokenRevokedException ex) { return new VerificationResult(ex.ErrorCode, ex.Message); }
+        catch (ReplayAttackException ex) { return new VerificationResult(ErrorCode.ReplayAttack, ex.Message); }
+        catch (AlgorithmConfusionException ex) { return new VerificationResult(ErrorCode.AlgorithmConfusion, ex.Message); }
+        catch (AlgorithmNotSupportedException ex) { return new VerificationResult(ErrorCode.UnsupportedAlgorithm, ex.Message); }
+        catch (SdJwtException ex) { return new VerificationResult(ex.ErrorCode, $"Verification failed: {ex.Message}"); }
+        catch (Exception ex) { return new VerificationResult(ErrorCode.InvalidInput, $"Verification failed: {ex.Message}"); }
+    }
+
+    /// <summary>
     /// Verifies an SD-JWT presentation using key resolution.
     /// Throws exceptions on validation failures.
     /// </summary>
@@ -167,7 +227,12 @@ public class SdJwtVerifier : ISdJwtVerifier
     {
         ArgumentNullException.ThrowIfNull(presentation);
 
-        var result = VerifyPresentationInternalWithResolver(presentation, keyResolver, fallbackKey, expectedHashAlgorithm);
+        var result = VerifyPresentationInternalWithResolverAsync(
+            presentation,
+            keyResolver,
+            fallbackKey,
+            expectedHashAlgorithm,
+            CancellationToken.None).GetAwaiter().GetResult();
 
         if (!result.IsValid)
         {
@@ -198,7 +263,13 @@ public class SdJwtVerifier : ISdJwtVerifier
 
         try
         {
-            return VerifyPresentationInternalWithResolver(presentation, keyResolver, fallbackKey, expectedHashAlgorithm);
+            // Synchronous API is retained for compatibility; it bridges to the async pipeline and blocks.
+            return VerifyPresentationInternalWithResolverAsync(
+                presentation,
+                keyResolver,
+                fallbackKey,
+                expectedHashAlgorithm,
+                CancellationToken.None).GetAwaiter().GetResult();
         }
         catch (TokenRevokedException ex) { return new VerificationResult(ex.ErrorCode, ex.Message); }
         catch (ReplayAttackException ex)
@@ -224,13 +295,63 @@ public class SdJwtVerifier : ISdJwtVerifier
     }
 
     /// <summary>
+    /// Asynchronously verifies an SD-JWT presentation using key resolution.
+    /// </summary>
+    public Task<VerificationResult> VerifyPresentationAsync(
+        string presentation,
+        Primitives.KeyResolver? keyResolver,
+        byte[]? fallbackKey = null,
+        HashAlgorithm? expectedHashAlgorithm = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(presentation);
+
+        return VerifyPresentationInternalWithResolverAsync(
+            presentation,
+            keyResolver,
+            fallbackKey,
+            expectedHashAlgorithm,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously attempts to verify an SD-JWT presentation using key resolution.
+    /// </summary>
+    public async Task<VerificationResult> TryVerifyPresentationAsync(
+        string presentation,
+        Primitives.KeyResolver? keyResolver,
+        byte[]? fallbackKey = null,
+        HashAlgorithm? expectedHashAlgorithm = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(presentation);
+
+        try
+        {
+            return await VerifyPresentationInternalWithResolverAsync(
+                presentation,
+                keyResolver,
+                fallbackKey,
+                expectedHashAlgorithm,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (TokenRevokedException ex) { return new VerificationResult(ex.ErrorCode, ex.Message); }
+        catch (ReplayAttackException ex) { return new VerificationResult(ErrorCode.ReplayAttack, ex.Message); }
+        catch (AlgorithmConfusionException ex) { return new VerificationResult(ErrorCode.AlgorithmConfusion, ex.Message); }
+        catch (AlgorithmNotSupportedException ex) { return new VerificationResult(ErrorCode.UnsupportedAlgorithm, ex.Message); }
+        catch (SdJwtException ex) { return new VerificationResult(ex.ErrorCode, $"Verification failed: {ex.Message}"); }
+        catch (Exception ex) { return new VerificationResult(ErrorCode.InvalidInput, $"Verification failed: {ex.Message}"); }
+    }
+
+    /// <summary>
     /// Internal verification logic with key resolver support.
     /// </summary>
-    private VerificationResult VerifyPresentationInternalWithResolver(
+    private async Task<VerificationResult> VerifyPresentationInternalWithResolverAsync(
         string presentation,
         Primitives.KeyResolver? keyResolver,
         byte[]? fallbackKey,
-        HashAlgorithm? expectedHashAlgorithm)
+        HashAlgorithm? expectedHashAlgorithm,
+        CancellationToken cancellationToken)
     {
         var errors = new List<ErrorCode>();
         var errorDetails = new List<string>();
@@ -258,6 +379,8 @@ public class SdJwtVerifier : ISdJwtVerifier
         byte[] verificationKey;
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Parse JWT header to check for kid
             var jwtParts = jwt.Split('.');
             if (jwtParts.Length != 3)
@@ -336,22 +459,29 @@ public class SdJwtVerifier : ISdJwtVerifier
 
         // Step 2: Delegate to existing internal method with resolved key
         // This handles signature verification, temporal claims, disclosures, key binding, etc.
-        return VerifyPresentationInternal(presentation, verificationKey, expectedHashAlgorithm);
+        return await VerifyPresentationInternalAsync(
+            presentation,
+            verificationKey,
+            expectedHashAlgorithm,
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Internal verification logic shared by both throwing and non-throwing methods.
     /// </summary>
-    private VerificationResult VerifyPresentationInternal(
+    private async Task<VerificationResult> VerifyPresentationInternalAsync(
         string presentation,
         byte[] publicKey,
-        HashAlgorithm? expectedHashAlgorithm)
+        HashAlgorithm? expectedHashAlgorithm,
+        CancellationToken cancellationToken)
     {
         var errors = new List<ErrorCode>();
         var errorDetails = new List<string>();
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Validate presentation size to prevent DoS attacks
             if (presentation.Length > Constants.MAX_JWT_SIZE_BYTES)
             {
@@ -385,6 +515,8 @@ public class SdJwtVerifier : ISdJwtVerifier
             // Limit to prevent DoS attacks via excessive disclosures
             for (int i = 1; i < parts.Length - 1; i++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (!string.IsNullOrWhiteSpace(parts[i]))
                 {
                     if (disclosures.Count >= Constants.MAX_DISCLOSURES)
@@ -506,7 +638,7 @@ public class SdJwtVerifier : ISdJwtVerifier
             // Step 3.5: Check token revocation (JTI, Key ID, User ID)
             // Inserted after temporal/issuer/audience validation, before digest validation
             // Per research.md: Early rejection saves CPU on expensive cryptographic operations
-            CheckRevocation(payload, header, errors, errorDetails);
+            await CheckRevocationAsync(payload, header, errors, errorDetails, cancellationToken).ConfigureAwait(false);
 
             // Step 4: Validate disclosure digests
             HashAlgorithm algorithm;
@@ -682,9 +814,7 @@ public class SdJwtVerifier : ISdJwtVerifier
                         claimsDict[property.Name] = property.Value;
                     }
 
-                    // ValidateAsync will throw if replay detected or validation fails
-                    // Note: This is a synchronous context, so we use GetAwaiter().GetResult()
-                    _jtiValidator.ValidateAsync(claimsDict, CancellationToken.None).GetAwaiter().GetResult();
+                    await _jtiValidator.ValidateAsync(claimsDict, cancellationToken).ConfigureAwait(false);
                 }
                 catch (ReplayAttackException)
                 {
@@ -883,11 +1013,12 @@ public class SdJwtVerifier : ISdJwtVerifier
     /// Called after temporal claims validation, before digest validation.
     /// Only runs if a revocation store was provided.
     /// </summary>
-    private void CheckRevocation(
+    private async Task CheckRevocationAsync(
         JsonElement payload,
         JsonElement header,
         List<ErrorCode> errors,
-        List<string> errorDetails)
+        List<string> errorDetails,
+        CancellationToken cancellationToken)
     {
         // Skip if no revocation store provided
         if (_revocationStore == null)
@@ -895,11 +1026,13 @@ public class SdJwtVerifier : ISdJwtVerifier
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // Check 1: JTI revocation (individual token blacklisting)
             if (payload.TryGetProperty("jti", out var jtiElement) && jtiElement.ValueKind == JsonValueKind.String)
             {
                 var jti = jtiElement.GetString()!;
-                var isRevoked = _revocationStore.IsJtiRevokedAsync(jti).GetAwaiter().GetResult();
+                var isRevoked = await _revocationStore.IsJtiRevokedAsync(jti, cancellationToken).ConfigureAwait(false);
                 if (isRevoked)
                 {
                     errors.Add(ErrorCode.TokenRevoked);
@@ -912,7 +1045,7 @@ public class SdJwtVerifier : ISdJwtVerifier
             if (header.TryGetProperty("kid", out var kidElement) && kidElement.ValueKind == JsonValueKind.String)
             {
                 var keyId = kidElement.GetString()!;
-                var isRevoked = _revocationStore.IsKeyRevokedAsync(keyId).GetAwaiter().GetResult();
+                var isRevoked = await _revocationStore.IsKeyRevokedAsync(keyId, cancellationToken).ConfigureAwait(false);
                 if (isRevoked)
                 {
                     errors.Add(ErrorCode.TokenRevokedByKey);
@@ -925,7 +1058,7 @@ public class SdJwtVerifier : ISdJwtVerifier
             if (payload.TryGetProperty("sub", out var subElement) && subElement.ValueKind == JsonValueKind.String)
             {
                 var userId = subElement.GetString()!;
-                var isRevoked = _revocationStore.IsUserRevokedAsync(userId).GetAwaiter().GetResult();
+                var isRevoked = await _revocationStore.IsUserRevokedAsync(userId, cancellationToken).ConfigureAwait(false);
                 if (isRevoked)
                 {
                     errors.Add(ErrorCode.TokenRevokedByUser);

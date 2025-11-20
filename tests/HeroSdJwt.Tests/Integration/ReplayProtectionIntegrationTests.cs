@@ -418,10 +418,10 @@ public class ReplayProtectionIntegrationTests : IDisposable
         HashAlgorithm? expectedHashAlgorithm = null,
         CancellationToken cancellationToken = default)
     {
-        // Call VerifyPresentation synchronously (it will call ValidateAsync internally)
-        // We need to wrap it in a Task to simulate async behavior
-        return await Task.Run(() =>
-            verifier.VerifyPresentation(presentation, publicKey, expectedHashAlgorithm),
+        return await verifier.VerifyPresentationAsync(
+            presentation,
+            publicKey,
+            expectedHashAlgorithm,
             cancellationToken);
     }
 
@@ -432,8 +432,10 @@ public class ReplayProtectionIntegrationTests : IDisposable
         HashAlgorithm? expectedHashAlgorithm = null,
         CancellationToken cancellationToken = default)
     {
-        return await Task.Run(() =>
-            verifier.TryVerifyPresentation(presentation, publicKey, expectedHashAlgorithm),
+        return await verifier.TryVerifyPresentationAsync(
+            presentation,
+            publicKey,
+            expectedHashAlgorithm,
             cancellationToken);
     }
 

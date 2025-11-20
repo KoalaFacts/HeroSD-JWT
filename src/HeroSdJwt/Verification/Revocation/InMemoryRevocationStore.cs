@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HeroSdJwt.Verification.Revocation;
 
@@ -35,8 +37,9 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     // Storage for revoked user IDs (no expiration, manual cleanup only)
     private readonly ConcurrentDictionary<string, DateTimeOffset> _revokedUsers = new();
 
-    // Background timer for automatic cleanup of expired JTI entries
-    private readonly Timer _cleanupTimer;
+    // Background cleanup loop for automatic cleanup of expired JTI entries
+    private readonly CancellationTokenSource _cleanupCts = new();
+    private readonly Task _cleanupTask;
 
     // Cleanup interval (default: 5 minutes)
     private static readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(5);
@@ -47,11 +50,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     /// </summary>
     public InMemoryRevocationStore()
     {
-        _cleanupTimer = new Timer(
-            callback: _ => CleanupExpiredEntriesAsync().GetAwaiter().GetResult(),
-            state: null,
-            dueTime: _cleanupInterval,
-            period: _cleanupInterval);
+        _cleanupTask = RunCleanupLoopAsync(_cleanupCts.Token);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -200,6 +199,32 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     /// </summary>
     public void Dispose()
     {
-        _cleanupTimer?.Dispose();
+        _cleanupCts.Cancel();
+        try
+        {
+            // Dispose is synchronous; wait for the background loop to finish before releasing resources.
+            _cleanupTask.GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+            // expected during disposal
+        }
+        _cleanupCts.Dispose();
+    }
+
+    private async Task RunCleanupLoopAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(_cleanupInterval);
+            while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+            {
+                await CleanupExpiredEntriesAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // graceful shutdown
+        }
     }
 }

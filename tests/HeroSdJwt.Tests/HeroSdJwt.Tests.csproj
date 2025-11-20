@@ -22,6 +22,7 @@
     <PackageReference Include="CsCheck" Version="4.4.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
     <PackageReference Include="NBomber" Version="6.1.2" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.0" />
     <PackageReference Include="xunit.v3" Version="3.2.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
       <PrivateAssets>all</PrivateAssets>
@@ -35,6 +36,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\HeroSdJwt\HeroSdJwt.csproj" />
+    <ProjectReference Include="..\..\src\HeroSdJwt.AspNetCore\HeroSdJwt.AspNetCore.csproj" />
   </ItemGroup>
 
 </Project>

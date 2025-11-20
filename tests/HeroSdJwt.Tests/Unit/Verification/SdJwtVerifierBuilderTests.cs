@@ -37,6 +37,14 @@ public class SdJwtVerifierBuilderTests
     }
 
     [Fact]
+    public void Build_ImplementsAsyncVerifierInterface()
+    {
+        var verifier = SdJwtVerifierBuilder.Create().Build();
+
+        Assert.IsAssignableFrom<ISdJwtVerifierAsync>(verifier);
+    }
+
+    [Fact]
     public void Build_WithDefaults_SetsExpectedKeyType_Asymmetric()
     {
         var verifier = SdJwtVerifierBuilder.Create().Build();

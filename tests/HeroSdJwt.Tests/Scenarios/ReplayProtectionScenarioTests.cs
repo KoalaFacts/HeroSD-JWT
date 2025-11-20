@@ -541,9 +541,10 @@ public class ReplayProtectionScenarioTests : IDisposable
         CancellationToken cancellationToken = default,
         HashAlgorithm? expectedHashAlgorithm = null)
     {
-        // Wrap synchronous VerifyPresentation in Task.Run for async context
-        return await Task.Run(() =>
-            verifier.VerifyPresentation(presentation, publicKey, expectedHashAlgorithm),
+        return await verifier.VerifyPresentationAsync(
+            presentation,
+            publicKey,
+            expectedHashAlgorithm,
             cancellationToken);
     }
 
