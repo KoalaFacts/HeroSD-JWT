@@ -57,19 +57,8 @@ jobs:
     - name: Setup all .NET SDKs
       uses: ./.github/actions/setup-dotnet-sdks
 
-    - name: Restore dependencies and generate lock files
-      run: dotnet restore --force-evaluate
-
-    - name: Commit regenerated lock files
-      if: matrix.os == 'ubuntu-latest' && matrix.framework == 'net8.0'
-      run: |
-        if [ -n "$(git status --porcelain '**/packages.lock.json')" ]; then
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "**/packages.lock.json"
-          git commit -m "chore: regenerate NuGet lock files with all target frameworks [skip ci]"
-          git push
-        fi
+    - name: Restore dependencies (all frameworks, locked mode)
+      run: dotnet restore
 
     - name: Build
       run: dotnet build --configuration Release --no-restore --framework ${{ matrix.framework }}
