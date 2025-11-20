@@ -29,36 +29,39 @@ env:
   NUGET_LOCKED_MODE: true
 
 jobs:
+  setup:
+    name: Extract Build Configuration
+    runs-on: ubuntu-latest
+    outputs:
+      frameworks: ${{ steps.config.outputs.frameworks }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Extract configuration
+        id: config
+        uses: ./.github/actions/setup-dotnet-sdks
+
   # NuGet package vulnerability scanning
   nuget-audit:
-    name: NuGet Audit (.NET ${{ matrix.dotnet-version }})
+    name: NuGet Audit (${{ matrix.framework }})
+    needs: setup
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
-        include:
-          - dotnet-version: '8.0.x'
-            framework: 'net8.0'
-          - dotnet-version: '9.0.x'
-            framework: 'net9.0'
-          - dotnet-version: '10.0.x'
-            framework: 'net10.0'
+        framework: ${{ fromJSON(needs.setup.outputs.frameworks) }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Setup .NET ${{ matrix.dotnet-version }}
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: ${{ matrix.dotnet-version }}
-          cache: true
-          cache-dependency-path: '**/packages.lock.json'
+      - name: Setup all .NET SDKs
+        uses: ./.github/actions/setup-dotnet-sdks
 
       - name: Restore and audit dependencies
         run: |
-          dotnet restore -p:TargetFramework=${{ matrix.framework }}
+          dotnet restore
           dotnet list package --vulnerable --include-transitive 2>&1 | tee audit-${{ matrix.framework }}.log
 
           if grep -q "has the following vulnerable packages" audit-${{ matrix.framework }}.log; then
@@ -78,19 +81,13 @@ jobs:
 
   # Microsoft Security DevOps analysis (BinSkim, CredScan, etc.)
   microsoft-security-devops:
-    name: Microsoft Security DevOps (.NET ${{ matrix.dotnet-version }})
+    name: Microsoft Security DevOps (${{ matrix.framework }})
+    needs: setup
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
-        include:
-          - dotnet-version: '8.0.x'
-            framework: 'net8.0'
-          - dotnet-version: '9.0.x'
-            framework: 'net9.0'
-          - dotnet-version: '10.0.x'
-            framework: 'net10.0'
+        framework: ${{ fromJSON(needs.setup.outputs.frameworks) }}
 
     steps:
       - name: Checkout repository
@@ -98,22 +95,16 @@ jobs:
         with:
           fetch-depth: 0  # Full history for better analysis
 
+      - name: Setup all .NET SDKs (including 6.0 for Security DevOps tools)
+        uses: ./.github/actions/setup-dotnet-sdks
+
       - name: Setup .NET 6.0 (required by Security DevOps tools)
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '6.0.x'
-          cache: true
-          cache-dependency-path: '**/packages.lock.json'
 
-      - name: Setup .NET ${{ matrix.dotnet-version }}
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: ${{ matrix.dotnet-version }}
-          cache: true
-          cache-dependency-path: '**/packages.lock.json'
-
-      - name: Restore dependencies
-        run: dotnet restore src/HeroSdJwt/HeroSdJwt.csproj -p:TargetFramework=${{ matrix.framework }}
+      - name: Restore dependencies (all frameworks, locked mode)
+        run: dotnet restore
 
       - name: Build main project only
         run: dotnet build src/HeroSdJwt/HeroSdJwt.csproj --configuration Release --no-restore --framework ${{ matrix.framework }}

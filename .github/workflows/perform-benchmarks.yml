@@ -30,44 +30,47 @@ env:
   NUGET_LOCKED_MODE: true
 
 jobs:
+  setup:
+    name: Extract Build Configuration
+    runs-on: ubuntu-latest
+    outputs:
+      frameworks: ${{ steps.config.outputs.frameworks }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Extract configuration
+        id: config
+        uses: ./.github/actions/setup-dotnet-sdks
+
   benchmark:
     name: Run Performance Benchmarks
+    needs: setup
     runs-on: ubuntu-latest  # Consistent environment for comparisons
     strategy:
       fail-fast: false
       matrix:
-        dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
-        include:
-          - dotnet-version: '8.0.x'
-            framework: 'net8.0'
-          - dotnet-version: '9.0.x'
-            framework: 'net9.0'
-          - dotnet-version: '10.0.x'
-            framework: 'net10.0'
+        framework: ${{ fromJSON(needs.setup.outputs.frameworks) }}
     timeout-minutes: 60
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
 
-    - name: Setup .NET ${{ matrix.dotnet-version }}
-      uses: actions/setup-dotnet@v5
-      with:
-        dotnet-version: ${{ matrix.dotnet-version }}
-        cache: true
-        cache-dependency-path: '**/packages.lock.json'
+    - name: Setup all .NET SDKs
+      uses: ./.github/actions/setup-dotnet-sdks
 
-    - name: Restore dependencies
-      run: dotnet restore -p:TargetFramework=${{ matrix.framework }} 
+    - name: Restore dependencies (all frameworks, locked mode)
+      run: dotnet restore 
 
-    - name: Build benchmarks ${{ matrix.dotnet-version }}
+    - name: Build benchmarks ${{ matrix.framework }}
       run: |
         dotnet build benchmarks/HeroSdJwt.Benchmarks/HeroSdJwt.Benchmarks.csproj \
           --configuration Release \
           --framework ${{ matrix.framework }} \
           --no-restore
 
-    - name: Run benchmarks ${{ matrix.dotnet-version }}
+    - name: Run benchmarks ${{ matrix.framework }}
       run: |
         cd benchmarks/HeroSdJwt.Benchmarks
         dotnet run -c Release \
@@ -76,7 +79,7 @@ jobs:
           --job short \
           --exporters json
 
-    - name: Combine benchmark reports ${{ matrix.dotnet-version }}
+    - name: Combine benchmark reports ${{ matrix.framework }}
       run: |
         REPORT_DIR=benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results
         OUTPUT_FILE=${REPORT_DIR}/combined-report-${{ matrix.framework }}.json
@@ -97,7 +100,7 @@ jobs:
         jq -s '.[0] * {Benchmarks: (map(.Benchmarks // []) | add)}' $FILES > "$OUTPUT_FILE"
         echo "Combined benchmark report: $OUTPUT_FILE"
 
-    - name: Store benchmark result ${{ matrix.dotnet-version }}
+    - name: Store benchmark result ${{ matrix.framework }}
       id: storebenchmark
       uses: benchmark-action/github-action-benchmark@v1
       with:
@@ -114,7 +117,7 @@ jobs:
         gh-pages-branch: 'gh-pages'
         save-data-file: true
 
-    - name: Upload benchmark artifacts ${{ matrix.dotnet-version }}
+    - name: Upload benchmark artifacts ${{ matrix.framework }}
       uses: actions/upload-artifact@v5
       if: always() && steps.storebenchmark.outputs.benchmark-result-file-path != ''
       with:
