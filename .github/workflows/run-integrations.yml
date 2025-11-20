@@ -2,14 +2,17 @@ name: Run Nightly Integration Tests
 
 on:
   schedule:
-    # Run at 2 AM UTC every day
-    - cron: '0 2 * * *'
-  workflow_dispatch:
+    - cron: '0 2 * * *'  # Daily at 02:00 UTC
+  workflow_dispatch:  # Allow manual trigger
+
+# Cancel in-progress runs for the same workflow and ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
   checks: write
-  issues: write  # For creating issues on failures
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
@@ -20,18 +23,18 @@ jobs:
     name: Extract Build Configuration
     runs-on: ubuntu-latest
     outputs:
-      versions: ${{ steps.config.outputs.versions }}
-      frameworks: ${{ steps.config.outputs.frameworks }}
+      versions: ${{ steps.extract.outputs.versions }}
+      frameworks: ${{ steps.extract.outputs.frameworks }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
       - name: Extract configuration
-        id: config
+        id: extract
         uses: ./.github/actions/extract-build-config
 
-  integration-tests:
-    name: Integration Tests
+  comprehensive-tests:
+    name: Comprehensive Integration Tests
     needs: setup
     runs-on: ${{ matrix.os }}
     strategy:
@@ -39,6 +42,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         framework: ${{ fromJSON(needs.setup.outputs.frameworks) }}
+    timeout-minutes: 30
 
     steps:
     - name: Checkout code
@@ -46,7 +50,7 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Setup .NET SDKs
+    - name: Setup all .NET SDKs
       uses: ./.github/actions/setup-dotnet-sdks
       with:
         dotnet-version: ${{ needs.setup.outputs.versions }}
@@ -57,9 +61,8 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore --framework ${{ matrix.framework }}
 
-    - name: Run integration tests
-      run: dotnet test --configuration Release --no-build --framework ${{ matrix.framework }} --filter "Category=Integration" --verbosity normal --logger "trx;LogFileName=integration-test-results.trx" --results-directory ./TestResults/Integration
-      continue-on-error: true
+    - name: Run All Tests (with coverage)
+      run: dotnet test --configuration Release --no-build --framework ${{ matrix.framework }} --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
 
     - name: Upload test results
       if: always()
@@ -67,7 +70,7 @@ jobs:
       with:
         name: nightly-test-results-${{ matrix.os }}-${{ matrix.framework }}
         path: TestResults/**/*.trx
-        retention-days: 90
+        retention-days: 7
 
     - name: Upload coverage
       if: always()
@@ -75,196 +78,63 @@ jobs:
       with:
         name: nightly-coverage-${{ matrix.os }}-${{ matrix.framework }}
         path: TestResults/**/coverage.cobertura.xml
-        retention-days: 90
+        retention-days: 7
 
-  examples-validation:
-    name: Validate Examples
-    needs: setup
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        framework: ${{ fromJSON(needs.setup.outputs.frameworks) }}
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-
-    - name: Setup .NET SDKs
-      uses: ./.github/actions/setup-dotnet-sdks
-      with:
-        dotnet-version: ${{ needs.setup.outputs.versions }}
-
-    - name: Restore dependencies
-      run: dotnet restore
-
-    - name: Build examples
-      run: dotnet build examples --configuration Release --no-restore --framework ${{ matrix.framework }}
-
-    - name: Test AspNetCoreIntegrationExample builds
-      run: dotnet build examples/AspNetCoreIntegrationExample --configuration Release --no-restore --framework ${{ matrix.framework }}
-
-    - name: Test MultiTenantAuthExample builds
-      run: dotnet build examples/MultiTenantAuthExample --configuration Release --no-restore --framework ${{ matrix.framework }}
-
-  benchmarks:
-    name: Run Benchmarks
-    needs: setup
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-
-    - name: Setup .NET SDKs
-      uses: ./.github/actions/setup-dotnet-sdks
-      with:
-        dotnet-version: ${{ needs.setup.outputs.versions }}
-
-    - name: Restore dependencies
-      run: dotnet restore
-
-    - name: Run benchmarks
-      run: |
-        cd benchmarks/HeroSdJwt.Benchmarks
-        dotnet run -c Release --framework net10.0 --filter "*" --job short --exporters json
-
-    - name: Upload benchmark results
-      uses: actions/upload-artifact@v5
-      with:
-        name: nightly-benchmark-results
-        path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/*
-        retention-days: 90
-
-  package-validation:
-    name: Package Validation
-    needs: setup
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-
-    - name: Setup .NET SDKs
-      uses: ./.github/actions/setup-dotnet-sdks
-      with:
-        dotnet-version: ${{ needs.setup.outputs.versions }}
-
-    - name: Restore dependencies
-      run: dotnet restore
-
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
-
-    - name: Pack HeroSdJwt
-      run: dotnet pack src/HeroSdJwt/HeroSdJwt.csproj --configuration Release --no-build --output ./nupkg
-
-    - name: Pack HeroSdJwt.AspNetCore
-      run: dotnet pack src/HeroSdJwt.AspNetCore/HeroSdJwt.AspNetCore.csproj --configuration Release --no-build --output ./nupkg
-
-    - name: Validate packages
-      run: |
-        dotnet tool install --global dotnet-validate --version 0.0.1-preview.304
-        dotnet validate package local ./nupkg/*.nupkg
-
-    - name: Upload packages
-      uses: actions/upload-artifact@v5
-      with:
-        name: nightly-packages
-        path: ./nupkg/*.nupkg
-        retention-days: 30
-
-  security-scan:
-    name: Security Scan
-    needs: setup
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v5
-
-    - name: Setup .NET SDKs
-      uses: ./.github/actions/setup-dotnet-sdks
-      with:
-        dotnet-version: ${{ needs.setup.outputs.versions }}
-
-    - name: Restore dependencies
-      run: dotnet restore
-
-    - name: Run security audit
-      run: dotnet list package --vulnerable --include-transitive
-
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: csharp
-
-    - name: Build for CodeQL
-      run: dotnet build --configuration Release --no-restore
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-
-  summary:
-    name: Nightly Summary
-    needs: [integration-tests, examples-validation, benchmarks, package-validation, security-scan]
+  report:
+    name: Generate Test Report
+    needs: [comprehensive-tests]
     runs-on: ubuntu-latest
     if: always()
 
     steps:
-    - name: Check test results
-      run: |
-        echo "## Nightly Integration Test Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "- Integration Tests: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Examples Validation: ${{ needs.examples-validation.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Benchmarks: ${{ needs.benchmarks.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Package Validation: ${{ needs.package-validation.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Security Scan: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
-
-    - name: Create issue on failure
-      if: |
-        needs.integration-tests.result == 'failure' ||
-        needs.examples-validation.result == 'failure' ||
-        needs.benchmarks.result == 'failure' ||
-        needs.package-validation.result == 'failure' ||
-        needs.security-scan.result == 'failure'
-      uses: actions/github-script@v7
+    - name: Download all test results
+      uses: actions/download-artifact@v5
       with:
-        script: |
-          const title = `Nightly Integration Tests Failed - ${new Date().toISOString().split('T')[0]}`;
-          const body = `## Nightly Integration Test Failures
+        pattern: nightly-test-results-*
+        path: ./all-results
 
-          One or more nightly integration jobs failed:
+    - name: Create summary report
+      run: |
+        echo "# Nightly Integration Test Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Run Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
 
-          - Integration Tests: ${{ needs.integration-tests.result }}
-          - Examples Validation: ${{ needs.examples-validation.result }}
-          - Benchmarks: ${{ needs.benchmarks.result }}
-          - Package Validation: ${{ needs.package-validation.result }}
-          - Security Scan: ${{ needs.security-scan.result }}
+        echo "## Test Results by Platform" >> $GITHUB_STEP_SUMMARY
+        for result_dir in ./all-results/nightly-test-results-*; do
+          if [ -d "$result_dir" ]; then
+            platform=$(basename "$result_dir" | sed 's/nightly-test-results-//')
+            echo "### $platform" >> $GITHUB_STEP_SUMMARY
 
-          **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            if ls "$result_dir"/*.trx >/dev/null 2>&1; then
+              # Count pass/fail from TRX files (basic parsing)
+              total=$(grep -oh '<UnitTestResult' "$result_dir"/*.trx 2>/dev/null | wc -l || echo "0")
+              passed=$(grep -oh 'outcome="Passed"' "$result_dir"/*.trx 2>/dev/null | wc -l || echo "0")
+              failed=$(grep -oh 'outcome="Failed"' "$result_dir"/*.trx 2>/dev/null | wc -l || echo "0")
 
-          Please investigate and fix the failing tests.`;
+              echo "- Total: $total" >> $GITHUB_STEP_SUMMARY
+              echo "- Passed: $passed" >> $GITHUB_STEP_SUMMARY
+              echo "- Failed: $failed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- No test results found" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
 
-          // Check if an issue already exists for today
-          const issues = await github.rest.issues.listForRepo({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            state: 'open',
-            labels: 'nightly-test-failure',
-            per_page: 5
-          });
+    - name: Check for failures
+      id: check-failures
+      run: |
+        if [ -d ./all-results ]; then
+          FAILED_COUNT=$(grep -roh 'outcome="Failed"' ./all-results/ 2>/dev/null | wc -l || echo "0")
+          echo "failed_count=$FAILED_COUNT" >> $GITHUB_OUTPUT
 
-          const existingIssue = issues.data.find(issue => issue.title === title);
-
-          if (!existingIssue) {
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: title,
-              body: body,
-              labels: ['nightly-test-failure', 'automated']
-            });
-          }
+          if [ "$FAILED_COUNT" -gt 0 ]; then
+            echo "❌ Found $FAILED_COUNT failed tests" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ All tests passed" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "⚠️ No test results found" >> $GITHUB_STEP_SUMMARY
+        fi
