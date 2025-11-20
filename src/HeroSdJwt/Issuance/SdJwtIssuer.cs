@@ -55,6 +55,34 @@ public class SdJwtIssuer(
         ArgumentNullException.ThrowIfNull(claims);
         ArgumentNullException.ThrowIfNull(signingKey);
 
+        // SD-JWT spec requires an expiration claim. Add a default if missing and enforce numeric form.
+        if (!claims.TryGetValue("exp", out var expClaim))
+        {
+            var defaultExpiration = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
+            claims["exp"] = defaultExpiration;
+            expClaim = defaultExpiration;
+        }
+
+        try
+        {
+#pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement at API boundary
+            var expElement = JsonSerializer.SerializeToElement(expClaim);
+#pragma warning restore IL2026, IL3050
+            if (expElement.ValueKind != JsonValueKind.Number || !expElement.TryGetInt64(out _))
+            {
+                throw new ArgumentException(
+                    "The 'exp' claim must be a numeric Unix timestamp (seconds since epoch).",
+                    nameof(claims));
+            }
+        }
+        catch (JsonException ex)
+        {
+            throw new ArgumentException(
+                "The 'exp' claim must be a numeric Unix timestamp (seconds since epoch).",
+                nameof(claims),
+                ex);
+        }
+
         var selectiveClaimsList = selectivelyDisclosableClaims?.ToList() ?? [];
 
         try

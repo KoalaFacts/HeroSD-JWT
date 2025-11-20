@@ -11,6 +11,9 @@ namespace HeroSdJwt.Tests.Unit.KeyBinding;
 /// </summary>
 public class KeyBindingValidatorTests
 {
+    private const string DefaultAudience = "https://verifier.example.com";
+    private const string DefaultNonce = "test-nonce";
+    private const string DefaultSdJwtHash = "hash";
     private readonly KeyBindingGenerator _generator;
     private readonly KeyBindingValidator _validator;
     private readonly byte[] _privateKey;
@@ -27,6 +30,21 @@ public class KeyBindingValidatorTests
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         _privateKey = ecdsa.ExportECPrivateKey();
         _publicKey = ecdsa.ExportSubjectPublicKeyInfo();
+    }
+
+    private bool Validate(
+        string jwt,
+        byte[]? publicKey = null,
+        string? sdJwtHash = null,
+        string? audience = DefaultAudience,
+        string? nonce = DefaultNonce)
+    {
+        return _validator.ValidateKeyBinding(
+            jwt,
+            publicKey ?? _publicKey,
+            sdJwtHash ?? DefaultSdJwtHash,
+            audience,
+            nonce);
     }
 
     #region Constructor Tests
@@ -76,7 +94,7 @@ public class KeyBindingValidatorTests
         var keyBindingJwt = _generator.CreateKeyBindingJwt(_privateKey, sdJwtHash, audience, nonce);
 
         // Act
-        var result = _validator.ValidateKeyBinding(keyBindingJwt, _publicKey, sdJwtHash, audience, nonce);
+        var result = Validate(keyBindingJwt, _publicKey, sdJwtHash, audience, nonce);
 
         // Assert
         Assert.True(result);
@@ -91,11 +109,11 @@ public class KeyBindingValidatorTests
         var nonce = "nonce-456";
         var keyBindingJwt = _generator.CreateKeyBindingJwt(_privateKey, sdJwtHash, audience, nonce);
 
-        // Act - Validate without checking audience/nonce
-        var result = _validator.ValidateKeyBinding(keyBindingJwt, _publicKey, sdJwtHash);
+        // Act - Validate without providing expected audience/nonce should fail under strict spec
+        var result = Validate(keyBindingJwt, _publicKey, sdJwtHash, audience: null, nonce: null);
 
         // Assert
-        Assert.True(result);
+        Assert.False(result);
     }
 
     [Fact]
@@ -108,7 +126,7 @@ public class KeyBindingValidatorTests
         var keyBindingJwt = _generator.CreateKeyBindingJwt(_privateKey, sdJwtHash, audience, nonce);
 
         // Act
-        var result = _validator.ValidateKeyBinding(keyBindingJwt, _publicKey, sdJwtHash, audience);
+        var result = Validate(keyBindingJwt, _publicKey, sdJwtHash, audience, nonce);
 
         // Assert
         Assert.True(result);
@@ -124,7 +142,7 @@ public class KeyBindingValidatorTests
         var keyBindingJwt = _generator.CreateKeyBindingJwt(_privateKey, sdJwtHash, audience, nonce);
 
         // Act
-        var result = _validator.ValidateKeyBinding(keyBindingJwt, _publicKey, sdJwtHash, null, nonce);
+        var result = Validate(keyBindingJwt, _publicKey, sdJwtHash, audience, nonce);
 
         // Assert
         Assert.True(result);
@@ -139,7 +157,7 @@ public class KeyBindingValidatorTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _validator.ValidateKeyBinding(null!, _publicKey, "hash"));
+            Validate(null!, _publicKey, "hash"));
     }
 
     [Fact]
@@ -150,7 +168,7 @@ public class KeyBindingValidatorTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _validator.ValidateKeyBinding(jwt, null!, "hash"));
+            _validator.ValidateKeyBinding(jwt, null!, "hash", DefaultAudience, DefaultNonce));
     }
 
     [Fact]
@@ -161,7 +179,7 @@ public class KeyBindingValidatorTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _validator.ValidateKeyBinding(jwt, _publicKey, null!));
+            _validator.ValidateKeyBinding(jwt, _publicKey, null!, DefaultAudience, DefaultNonce));
     }
 
     #endregion
@@ -175,7 +193,7 @@ public class KeyBindingValidatorTests
         var invalidJwt = "header.payload";
 
         // Act
-        var result = _validator.ValidateKeyBinding(invalidJwt, _publicKey, "hash");
+        var result = Validate(invalidJwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -188,7 +206,7 @@ public class KeyBindingValidatorTests
         var invalidJwt = "header.payload.signature.extra";
 
         // Act
-        var result = _validator.ValidateKeyBinding(invalidJwt, _publicKey, "hash");
+        var result = Validate(invalidJwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -198,7 +216,7 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithEmptyJwt_ReturnsFalse()
     {
         // Act
-        var result = _validator.ValidateKeyBinding(string.Empty, _publicKey, "hash");
+        var result = Validate(string.Empty, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -219,7 +237,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{headerBase64}.{payloadBase64}.fakesignature";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash", "aud", "nonce");
 
         // Assert
         Assert.False(result);
@@ -236,7 +254,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{headerBase64}.{payloadBase64}.fakesignature";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash", "aud", "nonce");
 
         // Assert
         Assert.False(result);
@@ -257,7 +275,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{headerBase64}.{payloadBase64}.fakesignature";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "expected-hash");
+        var result = Validate(jwt, _publicKey, "expected-hash");
 
         // Assert
         Assert.False(result);
@@ -271,7 +289,7 @@ public class KeyBindingValidatorTests
         var jwt = _generator.CreateKeyBindingJwt(_privateKey, sdJwtHash, "aud", "nonce");
 
         // Act - Validate with different hash
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "different-hash");
+        var result = Validate(jwt, _publicKey, "different-hash");
 
         // Assert
         Assert.False(result);
@@ -284,7 +302,7 @@ public class KeyBindingValidatorTests
         var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "original-aud", "nonce");
 
         // Act - Validate with different audience
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash", "different-aud");
+        var result = Validate(jwt, _publicKey, "hash", "different-aud");
 
         // Assert
         Assert.False(result);
@@ -297,7 +315,7 @@ public class KeyBindingValidatorTests
         var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "aud", "original-nonce");
 
         // Act - Validate with different nonce
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash", null, "different-nonce");
+        var result = Validate(jwt, _publicKey, "hash", null, "different-nonce");
 
         // Assert
         Assert.False(result);
@@ -326,7 +344,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act - Validate expecting audience
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash", "expected-aud");
+        var result = Validate(jwt, _publicKey, "hash", "expected-aud");
 
         // Assert
         Assert.False(result);
@@ -355,7 +373,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act - Validate expecting nonce
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash", null, "expected-nonce");
+        var result = Validate(jwt, _publicKey, "hash", null, "expected-nonce");
 
         // Assert
         Assert.False(result);
@@ -376,7 +394,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{headerBase64}.{payloadBase64}.fakesignature";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash", "aud", "nonce");
 
         // Assert
         Assert.False(result);
@@ -407,7 +425,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash", "aud", "nonce");
 
         // Assert
         Assert.False(result);
@@ -438,7 +456,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash", "aud", "nonce");
 
         // Assert
         Assert.False(result);
@@ -473,7 +491,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash", "aud", "nonce");
 
         // Assert
         Assert.True(result);
@@ -486,7 +504,7 @@ public class KeyBindingValidatorTests
         var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "aud", "nonce");
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash", "aud", "nonce");
 
         // Assert
         Assert.True(result);
@@ -517,7 +535,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash", "aud", "nonce");
 
         // Assert
         Assert.False(result);
@@ -536,7 +554,7 @@ public class KeyBindingValidatorTests
         var tamperedJwt = $"{parts[0]}.{parts[1]}.AAAAAAAAAA";
 
         // Act
-        var result = _validator.ValidateKeyBinding(tamperedJwt, _publicKey, "hash");
+        var result = Validate(tamperedJwt, _publicKey, "hash", "aud", "nonce");
 
         // Assert
         Assert.False(result);
@@ -552,7 +570,7 @@ public class KeyBindingValidatorTests
         var differentPublicKey = differentEcdsa.ExportSubjectPublicKeyInfo();
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, differentPublicKey, "hash");
+        var result = Validate(jwt, differentPublicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -570,7 +588,7 @@ public class KeyBindingValidatorTests
         var tamperedJwt = $"{parts[0]}.{tamperedPayload}.{parts[2]}";
 
         // Act
-        var result = _validator.ValidateKeyBinding(tamperedJwt, _publicKey, "hash");
+        var result = Validate(tamperedJwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -584,7 +602,7 @@ public class KeyBindingValidatorTests
         var invalidPublicKey = new byte[] { 1, 2, 3, 4, 5 };
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, invalidPublicKey, "hash");
+        var result = Validate(jwt, invalidPublicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -605,7 +623,7 @@ public class KeyBindingValidatorTests
             var jwt = generator384.CreateKeyBindingJwt(privateKey384, "hash", "aud", "nonce");
 
             // Act - This should fail because only P-256 is supported
-            var result = _validator.ValidateKeyBinding(jwt, publicKey384, "hash");
+            var result = Validate(jwt, publicKey384, "hash");
 
             // Assert
             Assert.False(result);
@@ -628,7 +646,7 @@ public class KeyBindingValidatorTests
         var jwt = "!!!invalid!!!.validpayload.validsignature";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -643,7 +661,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{invalidHeader}.{validPayload}.signature";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -658,7 +676,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{validHeader}.{invalidPayload}.signature";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);
@@ -696,7 +714,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{signingInput}.{signatureBase64}";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash", "aud", "nonce");
 
         // Assert
         Assert.True(result);
@@ -711,7 +729,7 @@ public class KeyBindingValidatorTests
         var jwt = $"{header}.{payload}.!!!invalid-base64!!!";
 
         // Act
-        var result = _validator.ValidateKeyBinding(jwt, _publicKey, "hash");
+        var result = Validate(jwt, _publicKey, "hash");
 
         // Assert
         Assert.False(result);

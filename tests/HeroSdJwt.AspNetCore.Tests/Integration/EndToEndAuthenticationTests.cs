@@ -19,6 +19,7 @@ namespace HeroSdJwt.AspNetCore.Tests.Integration;
 /// </summary>
 public class EndToEndAuthenticationTests : IDisposable
 {
+    private static long DefaultExp => DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds();
     private readonly byte[] _testKey;
     private readonly ISdJwtIssuer _issuer;
     private readonly ISdJwtPresenter _presenter;
@@ -52,7 +53,8 @@ public class EndToEndAuthenticationTests : IDisposable
             ["sub"] = "user123",
             ["name"] = "John Doe",
             ["email"] = "john@example.com",
-            ["role"] = "admin"
+            ["role"] = "admin",
+            ["exp"] = DefaultExp
         };
 
         // Mark name, email, and role as selectively disclosable
@@ -128,7 +130,8 @@ public class EndToEndAuthenticationTests : IDisposable
         var claims = new Dictionary<string, object>
         {
             ["sub"] = "user123",
-            ["name"] = "John Doe"
+            ["name"] = "John Doe",
+            ["exp"] = DefaultExp
         };
 
         var sdJwt = _issuer.CreateSdJwt(
@@ -164,7 +167,8 @@ public class EndToEndAuthenticationTests : IDisposable
             ["name"] = "Jane Smith",
             ["email"] = "jane@example.com",
             ["age"] = 30,
-            ["ssn"] = "123-45-6789" // Sensitive - won't be disclosed
+            ["ssn"] = "123-45-6789", // Sensitive - won't be disclosed
+            ["exp"] = DefaultExp
         };
 
         var selectiveClaims = new[] { "email", "age", "ssn" };

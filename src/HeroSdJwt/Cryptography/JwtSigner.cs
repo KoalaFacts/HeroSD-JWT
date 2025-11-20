@@ -413,13 +413,9 @@ public class JwtSigner : IJwtSigner
     /// <returns>ML-DSA-65 signature (~3,309 bytes).</returns>
     private static byte[] SignMlDsa65(byte[] data, byte[] privateKeyBytes)
     {
-        // Note: This is a placeholder for the actual .NET 10 API
-        // The actual implementation will use System.Security.Cryptography ML-DSA APIs
-        // when .NET 10 is released with PQC support
-
-        throw new NotImplementedException(
-            "ML-DSA-65 signing requires .NET 10 with PQC support. " +
-            "This is a preview implementation pending .NET 10 GA release.");
+        // Placeholder for HeroCrypt integration once available
+        throw new NotSupportedException(
+            "ML-DSA-65 signing requires the HeroCrypt PQC package (pending release).");
 
         // Expected implementation (when .NET 10 PQC APIs are available):
         // try
@@ -446,13 +442,9 @@ public class JwtSigner : IJwtSigner
     /// <returns>ML-DSA-87 signature (~4,627 bytes).</returns>
     private static byte[] SignMlDsa87(byte[] data, byte[] privateKeyBytes)
     {
-        // Note: This is a placeholder for the actual .NET 10 API
-        // The actual implementation will use System.Security.Cryptography ML-DSA APIs
-        // when .NET 10 is released with PQC support
-
-        throw new NotImplementedException(
-            "ML-DSA-87 signing requires .NET 10 with PQC support. " +
-            "This is a preview implementation pending .NET 10 GA release.");
+        // Placeholder for HeroCrypt integration once available
+        throw new NotSupportedException(
+            "ML-DSA-87 signing requires the HeroCrypt PQC package (pending release).");
 
         // Expected implementation (when .NET 10 PQC APIs are available):
         // try

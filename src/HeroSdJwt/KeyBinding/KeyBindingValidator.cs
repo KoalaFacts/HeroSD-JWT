@@ -45,6 +45,16 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
         ArgumentNullException.ThrowIfNull(holderPublicKey);
         ArgumentNullException.ThrowIfNull(expectedSdJwtHash);
 
+        if (string.IsNullOrWhiteSpace(expectedAudience))
+        {
+            return false; // Spec requires audience binding
+        }
+
+        if (string.IsNullOrWhiteSpace(expectedNonce))
+        {
+            return false; // Spec requires nonce binding
+        }
+
         try
         {
             // Parse JWT
@@ -84,24 +94,30 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
                 return false; // SD-JWT hash mismatch
             }
 
-            // Validate audience if provided
-            if (expectedAudience != null)
+            // Validate audience (required)
+            if (!payload.TryGetProperty("aud", out var audElement))
             {
-                if (!payload.TryGetProperty("aud", out var audElement) ||
-                    audElement.GetString() != expectedAudience)
-                {
-                    return false;
-                }
+                return false;
             }
 
-            // Validate nonce if provided
-            if (expectedNonce != null)
+            var audClaim = audElement.GetString();
+            if (string.IsNullOrWhiteSpace(audClaim) ||
+                !string.Equals(audClaim, expectedAudience, StringComparison.Ordinal))
             {
-                if (!payload.TryGetProperty("nonce", out var nonceElement) ||
-                    nonceElement.GetString() != expectedNonce)
-                {
-                    return false;
-                }
+                return false;
+            }
+
+            // Validate nonce (required)
+            if (!payload.TryGetProperty("nonce", out var nonceElement))
+            {
+                return false;
+            }
+
+            var nonceClaim = nonceElement.GetString();
+            if (string.IsNullOrWhiteSpace(nonceClaim) ||
+                !string.Equals(nonceClaim, expectedNonce, StringComparison.Ordinal))
+            {
+                return false;
             }
 
             // Validate iat (issued at) claim for freshness - REQUIRED by spec section 4.3.3

@@ -73,7 +73,7 @@ public class SignatureValidator : ISignatureValidator
         {
 #if NET10_0_OR_GREATER
             throw new AlgorithmNotSupportedException(
-                $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, HS384, HS512, RS256, PS256, ES256, ES384, ES512, EdDSA, MLDSA65, MLDSA87");
+                $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, HS384, HS512, RS256, PS256, ES256, ES384, ES512, EdDSA");
 #else
             throw new AlgorithmNotSupportedException(
                 $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, HS384, HS512, RS256, PS256, ES256, ES384, ES512, EdDSA");
@@ -499,10 +499,6 @@ public class SignatureValidator : ISignatureValidator
             "ES384" => true,
             "ES512" => true,
             "EdDSA" => true,
-#if NET10_0_OR_GREATER
-            "MLDSA65" => true,
-            "MLDSA87" => true,
-#endif
             _ => false
         };
     }
@@ -518,13 +514,9 @@ public class SignatureValidator : ISignatureValidator
     /// <returns>True if signature is valid; otherwise, false.</returns>
     private static bool VerifyMlDsa65(byte[] data, byte[] signature, byte[] publicKeyBytes)
     {
-        // Note: This is a placeholder for the actual .NET 10 API
-        // The actual implementation will use System.Security.Cryptography ML-DSA APIs
-        // when .NET 10 is released with PQC support
-
-        throw new NotImplementedException(
-            "ML-DSA-65 verification requires .NET 10 with PQC support. " +
-            "This is a preview implementation pending .NET 10 GA release.");
+        // Placeholder for HeroCrypt integration once available
+        throw new NotSupportedException(
+            "ML-DSA-65 verification requires the HeroCrypt PQC package (pending release).");
 
         // Expected implementation (when .NET 10 PQC APIs are available):
         // try
@@ -550,13 +542,9 @@ public class SignatureValidator : ISignatureValidator
     /// <returns>True if signature is valid; otherwise, false.</returns>
     private static bool VerifyMlDsa87(byte[] data, byte[] signature, byte[] publicKeyBytes)
     {
-        // Note: This is a placeholder for the actual .NET 10 API
-        // The actual implementation will use System.Security.Cryptography ML-DSA APIs
-        // when .NET 10 is released with PQC support
-
-        throw new NotImplementedException(
-            "ML-DSA-87 verification requires .NET 10 with PQC support. " +
-            "This is a preview implementation pending .NET 10 GA release.");
+        // Placeholder for HeroCrypt integration once available
+        throw new NotSupportedException(
+            "ML-DSA-87 verification requires the HeroCrypt PQC package (pending release).");
 
         // Expected implementation (when .NET 10 PQC APIs are available):
         // try

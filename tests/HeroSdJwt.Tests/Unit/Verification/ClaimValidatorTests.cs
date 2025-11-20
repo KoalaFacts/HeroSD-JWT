@@ -75,7 +75,8 @@ public class ClaimValidatorTests
         var now = DateTimeOffset.UtcNow;
         var payload = CreatePayload(new
         {
-            nbf = now.AddHours(1).ToUnixTimeSeconds() // Not valid until 1 hour from now
+            nbf = now.AddHours(1).ToUnixTimeSeconds(), // Not valid until 1 hour from now
+            exp = now.AddHours(2).ToUnixTimeSeconds()
         });
 
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) };
@@ -94,7 +95,8 @@ public class ClaimValidatorTests
         var now = DateTimeOffset.UtcNow;
         var payload = CreatePayload(new
         {
-            nbf = now.AddMinutes(2).ToUnixTimeSeconds() // Valid in 2 minutes
+            nbf = now.AddMinutes(2).ToUnixTimeSeconds(), // Valid in 2 minutes
+            exp = now.AddHours(1).ToUnixTimeSeconds()
         });
 
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) }; // 5 min tolerance
@@ -107,7 +109,7 @@ public class ClaimValidatorTests
     }
 
     [Fact]
-    public void ValidateTemporalClaims_WithNoTemporalClaims_ReturnsTrue()
+    public void ValidateTemporalClaims_WithoutTemporalClaims_ReturnsFalse()
     {
         // Arrange - Token with no exp, nbf, or iat claims
         var payload = CreatePayload(new { sub = "user123" });
@@ -117,7 +119,7 @@ public class ClaimValidatorTests
         var result = new ClaimValidator().ValidateTemporalClaims(payload, options);
 
         // Assert
-        Assert.True(result, "Token without temporal claims should pass validation");
+        Assert.False(result, "Token without temporal claims should fail validation when exp is required");
     }
 
     [Fact]
@@ -385,7 +387,8 @@ public class ClaimValidatorTests
         var now = DateTimeOffset.UtcNow;
         var payload = CreatePayload(new
         {
-            iat = now.AddHours(2).ToUnixTimeSeconds() // Issued 2 hours in the future
+            iat = now.AddHours(2).ToUnixTimeSeconds(), // Issued 2 hours in the future
+            exp = now.AddHours(3).ToUnixTimeSeconds()
         });
 
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) };
@@ -404,7 +407,8 @@ public class ClaimValidatorTests
         var now = DateTimeOffset.UtcNow;
         var payload = CreatePayload(new
         {
-            iat = now.AddMinutes(2).ToUnixTimeSeconds() // Issued 2 minutes in future
+            iat = now.AddMinutes(2).ToUnixTimeSeconds(), // Issued 2 minutes in future
+            exp = now.AddHours(1).ToUnixTimeSeconds()
         });
 
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(5) }; // 5 min tolerance

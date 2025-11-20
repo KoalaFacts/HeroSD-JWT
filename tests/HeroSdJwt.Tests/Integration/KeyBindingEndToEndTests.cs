@@ -341,7 +341,9 @@ public class KeyBindingEndToEndTests
 
         var verificationOptions = new SdJwtVerificationOptions
         {
-            RequireKeyBinding = true  // Key binding required but not provided
+            RequireKeyBinding = true,  // Key binding required but not provided
+            ExpectedAudience = "https://verifier.example.com",
+            ExpectedNonce = "nonce123"
         };
         var verifier = TestHelpers.CreateVerifier(verificationOptions);
 
@@ -394,7 +396,9 @@ public class KeyBindingEndToEndTests
 
         var verificationOptions = new SdJwtVerificationOptions
         {
-            RequireKeyBinding = true
+            RequireKeyBinding = true,
+            ExpectedAudience = "https://verifier.example.com",
+            ExpectedNonce = "nonce123"
         };
         var verifier = TestHelpers.CreateVerifier(verificationOptions);
 

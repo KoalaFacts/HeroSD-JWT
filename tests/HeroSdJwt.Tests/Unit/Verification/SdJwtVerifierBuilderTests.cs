@@ -55,6 +55,8 @@ public class SdJwtVerifierBuilderTests
         // Act
         var verifier = SdJwtVerifierBuilder.Create()
             .RequireKeyBinding()
+            .WithExpectedAudience("https://verifier.example.com")
+            .WithExpectedNonce("nonce-123")
             .Build();
 
         // Assert
@@ -248,6 +250,7 @@ public class SdJwtVerifierBuilderTests
             .WithExpectedIssuer("https://issuer.example.com")
             .WithExpectedAudience("https://api.example.com")
             .WithExpectedHashAlgorithm(HashAlgorithm.Sha256)
+            .WithExpectedNonce("nonce-123")
             .WithRevocation(store, RevocationFailureMode.FailClosed)
             .RequireKeyBinding()
             .Build();

@@ -27,18 +27,20 @@ public class ClaimValidator : IClaimValidator
         var clockSkew = options.ClockSkew;
 
         // Validate expiration time (exp) - REQUIRED for SD-JWT per spec
-        if (payload.TryGetProperty("exp", out var expElement))
+        if (!payload.TryGetProperty("exp", out var expElement))
         {
-            if (!TryGetUnixTimestamp(expElement, out var exp))
-            {
-                return false;
-            }
+            return false; // Missing required exp claim
+        }
 
-            // Token is expired if current time > exp + clock skew
-            if (now > exp.AddSeconds(clockSkew.TotalSeconds))
-            {
-                return false;
-            }
+        if (!TryGetUnixTimestamp(expElement, out var exp))
+        {
+            return false;
+        }
+
+        // Token is expired if current time > exp + clock skew
+        if (now > exp.AddSeconds(clockSkew.TotalSeconds))
+        {
+            return false;
         }
 
         // Validate not-before time (nbf) - OPTIONAL

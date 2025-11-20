@@ -19,7 +19,7 @@ public class SdJwtVerificationOptions
     /// <summary>
     /// Gets whether key binding JWT is required.
     /// When true, presentations without key binding will fail verification.
-    /// Default is false (key binding is optional).
+    /// Default is false (key binding is optional unless explicitly enabled).
     /// </summary>
     public bool RequireKeyBinding { get; init; } = false;
 
@@ -73,6 +73,23 @@ public class SdJwtVerificationOptions
             throw new ArgumentException(
                 "Clock skew cannot exceed 5 minutes per security requirements",
                 nameof(ClockSkew));
+        }
+
+        if (RequireKeyBinding)
+        {
+            if (string.IsNullOrWhiteSpace(ExpectedAudience))
+            {
+                throw new ArgumentException(
+                    "Key binding requires an expected audience value.",
+                    nameof(ExpectedAudience));
+            }
+
+            if (string.IsNullOrWhiteSpace(ExpectedNonce))
+            {
+                throw new ArgumentException(
+                    "Key binding requires an expected nonce value.",
+                    nameof(ExpectedNonce));
+            }
         }
     }
 }

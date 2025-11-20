@@ -115,7 +115,9 @@ public class AuthenticationBuilderExtensionsTests
             options.VerificationOptions = new SdJwtVerificationOptions
             {
                 ClockSkew = TimeSpan.FromMinutes(3), // Within valid range (< 5 minutes)
-                RequireKeyBinding = true
+                RequireKeyBinding = true,
+                ExpectedAudience = "https://api.example.com",
+                ExpectedNonce = "test-nonce"
             };
         });
 

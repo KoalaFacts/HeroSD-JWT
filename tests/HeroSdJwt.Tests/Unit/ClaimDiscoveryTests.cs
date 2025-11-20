@@ -12,6 +12,7 @@ namespace HeroSdJwt.Tests.Unit;
 /// </summary>
 public class ClaimDiscoveryTests
 {
+    private static long DefaultExp => DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds();
     private static byte[] GenerateSecureTestKey()
     {
         var key = new byte[32];
@@ -26,6 +27,7 @@ public class ClaimDiscoveryTests
         var signingKey = GenerateSecureTestKey();
         var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
+            .WithClaim("exp", DefaultExp)
             .WithClaim("degrees", new[] { "PhD", "MBA" })
             .WithClaim("address", new { street = "Main St" })
             .MakeSelective("degrees[0]")
@@ -58,6 +60,7 @@ public class ClaimDiscoveryTests
         var signingKey = GenerateSecureTestKey();
         var builder = SdJwtIssuerBuilder.Create()
             .WithClaim("sub", "test")
+            .WithClaim("exp", DefaultExp)
             .WithClaim("degrees", new[] { "PhD" })
             .WithClaim("certifications", new[] { "AWS", "Azure" })
             .WithClaim("address", new { street = "Main St" })

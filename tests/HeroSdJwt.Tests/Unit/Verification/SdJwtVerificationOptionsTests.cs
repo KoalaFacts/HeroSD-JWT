@@ -131,7 +131,12 @@ public class SdJwtVerificationOptionsTests
     public void RequireKeyBinding_SetToTrue_StoresValue()
     {
         // Arrange
-        var options = new SdJwtVerificationOptions { RequireKeyBinding = true };
+        var options = new SdJwtVerificationOptions
+        {
+            RequireKeyBinding = true,
+            ExpectedAudience = "https://verifier.example.com",
+            ExpectedNonce = "nonce-required"
+        };
 
         // Act & Assert
         Assert.True(options.RequireKeyBinding);
@@ -358,6 +363,7 @@ public class SdJwtVerificationOptionsTests
         var options = new SdJwtVerificationOptions
         {
             RequireKeyBinding = true,
+            ExpectedAudience = "https://verifier.example.com",
             ExpectedNonce = "required-nonce"
         };
 
@@ -404,7 +410,9 @@ public class SdJwtVerificationOptionsTests
         var options = new SdJwtVerificationOptions
         {
             ClockSkew = TimeSpan.FromMinutes(3),
-            RequireKeyBinding = true
+            RequireKeyBinding = true,
+            ExpectedAudience = "https://verifier.example.com",
+            ExpectedNonce = "nonce-123"
         };
 
         // Act & Assert
@@ -434,7 +442,9 @@ public class SdJwtVerificationOptionsTests
         var options = new SdJwtVerificationOptions
         {
             ClockSkew = TimeSpan.FromMinutes(2),
-            RequireKeyBinding = true
+            RequireKeyBinding = true,
+            ExpectedAudience = "https://verifier.example.com",
+            ExpectedNonce = "nonce-immutable"
         };
 
         // Act - Verify we cannot modify after construction
