@@ -7,6 +7,9 @@
     <!-- Only enforce in CI if NUGET_LOCKED_MODE is explicitly set to 'true' -->
     <!-- This allows the first CI run to generate lock files without failing -->
     <RestoreLockedMode Condition="'$(NUGET_LOCKED_MODE)' == 'true'">true</RestoreLockedMode>
+
+    <!-- Enforce EditorConfig code style during build so style violations fail when TreatWarningsAsErrors=true -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <!-- Default target frameworks for all projects -->
