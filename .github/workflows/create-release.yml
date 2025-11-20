@@ -74,7 +74,6 @@ jobs:
         run: |
           dotnet pack src/HeroSdJwt/HeroSdJwt.csproj \
             --configuration Release \
-            --no-build \
             -p:PackageVersion=${{ inputs.version }} \
             -p:Version=${{ inputs.version }}
 
@@ -134,18 +133,20 @@ jobs:
       - name: Create release description footer
         id: release-notes
         run: |
-          # Create footer with installation and package info (GitHub will auto-generate the main content)
-          cat > release-footer.md << 'EOF'
+          VERSION="${{ inputs.version }}"
+
+          # Create footer with installation and package info
+          cat > release-footer.md <<EOF
 
           ---
 
           ### Installation
           ```bash
-          dotnet add package HeroSD-JWT --version ${{ inputs.version }}
+          dotnet add package HeroSD-JWT --version ${VERSION}
           ```
 
           ### Package Details
-          - **NuGet**: [HeroSD-JWT v${{ inputs.version }}](https://www.nuget.org/packages/HeroSD-JWT/${{ inputs.version }})
+          - **NuGet**: [HeroSD-JWT v${VERSION}](https://www.nuget.org/packages/HeroSD-JWT/${VERSION})
           - **Frameworks**: net8.0, net9.0, net10.0
           - **Dependencies**: Microsoft.Bcl.Memory (net8.0 only)
 
@@ -160,14 +161,29 @@ jobs:
           EOF
           echo "Release footer created with installation and package details"
 
+      - name: Generate release notes (auto + footer)
+        run: |
+          VERSION="${{ inputs.version }}"
+          TAG="v${VERSION}"
+
+          # Generate GitHub release notes body
+          gh api repos/${GITHUB_REPOSITORY}/releases/generate-notes \
+            -f tag_name="${TAG}" \
+            -f target_commitish="${GITHUB_SHA}" \
+            --jq .body > auto-notes.md
+
+          # Combine auto-notes with footer
+          cat auto-notes.md release-footer.md > release-notes.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create GitHub Release
         run: |
           echo "Creating release v${{ inputs.version }}..."
 
           gh release create v${{ inputs.version }} \
             --title "Release v${{ inputs.version }}" \
-            --generate-notes \
-            --notes-file release-footer.md \
+            --notes-file release-notes.md \
             src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg \
             src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg \
             release-sboms/*.json

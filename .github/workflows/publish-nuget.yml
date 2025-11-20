@@ -45,17 +45,27 @@ jobs:
         id: version
         run: |
           if [ "${{ github.event_name }}" == "workflow_run" ]; then
-            # Get the latest release tag when triggered by create-release workflow
-            TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
-            VERSION="${TAG#v}"  # Remove 'v' prefix if present
-            echo "Detected latest release: $TAG"
+            SHA="${{ github.event.workflow_run.head_sha }}"
+            echo "Resolving release tag for workflow_run head SHA: ${SHA}"
+
+            TAG=$(gh api repos/${GITHUB_REPOSITORY}/releases --paginate \
+              --jq ".[] | select(.target_commitish==\"${SHA}\") | .tag_name" | head -n 1)
+
+            if [ -z "${TAG}" ]; then
+              echo "Error: Could not find release matching commit ${SHA}"
+              exit 1
+            fi
+
+            VERSION="${TAG#v}"
+            echo "Matched release: ${TAG}"
           elif [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
-            TAG="v$VERSION"
+            TAG="v${VERSION}"
           else
             echo "Error: No version specified and not triggered by workflow_run"
             exit 1
           fi
+
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
           echo "Publishing version: $VERSION (tag: $TAG)"
@@ -131,7 +141,7 @@ jobs:
         with:
           subject-path: './packages/*.nupkg'
 
-      - name: NuGet login (OIDC → temporary API key)
+      - name: NuGet login (OIDC temporary API key)
         uses: NuGet/login@v1
         id: nuget-login
         with:
@@ -141,8 +151,8 @@ jobs:
 
       - name: Publish to NuGet.org using Trusted Publishing
         run: |
-          for pkg in ./packages/*.nupkg; do
-            if [[ "$pkg" != *".symbols."* ]]; then
+          for pkg in ./packages/*.nupkg ./packages/*.snupkg; do
+            if [ -f "$pkg" ]; then
               echo "Publishing $pkg..."
               dotnet nuget push "$pkg" \
                 --source https://api.nuget.org/v3/index.json \
@@ -164,7 +174,7 @@ jobs:
       - name: Create release summary
         if: success()
         run: |
-          echo "## ✅ NuGet Package Published" >> $GITHUB_STEP_SUMMARY
+          echo "## NuGet Package Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Package**: https://www.nuget.org/packages/HeroSD-JWT/${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY

@@ -6,7 +6,7 @@ on:
     paths:
       - 'src/**'
       - 'benchmarks/**'
-      - '.github/workflows/performance-benchmarks.yml'
+      - '.github/workflows/perform-benchmarks.yml'
   push:
     branches: [ main ]
     paths:
@@ -73,12 +73,33 @@ jobs:
           --job short \
           --exporters json
 
+    - name: Combine benchmark reports ${{ matrix.dotnet-version }}
+      run: |
+        REPORT_DIR=benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results
+        OUTPUT_FILE=${REPORT_DIR}/combined-report-${{ matrix.framework }}.json
+
+        if [ ! -d "$REPORT_DIR" ]; then
+          echo "Error: BenchmarkDotNet results directory not found: $REPORT_DIR"
+          exit 1
+        fi
+
+        FILES=$(find "$REPORT_DIR" -maxdepth 1 -name "*-report-full.json" -print)
+
+        if [ -z "$FILES" ]; then
+          echo "Error: No BenchmarkDotNet JSON reports found in $REPORT_DIR"
+          exit 1
+        fi
+
+        # Merge all Benchmarks arrays into one file while keeping the first file's metadata
+        jq -s '.[0] * {Benchmarks: (map(.Benchmarks // []) | add)}' $FILES > "$OUTPUT_FILE"
+        echo "Combined benchmark report: $OUTPUT_FILE"
+
     - name: Store benchmark result ${{ matrix.dotnet-version }}
       id: storebenchmark
       uses: benchmark-action/github-action-benchmark@v1
       with:
         tool: 'benchmarkdotnet'
-        output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/combined-report-full-${{ matrix.framework }}.json
+        output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/combined-report-${{ matrix.framework }}.json
         github-token: ${{ secrets.GITHUB_TOKEN }}
         comment-on-alert: true
         fail-on-alert: true

@@ -62,7 +62,7 @@ jobs:
 
     - name: Publish test results
       uses: EnricoMi/publish-unit-test-result-action@v2
-      if: always() && runner.os == 'ubuntu-latest' && matrix.dotnet-version == '10.0.x'
+      if: always() && matrix.os == 'ubuntu-latest' && matrix.dotnet-version == '10.0.x'
       with:
         files: 'TestResults/**/*.trx'
         check_name: 'Test Results (${{ matrix.os }} - .NET ${{ matrix.dotnet-version }})'

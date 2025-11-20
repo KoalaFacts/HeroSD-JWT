@@ -120,7 +120,7 @@ jobs:
 
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && steps.msdo.outputs.sarifFile != ''
         with:
           sarif_file: ${{ steps.msdo.outputs.sarifFile }}
 
@@ -137,12 +137,13 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
+    if: ${{ always() }}
     needs: [nuget-audit, microsoft-security-devops]
 
     steps:
       - name: Create security summary
         run: |
-          echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Scan completed**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
