@@ -10,10 +10,10 @@ See [GitHub Release](https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.1.
 See [GitHub Release](https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.1.5) for details.
 
 
-## [1.1.4] - 2025-11-20
+## [Unreleased]
 
-See [GitHub Release](https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.1.4) for details.
-
+- Align ECDSA handling with JWS spec: ES256/384/512 signatures are emitted as JOSE raw R||S and verifiers accept JOSE format.
+- Signature verification hardening: Added algorithm/key-type guardrails while keeping ExpectedKeyType default flexible for HMAC verification.
 
 ## [1.1.4] - 2025-11-20
 
@@ -47,3 +47,4 @@ See [GitHub Release](https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.0.
 ## [1.0.0] - 2025-01-21
 
 See [GitHub Release](https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.0.0) for details.
+

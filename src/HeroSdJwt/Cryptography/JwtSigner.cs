@@ -11,6 +11,8 @@ namespace HeroSdJwt.Cryptography;
 /// <summary>
 /// Creates and signs JWTs using various signature algorithms.
 /// Supports HS256, HS384, HS512, RS256, PS256, ES256, ES384, ES512, and EdDSA per RFC 7518.
+/// For ECDSA (ES256/ES384/ES512) the signature is emitted in JOSE raw R||S format per JWS specification
+/// (not ASN.1 DER).
 /// </summary>
 public class JwtSigner : IJwtSigner
 {
@@ -163,7 +165,8 @@ public class JwtSigner : IJwtSigner
                     nameof(privateKeyBytes));
             }
 
-            return ecdsa.SignData(data, HashAlgorithmName.SHA256);
+            var derSignature = ecdsa.SignData(data, HashAlgorithmName.SHA256);
+            return ConvertDerToJose(derSignature, coordinateSize: 32);
         }
         catch (CryptographicException ex)
         {
@@ -260,7 +263,8 @@ public class JwtSigner : IJwtSigner
                     nameof(privateKeyBytes));
             }
 
-            return ecdsa.SignData(data, HashAlgorithmName.SHA384);
+            var derSignature = ecdsa.SignData(data, HashAlgorithmName.SHA384);
+            return ConvertDerToJose(derSignature, coordinateSize: 48);
         }
         catch (CryptographicException ex)
         {
@@ -291,7 +295,8 @@ public class JwtSigner : IJwtSigner
                     nameof(privateKeyBytes));
             }
 
-            return ecdsa.SignData(data, HashAlgorithmName.SHA512); // DER-encoded ECDSA signature
+            var derSignature = ecdsa.SignData(data, HashAlgorithmName.SHA512);
+            return ConvertDerToJose(derSignature, coordinateSize: 66); // P-521 outputs 132 bytes (66x2)
         }
         catch (CryptographicException ex)
         {
@@ -506,3 +511,4 @@ public class JwtSigner : IJwtSigner
     }
 #endif
 }
+

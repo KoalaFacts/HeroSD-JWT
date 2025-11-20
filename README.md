@@ -338,6 +338,9 @@ var sdJwt = issuer.CreateSdJwt(
     SignatureAlgorithm.HS256);
 ```
 
+- ECDSA signatures (ES256/ES384/ES512) follow the JWS spec and are emitted in JOSE raw `R||S` format (not ASN.1 DER); verifiers accept the JOSE form.
+- When verifying, set `SdJwtVerificationOptions.ExpectedKeyType` to `Symmetric` for HS* secrets, `Asymmetric` for RSA/ECDSA/EdDSA public keys, or leave `Either` for mixed scenarios. This guards against alg/key-type confusion.
+
 **Array Element Example**:
 ```csharp
 var claims = new Dictionary<string, object>
@@ -435,13 +438,13 @@ Console.WriteLine($"Birthdate: {result.DisclosedClaims["birthdate"]}");
 var result = verifier.TryVerifyPresentation(presentationString, verificationKey);
 if (result.IsValid)
 {
-    Console.WriteLine("✅ Verification succeeded!");
+    Console.WriteLine("Verification succeeded!");
     var birthdate = result.DisclosedClaims["birthdate"];
     Console.WriteLine($"Birthdate: {birthdate}");
 }
 else
 {
-    Console.WriteLine("❌ Verification failed!");
+    Console.WriteLine("Verification failed!");
     foreach (var error in result.Errors)
     {
         Console.WriteLine($"Error: {error}");
@@ -454,24 +457,24 @@ else
 The library follows the three-party SD-JWT model:
 
 ```
-┌─────────┐                  ┌────────┐                  ┌──────────┐
-│ Issuer  │                  │ Holder │                  │ Verifier │
-└────┬────┘                  └────┬───┘                  └────┬─────┘
-     │                            │                           │
-     │  1. Create SD-JWT          │                           │
-     │  with selective disclosures│                           │
-     │───────────────────────────>│                           │
-     │                            │                           │
-     │                            │  2. Select claims         │
-     │                            │  to disclose              │
-     │                            │                           │
-     │                            │  3. Create presentation   │
-     │                            │──────────────────────────>│
-     │                            │                           │
-     │                            │                           │  4. Verify
-     │                            │                           │  signature
-     │                            │                           │  & digests
-     │                            │                           │
++---------+                  +--------+                  +----------+
+| Issuer  |                  | Holder |                  | Verifier |
++----+----+                  +----+---+                  +----+-----+
+     |                            |                           |
+     |  1. Create SD-JWT          |                           |
+     |  with selective disclosures|                           |
+     |--------------------------->|                           |
+     |                            |                           |
+     |                            |  2. Select claims         |
+     |                            |  to disclose              |
+     |                            |                           |
+     |                            |  3. Create presentation   |
+     |                            |-------------------------->|
+     |                            |                           |
+     |                            |                           |  4. Verify
+     |                            |                           |  signature
+     |                            |                           |  & digests
+     |                            |                           |
 ```
 
 ## Security
@@ -634,3 +637,4 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 - **Issues**: Report bugs at https://github.com/KoalaFacts/HeroSD-JWT/issues
 - **Discussions**: Community support via GitHub Discussions
+

@@ -10,6 +10,7 @@ namespace HeroSdJwt.Verification;
 
 /// <summary>
 /// Validates JWT signatures using cryptographic verification.
+/// ECDSA signatures (ES256/ES384/ES512) accept JOSE raw R||S and convert to DER for verification per JWS spec.
 /// </summary>
 public class SignatureValidator : ISignatureValidator
 {
@@ -256,14 +257,13 @@ public class SignatureValidator : ISignatureValidator
                 return true;
             }
 
-            ReadOnlySpan<byte> signatureToTry = signature;
-            if (signature.Length == 32 * 2 && (signature.Length == 0 || signature[0] != 0x30))
+            if (signature.Length == 32 * 2)
             {
-                signatureToTry = ConvertJoseToDerSignature(signature, coordinateSize: 32);
+                var derSignature = ConvertJoseToDerSignature(signature, coordinateSize: 32);
+                return ecdsa.VerifyData(data, derSignature, HashAlgorithmName.SHA256);
             }
 
-            var hash = SHA256.HashData(data);
-            return ecdsa.VerifyHash(hash, signatureToTry);
+            return false;
         }
         catch (SdJwtException)
         {
@@ -311,14 +311,13 @@ public class SignatureValidator : ISignatureValidator
                 return true;
             }
 
-            ReadOnlySpan<byte> signatureToTry = signature;
-            if (signature.Length == 48 * 2 && (signature.Length == 0 || signature[0] != 0x30))
+            if (signature.Length == 48 * 2)
             {
-                signatureToTry = ConvertJoseToDerSignature(signature, coordinateSize: 48);
+                var derSignature = ConvertJoseToDerSignature(signature, coordinateSize: 48);
+                return ecdsa.VerifyData(data, derSignature, HashAlgorithmName.SHA384);
             }
 
-            var hash = SHA384.HashData(data);
-            return ecdsa.VerifyHash(hash, signatureToTry);
+            return false;
         }
         catch (SdJwtException)
         {
@@ -366,14 +365,13 @@ public class SignatureValidator : ISignatureValidator
                 return true;
             }
 
-            ReadOnlySpan<byte> signatureToTry = signature;
-            if (signature.Length == 66 * 2 && (signature.Length == 0 || signature[0] != 0x30))
+            if (signature.Length == 66 * 2)
             {
-                signatureToTry = ConvertJoseToDerSignature(signature, coordinateSize: 66); // P-521 coordinate size in bytes
+                var derSignature = ConvertJoseToDerSignature(signature, coordinateSize: 66); // P-521 coordinate size in bytes
+                return ecdsa.VerifyData(data, derSignature, HashAlgorithmName.SHA512);
             }
 
-            var hash = SHA512.HashData(data);
-            return ecdsa.VerifyHash(hash, signatureToTry);
+            return false;
         }
         catch (SdJwtException)
         {
@@ -546,8 +544,8 @@ public class SignatureValidator : ISignatureValidator
     /// </summary>
     private static byte[] ConvertJoseToDerSignature(ReadOnlySpan<byte> joseSignature, int coordinateSize)
     {
-        // If this is already DER (starts with SEQUENCE tag), return as-is
-        if (joseSignature.Length > 0 && joseSignature[0] == 0x30)
+        // If already DER (starts with SEQUENCE tag) and not a fixed-length raw signature, return as-is.
+        if (joseSignature.Length > 0 && joseSignature[0] == 0x30 && joseSignature.Length != coordinateSize * 2)
         {
             return joseSignature.ToArray();
         }
@@ -650,3 +648,4 @@ public class SignatureValidator : ISignatureValidator
 #endif
 
 }
+
