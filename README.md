@@ -28,6 +28,7 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
 - [Security](#security)
 - [Requirements](#requirements)
 - [Native AOT and Trimming](#native-aot-and-trimming-compatibility)
+- [Development](#development)
 - [Testing](#testing)
 - [Performance](#performance)
 - [Roadmap](#roadmap)
@@ -542,6 +543,25 @@ var claims = new Dictionary<string, object>
 };
 ```
 
+## Development
+
+### Building the Project
+
+The project uses the modern .slnx solution format:
+
+```bash
+# Build the entire solution
+dotnet build HeroSD-JWT.slnx
+
+# Build specific configuration
+dotnet build HeroSD-JWT.slnx --configuration Release
+
+# Restore dependencies
+dotnet restore HeroSD-JWT.slnx
+```
+
+All projects multi-target .NET 8.0, .NET 9.0, and .NET 10.0. The build configuration is centrally managed in `Directory.Build.props`.
+
 ## Testing
 
 ```bash
@@ -550,7 +570,22 @@ dotnet test
 
 # Run with verbose output
 dotnet test --verbosity normal
+
+# Run integration tests only
+dotnet test --filter "Category=Integration"
+
+# Run unit tests only
+dotnet test --filter "Category!=Integration"
 ```
+
+### Continuous Integration
+
+The project includes comprehensive CI/CD workflows:
+
+- **CI Pipeline** ([ci.yml](.github/workflows/ci.yml)) - Runs on every push/PR across all platforms and frameworks
+- **Nightly Integration Tests** ([run-integrations.yml](.github/workflows/run-integrations.yml)) - Comprehensive test suite running daily at 2 AM UTC
+- **Security Scanning** ([scan-security.yml](.github/workflows/scan-security.yml)) - Automated vulnerability and dependency audits
+- **Performance Benchmarks** ([perform-benchmarks.yml](.github/workflows/perform-benchmarks.yml)) - Continuous performance monitoring
 
 ## Performance
 
