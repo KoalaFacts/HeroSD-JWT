@@ -27,6 +27,7 @@ permissions:
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
+  NUGET_LOCKED_MODE: true
 
 jobs:
   benchmark:
@@ -53,6 +54,8 @@ jobs:
       uses: actions/setup-dotnet@v5
       with:
         dotnet-version: ${{ matrix.dotnet-version }}
+        cache: true
+        cache-dependency-path: '**/packages.lock.json'
 
     - name: Restore dependencies
       run: dotnet restore -p:TargetFramework=${{ matrix.framework }} 
