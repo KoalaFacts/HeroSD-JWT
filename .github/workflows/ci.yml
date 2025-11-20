@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write  # Allow committing generated lock files
+  contents: read
   checks: write
   pull-requests: write
   security-events: write  # For dependency review
