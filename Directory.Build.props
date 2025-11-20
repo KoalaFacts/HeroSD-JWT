@@ -1,19 +1,5 @@
 <Project>
   <PropertyGroup>
-    <!-- Enable NuGet package lock files for reproducible builds -->
-    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-
-    <!-- Restore lock file mode: LockedMode ensures lock file is up to date -->
-    <!-- Only enforce in CI if NUGET_LOCKED_MODE is explicitly set to 'true' -->
-    <!-- This allows the first CI run to generate lock files without failing -->
-    <RestoreLockedMode Condition="'$(NUGET_LOCKED_MODE)' == 'true'">true</RestoreLockedMode>
-
-    <!-- Enforce EditorConfig code style during build so style violations fail when TreatWarningsAsErrors=true -->
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-  </PropertyGroup>
-
-  <!-- Default target frameworks for all projects -->
-  <PropertyGroup>
     <!-- Default multi-targeting for all projects -->
     <!-- Individual projects can override if they need specific frameworks (e.g., source generators using netstandard2.0) -->
     <SupportedTargetFrameworks>net8.0;net9.0;net10.0</SupportedTargetFrameworks>
@@ -21,5 +7,48 @@
     <!-- Corresponding SDK versions for CI/CD workflows -->
     <!-- Format: Major.Minor.x (e.g., 8.0.x, 9.0.x, 10.0.x) -->
     <SupportedSdkVersions>8.0.x;9.0.x;10.0.x</SupportedSdkVersions>
+
+    <!-- Enable NuGet package lock files for reproducible builds -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode>true</RestoreLockedMode>
+
+    <!-- Enforce EditorConfig code style during build so style violations fail when TreatWarningsAsErrors=true -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <!-- Compiler and build settings -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+    <RunAnalyzersDuringCompilation>true</RunAnalyzersDuringCompilation>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <!-- Source Link and reproducible builds -->
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- Test and Benchmark project settings -->
+  <PropertyGroup
+    Condition="$(MSBuildProjectName.Contains('Tests')) Or $(MSBuildProjectName.Contains('Benchmarks'))">
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- CS1591: Missing XML comment for publicly visible type or member -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 </Project>
