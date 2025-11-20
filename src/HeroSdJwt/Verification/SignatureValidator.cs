@@ -2,6 +2,7 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Internal.Ed25519;
 using System.Security.Cryptography;
+using System.Formats.Asn1;
 using System.Text.Json;
 using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 
@@ -250,7 +251,8 @@ public class SignatureValidator : ISignatureValidator
                     ErrorCode.InvalidInput);
             }
 
-            return ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA256);
+            var derSignature = ConvertJoseToDerSignature(signature, coordinateSize: 32);
+            return derSignature != null && ecdsa.VerifyData(data, derSignature, HashAlgorithmName.SHA256);
         }
         catch (SdJwtException)
         {
@@ -293,7 +295,8 @@ public class SignatureValidator : ISignatureValidator
                     ErrorCode.InvalidInput);
             }
 
-            return ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA384);
+            var derSignature = ConvertJoseToDerSignature(signature, coordinateSize: 48);
+            return derSignature != null && ecdsa.VerifyData(data, derSignature, HashAlgorithmName.SHA384);
         }
         catch (SdJwtException)
         {
@@ -336,7 +339,8 @@ public class SignatureValidator : ISignatureValidator
                     ErrorCode.InvalidInput);
             }
 
-            return ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA512);
+            var derSignature = ConvertJoseToDerSignature(signature, coordinateSize: 66); // P-521 coordinate size in bytes
+            return derSignature != null && ecdsa.VerifyData(data, derSignature, HashAlgorithmName.SHA512);
         }
         catch (SdJwtException)
         {
@@ -501,6 +505,52 @@ public class SignatureValidator : ISignatureValidator
             "EdDSA" => true,
             _ => false
         };
+    }
+
+    /// <summary>
+    /// Converts a JOSE (R||S) ECDSA signature into DER format expected by ECDsa.VerifyData.
+    /// Returns null when the signature length is invalid.
+    /// </summary>
+    private static byte[]? ConvertJoseToDerSignature(ReadOnlySpan<byte> joseSignature, int coordinateSize)
+    {
+        if (joseSignature.Length != coordinateSize * 2)
+        {
+            return null;
+        }
+
+        var r = joseSignature[..coordinateSize];
+        var s = joseSignature[coordinateSize..];
+
+        var writer = new AsnWriter(AsnEncodingRules.DER);
+        writer.PushSequence();
+        WriteInteger(writer, r);
+        WriteInteger(writer, s);
+        writer.PopSequence();
+        return writer.Encode();
+    }
+
+    private static void WriteInteger(AsnWriter writer, ReadOnlySpan<byte> value)
+    {
+        // Trim leading zeros
+        int offset = 0;
+        while (offset < value.Length && value[offset] == 0x00)
+        {
+            offset++;
+        }
+
+        var trimmed = value[offset..];
+
+        // Ensure positive integer by prefixing 0x00 when high bit is set
+        if (trimmed.Length == 0 || (trimmed[0] & 0x80) != 0)
+        {
+            Span<byte> padded = stackalloc byte[trimmed.Length + 1];
+            trimmed.CopyTo(padded[1..]);
+            writer.WriteInteger(padded);
+        }
+        else
+        {
+            writer.WriteInteger(trimmed);
+        }
     }
 
 #if NET10_0_OR_GREATER

@@ -397,6 +397,49 @@ public class SdJwtVerifier : ISdJwtVerifier
                 }
             }
 
+            // Parse JWT structure up front
+            var jwtParts = jwt.Split('.');
+            if (jwtParts.Length != 3)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("Invalid JWT format");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            // Parse JWT header for algorithm and kid extraction
+            JsonElement header;
+            try
+            {
+                var headerJson = Base64UrlEncoder.DecodeString(jwtParts[0]);
+                header = JsonDocument.Parse(headerJson).RootElement;
+            }
+            catch (Exception ex)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add($"Failed to parse JWT header: {ex.Message}");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            // Validate algorithm vs expected key type before signature verification to prevent confusion attacks
+            if (!header.TryGetProperty("alg", out var algElement) || algElement.ValueKind != JsonValueKind.String)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("JWT header missing required 'alg' claim");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            var alg = algElement.GetString() ?? string.Empty;
+            try
+            {
+                ValidateAlgorithmAgainstKeyType(alg, _options.ExpectedKeyType);
+            }
+            catch (SdJwtException ex)
+            {
+                errors.Add(ex.ErrorCode);
+                errorDetails.Add(ex.Message);
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
             // Step 1: Verify JWT signature
             bool signatureValid = false;
             try
@@ -424,14 +467,6 @@ public class SdJwtVerifier : ISdJwtVerifier
             }
 
             // Step 2: Parse JWT payload
-            var jwtParts = jwt.Split('.');
-            if (jwtParts.Length != 3)
-            {
-                errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add("Invalid JWT format");
-                return new VerificationResult(errors, string.Join("; ", errorDetails));
-            }
-
             JsonElement payload;
             try
             {
@@ -442,20 +477,6 @@ public class SdJwtVerifier : ISdJwtVerifier
             {
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add($"Failed to parse JWT payload: {ex.Message}");
-                return new VerificationResult(errors, string.Join("; ", errorDetails));
-            }
-
-            // Parse JWT header for kid extraction (needed for key revocation check)
-            JsonElement header;
-            try
-            {
-                var headerJson = Base64UrlEncoder.DecodeString(jwtParts[0]);
-                header = JsonDocument.Parse(headerJson).RootElement;
-            }
-            catch (Exception ex)
-            {
-                errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add($"Failed to parse JWT header: {ex.Message}");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
@@ -931,6 +952,40 @@ public class SdJwtVerifier : ISdJwtVerifier
             errors.Add(ErrorCode.InvalidInput);
             errorDetails.Add($"Revocation check failed: {ex.Message}");
             throw new SdJwtException("Revocation check failed (fail-closed mode)", ErrorCode.InvalidInput, ex);
+        }
+    }
+
+    /// <summary>
+    /// Ensures the JWT 'alg' header value aligns with the expected verification key type to prevent alg/key confusion.
+    /// </summary>
+    private static void ValidateAlgorithmAgainstKeyType(string alg, VerificationKeyType expectedKeyType)
+    {
+        if (string.IsNullOrWhiteSpace(alg))
+        {
+            throw new SdJwtException("JWT 'alg' claim cannot be empty", ErrorCode.InvalidInput);
+        }
+
+        bool isHmac = alg.StartsWith("HS", StringComparison.OrdinalIgnoreCase);
+        bool isAsymmetric =
+            alg.StartsWith("RS", StringComparison.OrdinalIgnoreCase) ||
+            alg.StartsWith("PS", StringComparison.OrdinalIgnoreCase) ||
+            alg.StartsWith("ES", StringComparison.OrdinalIgnoreCase) ||
+            alg.Equals("EdDSA", StringComparison.OrdinalIgnoreCase) ||
+            alg.StartsWith("MLDSA", StringComparison.OrdinalIgnoreCase);
+
+        // If expected is Either, do nothing and let signature validator enforce alg support.
+        if (expectedKeyType == VerificationKeyType.Asymmetric && isHmac)
+        {
+            throw new SdJwtException(
+                "HMAC-based algorithms (HS*) are not allowed when using asymmetric verification keys.",
+                ErrorCode.AlgorithmConfusion);
+        }
+
+        if (expectedKeyType == VerificationKeyType.Symmetric && isAsymmetric)
+        {
+            throw new SdJwtException(
+                "Asymmetric algorithms (RS/PS/ES/EdDSA/MLDSA) are not allowed when using symmetric verification keys.",
+                ErrorCode.AlgorithmConfusion);
         }
     }
 }

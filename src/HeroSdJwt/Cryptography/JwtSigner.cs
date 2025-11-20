@@ -2,6 +2,7 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.Internal.Ed25519;
 using HeroSdJwt.Primitives;
 using System.Buffers;
+using System.Formats.Asn1;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -162,7 +163,8 @@ public class JwtSigner : IJwtSigner
                     nameof(privateKeyBytes));
             }
 
-            return ecdsa.SignData(data, HashAlgorithmName.SHA256);
+            var derSignature = ecdsa.SignData(data, HashAlgorithmName.SHA256);
+            return ConvertDerToJose(derSignature, coordinateSize: 32);
         }
         catch (CryptographicException ex)
         {
@@ -259,7 +261,8 @@ public class JwtSigner : IJwtSigner
                     nameof(privateKeyBytes));
             }
 
-            return ecdsa.SignData(data, HashAlgorithmName.SHA384);
+            var derSignature = ecdsa.SignData(data, HashAlgorithmName.SHA384);
+            return ConvertDerToJose(derSignature, coordinateSize: 48);
         }
         catch (CryptographicException ex)
         {
@@ -290,7 +293,8 @@ public class JwtSigner : IJwtSigner
                     nameof(privateKeyBytes));
             }
 
-            return ecdsa.SignData(data, HashAlgorithmName.SHA512);
+            var derSignature = ecdsa.SignData(data, HashAlgorithmName.SHA512);
+            return ConvertDerToJose(derSignature, coordinateSize: 66); // P-521 coordinate size in bytes
         }
         catch (CryptographicException ex)
         {
@@ -401,6 +405,45 @@ public class JwtSigner : IJwtSigner
                 element.WriteTo(writer);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Converts a DER-encoded ECDSA signature to the JOSE (R||S) format required by JWS.
+    /// </summary>
+    private static byte[] ConvertDerToJose(ReadOnlySpan<byte> derSignature, int coordinateSize)
+    {
+        var reader = new AsnReader(derSignature, AsnEncodingRules.DER);
+        var sequence = reader.ReadSequence();
+        var rBytes = sequence.ReadIntegerBytes().ToArray();
+        var sBytes = sequence.ReadIntegerBytes().ToArray();
+
+        if (sequence.HasData || reader.HasData)
+        {
+            throw new CryptographicException("Invalid ECDSA signature format.");
+        }
+
+        var output = new byte[coordinateSize * 2];
+        CopyUnsignedBigInteger(rBytes, output.AsSpan(0, coordinateSize));
+        CopyUnsignedBigInteger(sBytes, output.AsSpan(coordinateSize, coordinateSize));
+        return output;
+    }
+
+    /// <summary>
+    /// Right-aligns an unsigned big-endian integer into a fixed-length buffer, trimming leading zero padding.
+    /// </summary>
+    private static void CopyUnsignedBigInteger(ReadOnlySpan<byte> value, Span<byte> destination)
+    {
+        if (value.Length > 0 && value[0] == 0x00)
+        {
+            value = value[1..];
+        }
+
+        if (value.Length > destination.Length)
+        {
+            throw new CryptographicException("ECDSA signature integer is too large for the target coordinate size.");
+        }
+
+        value.CopyTo(destination[(destination.Length - value.Length)..]);
     }
 
 #if NET10_0_OR_GREATER

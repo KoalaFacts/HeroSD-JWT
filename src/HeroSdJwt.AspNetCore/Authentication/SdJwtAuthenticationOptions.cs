@@ -14,7 +14,9 @@ public class SdJwtAuthenticationOptions : AuthenticationSchemeOptions
     /// </summary>
     public SdJwtVerificationOptions VerificationOptions { get; set; } = new SdJwtVerificationOptions
     {
-        ClockSkew = TimeSpan.FromMinutes(5)
+        ClockSkew = TimeSpan.FromMinutes(5),
+        RequireKeyBinding = false,
+        ExpectedKeyType = VerificationKeyType.Asymmetric
     };
 
     /// <summary>
@@ -73,6 +75,12 @@ public class SdJwtAuthenticationOptions : AuthenticationSchemeOptions
 
         // Validate core verification options
         VerificationOptions?.Validate();
+
+        if (string.IsNullOrWhiteSpace(VerificationOptions?.ExpectedAudience))
+        {
+            throw new InvalidOperationException(
+                "ExpectedAudience must be configured for SD-JWT authentication to prevent token replay across audiences.");
+        }
 
         // Validate key configuration
         if (KeyResolver == null && FallbackKey == null)

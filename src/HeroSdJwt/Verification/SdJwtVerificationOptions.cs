@@ -1,5 +1,6 @@
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 using HeroSdJwt.Verification.Revocation;
+using HeroSdJwt.Primitives;
 
 namespace HeroSdJwt.Verification;
 
@@ -50,6 +51,12 @@ public class SdJwtVerificationOptions
     /// Default is null (nonce not validated).
     /// </summary>
     public string? ExpectedNonce { get; init; }
+
+    /// <summary>
+    /// Gets the expected type of verification key. Defaults to Asymmetric to prevent HS*/SPKI confusion.
+    /// Set to Symmetric when verifying HMAC-based tokens.
+    /// </summary>
+    public VerificationKeyType ExpectedKeyType { get; init; } = VerificationKeyType.Asymmetric;
 
     /// <summary>
     /// Gets the revocation options for token revocation checking.
