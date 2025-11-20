@@ -63,21 +63,20 @@ public class KeyGenerator : IKeyGenerator
         return new KeyPair(expandedPrivateKey, publicKey);
     }
 
-#if NET10_0_OR_GREATER
     /// <inheritdoc/>
     public KeyPair GenerateMlDsa65KeyPair()
     {
-        // ML-DSA-65 key generation using .NET 10 System.Security.Cryptography
-        // FIPS 204 specifies ML-DSA with security parameter sets
-        // ML-DSA-65: security level 3 (~192-bit classical strength)
-
+#if NET10_0_OR_GREATER
         // Note: This is a placeholder for the actual .NET 10 API
         // The actual implementation will use System.Security.Cryptography.MLDsa65 or similar
         // when .NET 10 is released with PQC support
-
         throw new NotImplementedException(
             "ML-DSA-65 key generation requires .NET 10 with PQC support. " +
             "This is a preview implementation pending .NET 10 GA release.");
+#else
+        throw new NotSupportedException(
+            "ML-DSA-65 key generation requires .NET 10 or later.");
+#endif
 
         // Expected implementation (when .NET 10 PQC APIs are available):
         // using var mlDsa = MLDsa65.Create();
@@ -89,10 +88,7 @@ public class KeyGenerator : IKeyGenerator
     /// <inheritdoc/>
     public KeyPair GenerateMlDsa87KeyPair()
     {
-        // ML-DSA-87 key generation using .NET 10 System.Security.Cryptography
-        // FIPS 204 specifies ML-DSA with security parameter sets
-        // ML-DSA-87: security level 5 (~256-bit classical strength)
-
+#if NET10_0_OR_GREATER
         // Note: This is a placeholder for the actual .NET 10 API
         // The actual implementation will use System.Security.Cryptography.MLDsa87 or similar
         // when .NET 10 is released with PQC support
@@ -100,6 +96,10 @@ public class KeyGenerator : IKeyGenerator
         throw new NotImplementedException(
             "ML-DSA-87 key generation requires .NET 10 with PQC support. " +
             "This is a preview implementation pending .NET 10 GA release.");
+#else
+        throw new NotSupportedException(
+            "ML-DSA-87 key generation requires .NET 10 or later.");
+#endif
 
         // Expected implementation (when .NET 10 PQC APIs are available):
         // using var mlDsa = MLDsa87.Create();
@@ -107,5 +107,4 @@ public class KeyGenerator : IKeyGenerator
         // var publicKey = mlDsa.ExportPublicKey();
         // return new KeyPair(privateKey, publicKey);
     }
-#endif
 }

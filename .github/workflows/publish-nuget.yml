@@ -72,6 +72,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Record version in summary
+        run: |
+          echo "## Publishing NuGet package" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Detected version: ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag: ${{ steps.version.outputs.TAG }}" >> $GITHUB_STEP_SUMMARY
+
       - name: Validate version format
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
@@ -188,3 +195,4 @@ jobs:
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "- Package will be available on NuGet.org within 5-10 minutes" >> $GITHUB_STEP_SUMMARY
           echo "- Verify at: https://www.nuget.org/packages/HeroSD-JWT" >> $GITHUB_STEP_SUMMARY
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Publish NuGet v{0}', inputs.version || 'unspecified') || 'Publish NuGet (from create-release)' }}

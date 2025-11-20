@@ -34,7 +34,6 @@ public interface IKeyGenerator
     /// <returns>Key pair with 64-byte expanded private key and 32-byte raw public key.</returns>
     KeyPair GenerateEd25519KeyPair();
 
-#if NET10_0_OR_GREATER
     /// <summary>
     /// Generates an ML-DSA-65 key pair for post-quantum digital signatures.
     /// ML-DSA (Module-Lattice-Based Digital Signature Algorithm) provides security level 3 (~192-bit classical equivalent).
@@ -54,5 +53,4 @@ public interface IKeyGenerator
     /// Requires .NET 10 or later.
     /// </remarks>
     KeyPair GenerateMlDsa87KeyPair();
-#endif
 }
