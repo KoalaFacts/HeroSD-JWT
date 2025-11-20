@@ -582,6 +582,19 @@ dotnet test --filter "Category=Integration"
 dotnet test --filter "Category!=Integration"
 ```
 
+### Distributed Replay Protection & Revocation
+
+For multi-node deployments, use the distributed adapters backed by `IDistributedCache` (e.g., Redis/SQL Server memory cache):
+
+```csharp
+builder.Services
+    .AddSdJwtServices()
+    .AddSdJwtDistributedReplayProtection() // IJtiCache via distributed cache
+    .AddSdJwtDistributedRevocation();      // IRevocationStore via distributed cache
+```
+
+The same `SdJwtVerifier` instance implements both sync and async interfaces; the ASP.NET handler will prefer the async path when available.
+
 ### Continuous Integration
 
 The project includes comprehensive CI/CD workflows:

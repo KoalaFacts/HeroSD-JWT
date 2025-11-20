@@ -5,6 +5,8 @@
 - Align ECDSA handling with JWS spec: ES256/384/512 signatures are emitted as JOSE raw R||S and verifiers accept JOSE format.
 - Signature verification hardening: Algorithm/key-type guardrails with default `ExpectedKeyType` tightened to `Asymmetric` (set to `Symmetric` for HS*).
 - Added builder hook `.WithExpectedKeyType(...)` for configuring key-type policy via `SdJwtVerifierBuilder`.
+- Added async verification APIs (`ISdJwtVerifierAsync`) so replay protection and revocation checks no longer block when using async caches/stores.
+- ASP.NET handler now prefers async verification when available; in-memory revocation cleanup loop moved to non-blocking `PeriodicTimer`.
 
 ## [1.1.7] - 2025-11-20
 

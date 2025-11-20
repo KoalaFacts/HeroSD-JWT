@@ -3,6 +3,9 @@ using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Presentation;
 using HeroSdJwt.Verification;
+using HeroSdJwt.Verification.ReplayProtection;
+using HeroSdJwt.Verification.Revocation;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 #pragma warning disable IDE0130 // Namespace does not match folder structure
@@ -45,7 +48,7 @@ public static class SdJwtServiceCollectionExtensions
         services.TryAddSingleton<IKeyBindingValidator, KeyBindingValidator>();
         services.TryAddSingleton<IClaimValidator, ClaimValidator>();
 
-        // Register core verifier (depends on services above)
+        // Register core verifiers (sync + async interface on same instance)
         services.TryAddSingleton<ISdJwtVerifier>(serviceProvider =>
         {
             // Default options - can be overridden by authentication configuration
@@ -63,6 +66,8 @@ public static class SdJwtServiceCollectionExtensions
                 serviceProvider.GetRequiredService<IClaimValidator>()
             );
         });
+        services.TryAddSingleton<ISdJwtVerifierAsync>(sp =>
+            (ISdJwtVerifierAsync)sp.GetRequiredService<ISdJwtVerifier>());
 
         // Register issuance services (for applications that need to issue SD-JWTs)
         services.TryAddSingleton<IDisclosureGenerator, DisclosureGenerator>();
@@ -95,4 +100,29 @@ public static class SdJwtServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Adds distributed replay protection using the configured <see cref="IDistributedCache"/>.
+    /// </summary>
+    public static IServiceCollection AddSdJwtDistributedReplayProtection(this IServiceCollection services, string keyPrefix = "sdjwt:jti")
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.TryAddSingleton<IJtiCache>(sp => new DistributedJtiCache(
+            sp.GetRequiredService<IDistributedCache>(),
+            keyPrefix));
+        return services;
+    }
+
+    /// <summary>
+    /// Adds distributed revocation store using the configured <see cref="IDistributedCache"/>.
+    /// </summary>
+    public static IServiceCollection AddSdJwtDistributedRevocation(this IServiceCollection services, string keyPrefix = "sdjwt:revocation")
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.TryAddSingleton<IRevocationStore>(sp => new DistributedRevocationStore(
+            sp.GetRequiredService<IDistributedCache>(),
+            keyPrefix));
+        return services;
+    }
+
 }

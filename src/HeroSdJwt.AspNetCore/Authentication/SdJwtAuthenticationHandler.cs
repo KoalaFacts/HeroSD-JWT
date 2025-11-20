@@ -42,82 +42,104 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
     /// Extracts the SD-JWT from the Authorization header, verifies it, and creates a ClaimsPrincipal.
     /// </summary>
     /// <returns>An <see cref="AuthenticateResult"/> indicating success or failure.</returns>
-    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         // Extract token from Authorization header
         string? token = ExtractTokenFromHeader();
         if (token == null)
         {
             Logger.LogDebug("No SD-JWT token found in Authorization header");
-            return Task.FromResult(AuthenticateResult.NoResult());
+            return AuthenticateResult.NoResult();
         }
 
         try
         {
-            // Verify the SD-JWT presentation
+            // Verify the SD-JWT presentation (prefer async when available to avoid blocking caches/stores)
             VerificationResult result;
+            var asyncVerifier = _verifier as ISdJwtVerifierAsync;
 
             if (Options.KeyResolver != null)
             {
-                // Use key resolver with optional fallback
-                result = _verifier.TryVerifyPresentation(
-                    token,
-                    Options.KeyResolver,
-                    Options.FallbackKey,
-                    Options.VerificationOptions.ExpectedHashAlgorithm);
+                if (asyncVerifier != null)
+                {
+                    result = await asyncVerifier.TryVerifyPresentationAsync(
+                        token,
+                        Options.KeyResolver,
+                        Options.FallbackKey,
+                        Options.VerificationOptions.ExpectedHashAlgorithm,
+                        Context.RequestAborted).ConfigureAwait(false);
+                }
+                else
+                {
+                    result = _verifier.TryVerifyPresentation(
+                        token,
+                        Options.KeyResolver,
+                        Options.FallbackKey,
+                        Options.VerificationOptions.ExpectedHashAlgorithm);
+                }
             }
             else if (Options.FallbackKey != null)
             {
-                // Use fallback key only
-                result = _verifier.TryVerifyPresentation(
-                    token,
-                    Options.FallbackKey,
-                    Options.VerificationOptions.ExpectedHashAlgorithm);
+                if (asyncVerifier != null)
+                {
+                    result = await asyncVerifier.TryVerifyPresentationAsync(
+                        token,
+                        Options.FallbackKey,
+                        Options.VerificationOptions.ExpectedHashAlgorithm,
+                        Context.RequestAborted).ConfigureAwait(false);
+                }
+                else
+                {
+                    result = _verifier.TryVerifyPresentation(
+                        token,
+                        Options.FallbackKey,
+                        Options.VerificationOptions.ExpectedHashAlgorithm);
+                }
             }
             else
             {
                 // This should never happen due to options validation, but handle defensively
                 Logger.LogError("No key resolver or fallback key configured");
-                return Task.FromResult(AuthenticateResult.Fail("Authentication configuration error: no key configured"));
+                return AuthenticateResult.Fail("Authentication configuration error: no key configured");
             }
 
             if (!result.IsValid)
             {
                 Logger.LogWarning(
                     "SD-JWT verification failed. Errors: {Errors}. Details: {Details}",
-                    string.Join(", ", result.Errors),
-                    result.ErrorDetails);
+                string.Join(", ", result.Errors),
+                result.ErrorDetails);
 
-                return Task.FromResult(AuthenticateResult.Fail($"SD-JWT verification failed: {result.ErrorDetails}"));
-            }
-
-            // Map both JWT payload claims and disclosed claims to ClaimsPrincipal
-            var claims = MapAllClaimsToPrincipal(token, result);
-            var identity = new ClaimsIdentity(claims, Scheme.Name, Options.NameClaimType, Options.RoleClaimType);
-            var principal = new ClaimsPrincipal(identity);
-
-            // Create authentication ticket
-            var ticket = new AuthenticationTicket(principal, Scheme.Name);
-
-            // Save token if configured
-            if (Options.SaveToken)
-            {
-                ticket.Properties.StoreTokens(new[]
-                {
-                    new AuthenticationToken { Name = "access_token", Value = token }
-                });
-            }
-
-            Logger.LogInformation(
-                "SD-JWT authentication succeeded for user with {ClaimCount} disclosed claims",
-                result.DisclosedClaims.Count);
-
-            return Task.FromResult(AuthenticateResult.Success(ticket));
+            return AuthenticateResult.Fail($"SD-JWT verification failed: {result.ErrorDetails}");
         }
+
+        // Map both JWT payload claims and disclosed claims to ClaimsPrincipal
+        var claims = MapAllClaimsToPrincipal(token, result);
+        var identity = new ClaimsIdentity(claims, Scheme.Name, Options.NameClaimType, Options.RoleClaimType);
+        var principal = new ClaimsPrincipal(identity);
+
+        // Create authentication ticket
+        var ticket = new AuthenticationTicket(principal, Scheme.Name);
+
+        // Save token if configured
+        if (Options.SaveToken)
+        {
+            ticket.Properties.StoreTokens(new[]
+            {
+                new AuthenticationToken { Name = "access_token", Value = token }
+            });
+        }
+
+        Logger.LogInformation(
+            "SD-JWT authentication succeeded for user with {ClaimCount} disclosed claims",
+            result.DisclosedClaims.Count);
+
+        return AuthenticateResult.Success(ticket);
+    }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Exception occurred during SD-JWT authentication");
-            return Task.FromResult(AuthenticateResult.Fail($"Authentication error: {ex.Message}"));
+            return AuthenticateResult.Fail($"Authentication error: {ex.Message}");
         }
     }
 
