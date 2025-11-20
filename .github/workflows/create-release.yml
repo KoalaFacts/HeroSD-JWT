@@ -34,8 +34,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Extract build configuration
+        id: config
+        uses: ./.github/actions/extract-build-config
+
       - name: Setup .NET SDKs
         uses: ./.github/actions/setup-dotnet-sdks
+        with:
+          dotnet-version: ${{ steps.config.outputs.versions }}
 
       - name: Restore dependencies
         run: dotnet restore
