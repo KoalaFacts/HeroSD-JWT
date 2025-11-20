@@ -1,0 +1,32 @@
+name: 'Setup .NET SDKs'
+description: 'Sets up all .NET SDKs defined in Directory.Build.props'
+inputs:
+  cache:
+    description: 'Enable caching of NuGet packages'
+    required: false
+    default: 'true'
+outputs:
+  versions:
+    description: 'The extracted SDK versions (newline-separated)'
+    value: ${{ steps.extract.outputs.versions }}
+runs:
+  using: 'composite'
+  steps:
+    - name: Extract supported SDK versions from Directory.Build.props
+      id: extract
+      shell: bash
+      run: |
+        # Extract SupportedSdkVersions from Directory.Build.props
+        SDK_VERSIONS=$(grep -oP '(?<=<SupportedSdkVersions>)[^<]+' Directory.Build.props | tr ';' '\n')
+        echo "versions<<EOF" >> $GITHUB_OUTPUT
+        echo "$SDK_VERSIONS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        echo "Extracted SDK versions:"
+        echo "$SDK_VERSIONS"
+
+    - name: Setup .NET SDKs
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: ${{ steps.extract.outputs.versions }}
+        cache: ${{ inputs.cache }}
+        cache-dependency-path: '**/packages.lock.json'

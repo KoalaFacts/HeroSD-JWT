@@ -48,14 +48,7 @@ jobs:
         fetch-depth: 0  # Full history for Source Link
 
     - name: Setup all .NET SDKs
-      uses: actions/setup-dotnet@v5
-      with:
-        dotnet-version: |
-          8.0.x
-          9.0.x
-          10.0.x
-        cache: true
-        cache-dependency-path: '**/packages.lock.json'
+      uses: ./.github/actions/setup-dotnet-sdks
 
     - name: Restore dependencies (all frameworks, locked mode)
       run: dotnet restore
@@ -101,14 +94,7 @@ jobs:
         fetch-depth: 0
 
     - name: Setup .NET SDKs
-      uses: actions/setup-dotnet@v5
-      with:
-        dotnet-version: |
-          8.0.x
-          9.0.x
-          10.0.x
-        cache: true
-        cache-dependency-path: '**/packages.lock.json'
+      uses: ./.github/actions/setup-dotnet-sdks
 
     - name: Restore dependencies
       run: dotnet restore
