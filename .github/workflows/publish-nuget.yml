@@ -45,19 +45,20 @@ jobs:
         id: version
         run: |
           if [ "${{ github.event_name }}" == "workflow_run" ]; then
-            SHA="${{ github.event.workflow_run.head_sha }}"
-            echo "Resolving release tag for workflow_run head SHA: ${SHA}"
+            # Get the latest release (most recently created)
+            # This works because create-release creates the release as its last step
+            echo "Finding latest release from create-release workflow..."
 
-            TAG=$(gh api repos/${GITHUB_REPOSITORY}/releases --paginate \
-              --jq ".[] | select(.target_commitish==\"${SHA}\") | .tag_name" | head -n 1)
+            TAG=$(gh api repos/${GITHUB_REPOSITORY}/releases \
+              --jq ".[0].tag_name" | head -n 1)
 
             if [ -z "${TAG}" ]; then
-              echo "Error: Could not find release matching commit ${SHA}"
+              echo "Error: Could not find any releases"
               exit 1
             fi
 
             VERSION="${TAG#v}"
-            echo "Matched release: ${TAG}"
+            echo "Using latest release: ${TAG}"
           elif [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
             TAG="v${VERSION}"
