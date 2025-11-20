@@ -251,8 +251,19 @@ public class SignatureValidator : ISignatureValidator
                     ErrorCode.InvalidInput);
             }
 
-            var derSignature = ConvertJoseToDerSignature(signature, coordinateSize: 32);
-            return derSignature != null && ecdsa.VerifyData(data, derSignature, HashAlgorithmName.SHA256);
+            if (ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA256))
+            {
+                return true;
+            }
+
+            ReadOnlySpan<byte> signatureToTry = signature;
+            if (signature.Length == 32 * 2 && (signature.Length == 0 || signature[0] != 0x30))
+            {
+                signatureToTry = ConvertJoseToDerSignature(signature, coordinateSize: 32);
+            }
+
+            var hash = SHA256.HashData(data);
+            return ecdsa.VerifyHash(hash, signatureToTry);
         }
         catch (SdJwtException)
         {
@@ -295,8 +306,19 @@ public class SignatureValidator : ISignatureValidator
                     ErrorCode.InvalidInput);
             }
 
-            var derSignature = ConvertJoseToDerSignature(signature, coordinateSize: 48);
-            return derSignature != null && ecdsa.VerifyData(data, derSignature, HashAlgorithmName.SHA384);
+            if (ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA384))
+            {
+                return true;
+            }
+
+            ReadOnlySpan<byte> signatureToTry = signature;
+            if (signature.Length == 48 * 2 && (signature.Length == 0 || signature[0] != 0x30))
+            {
+                signatureToTry = ConvertJoseToDerSignature(signature, coordinateSize: 48);
+            }
+
+            var hash = SHA384.HashData(data);
+            return ecdsa.VerifyHash(hash, signatureToTry);
         }
         catch (SdJwtException)
         {
@@ -339,8 +361,19 @@ public class SignatureValidator : ISignatureValidator
                     ErrorCode.InvalidInput);
             }
 
-            var derSignature = ConvertJoseToDerSignature(signature, coordinateSize: 66); // P-521 coordinate size in bytes
-            return derSignature != null && ecdsa.VerifyData(data, derSignature, HashAlgorithmName.SHA512);
+            if (ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA512))
+            {
+                return true;
+            }
+
+            ReadOnlySpan<byte> signatureToTry = signature;
+            if (signature.Length == 66 * 2 && (signature.Length == 0 || signature[0] != 0x30))
+            {
+                signatureToTry = ConvertJoseToDerSignature(signature, coordinateSize: 66); // P-521 coordinate size in bytes
+            }
+
+            var hash = SHA512.HashData(data);
+            return ecdsa.VerifyHash(hash, signatureToTry);
         }
         catch (SdJwtException)
         {
@@ -509,13 +542,19 @@ public class SignatureValidator : ISignatureValidator
 
     /// <summary>
     /// Converts a JOSE (R||S) ECDSA signature into DER format expected by ECDsa.VerifyData.
-    /// Returns null when the signature length is invalid.
+    /// Accepts raw R||S; if already DER, returns the input.
     /// </summary>
-    private static byte[]? ConvertJoseToDerSignature(ReadOnlySpan<byte> joseSignature, int coordinateSize)
+    private static byte[] ConvertJoseToDerSignature(ReadOnlySpan<byte> joseSignature, int coordinateSize)
     {
+        // If this is already DER (starts with SEQUENCE tag), return as-is
+        if (joseSignature.Length > 0 && joseSignature[0] == 0x30)
+        {
+            return joseSignature.ToArray();
+        }
+
         if (joseSignature.Length != coordinateSize * 2)
         {
-            return null;
+            throw new SdJwtException("Invalid ECDSA signature length.", ErrorCode.InvalidInput);
         }
 
         var r = joseSignature[..coordinateSize];
@@ -531,7 +570,6 @@ public class SignatureValidator : ISignatureValidator
 
     private static void WriteInteger(AsnWriter writer, ReadOnlySpan<byte> value)
     {
-        // Trim leading zeros
         int offset = 0;
         while (offset < value.Length && value[offset] == 0x00)
         {
@@ -540,7 +578,7 @@ public class SignatureValidator : ISignatureValidator
 
         var trimmed = value[offset..];
 
-        // Ensure positive integer by prefixing 0x00 when high bit is set
+        // Ensure positive integer by prefixing 0x00 when needed
         if (trimmed.Length == 0 || (trimmed[0] & 0x80) != 0)
         {
             Span<byte> padded = stackalloc byte[trimmed.Length + 1];

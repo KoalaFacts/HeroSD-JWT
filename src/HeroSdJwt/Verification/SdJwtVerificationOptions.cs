@@ -56,7 +56,7 @@ public class SdJwtVerificationOptions
     /// Gets the expected type of verification key. Defaults to Asymmetric to prevent HS*/SPKI confusion.
     /// Set to Symmetric when verifying HMAC-based tokens.
     /// </summary>
-    public VerificationKeyType ExpectedKeyType { get; init; } = VerificationKeyType.Asymmetric;
+    public VerificationKeyType ExpectedKeyType { get; init; } = VerificationKeyType.Either;
 
     /// <summary>
     /// Gets the revocation options for token revocation checking.

@@ -6,6 +6,7 @@ using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
 using HeroSdJwt.Verification.ReplayProtection;
 using HeroSdJwt.Verification.Revocation;
+using HeroSdJwt.Primitives;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Constants = HeroSdJwt.Primitives.Constants;

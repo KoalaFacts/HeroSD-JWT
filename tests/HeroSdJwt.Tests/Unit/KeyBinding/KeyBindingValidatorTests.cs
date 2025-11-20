@@ -11,9 +11,9 @@ namespace HeroSdJwt.Tests.Unit.KeyBinding;
 /// </summary>
 public class KeyBindingValidatorTests
 {
-    private const string DefaultAudience = "https://verifier.example.com";
-    private const string DefaultNonce = "test-nonce";
-    private const string DefaultSdJwtHash = "hash";
+    private const string DEFAULT_AUDIENCE = "https://verifier.example.com";
+    private const string DEFAULT_NONCE = "test-nonce";
+    private const string DEFAULT_SD_JWT_HASH = "hash";
     private readonly KeyBindingGenerator _generator;
     private readonly KeyBindingValidator _validator;
     private readonly byte[] _privateKey;
@@ -36,13 +36,13 @@ public class KeyBindingValidatorTests
         string jwt,
         byte[]? publicKey = null,
         string? sdJwtHash = null,
-        string? audience = DefaultAudience,
-        string? nonce = DefaultNonce)
+        string? audience = DEFAULT_AUDIENCE,
+        string? nonce = DEFAULT_NONCE)
     {
         return _validator.ValidateKeyBinding(
             jwt,
             publicKey ?? _publicKey,
-            sdJwtHash ?? DefaultSdJwtHash,
+            sdJwtHash ?? DEFAULT_SD_JWT_HASH,
             audience,
             nonce);
     }
@@ -168,7 +168,7 @@ public class KeyBindingValidatorTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _validator.ValidateKeyBinding(jwt, null!, "hash", DefaultAudience, DefaultNonce));
+            _validator.ValidateKeyBinding(jwt, null!, "hash", DEFAULT_AUDIENCE, DEFAULT_NONCE));
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public class KeyBindingValidatorTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            _validator.ValidateKeyBinding(jwt, _publicKey, null!, DefaultAudience, DefaultNonce));
+            _validator.ValidateKeyBinding(jwt, _publicKey, null!, DEFAULT_AUDIENCE, DEFAULT_NONCE));
     }
 
     #endregion

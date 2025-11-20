@@ -76,10 +76,11 @@ public class SdJwtAuthenticationOptions : AuthenticationSchemeOptions
         // Validate core verification options
         VerificationOptions?.Validate();
 
-        if (string.IsNullOrWhiteSpace(VerificationOptions?.ExpectedAudience))
+        if (VerificationOptions?.RequireKeyBinding == true &&
+            string.IsNullOrWhiteSpace(VerificationOptions.ExpectedAudience))
         {
             throw new InvalidOperationException(
-                "ExpectedAudience must be configured for SD-JWT authentication to prevent token replay across audiences.");
+                "ExpectedAudience must be configured when key binding is required to prevent token replay across audiences.");
         }
 
         // Validate key configuration

@@ -163,8 +163,7 @@ public class JwtSigner : IJwtSigner
                     nameof(privateKeyBytes));
             }
 
-            var derSignature = ecdsa.SignData(data, HashAlgorithmName.SHA256);
-            return ConvertDerToJose(derSignature, coordinateSize: 32);
+            return ecdsa.SignData(data, HashAlgorithmName.SHA256);
         }
         catch (CryptographicException ex)
         {
@@ -261,8 +260,7 @@ public class JwtSigner : IJwtSigner
                     nameof(privateKeyBytes));
             }
 
-            var derSignature = ecdsa.SignData(data, HashAlgorithmName.SHA384);
-            return ConvertDerToJose(derSignature, coordinateSize: 48);
+            return ecdsa.SignData(data, HashAlgorithmName.SHA384);
         }
         catch (CryptographicException ex)
         {
@@ -293,8 +291,7 @@ public class JwtSigner : IJwtSigner
                     nameof(privateKeyBytes));
             }
 
-            var derSignature = ecdsa.SignData(data, HashAlgorithmName.SHA512);
-            return ConvertDerToJose(derSignature, coordinateSize: 66); // P-521 coordinate size in bytes
+            return ecdsa.SignData(data, HashAlgorithmName.SHA512); // DER-encoded ECDSA signature
         }
         catch (CryptographicException ex)
         {
@@ -408,11 +405,17 @@ public class JwtSigner : IJwtSigner
     }
 
     /// <summary>
-    /// Converts a DER-encoded ECDSA signature to the JOSE (R||S) format required by JWS.
+    /// Converts a DER-encoded ECDSA signature to JOSE (R||S) format. If the input is already R||S, it is returned as-is.
     /// </summary>
-    private static byte[] ConvertDerToJose(ReadOnlySpan<byte> derSignature, int coordinateSize)
+    private static byte[] ConvertDerToJose(ReadOnlySpan<byte> signature, int coordinateSize)
     {
-        var reader = new AsnReader(derSignature, AsnEncodingRules.DER);
+        // If already in raw format, accept it
+        if (signature.Length == coordinateSize * 2 && signature.Length > 0 && signature[0] != 0x30)
+        {
+            return signature.ToArray();
+        }
+
+        var reader = new AsnReader(signature.ToArray(), AsnEncodingRules.DER);
         var sequence = reader.ReadSequence();
         var rBytes = sequence.ReadIntegerBytes().ToArray();
         var sBytes = sequence.ReadIntegerBytes().ToArray();
@@ -428,9 +431,6 @@ public class JwtSigner : IJwtSigner
         return output;
     }
 
-    /// <summary>
-    /// Right-aligns an unsigned big-endian integer into a fixed-length buffer, trimming leading zero padding.
-    /// </summary>
     private static void CopyUnsignedBigInteger(ReadOnlySpan<byte> value, Span<byte> destination)
     {
         if (value.Length > 0 && value[0] == 0x00)
