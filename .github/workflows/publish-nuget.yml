@@ -29,18 +29,14 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  publish:
+  get-version:
     runs-on: ubuntu-latest
     # Only run if create-release workflow succeeded (or if manually triggered)
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-    environment:
-      name: production
-      url: https://www.nuget.org/packages/HeroSD-JWT
-
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+      tag: ${{ steps.version.outputs.TAG }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
       - name: Determine version from release
         id: version
         run: |
@@ -73,16 +69,27 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  publish:
+    runs-on: ubuntu-latest
+    needs: get-version
+    environment:
+      name: production
+      url: https://www.nuget.org/packages/HeroSD-JWT/${{ needs.get-version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
       - name: Record version in summary
         run: |
           echo "## Publishing NuGet package" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Detected version: ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Tag: ${{ steps.version.outputs.TAG }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Detected version: ${{ needs.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag: ${{ needs.get-version.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
 
       - name: Validate version format
         run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
+          VERSION="${{ needs.get-version.outputs.version }}"
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
             echo "Error: Invalid version format: $VERSION"
             echo "Expected format: X.Y.Z or X.Y.Z-prerelease"
@@ -92,8 +99,8 @@ jobs:
 
       - name: Download packages from GitHub Release
         run: |
-          TAG="${{ steps.version.outputs.TAG }}"
-          VERSION="${{ steps.version.outputs.VERSION }}"
+          TAG="${{ needs.get-version.outputs.tag }}"
+          VERSION="${{ needs.get-version.outputs.version }}"
 
           echo "Downloading packages from release $TAG..."
 
@@ -123,7 +130,7 @@ jobs:
 
       - name: Validate package contents
         run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
+          VERSION="${{ needs.get-version.outputs.version }}"
 
           # Verify both packages exist
           if [ ! -f "./packages/HeroSD-JWT.${VERSION}.nupkg" ]; then
@@ -173,7 +180,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: nuget-packages-v${{ steps.version.outputs.VERSION }}
+          name: nuget-packages-v${{ needs.get-version.outputs.version }}
           path: |
             ./packages/*.nupkg
             ./packages/*.snupkg
@@ -184,16 +191,16 @@ jobs:
         run: |
           echo "## NuGet Package Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version**: ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Package**: https://www.nuget.org/packages/HeroSD-JWT/${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package**: https://www.nuget.org/packages/HeroSD-JWT/${{ needs.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Published**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Installation" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "dotnet add package HeroSD-JWT --version ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "dotnet add package HeroSD-JWT --version ${{ needs.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "- Package will be available on NuGet.org within 5-10 minutes" >> $GITHUB_STEP_SUMMARY
           echo "- Verify at: https://www.nuget.org/packages/HeroSD-JWT" >> $GITHUB_STEP_SUMMARY
-run-name: ${{ github.event_name == 'workflow_dispatch' && format('Publish NuGet v{0}', inputs.version || 'unspecified') || 'Publish NuGet (from create-release)' }}
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Publish NuGet v{0}', inputs.version || 'unspecified') || 'Publish NuGet' }}
