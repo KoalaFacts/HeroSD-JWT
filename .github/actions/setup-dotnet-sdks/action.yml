@@ -22,16 +22,16 @@ runs:
       id: extract
       shell: bash
       run: |
-        # Extract SupportedSdkVersions from Directory.Build.props
-        SDK_VERSIONS=$(grep -oP '(?<=<SupportedSdkVersions>)[^<]+' Directory.Build.props | tr ';' '\n')
+        # Extract SupportedSdkVersions from Directory.Build.props (portable approach)
+        SDK_VERSIONS=$(sed -n 's/.*<SupportedSdkVersions>\([^<]*\)<\/SupportedSdkVersions>.*/\1/p' Directory.Build.props | tr ';' '\n')
         echo "versions<<EOF" >> $GITHUB_OUTPUT
         echo "$SDK_VERSIONS" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
         echo "Extracted SDK versions:"
         echo "$SDK_VERSIONS"
 
-        # Extract SupportedTargetFrameworks from Directory.Build.props
-        FRAMEWORKS=$(grep -oP '(?<=<SupportedTargetFrameworks>)[^<]+' Directory.Build.props)
+        # Extract SupportedTargetFrameworks from Directory.Build.props (portable approach)
+        FRAMEWORKS=$(sed -n 's/.*<SupportedTargetFrameworks>\([^<]*\)<\/SupportedTargetFrameworks>.*/\1/p' Directory.Build.props)
         # Convert to JSON array format: ["net8.0", "net9.0", "net10.0"]
         # Using bash to convert without jq
         FRAMEWORKS_JSON="["
