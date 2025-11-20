@@ -23,7 +23,7 @@ internal static class TestHelpers
             new EcPublicKeyConverter(),
             new SignatureValidator(),
             new DigestValidator(),
-            new KeyBindingValidator(),
+            new KeyBindingValidator(TimeProvider.System),
             new ClaimValidator());
     }
 
@@ -39,7 +39,7 @@ internal static class TestHelpers
             new EcPublicKeyConverter(),
             new SignatureValidator(),
             new DigestValidator(),
-            new KeyBindingValidator(),
+            new KeyBindingValidator(TimeProvider.System),
             new ClaimValidator(),
             jtiValidator: null,
             revocationStore: revocationStore);

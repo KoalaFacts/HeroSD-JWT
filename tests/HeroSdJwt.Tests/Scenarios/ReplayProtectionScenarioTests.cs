@@ -529,7 +529,7 @@ public class ReplayProtectionScenarioTests : IDisposable
             new EcPublicKeyConverter(),
             new SignatureValidator(),
             new DigestValidator(),
-            new KeyBindingValidator(),
+            new KeyBindingValidator(TimeProvider.System),
             new ClaimValidator(),
             jtiValidator);
     }

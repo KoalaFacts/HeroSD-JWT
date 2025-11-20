@@ -4,6 +4,8 @@ using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using HeroSdJwt.Verification.Revocation;
 using HeroSdJwt.Verification.ReplayProtection;
+using System;
+using System.Reflection;
 using Xunit;
 
 namespace HeroSdJwt.Tests.Unit.Verification;
@@ -32,6 +34,26 @@ public class SdJwtVerifierBuilderTests
 
         // Assert
         Assert.NotNull(verifier);
+    }
+
+    [Fact]
+    public void Build_WithDefaults_SetsExpectedKeyType_Asymmetric()
+    {
+        var verifier = SdJwtVerifierBuilder.Create().Build();
+
+        var options = GetOptions(verifier);
+        Assert.Equal(VerificationKeyType.Asymmetric, options.ExpectedKeyType);
+    }
+
+    [Fact]
+    public void WithExpectedKeyType_SetsRequestedValue()
+    {
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .Build();
+
+        var options = GetOptions(verifier);
+        Assert.Equal(VerificationKeyType.Symmetric, options.ExpectedKeyType);
     }
 
     [Fact]
@@ -354,7 +376,7 @@ public class SdJwtVerifierBuilderTests
     public void WithKeyBindingValidator_SetsCustomValidator()
     {
         // Arrange
-        var validator = new KeyBindingValidator();
+        var validator = new KeyBindingValidator(TimeProvider.System);
 
         // Act
         var verifier = SdJwtVerifierBuilder.Create()
@@ -394,5 +416,12 @@ public class SdJwtVerifierBuilderTests
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithClaimValidator(null!));
+    }
+
+    private static SdJwtVerificationOptions GetOptions(SdJwtVerifier verifier)
+    {
+        var field = typeof(SdJwtVerifier).GetField("_options", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return (SdJwtVerificationOptions)field!.GetValue(verifier)!;
     }
 }

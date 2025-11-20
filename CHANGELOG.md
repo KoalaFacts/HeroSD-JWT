@@ -4,6 +4,7 @@
 
 - Align ECDSA handling with JWS spec: ES256/384/512 signatures are emitted as JOSE raw R||S and verifiers accept JOSE format.
 - Signature verification hardening: Algorithm/key-type guardrails with default `ExpectedKeyType` tightened to `Asymmetric` (set to `Symmetric` for HS*).
+- Added builder hook `.WithExpectedKeyType(...)` for configuring key-type policy via `SdJwtVerifierBuilder`.
 
 ## [1.1.7] - 2025-11-20
 

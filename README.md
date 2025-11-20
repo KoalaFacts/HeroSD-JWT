@@ -340,6 +340,7 @@ var sdJwt = issuer.CreateSdJwt(
 
 - ECDSA signatures (ES256/ES384/ES512) follow the JWS spec and are emitted in JOSE raw `R||S` format (not ASN.1 DER); verifiers accept the JOSE form.
 - Verification defaults to `ExpectedKeyType = Asymmetric` to avoid alg/key confusion; set it to `Symmetric` for HS* secrets, and use `Either` only when both are truly expected.
+- `SdJwtVerifierBuilder` exposes `.WithExpectedKeyType(...)` so you can wire the key-type policy when constructing verifiers via DI.
 
 **Array Element Example**:
 ```csharp

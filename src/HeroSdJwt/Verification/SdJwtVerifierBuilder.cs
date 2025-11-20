@@ -3,6 +3,7 @@ using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification.Revocation;
 using HeroSdJwt.Verification.ReplayProtection;
+using System;
 
 namespace HeroSdJwt.Verification;
 
@@ -41,6 +42,7 @@ public class SdJwtVerifierBuilder
     private string? _expectedAudience;
     private HashAlgorithm? _expectedHashAlgorithm;
     private string? _expectedNonce;
+    private VerificationKeyType _expectedKeyType = VerificationKeyType.Asymmetric;
     private RevocationFailureMode _revocationFailureMode = RevocationFailureMode.FailClosed;
     private IRevocationStore? _revocationStore;
     private JtiValidator? _jtiValidator;
@@ -110,6 +112,16 @@ public class SdJwtVerifierBuilder
     public SdJwtVerifierBuilder WithExpectedHashAlgorithm(HashAlgorithm algorithm)
     {
         _expectedHashAlgorithm = algorithm;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the expected verification key type to guard against alg/key-type confusion.
+    /// Default is Asymmetric; set to Symmetric for HS* secrets or Either for mixed scenarios.
+    /// </summary>
+    public SdJwtVerifierBuilder WithExpectedKeyType(VerificationKeyType keyType)
+    {
+        _expectedKeyType = keyType;
         return this;
     }
 
@@ -234,6 +246,7 @@ public class SdJwtVerifierBuilder
             ExpectedAudience = _expectedAudience,
             ExpectedHashAlgorithm = _expectedHashAlgorithm,
             ExpectedNonce = _expectedNonce,
+            ExpectedKeyType = _expectedKeyType,
             Revocation = new RevocationOptions
             {
                 FailureMode = _revocationFailureMode
@@ -249,7 +262,7 @@ public class SdJwtVerifierBuilder
             _ecPublicKeyConverter ?? new EcPublicKeyConverter(),
             _signatureValidator ?? new SignatureValidator(),
             _digestValidator ?? new DigestValidator(),
-            _keyBindingValidator ?? new KeyBindingValidator(),
+            _keyBindingValidator ?? new KeyBindingValidator(TimeProvider.System),
             _claimValidator ?? new ClaimValidator(),
             _jtiValidator,
             _revocationStore);

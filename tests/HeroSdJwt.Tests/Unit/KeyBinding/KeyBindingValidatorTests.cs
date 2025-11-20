@@ -53,7 +53,7 @@ public class KeyBindingValidatorTests
     public void Constructor_WithDefaultTimeProvider_CreatesInstance()
     {
         // Act
-        var validator = new KeyBindingValidator();
+        var validator = new KeyBindingValidator(TimeProvider.System);
 
         // Assert
         Assert.NotNull(validator);
