@@ -25,21 +25,28 @@ env:
   NUGET_LOCKED_MODE: true
 
 jobs:
+  setup:
+    name: Extract Build Configuration
+    runs-on: ubuntu-latest
+    outputs:
+      frameworks: ${{ steps.config.outputs.frameworks }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Extract configuration
+        id: config
+        uses: ./.github/actions/setup-dotnet-sdks
+
   build-and-test:
     name: Build and Test
+    needs: setup
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        dotnet-version: ['8.0.x', '9.0.x', '10.0.x']
-        include:
-          - dotnet-version: '8.0.x'
-            framework: 'net8.0'
-          - dotnet-version: '9.0.x'
-            framework: 'net9.0'
-          - dotnet-version: '10.0.x'
-            framework: 'net10.0'
+        framework: ${{ fromJSON(needs.setup.outputs.frameworks) }}
 
     steps:
     - name: Checkout code
@@ -61,10 +68,10 @@ jobs:
 
     - name: Publish test results
       uses: EnricoMi/publish-unit-test-result-action@v2
-      if: always() && matrix.os == 'ubuntu-latest' && matrix.dotnet-version == '10.0.x'
+      if: always() && matrix.os == 'ubuntu-latest' && matrix.framework == 'net10.0'
       with:
         files: 'TestResults/**/*.trx'
-        check_name: 'Test Results (${{ matrix.os }} - .NET ${{ matrix.dotnet-version }})'
+        check_name: 'Test Results (${{ matrix.os }} - ${{ matrix.framework }})'
 
     - name: Upload test results
       if: always()
@@ -75,7 +82,7 @@ jobs:
         retention-days: 30
 
     - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest' && matrix.dotnet-version == '10.0.x'
+      if: matrix.os == 'ubuntu-latest' && matrix.framework == 'net10.0'
       uses: codecov/codecov-action@v5
       with:
         files: 'TestResults/**/coverage.cobertura.xml'

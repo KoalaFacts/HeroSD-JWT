@@ -34,6 +34,7 @@ With caching disabled:
 ## Outputs
 
 - `versions`: The extracted SDK versions (newline-separated string)
+- `frameworks`: The extracted target frameworks as JSON array (e.g., `["net8.0","net9.0","net10.0"]`)
 
 ## Requirements
 

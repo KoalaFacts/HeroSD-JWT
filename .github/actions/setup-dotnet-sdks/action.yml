@@ -9,10 +9,16 @@ outputs:
   versions:
     description: 'The extracted SDK versions (newline-separated)'
     value: ${{ steps.extract.outputs.versions }}
+  frameworks:
+    description: 'The extracted target frameworks (JSON array)'
+    value: ${{ steps.extract.outputs.frameworks }}
+  frameworks-matrix:
+    description: 'The extracted target frameworks (space-separated for matrix)'
+    value: ${{ steps.extract.outputs.frameworks-matrix }}
 runs:
   using: 'composite'
   steps:
-    - name: Extract supported SDK versions from Directory.Build.props
+    - name: Extract supported SDK versions and frameworks from Directory.Build.props
       id: extract
       shell: bash
       run: |
@@ -23,6 +29,25 @@ runs:
         echo "EOF" >> $GITHUB_OUTPUT
         echo "Extracted SDK versions:"
         echo "$SDK_VERSIONS"
+
+        # Extract SupportedTargetFrameworks from Directory.Build.props
+        FRAMEWORKS=$(grep -oP '(?<=<SupportedTargetFrameworks>)[^<]+' Directory.Build.props)
+        # Convert to JSON array format: ["net8.0", "net9.0", "net10.0"]
+        # Using bash to convert without jq
+        FRAMEWORKS_JSON="["
+        FIRST=true
+        IFS=';' read -ra FMKS <<< "$FRAMEWORKS"
+        for fmk in "${FMKS[@]}"; do
+          if [ "$FIRST" = true ]; then
+            FRAMEWORKS_JSON="${FRAMEWORKS_JSON}\"${fmk}\""
+            FIRST=false
+          else
+            FRAMEWORKS_JSON="${FRAMEWORKS_JSON},\"${fmk}\""
+          fi
+        done
+        FRAMEWORKS_JSON="${FRAMEWORKS_JSON}]"
+        echo "frameworks=$FRAMEWORKS_JSON" >> $GITHUB_OUTPUT
+        echo "Extracted target frameworks: $FRAMEWORKS_JSON"
 
     - name: Setup .NET SDKs
       uses: actions/setup-dotnet@v5
