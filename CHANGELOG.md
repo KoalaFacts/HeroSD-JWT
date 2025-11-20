@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.7] - 2025-11-20
+
+See [GitHub Release](https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.1.7) for details.
+
+
 ## [1.1.6] - 2025-11-20
 
 See [GitHub Release](https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v1.1.6) for details.
