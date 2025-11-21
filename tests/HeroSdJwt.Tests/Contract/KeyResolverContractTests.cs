@@ -37,7 +37,10 @@ public class KeyResolverContractTests
         {
             [keyId] = hmacKey
         };
-        KeyResolver resolver = kid => keys.GetValueOrDefault(kid);
+        byte[]? resolver(string kid)
+        {
+            return keys.GetValueOrDefault(kid);
+        }
 
         // Act
         var verifier = TestHelpers.CreateVerifier();
@@ -70,7 +73,10 @@ public class KeyResolverContractTests
             .Build();
 
         // Resolver returns null for unknown keys
-        KeyResolver resolver = kid => null;
+        static byte[]? resolver(string kid)
+        {
+            return null;
+        }
 
         // Act & Assert
         var verifier = TestHelpers.CreateVerifier();
@@ -95,7 +101,10 @@ public class KeyResolverContractTests
             .SignWithHmac(hmacKey)
             .Build();
 
-        KeyResolver resolver = kid => null;
+        static byte[]? resolver(string kid)
+        {
+            return null;
+        }
 
         // Act
         var verifier = TestHelpers.CreateVerifier();
@@ -121,7 +130,10 @@ public class KeyResolverContractTests
             .Build();
 
         // Resolver for when kid IS present
-        KeyResolver resolver = kid => throw new InvalidOperationException("Should not be called");
+        static byte[]? resolver(string kid)
+        {
+            throw new InvalidOperationException("Should not be called");
+        }
 
         // Act - Should use fallback key since no kid in JWT
         var verifier = TestHelpers.CreateVerifier();
@@ -166,7 +178,10 @@ public class KeyResolverContractTests
             .Build();
 
         // Resolver that throws
-        KeyResolver resolver = kid => throw new InvalidOperationException("Database error");
+        static byte[]? resolver(string kid)
+        {
+            throw new InvalidOperationException("Database error");
+        }
 
         // Act & Assert
         var verifier = TestHelpers.CreateVerifier();
@@ -190,7 +205,10 @@ public class KeyResolverContractTests
             .SignWithHmac(hmacKey)
             .Build();
 
-        KeyResolver resolver = kid => throw new InvalidOperationException("Database error");
+        static byte[]? resolver(string kid)
+        {
+            throw new InvalidOperationException("Database error");
+        }
 
         // Act
         var verifier = TestHelpers.CreateVerifier();
@@ -237,7 +255,10 @@ public class KeyResolverContractTests
             ["key-v2"] = key2,
             ["key-v3"] = key3
         };
-        KeyResolver resolver = kid => keys.GetValueOrDefault(kid);
+        byte[]? resolver(string kid)
+        {
+            return keys.GetValueOrDefault(kid);
+        }
 
         // Act - Verify each JWT uses correct key
         var verifier = TestHelpers.CreateVerifier();
@@ -266,7 +287,10 @@ public class KeyResolverContractTests
             .Build();
 
         // Resolver returns wrong key
-        KeyResolver resolver = kid => key2;
+        byte[]? resolver(string kid)
+        {
+            return key2;
+        }
 
         // Act & Assert
         var verifier = TestHelpers.CreateVerifier();
@@ -317,7 +341,10 @@ public class KeyResolverContractTests
         };
 
         // Resolver
-        KeyResolver resolver = kid => kid == keyId ? verificationKey : null;
+        byte[]? resolver(string kid)
+        {
+            return kid == keyId ? verificationKey : null;
+        }
 
         // Act
         var verifier = TestHelpers.CreateVerifier();
@@ -355,11 +382,11 @@ public class KeyResolverContractTests
         var presentation = CreatePresentationWithCustomKid("key-\u0001-invalid");
 
         var resolverCalled = false;
-        KeyResolver resolver = kid =>
+        byte[]? resolver(string kid)
         {
             resolverCalled = true;
             return hmacKey;
-        };
+        }
 
         var verifier = TestHelpers.CreateVerifier();
 
@@ -380,11 +407,11 @@ public class KeyResolverContractTests
         var presentation = CreatePresentationWithCustomKid(longKid);
 
         var resolverCalled = false;
-        KeyResolver resolver = kid =>
+        byte[]? resolver(string kid)
         {
             resolverCalled = true;
             return hmacKey;
-        };
+        }
 
         var verifier = TestHelpers.CreateVerifier();
 

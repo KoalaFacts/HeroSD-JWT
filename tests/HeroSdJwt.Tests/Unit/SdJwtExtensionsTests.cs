@@ -103,7 +103,7 @@ public class SdJwtExtensionsTests
     public void ToPresentation_WithNullSdJwt_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             ((SdJwt)null!).ToPresentation("email"));
     }
 
@@ -111,7 +111,7 @@ public class SdJwtExtensionsTests
     public void ToPresentationWithKeyBinding_WithNullSdJwt_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             ((SdJwt)null!).ToPresentationWithKeyBinding("kbjwt", "email"));
     }
 
@@ -127,7 +127,7 @@ public class SdJwtExtensionsTests
             .Build();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             sdJwt.ToPresentationWithKeyBinding(null!, "email"));
     }
 

@@ -46,7 +46,7 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
         // Check if key exists and is expired - remove it first
         if (_cache.TryGetValue(cacheKey, out var existingExpiration) && existingExpiration < now)
         {
-            _cache.TryRemove(cacheKey, out _);
+            _ = _cache.TryRemove(cacheKey, out _);
         }
 
         // Atomic operation: TryAdd returns false if key already exists
@@ -72,7 +72,7 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
         // If entry exists but expired, remove it and return false
         if (exists && expiration < DateTimeOffset.UtcNow)
         {
-            _cache.TryRemove(cacheKey, out _);
+            _ = _cache.TryRemove(cacheKey, out _);
             return Task.FromResult(false);
         }
 
@@ -85,7 +85,7 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     public Task RemoveAsync(string issuer, string jti, CancellationToken cancellationToken = default)
     {
         var cacheKey = new JtiCacheKey(issuer, jti);
-        _cache.TryRemove(cacheKey, out _);
+        _ = _cache.TryRemove(cacheKey, out _);
         return Task.CompletedTask;
     }
 
@@ -94,7 +94,10 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     /// </summary>
     private void CleanupExpiredEntries(object? state)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         var now = DateTimeOffset.UtcNow;
         var expiredKeys = _cache
@@ -104,7 +107,7 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
 
         foreach (var key in expiredKeys)
         {
-            _cache.TryRemove(key, out _);
+            _ = _cache.TryRemove(key, out _);
         }
     }
 
@@ -125,7 +128,7 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
 
         foreach (var key in oldestEntries)
         {
-            _cache.TryRemove(key, out _);
+            _ = _cache.TryRemove(key, out _);
         }
     }
 
@@ -135,19 +138,29 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     private static void ValidateParameters(string issuer, string jti, TimeSpan ttl)
     {
         if (issuer == null)
+        {
             throw new ArgumentNullException(nameof(issuer));
+        }
 
         if (jti == null)
+        {
             throw new ArgumentNullException(nameof(jti));
+        }
 
         if (string.IsNullOrWhiteSpace(issuer))
+        {
             throw new ArgumentException("Issuer cannot be empty or whitespace", nameof(issuer));
+        }
 
         if (string.IsNullOrWhiteSpace(jti))
+        {
             throw new ArgumentException("JTI cannot be empty or whitespace", nameof(jti));
+        }
 
         if (ttl <= TimeSpan.Zero)
+        {
             throw new ArgumentException("TTL must be positive", nameof(ttl));
+        }
     }
 
     /// <summary>

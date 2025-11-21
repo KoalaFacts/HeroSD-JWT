@@ -25,7 +25,7 @@ public class SdJwtPresenterContractTests
         // Assert
         Assert.NotNull(presentation);
         Assert.Equal(sdJwt.Jwt, presentation.Jwt);
-        Assert.Single(presentation.SelectedDisclosures); // Only email disclosure
+        _ = Assert.Single(presentation.SelectedDisclosures); // Only email disclosure
         Assert.Null(presentation.KeyBindingJwt); // No key binding by default
     }
 
@@ -70,7 +70,7 @@ public class SdJwtPresenterContractTests
         var selectedClaims = new[] { "nonexistent" }; // Claim that wasn't in original SD-JWT
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
+        _ = Assert.Throws<ArgumentException>(() =>
             presenter.CreatePresentation(sdJwt, selectedClaims));
     }
 

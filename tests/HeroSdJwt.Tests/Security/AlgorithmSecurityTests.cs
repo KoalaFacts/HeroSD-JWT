@@ -54,7 +54,7 @@ public class AlgorithmSecurityTests
         var publicKey = new byte[32];
 
         // Act & Assert
-        Assert.Throws<AlgorithmConfusionException>(() =>
+        _ = Assert.Throws<AlgorithmConfusionException>(() =>
             verifier.VerifyPresentation(presentation, publicKey));
     }
 
@@ -76,7 +76,7 @@ public class AlgorithmSecurityTests
         var publicKey = new byte[32];
 
         // Act & Assert
-        Assert.Throws<AlgorithmNotSupportedException>(() =>
+        _ = Assert.Throws<AlgorithmNotSupportedException>(() =>
             verifier.VerifyPresentation(presentation, publicKey));
     }
 
@@ -98,7 +98,7 @@ public class AlgorithmSecurityTests
         var publicKey = new byte[32];
 
         // Act & Assert
-        Assert.Throws<SdJwtException>(() =>
+        _ = Assert.Throws<SdJwtException>(() =>
             verifier.VerifyPresentation(presentation, publicKey));
     }
 
@@ -189,7 +189,7 @@ public class AlgorithmSecurityTests
     private static string DecodeBase64Url(string base64Url)
     {
         var base64 = base64Url.Replace('-', '+').Replace('_', '/');
-        var padding = (4 - base64.Length % 4) % 4;
+        var padding = (4 - (base64.Length % 4)) % 4;
         base64 += new string('=', padding);
         var bytes = Convert.FromBase64String(base64);
         return System.Text.Encoding.UTF8.GetString(bytes);

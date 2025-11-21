@@ -30,12 +30,7 @@ public static class Base64UrlEncoder
     {
         ArgumentNullException.ThrowIfNull(bytes);
 
-        if (bytes.Length > MAX_INPUT_LENGTH)
-        {
-            throw new ArgumentException(
-                $"Input exceeds maximum length of {MAX_INPUT_LENGTH} bytes",
-                nameof(bytes));
-        }
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(bytes.Length, MAX_INPUT_LENGTH, nameof(bytes));
 
         return Base64Url.EncodeToString(bytes);
     }
@@ -49,7 +44,7 @@ public static class Base64UrlEncoder
     {
         ArgumentNullException.ThrowIfNull(text);
 
-        var bytes = System.Text.Encoding.UTF8.GetBytes(text);
+        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(text);
         return Encode(bytes);
     }
 
@@ -66,24 +61,19 @@ public static class Base64UrlEncoder
     {
         ArgumentNullException.ThrowIfNull(base64Url);
 
-        if (base64Url.Length > MAX_INPUT_LENGTH)
-        {
-            throw new ArgumentException(
-                $"Input exceeds maximum length of {MAX_INPUT_LENGTH} characters",
-                nameof(base64Url));
-        }
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(base64Url.Length, MAX_INPUT_LENGTH, nameof(base64Url));
 
         try
         {
             // Convert string to UTF-8 bytes for Base64Url.DecodeFromUtf8
-            var utf8Bytes = System.Text.Encoding.UTF8.GetBytes(base64Url);
+            byte[] utf8Bytes = System.Text.Encoding.UTF8.GetBytes(base64Url);
 
             // Calculate maximum possible decoded size
-            var maxDecodedLength = Base64Url.GetMaxDecodedLength(utf8Bytes.Length);
-            var buffer = new byte[maxDecodedLength];
+            int maxDecodedLength = Base64Url.GetMaxDecodedLength(utf8Bytes.Length);
+            byte[] buffer = new byte[maxDecodedLength];
 
             // Decode from UTF-8 base64url to bytes
-            var status = Base64Url.DecodeFromUtf8(utf8Bytes, buffer, out _, out var bytesWritten);
+            System.Buffers.OperationStatus status = Base64Url.DecodeFromUtf8(utf8Bytes, buffer, out _, out int bytesWritten);
 
             if (status != System.Buffers.OperationStatus.Done)
             {
@@ -111,7 +101,7 @@ public static class Base64UrlEncoder
     {
         ArgumentNullException.ThrowIfNull(base64Url);
 
-        var bytes = DecodeBytes(base64Url);
+        byte[] bytes = DecodeBytes(base64Url);
         return System.Text.Encoding.UTF8.GetString(bytes);
     }
 }

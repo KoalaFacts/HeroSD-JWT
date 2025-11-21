@@ -18,9 +18,6 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
     private readonly IDigestCalculator _digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
     private readonly IDisclosureParser _disclosureParser = disclosureParser ?? throw new ArgumentNullException(nameof(disclosureParser));
 
-    // Security: Maximum nesting depth to prevent stack overflow attacks
-    private const int MAX_NESTING_DEPTH = 10;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="DisclosureClaimPathMapper"/> class.
     /// </summary>

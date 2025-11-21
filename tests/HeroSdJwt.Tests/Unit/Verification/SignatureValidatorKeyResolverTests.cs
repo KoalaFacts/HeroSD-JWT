@@ -25,7 +25,10 @@ public class SignatureValidatorKeyResolverTests
         var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
         var keys = new Dictionary<string, byte[]> { [keyId] = _hmacKey };
-        KeyResolver resolver = kid => keys.GetValueOrDefault(kid);
+        byte[]? resolver(string kid)
+        {
+            return keys.GetValueOrDefault(kid);
+        }
 
         // Act
         var isValid = _validator.VerifyJwtSignature(jwt, resolver);
@@ -43,7 +46,10 @@ public class SignatureValidatorKeyResolverTests
 
         var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256);
 
-        KeyResolver resolver = kid => throw new InvalidOperationException("Should not be called");
+        static byte[]? resolver(string kid)
+        {
+            throw new InvalidOperationException("Should not be called");
+        }
 
         // Act
         var isValid = _validator.VerifyJwtSignature(jwt, resolver, fallbackKey: _hmacKey);
@@ -62,7 +68,10 @@ public class SignatureValidatorKeyResolverTests
 
         var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
-        KeyResolver resolver = kid => null; // Returns null for unknown key
+        static byte[]? resolver(string kid)
+        {
+            return null; // Returns null for unknown key
+        }
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>
@@ -98,7 +107,10 @@ public class SignatureValidatorKeyResolverTests
 
         var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
-        KeyResolver resolver = kid => throw new InvalidOperationException("Database connection failed");
+        static byte[]? resolver(string kid)
+        {
+            throw new InvalidOperationException("Database connection failed");
+        }
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>
@@ -119,7 +131,10 @@ public class SignatureValidatorKeyResolverTests
 
         var jwt = _signer.CreateJwt(payload, key1, SignatureAlgorithm.HS256, keyId);
 
-        KeyResolver resolver = kid => key2; // Returns wrong key
+        byte[]? resolver(string kid)
+        {
+            return key2; // Returns wrong key
+        }
 
         // Act
         var isValid = _validator.VerifyJwtSignature(jwt, resolver);
@@ -154,12 +169,12 @@ public class SignatureValidatorKeyResolverTests
 
         var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
 
-        KeyResolver resolver = kid =>
+        byte[]? resolver(string kid)
         {
             // Resolver should receive the exact keyId
             Assert.Equal(keyId, kid);
             return _hmacKey;
-        };
+        }
 
         // Act
         var isValid = _validator.VerifyJwtSignature(jwt, resolver);
@@ -202,7 +217,10 @@ public class SignatureValidatorKeyResolverTests
         var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
         var jwt = _signer.CreateJwt(payload, signingKey, algorithm, keyId);
 
-        KeyResolver resolver = kid => kid == keyId ? verificationKey : null;
+        byte[]? resolver(string kid)
+        {
+            return kid == keyId ? verificationKey : null;
+        }
 
         // Act
         var isValid = _validator.VerifyJwtSignature(jwt, resolver);
@@ -238,11 +256,11 @@ public class SignatureValidatorKeyResolverTests
         var jwt = _signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, keyId);
 
         var resolverCalled = false;
-        KeyResolver resolver = kid =>
+        byte[]? resolver(string kid)
         {
             resolverCalled = true;
             return hmacKey;
-        };
+        }
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>
@@ -263,11 +281,11 @@ public class SignatureValidatorKeyResolverTests
         var jwt = _signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, keyId);
 
         var resolverCalled = false;
-        KeyResolver resolver = kid =>
+        byte[]? resolver(string kid)
         {
             resolverCalled = true;
             return hmacKey;
-        };
+        }
 
         // Act & Assert
         var exception = Assert.Throws<SdJwtException>(() =>

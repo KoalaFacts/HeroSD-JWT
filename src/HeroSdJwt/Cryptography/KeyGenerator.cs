@@ -19,9 +19,11 @@ public class KeyGenerator : IKeyGenerator
     public byte[] GenerateHmacKey(int bits = 256)
     {
         if (bits <= 0 || bits % 8 != 0)
+        {
             throw new ArgumentException("Key size must be a positive multiple of 8", nameof(bits));
+        }
 
-        var key = new byte[bits / 8];
+        byte[] key = new byte[bits / 8];
         RandomNumberGenerator.Fill(key);
         return key;
     }
@@ -30,20 +32,22 @@ public class KeyGenerator : IKeyGenerator
     public KeyPair GenerateRsaKeyPair(int keySizeBits = 2048)
     {
         if (keySizeBits < 2048)
+        {
             throw new ArgumentException("RSA key size must be at least 2048 bits for security", nameof(keySizeBits));
+        }
 
-        using var rsa = RSA.Create(keySizeBits);
-        var privateKey = rsa.ExportPkcs8PrivateKey();
-        var publicKey = rsa.ExportSubjectPublicKeyInfo();
+        using RSA rsa = RSA.Create(keySizeBits);
+        byte[] privateKey = rsa.ExportPkcs8PrivateKey();
+        byte[] publicKey = rsa.ExportSubjectPublicKeyInfo();
         return new KeyPair(privateKey, publicKey);
     }
 
     /// <inheritdoc/>
     public KeyPair GenerateEcdsaKeyPair()
     {
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var privateKey = ecdsa.ExportPkcs8PrivateKey();
-        var publicKey = ecdsa.ExportSubjectPublicKeyInfo();
+        using ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        byte[] privateKey = ecdsa.ExportPkcs8PrivateKey();
+        byte[] publicKey = ecdsa.ExportSubjectPublicKeyInfo();
         return new KeyPair(privateKey, publicKey);
     }
 
@@ -51,12 +55,12 @@ public class KeyGenerator : IKeyGenerator
     public KeyPair GenerateEd25519KeyPair()
     {
         // Generate a random 32-byte seed
-        var seed = new byte[32];
+        byte[] seed = new byte[32];
         RandomNumberGenerator.Fill(seed);
 
         // Generate Ed25519 key pair from seed
-        var publicKey = new byte[32];
-        var expandedPrivateKey = new byte[64];
+        byte[] publicKey = new byte[32];
+        byte[] expandedPrivateKey = new byte[64];
 
         Ed25519Operations.CryptoSignKeypair(publicKey, 0, expandedPrivateKey, 0, seed, 0);
 

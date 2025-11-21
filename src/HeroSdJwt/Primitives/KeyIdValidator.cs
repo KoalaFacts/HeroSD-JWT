@@ -19,18 +19,24 @@ internal static class KeyIdValidator
         ArgumentNullException.ThrowIfNull(keyId);
 
         if (string.IsNullOrWhiteSpace(keyId))
+        {
             throw new ArgumentException("Key ID cannot be empty or whitespace", nameof(keyId));
+        }
 
         if (keyId.Length > MAX_KEY_ID_LENGTH)
+        {
             throw new ArgumentException(
                 $"Key ID length ({keyId.Length}) exceeds maximum allowed ({MAX_KEY_ID_LENGTH})",
                 nameof(keyId));
+        }
 
         // Check for non-printable characters (ASCII 32-126 are printable)
         // This prevents injection attacks via control characters
-        if (keyId.Any(c => c < 32 || c > 126))
+        if (keyId.Any(c => c is < ' ' or > '~'))
+        {
             throw new ArgumentException(
                 "Key ID contains non-printable characters. Only printable ASCII characters (32-126) are allowed.",
                 nameof(keyId));
+        }
     }
 }

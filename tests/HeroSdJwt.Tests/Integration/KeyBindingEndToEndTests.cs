@@ -65,7 +65,7 @@ public class KeyBindingEndToEndTests
             {
                 var decodedJson = Convert.FromBase64String(
                     disclosure.Replace('-', '+').Replace('_', '/')
-                        .PadRight(disclosure.Length + (4 - disclosure.Length % 4) % 4, '='));
+                        .PadRight(disclosure.Length + ((4 - (disclosure.Length % 4)) % 4), '='));
                 var decodedString = System.Text.Encoding.UTF8.GetString(decodedJson);
                 var array = System.Text.Json.JsonDocument.Parse(decodedString).RootElement;
                 if (array.GetArrayLength() == 3)
@@ -108,7 +108,7 @@ public class KeyBindingEndToEndTests
         // Create final presentation with key binding
         var finalPresentation = presenter.CreatePresentation(
             sdJwt,
-            new[] { "name", "email" },
+            ["name", "email"],
             keyBindingJwt);
 
         var finalPresentationString = presenter.FormatPresentation(finalPresentation);
@@ -152,7 +152,7 @@ public class KeyBindingEndToEndTests
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            Array.Empty<string>(),
+            [],
             issuerSigningKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.HS256,
@@ -210,7 +210,7 @@ public class KeyBindingEndToEndTests
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            Array.Empty<string>(),
+            [],
             issuerSigningKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.HS256,
@@ -273,7 +273,7 @@ public class KeyBindingEndToEndTests
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            Array.Empty<string>(),
+            [],
             issuerSigningKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.HS256,
@@ -333,7 +333,7 @@ public class KeyBindingEndToEndTests
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            Array.Empty<string>(),
+            [],
             issuerSigningKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.HS256,
@@ -376,7 +376,7 @@ public class KeyBindingEndToEndTests
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            Array.Empty<string>(),
+            [],
             issuerSigningKey,
             HashAlgorithm.Sha256);  // No holder public key provided
 

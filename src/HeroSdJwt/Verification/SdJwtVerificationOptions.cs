@@ -1,8 +1,6 @@
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification.Revocation;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace HeroSdJwt.Verification;
 
@@ -12,8 +10,6 @@ namespace HeroSdJwt.Verification;
 /// </summary>
 public class SdJwtVerificationOptions
 {
-    private IReadOnlyList<string>? _expectedAudiences;
-
     /// <summary>
     /// Gets the maximum allowed clock skew for temporal claim validation.
     /// Default is 5 minutes (300 seconds).
@@ -47,11 +43,7 @@ public class SdJwtVerificationOptions
     /// When provided, presentations must contain at least one of these audiences.
     /// Default is null/empty (audience not validated).
     /// </summary>
-    public IReadOnlyList<string>? ExpectedAudiences
-    {
-        get => _expectedAudiences;
-        init => _expectedAudiences = value?.ToArray();
-    }
+    public IReadOnlyList<string>? ExpectedAudiences { get; init; }
 
     /// <summary>
     /// Gets the expected hash algorithm for disclosure digests.
@@ -130,9 +122,9 @@ public class SdJwtVerificationOptions
             audiences.Add(ExpectedAudience);
         }
 
-        if (_expectedAudiences is { Count: > 0 })
+        if (ExpectedAudiences is { Count: > 0 })
         {
-            foreach (var audience in _expectedAudiences)
+            foreach (var audience in ExpectedAudiences)
             {
                 if (!string.IsNullOrWhiteSpace(audience))
                 {
@@ -141,13 +133,10 @@ public class SdJwtVerificationOptions
             }
         }
 
-        if (audiences.Count == 0)
-        {
-            return Array.Empty<string>();
-        }
-
-        return audiences
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
+        return audiences.Count == 0
+            ? Array.Empty<string>()
+            : audiences
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
     }
 }

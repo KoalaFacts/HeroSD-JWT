@@ -71,7 +71,7 @@ public class ObjectReconstructionTests
         var obj = result.GetDisclosedObject("data");
 
         // Assert - navigate all 10 levels
-        Assert.NotNull(obj);
+        _ = Assert.NotNull(obj);
         var current = obj.Value;
 
         Assert.True(current.TryGetProperty("level1", out current));
@@ -111,9 +111,9 @@ public class ObjectReconstructionTests
         var obj3 = result.GetDisclosedObject("address");
 
         // Assert - all calls return same structure
-        Assert.NotNull(obj1);
-        Assert.NotNull(obj2);
-        Assert.NotNull(obj3);
+        _ = Assert.NotNull(obj1);
+        _ = Assert.NotNull(obj2);
+        _ = Assert.NotNull(obj3);
 
         Assert.Equal(obj1.Value.GetProperty("street").GetString(), obj2.Value.GetProperty("street").GetString());
         Assert.Equal(obj1.Value.GetProperty("street").GetString(), obj3.Value.GetProperty("street").GetString());
@@ -150,7 +150,7 @@ public class ObjectReconstructionTests
         var obj = result.GetDisclosedObject("person");
 
         // Assert - all properties should be present regardless of order
-        Assert.NotNull(obj);
+        _ = Assert.NotNull(obj);
         Assert.True(obj.Value.TryGetProperty("name", out var name));
         Assert.Equal("Alice", name.GetString());
         Assert.True(obj.Value.TryGetProperty("age", out var age));

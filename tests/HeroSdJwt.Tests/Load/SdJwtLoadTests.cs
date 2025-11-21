@@ -44,9 +44,9 @@ public class SdJwtLoadTests
             {
                 var sdJwt = issuer.CreateSdJwt(
                     claims,
-                    new[] { "email", "name" },
+                    ["email", "name"],
                     key,
-                    HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+                    Primitives.HashAlgorithm.Sha256,
                     SignatureAlgorithm.HS256);
 
                 return await Task.FromResult(Response.Ok(sdJwt));
@@ -100,9 +100,9 @@ public class SdJwtLoadTests
 
             var sdJwt = issuer.CreateSdJwt(
                 claims,
-                new[] { "email" },
+                ["email"],
                 key,
-                HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+                Primitives.HashAlgorithm.Sha256,
                 SignatureAlgorithm.HS256);
 
             presentations.Add(sdJwt.ToPresentation("email"));
@@ -116,14 +116,9 @@ public class SdJwtLoadTests
             {
                 var result = verifier.TryVerifyPresentation(presentation, key);
 
-                if (result.IsValid)
-                {
-                    return await Task.FromResult(Response.Ok(result));
-                }
-                else
-                {
-                    return await Task.FromResult(Response.Fail<object>("Verification failed"));
-                }
+                return result.IsValid
+                    ? await Task.FromResult(Response.Ok(result))
+                    : await Task.FromResult(Response.Fail<object>("Verification failed"));
             }
             catch (Exception ex)
             {
@@ -187,23 +182,18 @@ public class SdJwtLoadTests
 
                 var sdJwt = issuer.CreateSdJwt(
                     claims,
-                    new[] { "email" },
+                    ["email"],
                     issuerKey,
-                    HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+                    Primitives.HashAlgorithm.Sha256,
                     SignatureAlgorithm.HS256,
                     holderPublicKey);
 
                 var presentation = sdJwt.ToPresentation("email");
                 var result = verifier.TryVerifyPresentation(presentation, issuerKey);
 
-                if (result.IsValid)
-                {
-                    return await Task.FromResult(Response.Ok(result));
-                }
-                else
-                {
-                    return await Task.FromResult(Response.Fail<object>("Verification failed"));
-                }
+                return result.IsValid
+                    ? await Task.FromResult(Response.Ok(result))
+                    : await Task.FromResult(Response.Fail<object>("Verification failed"));
             }
             catch (Exception ex)
             {
@@ -263,9 +253,9 @@ public class SdJwtLoadTests
 
                 var sdJwt = issuer.CreateSdJwt(
                     claims,
-                    new[] { "email", "department" },
+                    ["email", "department"],
                     key,
-                    HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+                    Primitives.HashAlgorithm.Sha256,
                     SignatureAlgorithm.HS256);
 
                 var presentation = sdJwt.ToPresentation("email", "department");
@@ -290,14 +280,7 @@ public class SdJwtLoadTests
                 if (presentations.TryTake(out var presentation))
                 {
                     var result = verifier.TryVerifyPresentation(presentation, key);
-                    if (result.IsValid)
-                    {
-                        return await Task.FromResult(Response.Ok());
-                    }
-                    else
-                    {
-                        return await Task.FromResult(Response.Fail<object>("Verification failed"));
-                    }
+                    return result.IsValid ? await Task.FromResult(Response.Ok()) : (NBomber.Contracts.IResponse)await Task.FromResult(Response.Fail<object>("Verification failed"));
                 }
 
                 return await Task.FromResult(Response.Fail<object>("No presentations available"));
@@ -353,22 +336,15 @@ public class SdJwtLoadTests
 
                 var sdJwt = issuer.CreateSdJwt(
                     claims,
-                    new[] { "email" },
+                    ["email"],
                     key,
-                    HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+                    Primitives.HashAlgorithm.Sha256,
                     SignatureAlgorithm.HS256);
 
                 var presentation = sdJwt.ToPresentation("email");
                 var result = verifier.TryVerifyPresentation(presentation, key);
 
-                if (result.IsValid)
-                {
-                    return await Task.FromResult(Response.Ok());
-                }
-                else
-                {
-                    return await Task.FromResult(Response.Fail<object>("Verification failed"));
-                }
+                return result.IsValid ? await Task.FromResult(Response.Ok()) : (NBomber.Contracts.IResponse)await Task.FromResult(Response.Fail<object>("Verification failed"));
             }
             catch (Exception ex)
             {

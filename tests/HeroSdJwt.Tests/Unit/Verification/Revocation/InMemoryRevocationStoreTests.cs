@@ -1,5 +1,4 @@
 using HeroSdJwt.Verification.Revocation;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Unit.Verification.Revocation;
 
@@ -30,7 +29,7 @@ public class InMemoryRevocationStoreTests
         var store = new InMemoryRevocationStore();
         var expiresAt = DateTimeOffset.UtcNow.AddHours(1);
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() =>
             store.RevokeJtiAsync(null!, expiresAt, _ct));
     }
 
@@ -40,7 +39,7 @@ public class InMemoryRevocationStoreTests
         var store = new InMemoryRevocationStore();
         var expiresAt = DateTimeOffset.UtcNow.AddHours(1);
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        _ = await Assert.ThrowsAsync<ArgumentException>(() =>
             store.RevokeJtiAsync("", expiresAt, _ct));
     }
 
@@ -89,7 +88,7 @@ public class InMemoryRevocationStoreTests
     {
         var store = new InMemoryRevocationStore();
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() =>
             store.RevokeKeyAsync(null!, _ct));
     }
 
@@ -129,7 +128,7 @@ public class InMemoryRevocationStoreTests
     {
         var store = new InMemoryRevocationStore();
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() =>
             store.RevokeUserAsync(null!, _ct));
     }
 

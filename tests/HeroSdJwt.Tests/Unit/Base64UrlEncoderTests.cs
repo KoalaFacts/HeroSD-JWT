@@ -62,25 +62,25 @@ public class Base64UrlEncoderTests
     public void Encode_WithNullBytes_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => Base64UrlEncoder.Encode((byte[])null!));
+        _ = Assert.Throws<ArgumentNullException>(() => Base64UrlEncoder.Encode((byte[])null!));
     }
 
     [Fact]
     public void Encode_WithNullString_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => Base64UrlEncoder.Encode((string)null!));
+        _ = Assert.Throws<ArgumentNullException>(() => Base64UrlEncoder.Encode((string)null!));
     }
 
     [Fact]
-    public void Encode_WithVeryLargeInput_ThrowsArgumentException()
+    public void Encode_WithVeryLargeInput_ThrowsArgumentOutOfRangeException()
     {
         // Arrange - Create array larger than 10MB limit
         var largeBytes = new byte[11 * 1024 * 1024]; // 11MB
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => Base64UrlEncoder.Encode(largeBytes));
-        Assert.Contains("maximum length", exception.Message);
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => Base64UrlEncoder.Encode(largeBytes));
+        Assert.Contains("must be less than or equal to", exception.Message);
     }
 
     [Fact]
@@ -115,14 +115,14 @@ public class Base64UrlEncoderTests
     public void DecodeBytes_WithNullInput_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => Base64UrlEncoder.DecodeBytes(null!));
+        _ = Assert.Throws<ArgumentNullException>(() => Base64UrlEncoder.DecodeBytes(null!));
     }
 
     [Fact]
     public void DecodeString_WithNullInput_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => Base64UrlEncoder.DecodeString(null!));
+        _ = Assert.Throws<ArgumentNullException>(() => Base64UrlEncoder.DecodeString(null!));
     }
 
     [Fact]
@@ -138,14 +138,14 @@ public class Base64UrlEncoderTests
     }
 
     [Fact]
-    public void DecodeBytes_WithVeryLargeInput_ThrowsArgumentException()
+    public void DecodeBytes_WithVeryLargeInput_ThrowsArgumentOutOfRangeException()
     {
         // Arrange - Create string larger than 10MB limit
         var largeString = new string('A', 11 * 1024 * 1024); // 11MB
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => Base64UrlEncoder.DecodeBytes(largeString));
-        Assert.Contains("maximum length", exception.Message);
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => Base64UrlEncoder.DecodeBytes(largeString));
+        Assert.Contains("must be less than or equal to", exception.Message);
     }
 
     [Fact]
@@ -197,7 +197,7 @@ public class Base64UrlEncoderTests
         var withPlus = standardBase64.Replace("S", "+");  // Make it invalid
 
         // Act & Assert
-        Assert.Throws<SdJwtException>(() => Base64UrlEncoder.DecodeBytes(withPlus));
+        _ = Assert.Throws<SdJwtException>(() => Base64UrlEncoder.DecodeBytes(withPlus));
     }
 
     [Fact]

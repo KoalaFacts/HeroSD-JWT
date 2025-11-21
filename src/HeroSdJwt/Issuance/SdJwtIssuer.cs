@@ -125,7 +125,7 @@ public class SdJwtIssuer(
                     {
                         arrayElementsToDisclose[claimPath.BaseName] = [];
                     }
-                    arrayElementsToDisclose[claimPath.BaseName].Add(claimPath.ArrayIndex!.Value);
+                    _ = arrayElementsToDisclose[claimPath.BaseName].Add(claimPath.ArrayIndex!.Value);
                 }
                 else if (claimPath.IsNested)
                 {

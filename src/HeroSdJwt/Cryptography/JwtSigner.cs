@@ -127,12 +127,7 @@ public class JwtSigner : IJwtSigner
 
             // Validate minimum key size (2048 bits per NIST recommendations)
             const int MinimumRsaKeySize = 2048;
-            if (rsa.KeySize < MinimumRsaKeySize)
-            {
-                throw new ArgumentException(
-                    $"RSA key size {rsa.KeySize} is below minimum required size of {MinimumRsaKeySize} bits",
-                    nameof(privateKeyBytes));
-            }
+            ArgumentOutOfRangeException.ThrowIfLessThan(rsa.KeySize, MinimumRsaKeySize, nameof(privateKeyBytes));
 
             return rsa.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         }
@@ -225,12 +220,7 @@ public class JwtSigner : IJwtSigner
 
             // Validate minimum key size (2048 bits per NIST recommendations)
             const int MinimumRsaKeySize = 2048;
-            if (rsa.KeySize < MinimumRsaKeySize)
-            {
-                throw new ArgumentException(
-                    $"RSA key size {rsa.KeySize} is below minimum required size of {MinimumRsaKeySize} bits",
-                    nameof(privateKeyBytes));
-            }
+            ArgumentOutOfRangeException.ThrowIfLessThan(rsa.KeySize, MinimumRsaKeySize, nameof(privateKeyBytes));
 
             return rsa.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
         }
@@ -412,10 +402,15 @@ public class JwtSigner : IJwtSigner
     /// <summary>
     /// Converts a DER-encoded ECDSA signature to JOSE (R||S) format. If the input is already R||S, it is returned as-is.
     /// </summary>
+    /// <summary>
+    /// Converts a DER-encoded ECDSA signature to JOSE (R||S) format.
+    /// If the input is already raw R||S (e.g., some providers emit that), it is returned as-is based on length.
+    /// </summary>
     private static byte[] ConvertDerToJose(ReadOnlySpan<byte> signature, int coordinateSize)
     {
-        // If already in raw format, accept it
-        if (signature.Length == coordinateSize * 2 && signature.Length > 0 && signature[0] != 0x30)
+        // If already in raw R||S format, accept it based on expected length.
+        // Some valid signatures begin with 0x30; length check avoids misclassifying them as DER (test flake guard).
+        if (signature.Length == coordinateSize * 2 && signature.Length > 0)
         {
             return signature.ToArray();
         }

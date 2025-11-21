@@ -1,7 +1,6 @@
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using Microsoft.AspNetCore.Authentication;
-using System.Linq;
 
 namespace HeroSdJwt.AspNetCore.Authentication;
 

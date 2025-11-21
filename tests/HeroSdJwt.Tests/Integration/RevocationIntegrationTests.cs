@@ -5,7 +5,6 @@ using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using HeroSdJwt.Verification.Revocation;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Integration;
 

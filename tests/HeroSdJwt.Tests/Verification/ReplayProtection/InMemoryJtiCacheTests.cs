@@ -27,7 +27,7 @@ public class InMemoryJtiCacheTests : IJtiCacheContractTests
         var jti = Guid.NewGuid().ToString();
         var ttl = TimeSpan.FromMilliseconds(100); // Very short TTL for test
 
-        await Cache!.TryAddAsync(issuer, jti, ttl, TestContext.Current.CancellationToken);
+        _ = await Cache!.TryAddAsync(issuer, jti, ttl, TestContext.Current.CancellationToken);
 
         // Act - Wait for expiration
         await Task.Delay(TimeSpan.FromMilliseconds(200), TestContext.Current.CancellationToken);
@@ -59,7 +59,7 @@ public class InMemoryJtiCacheTests : IJtiCacheContractTests
         for (int i = 0; i < 15; i++)
         {
             var jti = $"jti-{i}";
-            await smallCache.TryAddAsync(issuer, jti, TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
+            _ = await smallCache.TryAddAsync(issuer, jti, TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
         }
 
         // Assert - Cache should not exceed max capacity
@@ -83,8 +83,8 @@ public class InMemoryJtiCacheTests : IJtiCacheContractTests
             var jti = $"jti-{i}";
             tasks.Add(Task.Run(async () =>
             {
-                await Cache!.TryAddAsync(issuer, jti, TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
-                await Cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken);
+                _ = await Cache!.TryAddAsync(issuer, jti, TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
+                _ = await Cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken);
             }, TestContext.Current.CancellationToken));
         }
 
@@ -101,7 +101,7 @@ public class InMemoryJtiCacheTests : IJtiCacheContractTests
         var issuer = "https://issuer.example";
         var jti = Guid.NewGuid().ToString();
 
-        await Cache!.TryAddAsync(issuer, jti, TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
+        _ = await Cache!.TryAddAsync(issuer, jti, TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
         await Cache.RemoveAsync(issuer, jti, TestContext.Current.CancellationToken);
 
         // Act

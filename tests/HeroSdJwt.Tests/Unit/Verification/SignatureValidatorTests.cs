@@ -159,7 +159,7 @@ public class SignatureValidatorTests
             var jwt = CreateJwtWithAlgorithm(noneVariant, new { sub = "user123" });
 
             // Act & Assert
-            Assert.Throws<AlgorithmConfusionException>(() =>
+            _ = Assert.Throws<AlgorithmConfusionException>(() =>
                 new SignatureValidator().VerifyJwtSignature(jwt, key));
         }
     }
@@ -233,7 +233,7 @@ public class SignatureValidatorTests
         var key = _keyGen.GenerateHmacKey();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new SignatureValidator().VerifyJwtSignature(null!, key));
     }
 
@@ -245,7 +245,7 @@ public class SignatureValidatorTests
         var jwt = CreateSignedJwt("HS256", key, new { sub = "user123" });
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new SignatureValidator().VerifyJwtSignature(jwt, null!));
     }
 
@@ -305,18 +305,28 @@ public class SignatureValidatorTests
         {
             using var rsa = RSA.Create();
             if (useRsaPkcs8)
+            {
                 rsa.ImportPkcs8PrivateKey(key, out _);
+            }
             else
+            {
                 rsa.ImportRSAPrivateKey(key, out _);
+            }
+
             signature = rsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         }
         else if (useEcdsa || useEcdsaPkcs8)
         {
             using var ecdsa = ECDsa.Create();
             if (useEcdsaPkcs8)
+            {
                 ecdsa.ImportPkcs8PrivateKey(key, out _);
+            }
             else
+            {
                 ecdsa.ImportECPrivateKey(key, out _);
+            }
+
             signature = ecdsa.SignData(System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256);
         }
         else // HMAC

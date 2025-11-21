@@ -56,7 +56,7 @@ public class DecoyDigestGeneratorTests
         var count = 100;
 
         // Act
-        var decoys = (List<string>)generator.GenerateDecoyDigests(count, HashAlgorithm.Sha256);
+        var decoys = generator.GenerateDecoyDigests(count, HashAlgorithm.Sha256);
 
         // Assert
         var uniqueDecoys = decoys.Distinct().ToList();
@@ -127,8 +127,8 @@ public class DecoyDigestGeneratorTests
         var generator = CreateGenerator();
 
         // Act
-        var decoys1 = (List<string>)generator.GenerateDecoyDigests(5, HashAlgorithm.Sha256);
-        var decoys2 = (List<string>)generator.GenerateDecoyDigests(5, HashAlgorithm.Sha256);
+        var decoys1 = generator.GenerateDecoyDigests(5, HashAlgorithm.Sha256);
+        var decoys2 = generator.GenerateDecoyDigests(5, HashAlgorithm.Sha256);
 
         // Assert - No overlap expected (cryptographically secure random)
         var overlaps = decoys1.Intersect(decoys2).ToList();
@@ -180,7 +180,7 @@ public class DecoyDigestGeneratorTests
         var decoyDigests = new List<string> { "decoy1" };
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             generator.InterleaveDecoys(null!, decoyDigests));
     }
 
@@ -192,7 +192,7 @@ public class DecoyDigestGeneratorTests
         var realDigests = new List<string> { "real1" };
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             generator.InterleaveDecoys(realDigests, null!));
     }
 
@@ -263,8 +263,8 @@ public class DecoyDigestGeneratorTests
 
         // Assert - Check counts of each element
         Assert.Equal(8, result.Count);
-        var realCount = ((List<string>)result).Count(d => d.StartsWith("r"));
-        var decoyCount = ((List<string>)result).Count(d => d.StartsWith("d"));
+        var realCount = result.Count(d => d.StartsWith("r"));
+        var decoyCount = result.Count(d => d.StartsWith("d"));
         Assert.Equal(5, realCount);
         Assert.Equal(3, decoyCount);
     }

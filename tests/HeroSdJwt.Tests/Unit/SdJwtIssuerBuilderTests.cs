@@ -33,7 +33,7 @@ public class SdJwtIssuerBuilderTests
         // Assert
         Assert.NotNull(sdJwt);
         Assert.NotEmpty(sdJwt.Jwt);
-        Assert.Single(sdJwt.Disclosures);
+        _ = Assert.Single(sdJwt.Disclosures);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class SdJwtIssuerBuilderTests
         // Assert
         Assert.NotNull(sdJwt);
         // Should have 1 real disclosure + 5 decoys in JWT payload _sd array
-        Assert.Single(sdJwt.Disclosures); // Only real disclosures are in the list
+        _ = Assert.Single(sdJwt.Disclosures); // Only real disclosures are in the list
     }
 
     [Fact]
@@ -190,7 +190,7 @@ public class SdJwtIssuerBuilderTests
     public void WithDecoys_WithNegativeCount_ThrowsArgumentOutOfRangeException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
             SdJwtIssuerBuilder.Create().WithDecoys(-1));
     }
 

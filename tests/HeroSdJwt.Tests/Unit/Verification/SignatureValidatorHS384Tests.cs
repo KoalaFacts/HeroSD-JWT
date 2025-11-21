@@ -112,7 +112,7 @@ public class SignatureValidatorHS384Tests
         var key = RandomNumberGenerator.GetBytes(48);
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             _validator.VerifyJwtSignature(null!, key));
     }
 
@@ -124,7 +124,7 @@ public class SignatureValidatorHS384Tests
         var jwt = _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, key, SignatureAlgorithm.HS384);
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             _validator.VerifyJwtSignature(jwt, null!));
     }
 

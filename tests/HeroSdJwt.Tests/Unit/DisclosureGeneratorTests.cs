@@ -112,7 +112,7 @@ public class DisclosureGeneratorTests
         var claimValue = JsonDocument.Parse("\"value\"").RootElement;
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             generator.GenerateDisclosure(null!, claimValue));
     }
 
@@ -124,7 +124,7 @@ public class DisclosureGeneratorTests
         var claimValue = JsonDocument.Parse("\"value\"").RootElement;
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
+        _ = Assert.Throws<ArgumentException>(() =>
             generator.GenerateDisclosure(string.Empty, claimValue));
     }
 
@@ -168,7 +168,7 @@ public class DisclosureGeneratorTests
     private static string ConvertFromBase64Url(string base64Url)
     {
         var base64 = base64Url.Replace('-', '+').Replace('_', '/');
-        var padding = (4 - base64.Length % 4) % 4;
+        var padding = (4 - (base64.Length % 4)) % 4;
         return base64 + new string('=', padding);
     }
 }

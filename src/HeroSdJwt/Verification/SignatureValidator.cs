@@ -159,14 +159,11 @@ public class SignatureValidator : ISignatureValidator
 
             // Validate minimum key size (2048 bits per NIST recommendations)
             const int MinimumRsaKeySize = 2048;
-            if (rsa.KeySize < MinimumRsaKeySize)
-            {
-                throw new SdJwtException(
+            return rsa.KeySize >= MinimumRsaKeySize
+                ? rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
+                : throw new SdJwtException(
                     $"RSA key size {rsa.KeySize} is below minimum required size of {MinimumRsaKeySize} bits",
                     ErrorCode.InvalidInput);
-            }
-
-            return rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         }
         catch (SdJwtException)
         {
@@ -202,14 +199,11 @@ public class SignatureValidator : ISignatureValidator
 
             // Validate minimum key size (2048 bits per NIST recommendations)
             const int MinimumRsaKeySize = 2048;
-            if (rsa.KeySize < MinimumRsaKeySize)
-            {
-                throw new SdJwtException(
+            return rsa.KeySize >= MinimumRsaKeySize
+                ? rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pss)
+                : throw new SdJwtException(
                     $"RSA key size {rsa.KeySize} is below minimum required size of {MinimumRsaKeySize} bits",
                     ErrorCode.InvalidInput);
-            }
-
-            return rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
         }
         catch (SdJwtException)
         {
@@ -555,10 +549,12 @@ public class SignatureValidator : ISignatureValidator
         var s = joseSignature[coordinateSize..];
 
         var writer = new AsnWriter(AsnEncodingRules.DER);
-        writer.PushSequence();
-        WriteInteger(writer, r);
-        WriteInteger(writer, s);
-        writer.PopSequence();
+        using (writer.PushSequence())
+        {
+            WriteInteger(writer, r);
+            WriteInteger(writer, s);
+        }
+
         return writer.Encode();
     }
 

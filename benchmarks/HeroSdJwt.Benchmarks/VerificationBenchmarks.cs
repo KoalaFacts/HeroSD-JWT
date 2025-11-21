@@ -21,7 +21,6 @@ public class VerificationBenchmarks
     private ECDsa _holderKey = null!;
 
     private SdJwt _sdJwtHmac = null!;
-    private SdJwt _sdJwtRsa = null!;
     private SdJwtVerifier _verifier = null!;
     private SdJwtVerifier _verifierWithKeyBinding = null!;
 
@@ -65,7 +64,7 @@ public class VerificationBenchmarks
 
         _sdJwtHmac = builder.SignWithHmac(_hmacKey).Build();
         var rsaPrivateKey = _rsa.ExportPkcs8PrivateKey();
-        _sdJwtRsa = builder.SignWithRsa(rsaPrivateKey).Build();
+        _ = builder.SignWithRsa(rsaPrivateKey).Build();
 
         // Create presentations
         _presentation = _sdJwtHmac.ToPresentation("email", "name");

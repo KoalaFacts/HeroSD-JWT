@@ -62,7 +62,7 @@ public sealed class SdJwt
         }
 
         Jwt = jwt;
-        Disclosures = new ReadOnlyCollection<string>(disclosures.ToList());
+        Disclosures = new ReadOnlyCollection<string>([.. disclosures]);
         HashAlgorithm = hashAlgorithm;
         KeyBindingJwt = keyBindingJwt;
         ClaimPathMapping = claimPathMapping;

@@ -44,7 +44,7 @@ public class PresentationBenchmarks
         var builder = new SdJwtIssuerBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
-            .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
+            .MakeSelective([.. claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k))]);
 
         _sdJwt = builder.SignWithHmac(_hmacKey).Build();
 
@@ -85,7 +85,7 @@ public class PresentationBenchmarks
     public string CreatePresentationManyClaims()
     {
         // Disclose 25 claims
-        var claimsToDisclose = Enumerable.Range(0, 25).Select(i => $"claim_{i}").ToArray();
+        string[] claimsToDisclose = [.. Enumerable.Range(0, 25).Select(i => $"claim_{i}")];
         return _sdJwt.ToPresentation(claimsToDisclose);
     }
 

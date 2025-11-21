@@ -65,12 +65,22 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
     public byte[] FromJwk(JsonElement jwk)
     {
         // Validate required fields
-        if (!jwk.TryGetProperty("kty", out var ktyElement) || ktyElement.GetString() != "EC")
+        if (!jwk.TryGetProperty("kty", out var ktyElement))
         {
             throw new ArgumentException("JWK must have kty=EC for Elliptic Curve keys");
         }
 
-        if (!jwk.TryGetProperty("crv", out var crvElement) || crvElement.GetString() != "P-256")
+        if (ktyElement.GetString() != "EC")
+        {
+            throw new ArgumentException("JWK must have kty=EC for Elliptic Curve keys");
+        }
+
+        if (!jwk.TryGetProperty("crv", out var crvElement))
+        {
+            throw new ArgumentException("Only P-256 curve is supported");
+        }
+
+        if (crvElement.GetString() != "P-256")
         {
             throw new ArgumentException("Only P-256 curve is supported");
         }
@@ -154,12 +164,22 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
     private byte[] FromJwkDictionary(Dictionary<string, object> dict)
     {
         // Validate required fields
-        if (!dict.TryGetValue("kty", out var ktyObj) || ktyObj as string != "EC")
+        if (!dict.TryGetValue("kty", out var ktyObj))
         {
             throw new ArgumentException("JWK must have kty=EC for Elliptic Curve keys");
         }
 
-        if (!dict.TryGetValue("crv", out var crvObj) || crvObj as string != "P-256")
+        if ((ktyObj as string) != "EC")
+        {
+            throw new ArgumentException("JWK must have kty=EC for Elliptic Curve keys");
+        }
+
+        if (!dict.TryGetValue("crv", out var crvObj))
+        {
+            throw new ArgumentException("Only P-256 curve is supported");
+        }
+
+        if ((crvObj as string) != "P-256")
         {
             throw new ArgumentException("Only P-256 curve is supported");
         }

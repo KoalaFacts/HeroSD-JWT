@@ -52,8 +52,8 @@ public class VerificationResultTests
     public void Constructor_WithNullClaims_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
-            new VerificationResult((IReadOnlyDictionary<string, JsonElement>)null!));
+        _ = Assert.Throws<ArgumentNullException>(() =>
+            new VerificationResult(null!));
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class VerificationResultTests
         var result = new VerificationResult(claims);
 
         // Assert
-        Assert.IsAssignableFrom<IReadOnlyDictionary<string, JsonElement>>(result.DisclosedClaims);
+        _ = Assert.IsAssignableFrom<IReadOnlyDictionary<string, JsonElement>>(result.DisclosedClaims);
     }
 
     #endregion
@@ -106,7 +106,7 @@ public class VerificationResultTests
 
         // Assert
         Assert.False(result.IsValid);
-        Assert.Single(result.Errors);
+        _ = Assert.Single(result.Errors);
         Assert.Equal(ErrorCode.InvalidSignature, result.Errors[0]);
         Assert.Null(result.ErrorDetails);
     }
@@ -127,8 +127,8 @@ public class VerificationResultTests
     public void Constructor_WithNullErrorList_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
-            new VerificationResult((IEnumerable<ErrorCode>)null!, "details"));
+        _ = Assert.Throws<ArgumentNullException>(() =>
+            new VerificationResult(null!, "details"));
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class VerificationResultTests
 
         // Assert
         Assert.False(result.IsValid);
-        Assert.Single(result.Errors);
+        _ = Assert.Single(result.Errors);
         Assert.Equal(ErrorCode.InvalidSignature, result.Errors[0]);
         Assert.Equal("Signature verification failed", result.ErrorDetails);
         Assert.Empty(result.DisclosedClaims);
@@ -199,7 +199,7 @@ public class VerificationResultTests
 
         // Assert
         Assert.False(result.IsValid);
-        Assert.Single(result.Errors);
+        _ = Assert.Single(result.Errors);
         Assert.Equal(ErrorCode.DigestMismatch, result.Errors[0]);
         Assert.Null(result.ErrorDetails);
     }
@@ -226,7 +226,7 @@ public class VerificationResultTests
 
             // Assert
             Assert.False(result.IsValid);
-            Assert.Single(result.Errors);
+            _ = Assert.Single(result.Errors);
             Assert.Equal(errorCode, result.Errors[0]);
             Assert.Equal($"Error: {errorCode}", result.ErrorDetails);
         }
@@ -483,7 +483,7 @@ public class VerificationResultTests
         var result = new VerificationResult(claims);
 
         // Act & Assert
-        Assert.IsAssignableFrom<IReadOnlyDictionary<string, JsonElement>>(result.DisclosedClaims);
+        _ = Assert.IsAssignableFrom<IReadOnlyDictionary<string, JsonElement>>(result.DisclosedClaims);
     }
 
     [Fact]
@@ -493,7 +493,7 @@ public class VerificationResultTests
         var result = new VerificationResult(ErrorCode.InvalidSignature);
 
         // Act & Assert
-        Assert.IsAssignableFrom<IReadOnlyList<ErrorCode>>(result.Errors);
+        _ = Assert.IsAssignableFrom<IReadOnlyList<ErrorCode>>(result.Errors);
         // Verify we cannot cast to modifiable list
         Assert.False(result.Errors is List<ErrorCode>);
     }
@@ -536,7 +536,7 @@ public class VerificationResultTests
         originalErrors.Add(ErrorCode.DigestMismatch);
 
         // Assert - Result should still have only one error
-        Assert.Single(result.Errors);
+        _ = Assert.Single(result.Errors);
         Assert.Equal(ErrorCode.InvalidSignature, result.Errors[0]);
     }
 

@@ -50,7 +50,9 @@ public sealed class TokenRevokedException : SdJwtException
         : base("Token's signing key has been revoked", ErrorCode.TokenRevokedByKey)
     {
         if (reason != RevocationReason.KeyRevoked)
+        {
             throw new ArgumentException("Reason must be KeyRevoked for key-based revocation", nameof(reason));
+        }
 
         KeyId = keyId;
         Reason = reason;
@@ -67,7 +69,9 @@ public sealed class TokenRevokedException : SdJwtException
         : base("User's tokens have been revoked", ErrorCode.TokenRevokedByUser)
     {
         if (reason != RevocationReason.UserRevoked)
+        {
             throw new ArgumentException("Reason must be UserRevoked for user-based revocation", nameof(reason));
+        }
 
         UserId = userId;
         Jti = jti;

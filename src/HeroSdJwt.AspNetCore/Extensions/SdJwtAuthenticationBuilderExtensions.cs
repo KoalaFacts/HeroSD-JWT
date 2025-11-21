@@ -37,7 +37,9 @@ public static class SdJwtAuthenticationBuilderExtensions
     /// </example>
     public static AuthenticationBuilder AddSdJwt(
         this AuthenticationBuilder builder)
-        => builder.AddSdJwt(SdJwtAuthenticationDefaults.AUTHENTICATION_SCHEME);
+    {
+        return builder.AddSdJwt(SdJwtAuthenticationDefaults.AUTHENTICATION_SCHEME);
+    }
 
     /// <summary>
     /// Adds SD-JWT authentication to the authentication builder with a specific scheme name.
@@ -48,7 +50,9 @@ public static class SdJwtAuthenticationBuilderExtensions
     public static AuthenticationBuilder AddSdJwt(
         this AuthenticationBuilder builder,
         string authenticationScheme)
-        => builder.AddSdJwt(authenticationScheme, configureOptions: null);
+    {
+        return builder.AddSdJwt(authenticationScheme, configureOptions: null);
+    }
 
     /// <summary>
     /// Adds SD-JWT authentication to the authentication builder with configuration.
@@ -70,7 +74,9 @@ public static class SdJwtAuthenticationBuilderExtensions
     public static AuthenticationBuilder AddSdJwt(
         this AuthenticationBuilder builder,
         Action<SdJwtAuthenticationOptions>? configureOptions)
-        => builder.AddSdJwt(SdJwtAuthenticationDefaults.AUTHENTICATION_SCHEME, configureOptions);
+    {
+        return builder.AddSdJwt(SdJwtAuthenticationDefaults.AUTHENTICATION_SCHEME, configureOptions);
+    }
 
     /// <summary>
     /// Adds SD-JWT authentication to the authentication builder with a custom scheme name and configuration.
@@ -100,7 +106,9 @@ public static class SdJwtAuthenticationBuilderExtensions
         this AuthenticationBuilder builder,
         string authenticationScheme,
         Action<SdJwtAuthenticationOptions>? configureOptions)
-        => builder.AddSdJwt(authenticationScheme, SdJwtAuthenticationDefaults.DISPLAY_NAME, configureOptions);
+    {
+        return builder.AddSdJwt(authenticationScheme, SdJwtAuthenticationDefaults.DISPLAY_NAME, configureOptions);
+    }
 
     /// <summary>
     /// Adds SD-JWT authentication to the authentication builder with full customization.
@@ -117,7 +125,7 @@ public static class SdJwtAuthenticationBuilderExtensions
         Action<SdJwtAuthenticationOptions>? configureOptions)
     {
         // Register SD-JWT services if not already registered
-        builder.Services.AddSdJwtServices();
+        _ = builder.Services.AddSdJwtServices();
 
         // Register the authentication handler
         return builder.AddScheme<SdJwtAuthenticationOptions, SdJwtAuthenticationHandler>(

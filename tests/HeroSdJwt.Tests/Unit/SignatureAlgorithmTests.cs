@@ -30,7 +30,7 @@ public class SignatureAlgorithmTests
         // Act
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.HS256);
@@ -67,7 +67,7 @@ public class SignatureAlgorithmTests
         // Act
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             privateKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.RS256);
@@ -104,7 +104,7 @@ public class SignatureAlgorithmTests
         // Act
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             privateKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.ES256);
@@ -141,7 +141,7 @@ public class SignatureAlgorithmTests
         // Act - Issue
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "name", "email" },
+            ["name", "email"],
             signingKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.HS256);
@@ -182,7 +182,7 @@ public class SignatureAlgorithmTests
         // Act - Issue
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "name", "email" },
+            ["name", "email"],
             privateKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.RS256);
@@ -223,7 +223,7 @@ public class SignatureAlgorithmTests
         // Act - Issue
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "name", "email" },
+            ["name", "email"],
             privateKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.ES256);
@@ -244,7 +244,7 @@ public class SignatureAlgorithmTests
     }
 
     [Fact]
-    public void CreateSdJwt_WithRS256AndSmallKey_ThrowsArgumentException()
+    public void CreateSdJwt_WithRS256AndSmallKey_ThrowsArgumentOutOfRangeException()
     {
         // Arrange
         var issuer = TestHelpers.CreateIssuer();
@@ -259,10 +259,10 @@ public class SignatureAlgorithmTests
         };
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             issuer.CreateSdJwt(
                 claims,
-                Array.Empty<string>(),
+                [],
                 privateKey,
                 HashAlgorithm.Sha256,
                 SignatureAlgorithm.RS256));
@@ -289,7 +289,7 @@ public class SignatureAlgorithmTests
         var exception = Assert.Throws<ArgumentException>(() =>
             issuer.CreateSdJwt(
                 claims,
-                Array.Empty<string>(),
+                [],
                 privateKey,
                 HashAlgorithm.Sha256,
                 SignatureAlgorithm.ES256));
@@ -321,7 +321,7 @@ public class SignatureAlgorithmTests
         // Issue with issuer's key
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             issuerPrivateKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.RS256);
@@ -363,7 +363,7 @@ public class SignatureAlgorithmTests
         // Issue with issuer's key
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             issuerPrivateKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.ES256);
@@ -397,7 +397,7 @@ public class SignatureAlgorithmTests
         // Act - Don't specify algorithm (should default to HS256)
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            Array.Empty<string>(),
+            [],
             signingKey,
             HashAlgorithm.Sha256);  // No signatureAlgorithm parameter
 
@@ -429,7 +429,7 @@ public class SignatureAlgorithmTests
         // Act
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             privateKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.EdDSA);
@@ -467,7 +467,7 @@ public class SignatureAlgorithmTests
         // Act - Issue
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "name", "email" },
+            ["name", "email"],
             privateKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.EdDSA);
@@ -510,7 +510,7 @@ public class SignatureAlgorithmTests
         // Issue with issuer's key
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             issuerPrivateKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.EdDSA);

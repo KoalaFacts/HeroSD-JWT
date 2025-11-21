@@ -155,10 +155,8 @@ public readonly struct Disclosure : IEquatable<Disclosure>
     /// <inheritdoc/>
     public override string ToString()
     {
-        if (IsArrayElement)
-        {
-            return $"Disclosure(Salt={Salt[..Math.Min(8, Salt.Length)]}..., ArrayElement)";
-        }
-        return $"Disclosure(Salt={Salt[..Math.Min(8, Salt.Length)]}..., ClaimName={ClaimName})";
+        return IsArrayElement
+            ? $"Disclosure(Salt={Salt[..Math.Min(8, Salt.Length)]}..., ArrayElement)"
+            : $"Disclosure(Salt={Salt[..Math.Min(8, Salt.Length)]}..., ClaimName={ClaimName})";
     }
 }

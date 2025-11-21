@@ -143,7 +143,7 @@ public class DigestCalculatorTests
         var algorithm = HashAlgorithm.Sha256;
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             calculator.ComputeDigest(null!, algorithm));
     }
 
@@ -155,7 +155,7 @@ public class DigestCalculatorTests
         var algorithm = HashAlgorithm.Sha256;
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
+        _ = Assert.Throws<ArgumentException>(() =>
             calculator.ComputeDigest(string.Empty, algorithm));
     }
 
@@ -181,7 +181,7 @@ public class DigestCalculatorTests
         var algorithm = HashAlgorithm.Sha256;
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
+        _ = Assert.Throws<ArgumentException>(() =>
             calculator.ComputeDigest("\t", algorithm));
     }
 
@@ -193,7 +193,7 @@ public class DigestCalculatorTests
         var algorithm = HashAlgorithm.Sha256;
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
+        _ = Assert.Throws<ArgumentException>(() =>
             calculator.ComputeDigest("\n", algorithm));
     }
 
@@ -356,7 +356,7 @@ public class DigestCalculatorTests
     private static byte[] ConvertFromBase64Url(string base64Url)
     {
         var base64 = base64Url.Replace('-', '+').Replace('_', '/');
-        var padding = (4 - base64.Length % 4) % 4;
+        var padding = (4 - (base64.Length % 4)) % 4;
         base64 += new string('=', padding);
         return Convert.FromBase64String(base64);
     }

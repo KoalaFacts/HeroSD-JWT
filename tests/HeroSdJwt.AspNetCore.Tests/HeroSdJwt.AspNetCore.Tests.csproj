@@ -2,11 +2,10 @@
 
   <PropertyGroup>
 		<TargetFrameworks>$(SupportedTargetFrameworks)</TargetFrameworks>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);IDE0005</NoWarn>
     <!-- xUnit v3 requires apphost for test execution -->
     <UseAppHost>true</UseAppHost>
     <!-- Build targets sequentially to avoid apphost copy race condition -->

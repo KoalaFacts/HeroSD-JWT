@@ -89,7 +89,7 @@ public class EcPublicKeyConverterTests
     public void ToJwk_WithNullKey_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => _converter.ToJwk(null!));
+        _ = Assert.Throws<ArgumentNullException>(() => _converter.ToJwk(null!));
     }
 
     [Fact]

@@ -7,22 +7,10 @@ namespace HeroSdJwt.Verification.ReplayProtection;
 /// Validates JWT ID (jti) claims to prevent replay attacks.
 /// Integrates with IJtiCache to track seen tokens.
 /// </summary>
-public class JtiValidator
+public class JtiValidator(IJtiCache cache, ReplayProtectionOptions options)
 {
-    private readonly IJtiCache _cache;
-    private readonly ReplayProtectionOptions _options;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JtiValidator"/> class.
-    /// </summary>
-    /// <param name="cache">The cache implementation for tracking JWT IDs.</param>
-    /// <param name="options">Configuration options for replay protection.</param>
-    /// <exception cref="ArgumentNullException">Thrown when cache or options is null.</exception>
-    public JtiValidator(IJtiCache cache, ReplayProtectionOptions options)
-    {
-        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-    }
+    private readonly IJtiCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+    private readonly ReplayProtectionOptions _options = options ?? throw new ArgumentNullException(nameof(options));
 
     /// <summary>
     /// Validates jti claim and checks for replay attacks.
@@ -112,7 +100,7 @@ public class JtiValidator
         }
 
         // Calculate TTL with clock skew tolerance
-        var ttl = (exp - now) + _options.ClockSkewTolerance;
+        var ttl = exp - now + _options.ClockSkewTolerance;
 
         // Cap at maximum TTL
         if (ttl > _options.MaximumTtl)

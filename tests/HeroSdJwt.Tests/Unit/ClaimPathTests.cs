@@ -98,11 +98,11 @@ public class ClaimPathTests
     }
 
     [Fact]
-    public void Parse_NegativeIndex_ThrowsArgumentException()
+    public void Parse_NegativeIndex_ThrowsArgumentOutOfRangeException()
     {
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => ClaimPath.Parse("degrees[-1]"));
-        Assert.Contains("cannot be negative", exception.Message);
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => ClaimPath.Parse("degrees[-1]"));
+        Assert.Contains("must be a non-negative value", exception.Message);
     }
 
     [Fact]

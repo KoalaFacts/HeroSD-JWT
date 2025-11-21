@@ -60,41 +60,31 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
 
             if (Options.KeyResolver != null)
             {
-                if (asyncVerifier != null)
-                {
-                    result = await asyncVerifier.TryVerifyPresentationAsync(
+                result = asyncVerifier is not null
+                    ? await asyncVerifier.TryVerifyPresentationAsync(
                         token,
                         Options.KeyResolver,
                         Options.FallbackKey,
                         Options.VerificationOptions.ExpectedHashAlgorithm,
-                        Context.RequestAborted).ConfigureAwait(false);
-                }
-                else
-                {
-                    result = _verifier.TryVerifyPresentation(
+                        Context.RequestAborted).ConfigureAwait(false)
+                    : _verifier.TryVerifyPresentation(
                         token,
                         Options.KeyResolver,
                         Options.FallbackKey,
                         Options.VerificationOptions.ExpectedHashAlgorithm);
-                }
             }
             else if (Options.FallbackKey != null)
             {
-                if (asyncVerifier != null)
-                {
-                    result = await asyncVerifier.TryVerifyPresentationAsync(
+                result = asyncVerifier is not null
+                    ? await asyncVerifier.TryVerifyPresentationAsync(
                         token,
                         Options.FallbackKey,
                         Options.VerificationOptions.ExpectedHashAlgorithm,
-                        Context.RequestAborted).ConfigureAwait(false);
-                }
-                else
-                {
-                    result = _verifier.TryVerifyPresentation(
+                        Context.RequestAborted).ConfigureAwait(false)
+                    : _verifier.TryVerifyPresentation(
                         token,
                         Options.FallbackKey,
                         Options.VerificationOptions.ExpectedHashAlgorithm);
-                }
             }
             else
             {
@@ -124,10 +114,10 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
             // Save token if configured
             if (Options.SaveToken)
             {
-                ticket.Properties.StoreTokens(new[]
-                {
-                new AuthenticationToken { Name = "access_token", Value = token }
-            });
+                ticket.Properties.StoreTokens(
+                [
+                    new AuthenticationToken { Name = "access_token", Value = token }
+                ]);
             }
 
             Logger.LogInformation(
@@ -163,7 +153,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
         }
 
         // Extract token after scheme
-        var token = authorization.Substring(Options.TokenScheme.Length + 1).Trim();
+        var token = authorization[(Options.TokenScheme.Length + 1)..].Trim();
 
         return string.IsNullOrWhiteSpace(token) ? null : token;
     }
@@ -194,7 +184,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
                     foreach (var property in payload.EnumerateObject())
                     {
                         // Skip SD-JWT-specific claims
-                        if (property.Name == "_sd" || property.Name == "_sd_alg" || property.Name == "cnf")
+                        if (property.Name is "_sd" or "_sd_alg" or "cnf")
                         {
                             continue;
                         }
@@ -226,22 +216,23 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
         // Handle different JSON value types
         var claimValueString = claimValue.ValueKind switch
         {
-            System.Text.Json.JsonValueKind.String => claimValue.GetString() ?? string.Empty,
-            System.Text.Json.JsonValueKind.Number => claimValue.ToString(),
-            System.Text.Json.JsonValueKind.True => "true",
-            System.Text.Json.JsonValueKind.False => "false",
-            System.Text.Json.JsonValueKind.Null => string.Empty,
-            System.Text.Json.JsonValueKind.Object => claimValue.GetRawText(),
-            System.Text.Json.JsonValueKind.Array => claimValue.GetRawText(),
+            JsonValueKind.String => claimValue.GetString() ?? string.Empty,
+            JsonValueKind.Number => claimValue.ToString(),
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.Null => string.Empty,
+            JsonValueKind.Object => claimValue.GetRawText(),
+            JsonValueKind.Array => claimValue.GetRawText(),
+            JsonValueKind.Undefined => string.Empty,
             _ => claimValue.ToString()
         };
 
         // Handle array claims (roles, scopes, etc.) - add each element as separate claim
-        if (claimValue.ValueKind == System.Text.Json.JsonValueKind.Array)
+        if (claimValue.ValueKind is JsonValueKind.Array)
         {
             foreach (var arrayElement in claimValue.EnumerateArray())
             {
-                var elementValue = arrayElement.ValueKind == System.Text.Json.JsonValueKind.String
+                var elementValue = arrayElement.ValueKind == JsonValueKind.String
                     ? arrayElement.GetString() ?? string.Empty
                     : arrayElement.ToString();
 

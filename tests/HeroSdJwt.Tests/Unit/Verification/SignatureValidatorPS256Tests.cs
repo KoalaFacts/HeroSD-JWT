@@ -1,6 +1,5 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
-using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
@@ -100,7 +99,7 @@ public class SignatureValidatorPS256Tests
         var privateKey = rsa.ExportPkcs8PrivateKey();
 
         // Act & Assert - Signer now validates key size during signing
-        var exception = Assert.Throws<ArgumentException>(() =>
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, privateKey, SignatureAlgorithm.PS256));
         Assert.Contains("2048", exception.Message);
     }
@@ -161,7 +160,7 @@ public class SignatureValidatorPS256Tests
         var publicKey = rsa.ExportSubjectPublicKeyInfo();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             _validator.VerifyJwtSignature(null!, publicKey));
     }
 
@@ -174,7 +173,7 @@ public class SignatureValidatorPS256Tests
         var jwt = _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, privateKey, SignatureAlgorithm.PS256);
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             _validator.VerifyJwtSignature(jwt, null!));
     }
 
@@ -231,20 +230,4 @@ public class SignatureValidatorPS256Tests
         Assert.True(resultLarge, "Large payload should verify successfully");
     }
 
-    // Helper methods for edge-case tests that bypass JwtSigner validation
-    private static string CreateManualJwt(string algorithm, byte[] privateKey, Dictionary<string, string> payload, Func<byte[], byte[], byte[]> signFunc)
-    {
-        var header = new { alg = algorithm, typ = "JWT" };
-        var headerJson = JsonSerializer.Serialize(header);
-        var payloadJson = JsonSerializer.Serialize(payload);
-
-        var headerBase64 = Base64UrlEncoder.Encode(headerJson);
-        var payloadBase64 = Base64UrlEncoder.Encode(payloadJson);
-        var signingInput = $"{headerBase64}.{payloadBase64}";
-        var signingInputBytes = System.Text.Encoding.UTF8.GetBytes(signingInput);
-
-        var signature = signFunc(signingInputBytes, privateKey);
-        var signatureBase64 = Base64UrlEncoder.Encode(signature);
-        return $"{signingInput}.{signatureBase64}";
-    }
 }

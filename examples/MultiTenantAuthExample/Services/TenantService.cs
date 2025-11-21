@@ -74,7 +74,7 @@ public class TenantService : ITenantService
 
     public TenantConfiguration? GetTenant(string tenantId)
     {
-        _tenants.TryGetValue(tenantId, out var tenant);
+        _ = _tenants.TryGetValue(tenantId, out var tenant);
         return tenant;
     }
 
@@ -115,7 +115,7 @@ public class TenantService : ITenantService
     public KeyResolver CreateKeyResolver(string tenantId)
     {
         // Return a delegate that resolves keys within the tenant scope
-        return (string keyId) =>
+        return keyId =>
         {
             if (string.IsNullOrEmpty(keyId))
             {

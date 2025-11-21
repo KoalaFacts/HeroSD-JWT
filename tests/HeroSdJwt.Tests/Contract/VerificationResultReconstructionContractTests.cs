@@ -136,7 +136,7 @@ public class VerificationResultReconstructionContractTests
         var array = result.GetDisclosedArray("degrees");
 
         // Assert
-        Assert.NotNull(array);
+        _ = Assert.NotNull(array);
         Assert.Equal(JsonValueKind.Array, array.Value.ValueKind);
         Assert.Equal(3, array.Value.GetArrayLength());
         Assert.Equal("PhD", array.Value[0].GetString());
@@ -155,7 +155,7 @@ public class VerificationResultReconstructionContractTests
         var array = result.GetDisclosedArray("degrees");
 
         // Assert
-        Assert.NotNull(array);
+        _ = Assert.NotNull(array);
         Assert.Equal(JsonValueKind.Array, array.Value.ValueKind);
         Assert.Equal(4, array.Value.GetArrayLength());
         Assert.Equal("PhD", array.Value[0].GetString());
@@ -187,7 +187,7 @@ public class VerificationResultReconstructionContractTests
         var array = result.GetDisclosedArray("mixed");
 
         // Assert
-        Assert.NotNull(array);
+        _ = Assert.NotNull(array);
         Assert.Equal(3, array.Value.GetArrayLength());
         Assert.Equal(JsonValueKind.String, array.Value[0].ValueKind);
         Assert.Equal("string", array.Value[0].GetString());
@@ -298,7 +298,7 @@ public class VerificationResultReconstructionContractTests
         var obj = result.GetDisclosedObject("address");
 
         // Assert
-        Assert.NotNull(obj);
+        _ = Assert.NotNull(obj);
         Assert.Equal(JsonValueKind.Object, obj.Value.ValueKind);
         Assert.True(obj.Value.TryGetProperty("street", out var street));
         Assert.Equal("123 Main St", street.GetString());
@@ -319,7 +319,7 @@ public class VerificationResultReconstructionContractTests
         var obj = result.GetDisclosedObject("address");
 
         // Assert
-        Assert.NotNull(obj);
+        _ = Assert.NotNull(obj);
         Assert.Equal(JsonValueKind.Object, obj.Value.ValueKind);
         Assert.True(obj.Value.TryGetProperty("geo", out var geo));
         Assert.Equal(JsonValueKind.Object, geo.ValueKind);
@@ -342,7 +342,7 @@ public class VerificationResultReconstructionContractTests
         var obj = result.GetDisclosedObject("address");
 
         // Assert
-        Assert.NotNull(obj);
+        _ = Assert.NotNull(obj);
         Assert.True(obj.Value.TryGetProperty("street", out var street));
         Assert.Equal("Main St", street.GetString());
         Assert.True(obj.Value.TryGetProperty("geo", out var geo));
@@ -373,7 +373,7 @@ public class VerificationResultReconstructionContractTests
         var obj = result.GetDisclosedObject("data");
 
         // Assert
-        Assert.NotNull(obj);
+        _ = Assert.NotNull(obj);
         Assert.True(obj.Value.TryGetProperty("str", out var str));
         Assert.Equal(JsonValueKind.String, str.ValueKind);
         Assert.True(obj.Value.TryGetProperty("num", out var num));
@@ -471,7 +471,7 @@ public class VerificationResultReconstructionContractTests
 
         // Assert
         Assert.NotNull(reconstructible);
-        Assert.Single(reconstructible);
+        _ = Assert.Single(reconstructible);
         Assert.True(reconstructible.ContainsKey("degrees"));
         Assert.Equal(ReconstructibleClaimType.Array, reconstructible["degrees"]);
     }
@@ -490,7 +490,7 @@ public class VerificationResultReconstructionContractTests
 
         // Assert
         Assert.NotNull(reconstructible);
-        Assert.Single(reconstructible);
+        _ = Assert.Single(reconstructible);
         Assert.True(reconstructible.ContainsKey("address"));
         Assert.Equal(ReconstructibleClaimType.Object, reconstructible["address"]);
     }
@@ -563,11 +563,7 @@ public class VerificationResultReconstructionContractTests
         VerificationResult? result = null;
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentNullException>(() =>
-#pragma warning disable CS8604 // Possible null reference argument - intentional for test
-            result.GetReconstructibleClaims()
-#pragma warning restore CS8604
-        );
+        var exception = Assert.Throws<ArgumentNullException>(() => result!.GetReconstructibleClaims());
         Assert.Equal("result", exception.ParamName);
     }
 
@@ -582,8 +578,7 @@ public class VerificationResultReconstructionContractTests
 
         // Act & Assert
         Assert.False(result.IsValid);
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            result.GetReconstructibleClaims()
+        var exception = Assert.Throws<InvalidOperationException>(result.GetReconstructibleClaims
         );
         Assert.Contains("IsValid", exception.Message);
     }

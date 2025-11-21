@@ -42,7 +42,7 @@ public class ObjectReconstructionContractTests
         var address = result.GetDisclosedObject("address");
 
         // Assert
-        Assert.NotNull(address);
+        _ = Assert.NotNull(address);
         Assert.Equal(JsonValueKind.Object, address.Value.ValueKind);
 
         Assert.True(address.Value.TryGetProperty("street", out var street));
@@ -77,7 +77,7 @@ public class ObjectReconstructionContractTests
         var address = result.GetDisclosedObject("address");
 
         // Assert
-        Assert.NotNull(address);
+        _ = Assert.NotNull(address);
         Assert.True(address.Value.TryGetProperty("street", out var street));
         Assert.Equal("123 Main St", street.GetString());
 
@@ -118,7 +118,7 @@ public class ObjectReconstructionContractTests
         var profile = result.GetDisclosedObject("profile");
 
         // Assert
-        Assert.NotNull(profile);
+        _ = Assert.NotNull(profile);
 
         Assert.True(profile.Value.TryGetProperty("name", out var name));
         Assert.Equal(JsonValueKind.String, name.ValueKind);
@@ -247,7 +247,7 @@ public class ObjectReconstructionContractTests
 
         // Assert
         Assert.NotNull(reconstructible);
-        Assert.Single(reconstructible);
+        _ = Assert.Single(reconstructible);
         Assert.True(reconstructible.ContainsKey("address"));
         Assert.False(reconstructible.ContainsKey("email"));
         Assert.False(reconstructible.ContainsKey("name"));
@@ -315,10 +315,10 @@ public class ObjectReconstructionContractTests
         // Assert - Full workflow succeeded
         Assert.True(result.IsValid);
 
-        Assert.Single(reconstructible);
+        _ = Assert.Single(reconstructible);
         Assert.Equal(ReconstructibleClaimType.Object, reconstructible["address"]);
 
-        Assert.NotNull(address);
+        _ = Assert.NotNull(address);
         Assert.Equal("123 Main Street", address.Value.GetProperty("street").GetString());
         Assert.Equal("Boston", address.Value.GetProperty("city").GetString());
 

@@ -20,7 +20,7 @@ public class ServiceCollectionExtensionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddSdJwtServices();
+        _ = services.AddSdJwtServices();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert - All verification services should be registered
@@ -38,13 +38,13 @@ public class ServiceCollectionExtensionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddSdJwtServices();
+        _ = services.AddSdJwtServices();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
         var verifier = serviceProvider.GetService<ISdJwtVerifier>();
         Assert.NotNull(verifier);
-        Assert.IsType<SdJwtVerifier>(verifier);
+        _ = Assert.IsType<SdJwtVerifier>(verifier);
     }
 
     [Fact]
@@ -54,13 +54,13 @@ public class ServiceCollectionExtensionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddSdJwtServices();
+        _ = services.AddSdJwtServices();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
         var issuer = serviceProvider.GetService<ISdJwtIssuer>();
         Assert.NotNull(issuer);
-        Assert.IsType<SdJwtIssuer>(issuer);
+        _ = Assert.IsType<SdJwtIssuer>(issuer);
     }
 
     [Fact]
@@ -70,13 +70,13 @@ public class ServiceCollectionExtensionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddSdJwtServices();
+        _ = services.AddSdJwtServices();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
         var presenter = serviceProvider.GetService<ISdJwtPresenter>();
         Assert.NotNull(presenter);
-        Assert.IsType<SdJwtPresenter>(presenter);
+        _ = Assert.IsType<SdJwtPresenter>(presenter);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class ServiceCollectionExtensionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddSdJwtServices();
+        _ = services.AddSdJwtServices();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert - All issuance services should be registered
@@ -103,7 +103,7 @@ public class ServiceCollectionExtensionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddSdJwtServices();
+        _ = services.AddSdJwtServices();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
@@ -117,13 +117,13 @@ public class ServiceCollectionExtensionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddSdJwtServices();
+        _ = services.AddSdJwtServices();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert
         var keyGenerator = serviceProvider.GetService<IKeyGenerator>();
         Assert.NotNull(keyGenerator);
-        Assert.IsType<KeyGenerator>(keyGenerator);
+        _ = Assert.IsType<KeyGenerator>(keyGenerator);
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public class ServiceCollectionExtensionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddSdJwtServices();
+        _ = services.AddSdJwtServices();
         var serviceProvider = services.BuildServiceProvider();
 
         // Assert - Services should be singletons (same instance returned)
@@ -153,9 +153,9 @@ public class ServiceCollectionExtensionsTests
         var services = new ServiceCollection();
 
         // Act - Should not throw when called multiple times
-        services.AddSdJwtServices();
-        services.AddSdJwtServices();
-        services.AddSdJwtServices();
+        _ = services.AddSdJwtServices();
+        _ = services.AddSdJwtServices();
+        _ = services.AddSdJwtServices();
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -171,6 +171,6 @@ public class ServiceCollectionExtensionsTests
         ServiceCollection? services = null;
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => services!.AddSdJwtServices());
+        _ = Assert.Throws<ArgumentNullException>(() => services!.AddSdJwtServices());
     }
 }

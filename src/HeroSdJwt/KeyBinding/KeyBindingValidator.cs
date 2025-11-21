@@ -1,7 +1,6 @@
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -44,7 +43,7 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
     {
         var audiences = expectedAudience == null
             ? Array.Empty<string>()
-            : new[] { expectedAudience };
+            : [expectedAudience];
 
         return ValidateKeyBinding(
             keyBindingJwt,
@@ -86,7 +85,7 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
         {
             if (!string.IsNullOrWhiteSpace(audience))
             {
-                expectedAudienceSet.Add(audience);
+                _ = expectedAudienceSet.Add(audience);
             }
         }
 

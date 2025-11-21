@@ -7,11 +7,8 @@ using HeroSdJwt.Presentation;
 using HeroSdJwt.Verification.ReplayProtection;
 using HeroSdJwt.Verification.Revocation;
 using HeroSdJwt.Primitives;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Constants = HeroSdJwt.Primitives.Constants;
 using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
@@ -222,7 +219,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
     /// <exception cref="SdJwtException">Thrown when validation fails.</exception>
     public VerificationResult VerifyPresentation(
         string presentation,
-        Primitives.KeyResolver? keyResolver,
+        KeyResolver? keyResolver,
         byte[]? fallbackKey = null,
         HashAlgorithm? expectedHashAlgorithm = null)
     {
@@ -256,7 +253,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
     /// <returns>Verification result with validation status, errors, and disclosed claims.</returns>
     public VerificationResult TryVerifyPresentation(
         string presentation,
-        Primitives.KeyResolver? keyResolver,
+        KeyResolver? keyResolver,
         byte[]? fallbackKey = null,
         HashAlgorithm? expectedHashAlgorithm = null)
     {
@@ -300,7 +297,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
     /// </summary>
     public Task<VerificationResult> VerifyPresentationAsync(
         string presentation,
-        Primitives.KeyResolver? keyResolver,
+        KeyResolver? keyResolver,
         byte[]? fallbackKey = null,
         HashAlgorithm? expectedHashAlgorithm = null,
         CancellationToken cancellationToken = default)
@@ -320,7 +317,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
     /// </summary>
     public async Task<VerificationResult> TryVerifyPresentationAsync(
         string presentation,
-        Primitives.KeyResolver? keyResolver,
+        KeyResolver? keyResolver,
         byte[]? fallbackKey = null,
         HashAlgorithm? expectedHashAlgorithm = null,
         CancellationToken cancellationToken = default)
@@ -349,7 +346,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
     /// </summary>
     private async Task<VerificationResult> VerifyPresentationInternalWithResolverAsync(
         string presentation,
-        Primitives.KeyResolver? keyResolver,
+        KeyResolver? keyResolver,
         byte[]? fallbackKey,
         HashAlgorithm? expectedHashAlgorithm,
         CancellationToken cancellationToken)
@@ -843,12 +840,9 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
             var disclosedClaims = ExtractDisclosedClaims(jwt, disclosures, algorithm);
 
             // Return result
-            if (errors.Count > 0)
-            {
-                return new VerificationResult(errors, string.Join("; ", errorDetails));
-            }
-
-            return new VerificationResult(disclosedClaims);
+            return errors.Count > 0
+                ? new VerificationResult(errors, string.Join("; ", errorDetails))
+                : new VerificationResult(disclosedClaims);
         }
         catch
         {
@@ -1026,7 +1020,9 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
     {
         // Skip if no revocation store provided
         if (_revocationStore == null)
+        {
             return;
+        }
 
         try
         {
@@ -1103,15 +1099,15 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
     {
         if (!payload.TryGetProperty("aud", out var audElement))
         {
-            return Array.Empty<string>();
+            return [];
         }
 
         if (audElement.ValueKind == JsonValueKind.String)
         {
             var value = audElement.GetString();
             return string.IsNullOrWhiteSpace(value)
-                ? Array.Empty<string>()
-                : new[] { value };
+                ? []
+                : [value!];
         }
 
         if (audElement.ValueKind == JsonValueKind.Array)
@@ -1129,7 +1125,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
             return audiences;
         }
 
-        return Array.Empty<string>();
+        return [];
     }
 
     private static IReadOnlyList<string> GetMatchingAudiences(
@@ -1138,7 +1134,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
     {
         if (expectedAudiences.Count == 0 || actualAudiences.Count == 0)
         {
-            return Array.Empty<string>();
+            return [];
         }
 
         var expectedSet = new HashSet<string>(expectedAudiences, StringComparer.Ordinal);

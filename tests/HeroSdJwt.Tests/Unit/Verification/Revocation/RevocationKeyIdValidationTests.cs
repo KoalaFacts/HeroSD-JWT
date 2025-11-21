@@ -1,8 +1,5 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
-using HeroSdJwt.Exceptions;
-using HeroSdJwt.Extensions;
-using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;

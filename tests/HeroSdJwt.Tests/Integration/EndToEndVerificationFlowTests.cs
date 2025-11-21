@@ -38,7 +38,7 @@ public class EndToEndVerificationFlowTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email", "age", "address" }, // All are selectively disclosable
+            ["email", "age", "address"], // All are selectively disclosable
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -78,14 +78,14 @@ public class EndToEndVerificationFlowTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email", "age", "ssn", "credit_score" },
+            ["email", "age", "ssn", "credit_score"],
             signingKey,
             HashAlgorithm.Sha256
         );
 
         // Act - Holder creates presentation with only email and age (not ssn or credit_score)
         var presenter = new SdJwtPresenter();
-        var presentation = presenter.CreatePresentation(sdJwt, new[] { "email", "age" });
+        var presentation = presenter.CreatePresentation(sdJwt, ["email", "age"]);
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Verify
@@ -118,7 +118,7 @@ public class EndToEndVerificationFlowTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -156,7 +156,7 @@ public class EndToEndVerificationFlowTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -189,7 +189,7 @@ public class EndToEndVerificationFlowTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email", "age" },
+            ["email", "age"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -233,7 +233,7 @@ public class EndToEndVerificationFlowTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -269,7 +269,7 @@ public class EndToEndVerificationFlowTests
             var issuer = TestHelpers.CreateIssuer();
             var sdJwt = issuer.CreateSdJwt(
                 claims,
-                new[] { "email" },
+                ["email"],
                 signingKey,
                 algorithm
             );
@@ -302,7 +302,7 @@ public class EndToEndVerificationFlowTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            Array.Empty<string>(), // No selectively disclosable claims
+            [], // No selectively disclosable claims
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -335,7 +335,7 @@ public class EndToEndVerificationFlowTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -372,7 +372,7 @@ public class EndToEndVerificationFlowTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -413,7 +413,7 @@ public class EndToEndVerificationFlowTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email", "name", "role" },
+            ["email", "name", "role"],
             privateKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.EdDSA
@@ -421,7 +421,7 @@ public class EndToEndVerificationFlowTests
 
         // Create presentation
         var presenter = new SdJwtPresenter();
-        var presentation = presenter.CreatePresentation(sdJwt, new[] { "email", "role" });
+        var presentation = presenter.CreatePresentation(sdJwt, ["email", "role"]);
         var presentationString = presenter.FormatPresentation(presentation);
 
         // Verify with EdDSA public key

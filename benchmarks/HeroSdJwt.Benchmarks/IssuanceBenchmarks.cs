@@ -77,7 +77,7 @@ public class IssuanceBenchmarks
         var builder = new SdJwtIssuerBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
-            .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
+            .MakeSelective([.. claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k))]);
 
         return builder.SignWithHmac(_hmacKey).Build();
     }
@@ -99,7 +99,7 @@ public class IssuanceBenchmarks
         var builder = new SdJwtIssuerBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
-            .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
+            .MakeSelective([.. claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k))]);
 
         var rsaPrivateKey = _rsa.ExportPkcs8PrivateKey();
         return builder.SignWithRsa(rsaPrivateKey).Build();
@@ -122,7 +122,7 @@ public class IssuanceBenchmarks
         var builder = new SdJwtIssuerBuilder()
             .WithClaims(claims)
             .WithHashAlgorithm(SdJwtHashAlgorithm.Sha256)
-            .MakeSelective(claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k)).ToArray());
+            .MakeSelective([.. claims.Keys.Where(k => !Constants.ReservedClaims.Contains(k))]);
 
         var ecdsaPrivateKey = _ecdsa.ExportPkcs8PrivateKey();
         return builder.SignWithEcdsa(ecdsaPrivateKey).Build();

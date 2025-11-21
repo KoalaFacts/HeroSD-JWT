@@ -16,8 +16,7 @@ public class JwtSignerKeyIdTests
     [Fact]
     public void CreateJwt_WithKeyId_IncludesKidInHeader()
     {
-        // Arrange
-        var _hmacKey = _keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object>
         {
             ["sub"] = "user-123",
@@ -25,10 +24,8 @@ public class JwtSignerKeyIdTests
         };
         var keyId = "test-key-2024";
 
-        // Act
-        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = _signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, keyId);
 
-        // Assert
         var parts = jwt.Split('.');
         Assert.Equal(3, parts.Length);
 
@@ -42,39 +39,33 @@ public class JwtSignerKeyIdTests
     [Fact]
     public void CreateJwt_WithoutKeyId_NoKidInHeader()
     {
-        // Arrange
-        var _hmacKey = _keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object>
         {
             ["sub"] = "user-123",
             ["iat"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
         };
 
-        // Act
-        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256);
+        var jwt = _signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256);
 
-        // Assert
         var parts = jwt.Split('.');
         var headerJson = Base64UrlEncoder.DecodeString(parts[0]);
         var header = JsonDocument.Parse(headerJson).RootElement;
 
-        Assert.False(header.TryGetProperty("kid", out _)); // kid should not be present
+        Assert.False(header.TryGetProperty("kid", out _));
     }
 
     [Fact]
     public void CreateJwt_WithNullKeyId_NoKidInHeader()
     {
-        // Arrange
-        var _hmacKey = _keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object>
         {
             ["sub"] = "user-123"
         };
 
-        // Act
-        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, null);
+        var jwt = _signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, null);
 
-        // Assert
         var parts = jwt.Split('.');
         var headerJson = Base64UrlEncoder.DecodeString(parts[0]);
         var header = JsonDocument.Parse(headerJson).RootElement;
@@ -85,17 +76,14 @@ public class JwtSignerKeyIdTests
     [Fact]
     public void CreateJwt_WithEmptyKeyId_NoKidInHeader()
     {
-        // Arrange
-        var _hmacKey = _keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object>
         {
             ["sub"] = "user-123"
         };
 
-        // Act
-        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, "");
+        var jwt = _signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, string.Empty);
 
-        // Assert
         var parts = jwt.Split('.');
         var headerJson = Base64UrlEncoder.DecodeString(parts[0]);
         var header = JsonDocument.Parse(headerJson).RootElement;
@@ -106,17 +94,14 @@ public class JwtSignerKeyIdTests
     [Fact]
     public void CreateJwt_WithWhitespaceKeyId_NoKidInHeader()
     {
-        // Arrange
-        var _hmacKey = _keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object>
         {
             ["sub"] = "user-123"
         };
 
-        // Act
-        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, "   ");
+        var jwt = _signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, "   ");
 
-        // Assert
         var parts = jwt.Split('.');
         var headerJson = Base64UrlEncoder.DecodeString(parts[0]);
         var header = JsonDocument.Parse(headerJson).RootElement;
@@ -130,7 +115,6 @@ public class JwtSignerKeyIdTests
     [InlineData("ES256")]
     public void CreateJwt_WithKeyIdAllAlgorithms_IncludesKid(string algorithmName)
     {
-        // Arrange
         var algorithm = algorithmName switch
         {
             "HS256" => SignatureAlgorithm.HS256,
@@ -153,10 +137,8 @@ public class JwtSignerKeyIdTests
         };
         var keyId = $"test-key-{algorithmName}";
 
-        // Act
         var jwt = _signer.CreateJwt(payload, signingKey, algorithm, keyId);
 
-        // Assert
         var parts = jwt.Split('.');
         var headerJson = Base64UrlEncoder.DecodeString(parts[0]);
         var header = JsonDocument.Parse(headerJson).RootElement;
@@ -170,8 +152,7 @@ public class JwtSignerKeyIdTests
     [Fact]
     public void CreateJwt_WithKeyIdAndOtherClaims_PreservesAllClaims()
     {
-        // Arrange
-        var _hmacKey = _keyGen.GenerateHmacKey();
+        var hmacKey = _keyGen.GenerateHmacKey();
         var payload = new Dictionary<string, object>
         {
             ["sub"] = "user-123",
@@ -181,10 +162,8 @@ public class JwtSignerKeyIdTests
         };
         var keyId = "test-key";
 
-        // Act
-        var jwt = _signer.CreateJwt(payload, _hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = _signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, keyId);
 
-        // Assert - Verify JWT is valid and contains all claims
         var parts = jwt.Split('.');
         Assert.Equal(3, parts.Length);
 

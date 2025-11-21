@@ -207,17 +207,14 @@ app.MapGet("/api/admin", (HttpContext context) =>
 {
     var role = context.User.FindFirst("role")?.Value;
 
-    if (role != "admin")
-    {
-        return Results.Forbid();
-    }
-
-    return Results.Ok(new
-    {
-        message = "Welcome admin! You have access to this protected resource.",
-        role,
-        timestamp = DateTimeOffset.UtcNow
-    });
+    return role != "admin"
+        ? Results.Forbid()
+        : Results.Ok(new
+        {
+            message = "Welcome admin! You have access to this protected resource.",
+            role,
+            timestamp = DateTimeOffset.UtcNow
+        });
 })
 .WithName("AdminOnly")
 .RequireAuthorization();
@@ -228,4 +225,4 @@ app.Run();
 // Request Models
 // =====================================================================
 
-record UserCredentials(string Username, string Password);
+internal record UserCredentials(string Username, string Password);

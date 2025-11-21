@@ -49,7 +49,7 @@ public class SdJwtPresentationTests
         var disclosures = new[] { "disclosure1" };
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new SdJwtPresentation(null!, disclosures));
     }
 
@@ -57,7 +57,7 @@ public class SdJwtPresentationTests
     public void Constructor_WithNullDisclosures_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new SdJwtPresentation(TEST_JWT, null!));
     }
 
@@ -85,7 +85,7 @@ public class SdJwtPresentationTests
         var presentation = new SdJwtPresentation(TEST_JWT, disclosures);
 
         // Assert
-        Assert.Single(presentation.SelectedDisclosures);
+        _ = Assert.Single(presentation.SelectedDisclosures);
         Assert.Equal("single-disclosure", presentation.SelectedDisclosures[0]);
     }
 
@@ -135,7 +135,7 @@ public class SdJwtPresentationTests
         var selectedDisclosures = presentation.SelectedDisclosures;
 
         // Assert
-        Assert.IsAssignableFrom<IReadOnlyList<string>>(selectedDisclosures);
+        _ = Assert.IsAssignableFrom<IReadOnlyList<string>>(selectedDisclosures);
     }
 
     [Fact]
@@ -213,7 +213,7 @@ public class SdJwtPresentationTests
     public void ToString_WithZeroDisclosures_ReturnsZeroCount()
     {
         // Arrange
-        var presentation = new SdJwtPresentation(TEST_JWT, Array.Empty<string>());
+        var presentation = new SdJwtPresentation(TEST_JWT, []);
 
         // Act
         var result = presentation.ToString();

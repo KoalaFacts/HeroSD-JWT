@@ -1,7 +1,4 @@
 using System.Collections.Concurrent;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace HeroSdJwt.Verification.Revocation;
 
 /// <summary>
@@ -63,12 +60,14 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         ArgumentNullException.ThrowIfNull(jti);
 
         if (string.IsNullOrWhiteSpace(jti))
+        {
             throw new ArgumentException("JTI cannot be empty or whitespace", nameof(jti));
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
 
         // Idempotent: AddOrUpdate ensures we update if already exists
-        _revokedJtis.AddOrUpdate(jti, expiresAt, (_, __) => expiresAt);
+        _ = _revokedJtis.AddOrUpdate(jti, expiresAt, (_, __) => expiresAt);
 
         return Task.CompletedTask;
     }
@@ -92,12 +91,14 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         ArgumentNullException.ThrowIfNull(keyId);
 
         if (string.IsNullOrWhiteSpace(keyId))
+        {
             throw new ArgumentException("Key ID cannot be empty or whitespace", nameof(keyId));
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
 
         var revokedAt = DateTimeOffset.UtcNow;
-        _revokedKeys.AddOrUpdate(keyId, revokedAt, (_, __) => revokedAt);
+        _ = _revokedKeys.AddOrUpdate(keyId, revokedAt, (_, __) => revokedAt);
 
         return Task.CompletedTask;
     }
@@ -118,7 +119,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         // Idempotent: TryRemove returns false if key doesn't exist, which is fine
-        _revokedKeys.TryRemove(keyId, out _);
+        _ = _revokedKeys.TryRemove(keyId, out _);
 
         return Task.CompletedTask;
     }
@@ -133,12 +134,14 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         ArgumentNullException.ThrowIfNull(userId);
 
         if (string.IsNullOrWhiteSpace(userId))
+        {
             throw new ArgumentException("User ID cannot be empty or whitespace", nameof(userId));
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
 
         var revokedAt = DateTimeOffset.UtcNow;
-        _revokedUsers.AddOrUpdate(userId, revokedAt, (_, __) => revokedAt);
+        _ = _revokedUsers.AddOrUpdate(userId, revokedAt, (_, __) => revokedAt);
 
         return Task.CompletedTask;
     }
@@ -159,7 +162,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         cancellationToken.ThrowIfCancellationRequested();
 
         // Idempotent: TryRemove returns false if user doesn't exist, which is fine
-        _revokedUsers.TryRemove(userId, out _);
+        _ = _revokedUsers.TryRemove(userId, out _);
 
         return Task.CompletedTask;
     }
@@ -184,7 +187,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         // Remove expired entries
         foreach (var jti in expiredJtis)
         {
-            _revokedJtis.TryRemove(jti, out _);
+            _ = _revokedJtis.TryRemove(jti, out _);
         }
 
         return Task.CompletedTask;

@@ -61,7 +61,7 @@ public class ArrayReconstructionTests
         var array = result.GetDisclosedArray("degrees");
 
         // Assert
-        Assert.NotNull(array);
+        _ = Assert.NotNull(array);
         Assert.Equal(101, array.Value.GetArrayLength());
         Assert.Equal("First", array.Value[0].GetString());
         Assert.Equal("Middle", array.Value[50].GetString());
@@ -99,7 +99,7 @@ public class ArrayReconstructionTests
         var array = result.GetDisclosedArray("items");
 
         // Assert - should still be in correct index order
-        Assert.NotNull(array);
+        _ = Assert.NotNull(array);
         Assert.Equal(4, array.Value.GetArrayLength());
         Assert.Equal("A", array.Value[0].GetString());
         Assert.Equal("B", array.Value[1].GetString());
@@ -122,9 +122,9 @@ public class ArrayReconstructionTests
         var array3 = result.GetDisclosedArray("degrees");
 
         // Assert - all calls return same structure
-        Assert.NotNull(array1);
-        Assert.NotNull(array2);
-        Assert.NotNull(array3);
+        _ = Assert.NotNull(array1);
+        _ = Assert.NotNull(array2);
+        _ = Assert.NotNull(array3);
 
         Assert.Equal(array1.Value.GetArrayLength(), array2.Value.GetArrayLength());
         Assert.Equal(array1.Value.GetArrayLength(), array3.Value.GetArrayLength());

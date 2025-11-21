@@ -84,7 +84,7 @@ public class DisclosureParserTests
     public void Parse_WithObjectClaimValue_ParsesCorrectly()
     {
         // Arrange
-        var json = "[\"salt\",\"address\",{\"street\":\"123 Main St\",\"city\":\"Anytown\"}]";
+        var json = /*lang=json,strict*/ "[\"salt\",\"address\",{\"street\":\"123 Main St\",\"city\":\"Anytown\"}]";
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act
@@ -177,7 +177,7 @@ public class DisclosureParserTests
     public void Parse_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => _parser.Parse(null!));
+        _ = Assert.Throws<ArgumentNullException>(() => _parser.Parse(null!));
     }
 
     [Fact]
@@ -187,14 +187,14 @@ public class DisclosureParserTests
         var invalidBase64 = "!!!not-valid-base64!!!";
 
         // Act & Assert
-        Assert.ThrowsAny<Exception>(() => _parser.Parse(invalidBase64));
+        _ = Assert.ThrowsAny<Exception>(() => _parser.Parse(invalidBase64));
     }
 
     [Fact]
     public void Parse_WithNotJsonArray_ThrowsMalformedDisclosureException()
     {
         // Arrange - Valid JSON but not an array
-        var json = "{\"not\":\"an array\"}";
+        var json = /*lang=json,strict*/ "{\"not\":\"an array\"}";
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act & Assert
@@ -282,7 +282,7 @@ public class DisclosureParserTests
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act & Assert
-        Assert.ThrowsAny<JsonException>(() => _parser.Parse(base64Url));
+        _ = Assert.ThrowsAny<JsonException>(() => _parser.Parse(base64Url));
     }
 
     #endregion
@@ -369,7 +369,7 @@ public class DisclosureParserTests
     public void Parse_WithNestedObject_ParsesCorrectly()
     {
         // Arrange
-        var json = "[\"salt\",\"address\",{\"street\":\"Main St\",\"geo\":{\"lat\":40.7128,\"lon\":-74.0060}}]";
+        var json = /*lang=json,strict*/ "[\"salt\",\"address\",{\"street\":\"Main St\",\"geo\":{\"lat\":40.7128,\"lon\":-74.0060}}]";
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act

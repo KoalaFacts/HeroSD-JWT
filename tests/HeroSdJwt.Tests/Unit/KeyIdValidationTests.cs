@@ -38,7 +38,7 @@ public class KeyIdValidationTests
     public void Validate_Null_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => KeyIdValidator.Validate(null!));
+        _ = Assert.Throws<ArgumentNullException>(() => KeyIdValidator.Validate(null!));
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-using HeroSdJwt.Verification.ReplayProtection;
+using HeroSdJwt.AspNetCore.Verification.ReplayProtection;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -27,7 +27,7 @@ public class DistributedJtiCacheTests : IDisposable
         var cache = new DistributedJtiCache(_cache);
         var ttl = TimeSpan.FromMinutes(1);
 
-        await cache.TryAddAsync("issuer", "jti-dup", ttl, TestContext.Current.CancellationToken);
+        _ = await cache.TryAddAsync("issuer", "jti-dup", ttl, TestContext.Current.CancellationToken);
         var second = await cache.TryAddAsync("issuer", "jti-dup", ttl, TestContext.Current.CancellationToken);
 
         Assert.False(second);
@@ -46,7 +46,7 @@ public class DistributedJtiCacheTests : IDisposable
         var cache = new DistributedJtiCache(_cache);
         var ttl = TimeSpan.FromMinutes(1);
 
-        await cache.TryAddAsync("issuer", "jti-remove", ttl, TestContext.Current.CancellationToken);
+        _ = await cache.TryAddAsync("issuer", "jti-remove", ttl, TestContext.Current.CancellationToken);
         await cache.RemoveAsync("issuer", "jti-remove", TestContext.Current.CancellationToken);
 
         Assert.False(await cache.ExistsAsync("issuer", "jti-remove", TestContext.Current.CancellationToken));

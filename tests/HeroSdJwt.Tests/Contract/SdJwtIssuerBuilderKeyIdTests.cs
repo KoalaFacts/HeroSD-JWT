@@ -209,7 +209,7 @@ public class SdJwtIssuerBuilderKeyIdTests
         var hmacKey = _keyGen.GenerateHmacKey();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             SdJwtIssuerBuilder.Create()
                 .WithClaim("sub", "user-123")
                 .WithKeyId(null!)

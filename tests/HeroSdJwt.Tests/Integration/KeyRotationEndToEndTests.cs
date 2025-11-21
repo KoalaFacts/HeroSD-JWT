@@ -50,7 +50,10 @@ public class KeyRotationEndToEndTests
             ["key-v1"] = keyV1,
             ["key-v2"] = keyV2
         };
-        KeyResolver resolver = kid => keys.GetValueOrDefault(kid);
+        byte[]? resolver(string kid)
+        {
+            return keys.GetValueOrDefault(kid);
+        }
 
         // Act - Verify both tokens work during overlap
         var verifier = TestHelpers.CreateVerifier();
@@ -93,7 +96,10 @@ public class KeyRotationEndToEndTests
             ["key-v2"] = keyV2
             // key-v1 removed
         };
-        KeyResolver resolver = kid => keys.GetValueOrDefault(kid);
+        byte[]? resolver(string kid)
+        {
+            return keys.GetValueOrDefault(kid);
+        }
 
         // Act
         var verifier = TestHelpers.CreateVerifier();
@@ -130,7 +136,10 @@ public class KeyRotationEndToEndTests
             ["emergency-key"] = emergencyKey
             // compromised-key NOT present
         };
-        KeyResolver resolver = kid => keys.GetValueOrDefault(kid);
+        byte[]? resolver(string kid)
+        {
+            return keys.GetValueOrDefault(kid);
+        }
 
         // Act - Attempt to verify compromised token
         var verifier = TestHelpers.CreateVerifier();
@@ -187,7 +196,10 @@ public class KeyRotationEndToEndTests
             ["key-v2"] = keyV2,
             ["key-v3"] = keyV3
         };
-        KeyResolver resolverPhase1 = kid => keysPhase1.GetValueOrDefault(kid);
+        byte[]? resolverPhase1(string kid)
+        {
+            return keysPhase1.GetValueOrDefault(kid);
+        }
 
         var resultV1Phase1 = verifier.TryVerifyPresentation(tokenV1.ToPresentation("gen"), resolverPhase1);
         var resultV2Phase1 = verifier.TryVerifyPresentation(tokenV2.ToPresentation("gen"), resolverPhase1);
@@ -203,7 +215,10 @@ public class KeyRotationEndToEndTests
             ["key-v2"] = keyV2,
             ["key-v3"] = keyV3
         };
-        KeyResolver resolverPhase2 = kid => keysPhase2.GetValueOrDefault(kid);
+        byte[]? resolverPhase2(string kid)
+        {
+            return keysPhase2.GetValueOrDefault(kid);
+        }
 
         var resultV1Phase2 = verifier.TryVerifyPresentation(tokenV1.ToPresentation("gen"), resolverPhase2);
         var resultV2Phase2 = verifier.TryVerifyPresentation(tokenV2.ToPresentation("gen"), resolverPhase2);
@@ -218,7 +233,10 @@ public class KeyRotationEndToEndTests
         {
             ["key-v3"] = keyV3
         };
-        KeyResolver resolverPhase3 = kid => keysPhase3.GetValueOrDefault(kid);
+        byte[]? resolverPhase3(string kid)
+        {
+            return keysPhase3.GetValueOrDefault(kid);
+        }
 
         var resultV1Phase3 = verifier.TryVerifyPresentation(tokenV1.ToPresentation("gen"), resolverPhase3);
         var resultV2Phase3 = verifier.TryVerifyPresentation(tokenV2.ToPresentation("gen"), resolverPhase3);

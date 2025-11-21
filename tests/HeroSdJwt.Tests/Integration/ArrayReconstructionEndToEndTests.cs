@@ -46,7 +46,7 @@ public class ArrayReconstructionEndToEndTests
 
         // Assert - Full workflow succeeded
         Assert.True(result.IsValid);
-        Assert.NotNull(degrees);
+        _ = Assert.NotNull(degrees);
         Assert.Equal(3, degrees.Value.GetArrayLength());
         Assert.Equal("PhD in Computer Science", degrees.Value[0].GetString());
         Assert.Equal("MBA", degrees.Value[1].GetString());
@@ -86,7 +86,7 @@ public class ArrayReconstructionEndToEndTests
 
         // Assert - Full workflow succeeded
         Assert.True(result.IsValid);
-        Assert.NotNull(address);
+        _ = Assert.NotNull(address);
         Assert.Equal("123 Main Street", address.Value.GetProperty("street").GetString());
         Assert.Equal("Boston", address.Value.GetProperty("city").GetString());
 
@@ -142,7 +142,7 @@ public class ArrayReconstructionEndToEndTests
 
         for (int i = 0; i < 100; i++)
         {
-            builder.MakeSelective($"items[{i}]");
+            _ = builder.MakeSelective($"items[{i}]");
         }
 
         var sdJwt = builder
@@ -150,7 +150,7 @@ public class ArrayReconstructionEndToEndTests
             .WithHashAlgorithm(HashAlgorithm.Sha256)
             .Build();
 
-        var presentation = sdJwt.ToPresentation(Enumerable.Range(0, 100).Select(i => $"items[{i}]").ToArray());
+        var presentation = sdJwt.ToPresentation([.. Enumerable.Range(0, 100).Select(i => $"items[{i}]")]);
         var verifier = TestHelpers.CreateVerifier();
         var result = verifier.VerifyPresentation(presentation, signingKey);
 
@@ -160,7 +160,7 @@ public class ArrayReconstructionEndToEndTests
         stopwatch.Stop();
 
         // Assert correctness
-        Assert.NotNull(array);
+        _ = Assert.NotNull(array);
         Assert.Equal(100, array.Value.GetArrayLength());
 
         // Performance measurement (non-failing)
@@ -222,7 +222,7 @@ public class ArrayReconstructionEndToEndTests
         var obj = result.GetDisclosedObject("data");
 
         // Assert - Should handle 10 levels without error (SC-004)
-        Assert.NotNull(obj);
+        _ = Assert.NotNull(obj);
 
         // Navigate to level 10
         var current = obj.Value;

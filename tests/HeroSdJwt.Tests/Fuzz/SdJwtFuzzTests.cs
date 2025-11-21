@@ -20,7 +20,9 @@ public class SdJwtFuzzTests
             {
                 // Skip reserved claims
                 if (claims.Keys.Any(k => Constants.ReservedClaims.Contains(k)))
+                {
                     return;
+                }
 
                 // Arrange
                 var key = new byte[32];
@@ -33,9 +35,9 @@ public class SdJwtFuzzTests
                     // Act - Issue SD-JWT with random claims
                     var result = issuer.CreateSdJwt(
                         claims.ToDictionary(x => x.Key, x => (object)x.Value),
-                        claims.Keys.ToArray(),
+                        [.. claims.Keys],
                         key,
-                        HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+                        Primitives.HashAlgorithm.Sha256,
                         SignatureAlgorithm.HS256);
 
                     // Assert - Should successfully create JWT
@@ -115,9 +117,9 @@ public class SdJwtFuzzTests
                 // Create a valid SD-JWT
                 var sdJwt = issuer.CreateSdJwt(
                     validClaims,
-                    new[] { "name" },
+                    ["name"],
                     key,
-                    HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+                    Primitives.HashAlgorithm.Sha256,
                     SignatureAlgorithm.HS256);
 
                 // Act - Create presentation with random disclosures appended
@@ -162,9 +164,9 @@ public class SdJwtFuzzTests
                     // Act - Create SD-JWT with many claims
                     var sdJwt = issuer.CreateSdJwt(
                         claims,
-                        claims.Keys.Take(Math.Min(size, 50)).ToArray(), // Limit selective disclosure
+                        [.. claims.Keys.Take(Math.Min(size, 50))], // Limit selective disclosure
                         key,
-                        HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+                        Primitives.HashAlgorithm.Sha256,
                         SignatureAlgorithm.HS256);
 
                     // Assert
@@ -200,9 +202,9 @@ public class SdJwtFuzzTests
                 var issuer = TestHelpers.CreateIssuer();
                 var sdJwt = issuer.CreateSdJwt(
                     claims,
-                    new[] { "name" },
+                    ["name"],
                     issuerKey,
-                    HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+                    Primitives.HashAlgorithm.Sha256,
                     SignatureAlgorithm.HS256,
                     holderPublicKey);
 
@@ -249,9 +251,9 @@ public class SdJwtFuzzTests
                     // Act - Create SD-JWT with nested object
                     var sdJwt = issuer.CreateSdJwt(
                         claims,
-                        new[] { "nested" },
+                        ["nested"],
                         key,
-                        HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+                        Primitives.HashAlgorithm.Sha256,
                         SignatureAlgorithm.HS256);
 
                     // Assert
@@ -284,7 +286,8 @@ public class SdJwtFuzzTests
             "a".PadRight(10000, 'a'), // Very long string
             "\"quoted\"", // Quotes
             "\\escaped\\", // Backslashes
-            "{\"json\":true}", // JSON-like
+            /*lang=json,strict*/
+                                 "{\"json\":true}", // JSON-like
             "null", // Null string
             "undefined", // Undefined string
             "<script>alert('xss')</script>", // XSS attempt
@@ -312,9 +315,9 @@ public class SdJwtFuzzTests
                 // Act
                 var sdJwt = issuer.CreateSdJwt(
                     claims,
-                    new[] { "test" },
+                    ["test"],
                     key,
-                    HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+                    Primitives.HashAlgorithm.Sha256,
                     SignatureAlgorithm.HS256);
 
                 // Assert - Should either succeed or throw expected exception

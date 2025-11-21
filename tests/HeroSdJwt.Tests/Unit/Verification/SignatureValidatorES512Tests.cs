@@ -1,6 +1,5 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
-using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
@@ -142,7 +141,7 @@ public class SignatureValidatorES512Tests
         var publicKey = ecdsa.ExportSubjectPublicKeyInfo();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             _validator.VerifyJwtSignature(null!, publicKey));
     }
 
@@ -155,7 +154,7 @@ public class SignatureValidatorES512Tests
         var jwt = _signer.CreateJwt(new Dictionary<string, object> { ["sub"] = "user123" }, privateKey, SignatureAlgorithm.ES512);
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             _validator.VerifyJwtSignature(jwt, null!));
     }
 
@@ -236,20 +235,4 @@ public class SignatureValidatorES512Tests
         Assert.True(result2, "Second ES512 signature should verify successfully");
     }
 
-    // Helper methods for edge-case tests that bypass JwtSigner validation
-    private static string CreateManualJwt(string algorithm, byte[] privateKey, Dictionary<string, string> payload, Func<byte[], byte[], byte[]> signFunc)
-    {
-        var header = new { alg = algorithm, typ = "JWT" };
-        var headerJson = JsonSerializer.Serialize(header);
-        var payloadJson = JsonSerializer.Serialize(payload);
-
-        var headerBase64 = Base64UrlEncoder.Encode(headerJson);
-        var payloadBase64 = Base64UrlEncoder.Encode(payloadJson);
-        var signingInput = $"{headerBase64}.{payloadBase64}";
-        var signingInputBytes = System.Text.Encoding.UTF8.GetBytes(signingInput);
-
-        var signature = signFunc(signingInputBytes, privateKey);
-        var signatureBase64 = Base64UrlEncoder.Encode(signature);
-        return $"{signingInput}.{signatureBase64}";
-    }
 }

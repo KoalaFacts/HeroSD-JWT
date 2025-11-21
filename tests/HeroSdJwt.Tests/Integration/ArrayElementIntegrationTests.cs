@@ -15,16 +15,14 @@ public class ArrayElementIntegrationTests
 {
     private readonly byte[] _signingKey;
     private readonly SdJwtIssuer _issuer;
-    private readonly SdJwtVerifier _verifier;
 
     public ArrayElementIntegrationTests()
     {
         // Generate a signing key for tests
-        this._signingKey = new byte[32];
-        RandomNumberGenerator.Fill(this._signingKey);
+        _signingKey = new byte[32];
+        RandomNumberGenerator.Fill(_signingKey);
 
-        this._issuer = TestHelpers.CreateIssuer();
-        this._verifier = TestHelpers.CreateVerifier();
+        _issuer = TestHelpers.CreateIssuer();
     }
 
     [Fact]
@@ -257,7 +255,7 @@ public class ArrayElementIntegrationTests
         // Act - No selective claims for the empty array
         var sdJwt = _issuer.CreateSdJwt(
             claims,
-            Array.Empty<string>(),
+            [],
             _signingKey,
             HashAlgorithm.Sha256);
 

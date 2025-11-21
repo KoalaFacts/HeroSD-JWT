@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 
 namespace HeroSdJwt.Verification;
@@ -111,7 +109,7 @@ public class ClaimValidator : IClaimValidator
     {
         var audiences = string.IsNullOrWhiteSpace(expectedAudience)
             ? Array.Empty<string>()
-            : new[] { expectedAudience };
+            : [expectedAudience];
 
         return ValidateAudience(payload, audiences);
     }

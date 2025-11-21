@@ -1,30 +1,16 @@
-using System.Text;
 using HeroSdJwt.Verification.ReplayProtection;
 using Microsoft.Extensions.Caching.Distributed;
 
-namespace HeroSdJwt.Verification.ReplayProtection;
+namespace HeroSdJwt.AspNetCore.Verification.ReplayProtection;
 
 /// <summary>
 /// Distributed implementation of <see cref="IJtiCache"/> using <see cref="IDistributedCache"/>.
 /// Intended for multi-node deployments; atomicity depends on the underlying cache provider.
 /// </summary>
-public sealed class DistributedJtiCache : IJtiCache
+public sealed class DistributedJtiCache(IDistributedCache cache, string keyPrefix = "sdjwt:jti") : IJtiCache
 {
-    private const string DefaultPrefix = "sdjwt:jti";
-
-    private readonly IDistributedCache _cache;
-    private readonly string _keyPrefix;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DistributedJtiCache"/> class.
-    /// </summary>
-    /// <param name="cache">Distributed cache instance.</param>
-    /// <param name="keyPrefix">Optional key prefix for cache entries.</param>
-    public DistributedJtiCache(IDistributedCache cache, string keyPrefix = DefaultPrefix)
-    {
-        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        _keyPrefix = string.IsNullOrWhiteSpace(keyPrefix) ? DefaultPrefix : keyPrefix.Trim();
-    }
+    private readonly IDistributedCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+    private readonly string _keyPrefix = string.IsNullOrWhiteSpace(keyPrefix) ? "sdjwt:jti" : keyPrefix.Trim();
 
     /// <inheritdoc />
     public async Task<bool> TryAddAsync(
@@ -51,7 +37,7 @@ public sealed class DistributedJtiCache : IJtiCache
             AbsoluteExpirationRelativeToNow = ttl
         };
 
-        await _cache.SetAsync(key, global::System.Text.Encoding.UTF8.GetBytes("1"), options, cancellationToken).ConfigureAwait(false);
+        await _cache.SetAsync(key, System.Text.Encoding.UTF8.GetBytes("1"), options, cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -84,7 +70,10 @@ public sealed class DistributedJtiCache : IJtiCache
         return _cache.RemoveAsync(key, cancellationToken);
     }
 
-    private string BuildKey(string issuer, string jti) => $"{_keyPrefix}:{issuer}:{jti}";
+    private string BuildKey(string issuer, string jti)
+    {
+        return $"{_keyPrefix}:{issuer}:{jti}";
+    }
 
     private static void ValidateParameters(string issuer, string jti, TimeSpan ttl)
     {

@@ -45,7 +45,7 @@ public class KeyBindingGeneratorTests
         var generator = new KeyBindingGenerator();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             generator.CreateKeyBindingJwt(null!, "hash", "aud", "nonce"));
     }
 
@@ -58,7 +58,7 @@ public class KeyBindingGeneratorTests
         var privateKey = ecdsa.ExportECPrivateKey();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             generator.CreateKeyBindingJwt(privateKey, null!, "aud", "nonce"));
     }
 
@@ -82,7 +82,7 @@ public class KeyBindingGeneratorTests
         // Assert - Decode payload and verify sd_hash claim
         var parts = keyBindingJwt.Split('.');
         var payloadJson = System.Text.Encoding.UTF8.GetString(
-            Convert.FromBase64String(parts[1].Replace('-', '+').Replace('_', '/').PadRight(parts[1].Length + (4 - parts[1].Length % 4) % 4, '=')));
+            Convert.FromBase64String(parts[1].Replace('-', '+').Replace('_', '/').PadRight(parts[1].Length + ((4 - (parts[1].Length % 4)) % 4), '=')));
         var payload = JsonDocument.Parse(payloadJson);
 
         Assert.True(payload.RootElement.TryGetProperty("sd_hash", out var sdHashElement));
@@ -109,7 +109,7 @@ public class KeyBindingGeneratorTests
         // Assert
         var parts = keyBindingJwt.Split('.');
         var payloadJson = System.Text.Encoding.UTF8.GetString(
-            Convert.FromBase64String(parts[1].Replace('-', '+').Replace('_', '/').PadRight(parts[1].Length + (4 - parts[1].Length % 4) % 4, '=')));
+            Convert.FromBase64String(parts[1].Replace('-', '+').Replace('_', '/').PadRight(parts[1].Length + ((4 - (parts[1].Length % 4)) % 4), '=')));
         var payload = JsonDocument.Parse(payloadJson);
 
         Assert.True(payload.RootElement.TryGetProperty("aud", out var audElement));
@@ -136,7 +136,7 @@ public class KeyBindingGeneratorTests
         // Assert
         var parts = keyBindingJwt.Split('.');
         var payloadJson = System.Text.Encoding.UTF8.GetString(
-            Convert.FromBase64String(parts[1].Replace('-', '+').Replace('_', '/').PadRight(parts[1].Length + (4 - parts[1].Length % 4) % 4, '=')));
+            Convert.FromBase64String(parts[1].Replace('-', '+').Replace('_', '/').PadRight(parts[1].Length + ((4 - (parts[1].Length % 4)) % 4), '=')));
         var payload = JsonDocument.Parse(payloadJson);
 
         Assert.True(payload.RootElement.TryGetProperty("nonce", out var nonceElement));
@@ -165,7 +165,7 @@ public class KeyBindingGeneratorTests
         // Assert
         var parts = keyBindingJwt.Split('.');
         var payloadJson = System.Text.Encoding.UTF8.GetString(
-            Convert.FromBase64String(parts[1].Replace('-', '+').Replace('_', '/').PadRight(parts[1].Length + (4 - parts[1].Length % 4) % 4, '=')));
+            Convert.FromBase64String(parts[1].Replace('-', '+').Replace('_', '/').PadRight(parts[1].Length + ((4 - (parts[1].Length % 4)) % 4), '=')));
         var payload = JsonDocument.Parse(payloadJson);
 
         Assert.True(payload.RootElement.TryGetProperty("iat", out var iatElement));
@@ -192,7 +192,7 @@ public class KeyBindingGeneratorTests
         // Assert - Header should have typ: "kb+jwt"
         var parts = keyBindingJwt.Split('.');
         var headerJson = System.Text.Encoding.UTF8.GetString(
-            Convert.FromBase64String(parts[0].Replace('-', '+').Replace('_', '/').PadRight(parts[0].Length + (4 - parts[0].Length % 4) % 4, '=')));
+            Convert.FromBase64String(parts[0].Replace('-', '+').Replace('_', '/').PadRight(parts[0].Length + ((4 - (parts[0].Length % 4)) % 4), '=')));
         var header = JsonDocument.Parse(headerJson);
 
         Assert.True(header.RootElement.TryGetProperty("typ", out var typElement));

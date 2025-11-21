@@ -29,7 +29,7 @@ public class DigestTests
     public void Constructor_WithNullValue_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new Digest(null!, HashAlgorithm.Sha256));
+        _ = Assert.Throws<ArgumentNullException>(() => new Digest(null!, HashAlgorithm.Sha256));
     }
 
     [Fact]
@@ -345,9 +345,9 @@ public class DigestTests
         var hashSet = new HashSet<Digest>();
 
         // Act
-        hashSet.Add(digest1);
-        hashSet.Add(digest2);
-        hashSet.Add(digest1Duplicate); // Should not be added
+        _ = hashSet.Add(digest1);
+        _ = hashSet.Add(digest2);
+        _ = hashSet.Add(digest1Duplicate); // Should not be added
 
         // Assert
         Assert.Equal(2, hashSet.Count);
@@ -361,10 +361,11 @@ public class DigestTests
         // Arrange
         var value = Base64UrlEncoder.Encode("key-digest");
         var digest = new Digest(value, HashAlgorithm.Sha256);
-        var dict = new Dictionary<Digest, string>();
-
-        // Act
-        dict[digest] = "test-value";
+        var dict = new Dictionary<Digest, string>
+        {
+            // Act
+            [digest] = "test-value"
+        };
         var retrievedValue = dict[digest];
 
         // Assert

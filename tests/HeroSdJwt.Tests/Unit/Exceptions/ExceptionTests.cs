@@ -51,7 +51,7 @@ public class ExceptionTests
         var exception = new SdJwtException("test", ErrorCode.InvalidInput);
 
         // Assert
-        Assert.IsAssignableFrom<Exception>(exception);
+        _ = Assert.IsAssignableFrom<Exception>(exception);
     }
 
     #endregion
@@ -96,15 +96,15 @@ public class ExceptionTests
         var exception = new SignatureInvalidException("test");
 
         // Assert
-        Assert.IsAssignableFrom<SdJwtException>(exception);
-        Assert.IsAssignableFrom<Exception>(exception);
+        _ = Assert.IsAssignableFrom<SdJwtException>(exception);
+        _ = Assert.IsAssignableFrom<Exception>(exception);
     }
 
     [Fact]
     public void SignatureInvalidException_CanBeCaught_AsSdJwtException()
     {
         // Arrange
-        var exceptionThrown = false;
+        bool exceptionThrown;
 
         // Act
         try
@@ -147,15 +147,15 @@ public class ExceptionTests
         var exception = new DigestMismatchException("test");
 
         // Assert
-        Assert.IsAssignableFrom<SdJwtException>(exception);
-        Assert.IsAssignableFrom<Exception>(exception);
+        _ = Assert.IsAssignableFrom<SdJwtException>(exception);
+        _ = Assert.IsAssignableFrom<Exception>(exception);
     }
 
     [Fact]
     public void DigestMismatchException_CanBeCaught_AsSdJwtException()
     {
         // Arrange
-        var exceptionThrown = false;
+        bool exceptionThrown;
 
         // Act
         try
@@ -215,15 +215,15 @@ public class ExceptionTests
         var exception = new ClaimExpiredException("test", ErrorCode.TokenExpired);
 
         // Assert
-        Assert.IsAssignableFrom<SdJwtException>(exception);
-        Assert.IsAssignableFrom<Exception>(exception);
+        _ = Assert.IsAssignableFrom<SdJwtException>(exception);
+        _ = Assert.IsAssignableFrom<Exception>(exception);
     }
 
     [Fact]
     public void ClaimExpiredException_CanBeCaught_AsSdJwtException()
     {
         // Arrange
-        var exceptionThrown = false;
+        bool exceptionThrown;
 
         // Act
         try
@@ -266,15 +266,15 @@ public class ExceptionTests
         var exception = new AlgorithmNotSupportedException("test");
 
         // Assert
-        Assert.IsAssignableFrom<SdJwtException>(exception);
-        Assert.IsAssignableFrom<Exception>(exception);
+        _ = Assert.IsAssignableFrom<SdJwtException>(exception);
+        _ = Assert.IsAssignableFrom<Exception>(exception);
     }
 
     [Fact]
     public void AlgorithmNotSupportedException_CanBeCaught_AsSdJwtException()
     {
         // Arrange
-        var exceptionThrown = false;
+        bool exceptionThrown;
 
         // Act
         try
@@ -317,15 +317,15 @@ public class ExceptionTests
         var exception = new AlgorithmConfusionException("test");
 
         // Assert
-        Assert.IsAssignableFrom<SdJwtException>(exception);
-        Assert.IsAssignableFrom<Exception>(exception);
+        _ = Assert.IsAssignableFrom<SdJwtException>(exception);
+        _ = Assert.IsAssignableFrom<Exception>(exception);
     }
 
     [Fact]
     public void AlgorithmConfusionException_CanBeCaught_AsSdJwtException()
     {
         // Arrange
-        var exceptionThrown = false;
+        bool exceptionThrown;
 
         // Act
         try
@@ -384,15 +384,15 @@ public class ExceptionTests
         var exception = new MalformedDisclosureException("test");
 
         // Assert
-        Assert.IsAssignableFrom<SdJwtException>(exception);
-        Assert.IsAssignableFrom<Exception>(exception);
+        _ = Assert.IsAssignableFrom<SdJwtException>(exception);
+        _ = Assert.IsAssignableFrom<Exception>(exception);
     }
 
     [Fact]
     public void MalformedDisclosureException_CanBeCaught_AsSdJwtException()
     {
         // Arrange
-        var exceptionThrown = false;
+        bool exceptionThrown;
 
         // Act
         try
@@ -451,15 +451,15 @@ public class ExceptionTests
         var exception = new KeyBindingInvalidException("test");
 
         // Assert
-        Assert.IsAssignableFrom<SdJwtException>(exception);
-        Assert.IsAssignableFrom<Exception>(exception);
+        _ = Assert.IsAssignableFrom<SdJwtException>(exception);
+        _ = Assert.IsAssignableFrom<Exception>(exception);
     }
 
     [Fact]
     public void KeyBindingInvalidException_CanBeCaught_AsSdJwtException()
     {
         // Arrange
-        var exceptionThrown = false;
+        bool exceptionThrown;
 
         // Act
         try
@@ -484,13 +484,13 @@ public class ExceptionTests
     public void AllCustomExceptions_InheritFromSdJwtException()
     {
         // Arrange & Act & Assert
-        Assert.IsAssignableFrom<SdJwtException>(new SignatureInvalidException("test"));
-        Assert.IsAssignableFrom<SdJwtException>(new DigestMismatchException("test"));
-        Assert.IsAssignableFrom<SdJwtException>(new ClaimExpiredException("test", ErrorCode.TokenExpired));
-        Assert.IsAssignableFrom<SdJwtException>(new AlgorithmNotSupportedException("test"));
-        Assert.IsAssignableFrom<SdJwtException>(new AlgorithmConfusionException("test"));
-        Assert.IsAssignableFrom<SdJwtException>(new MalformedDisclosureException("test"));
-        Assert.IsAssignableFrom<SdJwtException>(new KeyBindingInvalidException("test"));
+        _ = Assert.IsAssignableFrom<SdJwtException>(new SignatureInvalidException("test"));
+        _ = Assert.IsAssignableFrom<SdJwtException>(new DigestMismatchException("test"));
+        _ = Assert.IsAssignableFrom<SdJwtException>(new ClaimExpiredException("test", ErrorCode.TokenExpired));
+        _ = Assert.IsAssignableFrom<SdJwtException>(new AlgorithmNotSupportedException("test"));
+        _ = Assert.IsAssignableFrom<SdJwtException>(new AlgorithmConfusionException("test"));
+        _ = Assert.IsAssignableFrom<SdJwtException>(new MalformedDisclosureException("test"));
+        _ = Assert.IsAssignableFrom<SdJwtException>(new KeyBindingInvalidException("test"));
     }
 
     [Fact]

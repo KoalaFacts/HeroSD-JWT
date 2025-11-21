@@ -1,7 +1,6 @@
 using HeroSdJwt.Verification;
 using HeroSdJwt.Primitives;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
-using System.Linq;
 
 namespace HeroSdJwt.Tests.Unit.Verification;
 
@@ -74,7 +73,7 @@ public class SdJwtVerificationOptionsTests
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(-1) };
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => options.Validate());
+        var exception = Assert.Throws<ArgumentException>(options.Validate);
         Assert.Contains("cannot be negative", exception.Message);
         Assert.Equal("ClockSkew", exception.ParamName);
     }
@@ -86,7 +85,7 @@ public class SdJwtVerificationOptionsTests
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromMinutes(6) };
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => options.Validate());
+        var exception = Assert.Throws<ArgumentException>(options.Validate);
         Assert.Contains("cannot exceed 5 minutes", exception.Message);
         Assert.Equal("ClockSkew", exception.ParamName);
     }
@@ -101,7 +100,7 @@ public class SdJwtVerificationOptionsTests
         };
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => options.Validate());
+        var exception = Assert.Throws<ArgumentException>(options.Validate);
         Assert.Contains("cannot exceed 5 minutes", exception.Message);
     }
 
@@ -257,13 +256,13 @@ public class SdJwtVerificationOptionsTests
         var options = new SdJwtVerificationOptions
         {
             ExpectedAudience = "https://verifier.example.com",
-            ExpectedAudiences = new[]
-            {
+            ExpectedAudiences =
+            [
                 "https://verifier.example.com",
                 "https://api.example.com",
                 string.Empty,
                 "   "
-            }
+            ]
         };
 
         // Act
@@ -425,11 +424,11 @@ public class SdJwtVerificationOptionsTests
         var options = new SdJwtVerificationOptions
         {
             RequireKeyBinding = true,
-            ExpectedAudiences = new[]
-            {
+            ExpectedAudiences =
+            [
                 "https://verifier.example.com",
                 "https://backup-verifier.example.com"
-            },
+            ],
             ExpectedNonce = "required-nonce"
         };
 
@@ -579,7 +578,7 @@ public class SdJwtVerificationOptionsTests
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.FromSeconds(-30) };
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentException>(() => options.Validate());
+        var exception = Assert.Throws<ArgumentException>(options.Validate);
         Assert.Contains("cannot be negative", exception.Message);
     }
 

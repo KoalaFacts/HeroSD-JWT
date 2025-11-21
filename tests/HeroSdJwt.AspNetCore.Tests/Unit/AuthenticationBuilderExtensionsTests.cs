@@ -21,7 +21,7 @@ public class AuthenticationBuilderExtensionsTests
         var authBuilder = services.AddAuthentication();
 
         // Act
-        authBuilder.AddSdJwt(options =>
+        _ = authBuilder.AddSdJwt(options =>
         {
             options.FallbackKey = new byte[32]; // Dummy key
         });
@@ -45,7 +45,7 @@ public class AuthenticationBuilderExtensionsTests
         var authBuilder = services.AddAuthentication();
 
         // Act - AddSdJwt should automatically call AddSdJwtServices
-        authBuilder.AddSdJwt(options =>
+        _ = authBuilder.AddSdJwt(options =>
         {
             options.FallbackKey = new byte[32];
         });
@@ -64,7 +64,7 @@ public class AuthenticationBuilderExtensionsTests
         var authBuilder = services.AddAuthentication();
 
         // Act
-        authBuilder.AddSdJwt(options =>
+        _ = authBuilder.AddSdJwt(options =>
         {
             options.FallbackKey = new byte[32];
         });
@@ -87,7 +87,7 @@ public class AuthenticationBuilderExtensionsTests
         var customScheme = "CustomSdJwt";
 
         // Act
-        authBuilder.AddSdJwt(customScheme, options =>
+        _ = authBuilder.AddSdJwt(customScheme, options =>
         {
             options.FallbackKey = new byte[32];
         });
@@ -110,7 +110,7 @@ public class AuthenticationBuilderExtensionsTests
         var testKey = new byte[32];
 
         // Act
-        authBuilder.AddSdJwt(options =>
+        _ = authBuilder.AddSdJwt(options =>
         {
             options.FallbackKey = testKey;
             options.VerificationOptions = new SdJwtVerificationOptions
@@ -141,7 +141,7 @@ public class AuthenticationBuilderExtensionsTests
         var authBuilder = services.AddAuthentication();
 
         // Act
-        authBuilder.AddSdJwt();
+        _ = authBuilder.AddSdJwt();
 
         var serviceProvider = services.BuildServiceProvider();
         var schemeProvider = serviceProvider.GetRequiredService<IAuthenticationSchemeProvider>();
@@ -160,7 +160,7 @@ public class AuthenticationBuilderExtensionsTests
         var customDisplayName = "My Custom SD-JWT";
 
         // Act
-        authBuilder.AddSdJwt("SdJwt", customDisplayName, options =>
+        _ = authBuilder.AddSdJwt("SdJwt", customDisplayName, options =>
         {
             options.FallbackKey = new byte[32];
         });

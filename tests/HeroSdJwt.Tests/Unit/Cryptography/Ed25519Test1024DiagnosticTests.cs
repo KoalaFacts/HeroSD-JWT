@@ -19,7 +19,7 @@ public class Ed25519Test1024DiagnosticTests
         byte[] hash = new byte[64];
         using (var sha512 = SHA512.Create())
         {
-            sha512.TryComputeHash(seed, hash, out _);
+            _ = sha512.TryComputeHash(seed, hash, out _);
         }
 
         // Expected from PyNaCl reference
@@ -81,8 +81,8 @@ public class Ed25519Test1024DiagnosticTests
         using (var sha512 = SHA512.Create())
         {
             sha512.Initialize();
-            sha512.TransformBlock(hashSuffix, 0, 32, null, 0);
-            sha512.TransformFinalBlock(message, 0, message.Length);
+            _ = sha512.TransformBlock(hashSuffix, 0, 32, null, 0);
+            _ = sha512.TransformFinalBlock(message, 0, message.Length);
             Array.Copy(sha512.Hash!, rHash, 64);
         }
 
@@ -118,7 +118,7 @@ public class Ed25519Test1024DiagnosticTests
             "380db2eaaa707b4c4185c32eddcdd306705e4dc1ffc872eeee475a64dfac86aba41c0618983f8741c5ef68d3a101e8a3b8cac60c905c15fc910840b94c00a0b");
 
         // Sign with our implementation
-        var (publicKey, expandedPrivateKey) = Ed25519.KeyPairFromSeed(seed);
+        var (_, expandedPrivateKey) = Ed25519.KeyPairFromSeed(seed);
         var signature = Ed25519.Sign(message, expandedPrivateKey);
 
         // PyNaCl produces this signature (NOT the RFC 8032 expected signature)
@@ -134,7 +134,9 @@ public class Ed25519Test1024DiagnosticTests
     {
         hex = hex.Replace(" ", "").Replace("\n", "");
         if (string.IsNullOrEmpty(hex))
-            return Array.Empty<byte>();
+        {
+            return [];
+        }
 
         var bytes = new byte[hex.Length / 2];
         for (int i = 0; i < bytes.Length; i++)

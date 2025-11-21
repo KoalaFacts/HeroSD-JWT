@@ -34,7 +34,7 @@ public sealed class SdJwtPresentation
         ArgumentNullException.ThrowIfNull(selectedDisclosures);
 
         Jwt = jwt;
-        SelectedDisclosures = new ReadOnlyCollection<string>(selectedDisclosures.ToList());
+        SelectedDisclosures = new ReadOnlyCollection<string>([.. selectedDisclosures]);
         KeyBindingJwt = keyBindingJwt;
     }
 

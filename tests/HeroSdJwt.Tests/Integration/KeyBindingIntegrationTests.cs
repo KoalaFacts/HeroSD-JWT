@@ -31,7 +31,7 @@ public class KeyBindingIntegrationTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             issuerKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.HS256,

@@ -33,7 +33,7 @@ public class SdJwtIssuerTests
         var jwtSigner = new JwtSigner();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new SdJwtIssuer(null!, digestCalculator, ecConverter, jwtSigner));
     }
 
@@ -46,7 +46,7 @@ public class SdJwtIssuerTests
         var jwtSigner = new JwtSigner();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new SdJwtIssuer(disclosureGenerator, null!, ecConverter, jwtSigner));
     }
 
@@ -59,7 +59,7 @@ public class SdJwtIssuerTests
         var jwtSigner = new JwtSigner();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new SdJwtIssuer(disclosureGenerator, digestCalculator, null!, jwtSigner));
     }
 
@@ -72,7 +72,7 @@ public class SdJwtIssuerTests
         var ecConverter = new EcPublicKeyConverter();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new SdJwtIssuer(disclosureGenerator, digestCalculator, ecConverter, null!));
     }
 
@@ -92,7 +92,7 @@ public class SdJwtIssuerTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _issuer.CreateSdJwt(claims, new[] { "iss" }, _signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, ["iss"], _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("security-critical claims cannot be selectively disclosable", exception.Message);
         Assert.Contains("iss", exception.Message);
@@ -110,7 +110,7 @@ public class SdJwtIssuerTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _issuer.CreateSdJwt(claims, new[] { "aud" }, _signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, ["aud"], _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("security-critical claims cannot be selectively disclosable", exception.Message);
         Assert.Contains("aud", exception.Message);
@@ -128,7 +128,7 @@ public class SdJwtIssuerTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _issuer.CreateSdJwt(claims, new[] { "exp" }, _signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, ["exp"], _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("security-critical claims cannot be selectively disclosable", exception.Message);
         Assert.Contains("exp", exception.Message);
@@ -146,7 +146,7 @@ public class SdJwtIssuerTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _issuer.CreateSdJwt(claims, new[] { "nbf" }, _signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, ["nbf"], _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("security-critical claims cannot be selectively disclosable", exception.Message);
         Assert.Contains("nbf", exception.Message);
@@ -164,7 +164,7 @@ public class SdJwtIssuerTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _issuer.CreateSdJwt(claims, new[] { "cnf" }, _signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, ["cnf"], _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("security-critical claims cannot be selectively disclosable", exception.Message);
         Assert.Contains("cnf", exception.Message);
@@ -182,7 +182,7 @@ public class SdJwtIssuerTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _issuer.CreateSdJwt(claims, new[] { "iat" }, _signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, ["iat"], _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("security-critical claims cannot be selectively disclosable", exception.Message);
         Assert.Contains("iat", exception.Message);
@@ -200,7 +200,7 @@ public class SdJwtIssuerTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _issuer.CreateSdJwt(claims, new[] { "sub" }, _signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, ["sub"], _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("security-critical claims cannot be selectively disclosable", exception.Message);
         Assert.Contains("sub", exception.Message);
@@ -218,7 +218,7 @@ public class SdJwtIssuerTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _issuer.CreateSdJwt(claims, new[] { "jti" }, _signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, ["jti"], _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("security-critical claims cannot be selectively disclosable", exception.Message);
         Assert.Contains("jti", exception.Message);
@@ -236,7 +236,7 @@ public class SdJwtIssuerTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _issuer.CreateSdJwt(claims, new[] { "_sd" }, _signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, ["_sd"], _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("security-critical claims cannot be selectively disclosable", exception.Message);
         Assert.Contains("_sd", exception.Message);
@@ -254,7 +254,7 @@ public class SdJwtIssuerTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _issuer.CreateSdJwt(claims, new[] { "_sd_alg" }, _signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, ["_sd_alg"], _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("security-critical claims cannot be selectively disclosable", exception.Message);
         Assert.Contains("_sd_alg", exception.Message);
@@ -273,7 +273,7 @@ public class SdJwtIssuerTests
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
-            _issuer.CreateSdJwt(claims, new[] { "iss", "aud" }, _signingKey, HashAlgorithm.Sha256));
+            _issuer.CreateSdJwt(claims, ["iss", "aud"], _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains("security-critical claims cannot be selectively disclosable", exception.Message);
         // Should mention both claims
@@ -318,7 +318,7 @@ public class SdJwtIssuerTests
         };
 
         // Act
-        var result = _issuer.CreateSdJwt(claims, new[] { "email" }, _signingKey, HashAlgorithm.Sha384);
+        var result = _issuer.CreateSdJwt(claims, ["email"], _signingKey, HashAlgorithm.Sha384);
 
         // Assert
         Assert.NotNull(result);
@@ -336,7 +336,7 @@ public class SdJwtIssuerTests
         };
 
         // Act
-        var result = _issuer.CreateSdJwt(claims, new[] { "email" }, _signingKey, HashAlgorithm.Sha512);
+        var result = _issuer.CreateSdJwt(claims, ["email"], _signingKey, HashAlgorithm.Sha512);
 
         // Assert
         Assert.NotNull(result);
@@ -363,7 +363,7 @@ public class SdJwtIssuerTests
         // Act
         var result = _issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             privateKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.ES256);
@@ -389,7 +389,7 @@ public class SdJwtIssuerTests
         // Act
         var result = _issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             privateKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.RS256);
@@ -419,7 +419,7 @@ public class SdJwtIssuerTests
         // Act
         var result = _issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             _signingKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.HS256,
@@ -448,7 +448,7 @@ public class SdJwtIssuerTests
         // Act
         var result = _issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             _signingKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.HS256,
@@ -457,7 +457,7 @@ public class SdJwtIssuerTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Single(result.Disclosures); // Only one real disclosure
+        _ = Assert.Single(result.Disclosures); // Only one real disclosure
         // The JWT payload should contain _sd array with 6 items (1 real + 5 decoys)
     }
 
@@ -474,7 +474,7 @@ public class SdJwtIssuerTests
         // Act
         var result = _issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             _signingKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.HS256,
@@ -483,7 +483,7 @@ public class SdJwtIssuerTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Single(result.Disclosures);
+        _ = Assert.Single(result.Disclosures);
     }
 
     #endregion
@@ -503,7 +503,7 @@ public class SdJwtIssuerTests
         // Act
         var result = _issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             _signingKey,
             HashAlgorithm.Sha256,
             SignatureAlgorithm.HS256,
@@ -530,7 +530,7 @@ public class SdJwtIssuerTests
         // Act
         var result = _issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             _signingKey,
             HashAlgorithm.Sha256);
 

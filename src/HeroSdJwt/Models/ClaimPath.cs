@@ -92,7 +92,7 @@ internal readonly struct ClaimPath
             if (dotIndex == -1)
             {
                 // Simple claim name without array index or nesting
-                return new ClaimPath(claimSpec, claimSpec, null, null, new[] { claimSpec });
+                return new ClaimPath(claimSpec, claimSpec, null, null, [claimSpec]);
             }
             else
             {
@@ -132,7 +132,7 @@ internal readonly struct ClaimPath
                 throw new ArgumentException($"Invalid claim specification '{claimSpec}': must have a claim name before '['", nameof(claimSpec));
             }
 
-            var baseName = claimSpec.Substring(0, openBracket);
+            var baseName = claimSpec[..openBracket];
 
             // Find closing bracket
             var closeBracket = claimSpec.IndexOf(']', openBracket);
@@ -151,7 +151,7 @@ internal readonly struct ClaimPath
             }
 
             // Extract and parse index
-            var indexStr = claimSpec.Substring(openBracket + 1, closeBracket - openBracket - 1);
+            var indexStr = claimSpec[(openBracket + 1)..closeBracket];
             if (string.IsNullOrWhiteSpace(indexStr))
             {
                 throw new ArgumentException($"Invalid claim specification '{claimSpec}': array index cannot be empty", nameof(claimSpec));
@@ -162,18 +162,12 @@ internal readonly struct ClaimPath
                 throw new ArgumentException($"Invalid claim specification '{claimSpec}': array index must be a valid integer", nameof(claimSpec));
             }
 
-            if (index < 0)
-            {
-                throw new ArgumentException($"Invalid claim specification '{claimSpec}': array index cannot be negative", nameof(claimSpec));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index, nameof(index));
 
             // Security: Prevent DoS attacks with unreasonably large array indices
-            if (index > 10000)
-            {
-                throw new ArgumentException($"Invalid claim specification '{claimSpec}': array index exceeds maximum allowed value of 10000", nameof(claimSpec));
-            }
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(index, 10000, nameof(index));
 
-            return new ClaimPath(claimSpec, baseName, index, null, new[] { baseName });
+            return new ClaimPath(claimSpec, baseName, index, null, [baseName]);
         }
     }
 

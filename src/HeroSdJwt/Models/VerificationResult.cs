@@ -42,7 +42,7 @@ public sealed class VerificationResult
         ArgumentNullException.ThrowIfNull(disclosedClaims);
 
         IsValid = true;
-        Errors = Array.Empty<ErrorCode>();
+        Errors = [];
         DisclosedClaims = disclosedClaims;
         ErrorDetails = null;
     }
@@ -74,7 +74,7 @@ public sealed class VerificationResult
     /// <param name="error">The error code.</param>
     /// <param name="errorDetails">Optional error details.</param>
     public VerificationResult(ErrorCode error, string? errorDetails = null)
-        : this(new[] { error }, errorDetails)
+        : this([error], errorDetails)
     {
     }
 
@@ -83,11 +83,8 @@ public sealed class VerificationResult
     /// </summary>
     public override string ToString()
     {
-        if (IsValid)
-        {
-            return $"VerificationResult(Valid, Claims={DisclosedClaims.Count})";
-        }
-
-        return $"VerificationResult(Invalid, Errors=[{string.Join(", ", Errors)}])";
+        return IsValid
+            ? $"VerificationResult(Valid, Claims={DisclosedClaims.Count})"
+            : $"VerificationResult(Invalid, Errors=[{string.Join(", ", Errors)}])";
     }
 }

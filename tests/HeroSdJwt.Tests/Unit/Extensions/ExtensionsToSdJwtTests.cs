@@ -37,7 +37,7 @@ public class ExtensionsToSdJwtTests
         var issuer = TestHelpers.CreateIssuer();
         _testSdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email", "name", "age", "address" },
+            ["email", "name", "age", "address"],
             _hmacKey,
             HashAlgorithm.Sha256,
             decoyDigestCount: 0);
@@ -49,7 +49,7 @@ public class ExtensionsToSdJwtTests
     public void ToPresentation_WithNullSdJwt_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             ((SdJwt)null!).ToPresentation("email"));
     }
 
@@ -106,7 +106,7 @@ public class ExtensionsToSdJwtTests
     public void ToPresentation_WithEmptyClaimArray_ReturnsJwtOnlyPresentation()
     {
         // Act
-        var presentation = _testSdJwt.ToPresentation(Array.Empty<string>());
+        var presentation = _testSdJwt.ToPresentation([]);
 
         // Assert
         Assert.NotNull(presentation);
@@ -136,7 +136,7 @@ public class ExtensionsToSdJwtTests
         var keyBindingJwt = "fake.kb.jwt";
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             ((SdJwt)null!).ToPresentationWithKeyBinding(keyBindingJwt, "email"));
     }
 
@@ -144,7 +144,7 @@ public class ExtensionsToSdJwtTests
     public void ToPresentationWithKeyBinding_WithNullKeyBinding_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             _testSdJwt.ToPresentationWithKeyBinding(null!, "email"));
     }
 
@@ -239,7 +239,7 @@ public class ExtensionsToSdJwtTests
     public void ToPresentationWithAllClaims_WithNullSdJwt_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             ((SdJwt)null!).ToPresentationWithAllClaims());
     }
 

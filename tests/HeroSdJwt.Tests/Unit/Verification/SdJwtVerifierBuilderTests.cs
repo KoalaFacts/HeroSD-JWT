@@ -4,10 +4,7 @@ using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using HeroSdJwt.Verification.Revocation;
 using HeroSdJwt.Verification.ReplayProtection;
-using System;
-using System.Linq;
 using System.Reflection;
-using Xunit;
 
 namespace HeroSdJwt.Tests.Unit.Verification;
 
@@ -42,7 +39,7 @@ public class SdJwtVerifierBuilderTests
     {
         var verifier = SdJwtVerifierBuilder.Create().Build();
 
-        Assert.IsAssignableFrom<ISdJwtVerifierAsync>(verifier);
+        _ = Assert.IsType<ISdJwtVerifierAsync>(verifier, exactMatch: false);
     }
 
     [Fact]
@@ -113,7 +110,7 @@ public class SdJwtVerifierBuilderTests
     public void WithExpectedIssuer_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithExpectedIssuer(null!));
     }
 
@@ -137,7 +134,7 @@ public class SdJwtVerifierBuilderTests
     public void WithExpectedAudience_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithExpectedAudience(null!));
     }
 
@@ -163,7 +160,7 @@ public class SdJwtVerifierBuilderTests
     public void WithExpectedAudiences_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithExpectedAudiences(null!));
     }
 
@@ -171,8 +168,8 @@ public class SdJwtVerifierBuilderTests
     public void WithExpectedAudiences_WithOnlyWhitespace_ThrowsArgumentException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() =>
-            SdJwtVerifierBuilder.Create().WithExpectedAudiences(new[] { "   ", "\t" }));
+        _ = Assert.Throws<ArgumentException>(() =>
+            SdJwtVerifierBuilder.Create().WithExpectedAudiences(["   ", "\t"]));
     }
 
     [Fact]
@@ -206,7 +203,7 @@ public class SdJwtVerifierBuilderTests
     public void WithExpectedNonce_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithExpectedNonce(null!));
     }
 
@@ -244,7 +241,7 @@ public class SdJwtVerifierBuilderTests
     public void WithRevocation_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithRevocation(null!));
     }
 
@@ -300,7 +297,7 @@ public class SdJwtVerifierBuilderTests
     public void WithReplayProtection_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithReplayProtection(null!));
     }
 
@@ -333,7 +330,7 @@ public class SdJwtVerifierBuilderTests
             .WithClockSkew(TimeSpan.FromMinutes(10)); // Exceeds 5 minute max
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => builder.Build());
+        _ = Assert.Throws<ArgumentException>(builder.Build);
     }
 
     [Fact]
@@ -344,7 +341,7 @@ public class SdJwtVerifierBuilderTests
             .WithClockSkew(TimeSpan.FromMinutes(-1));
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => builder.Build());
+        _ = Assert.Throws<ArgumentException>(builder.Build);
     }
 
     [Fact]
@@ -366,7 +363,7 @@ public class SdJwtVerifierBuilderTests
     public void WithEcPublicKeyConverter_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithEcPublicKeyConverter(null!));
     }
 
@@ -389,7 +386,7 @@ public class SdJwtVerifierBuilderTests
     public void WithSignatureValidator_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithSignatureValidator(null!));
     }
 
@@ -412,7 +409,7 @@ public class SdJwtVerifierBuilderTests
     public void WithDigestValidator_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithDigestValidator(null!));
     }
 
@@ -435,7 +432,7 @@ public class SdJwtVerifierBuilderTests
     public void WithKeyBindingValidator_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithKeyBindingValidator(null!));
     }
 
@@ -458,7 +455,7 @@ public class SdJwtVerifierBuilderTests
     public void WithClaimValidator_WithNull_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithClaimValidator(null!));
     }
 

@@ -75,7 +75,7 @@ public class SdJwtIssuerContractTests
         var issuer = TestHelpers.CreateIssuer();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             issuer.CreateSdJwt(null!, selectivelyDisclosableClaims, signingKey, hashAlgorithm));
     }
 
@@ -90,7 +90,7 @@ public class SdJwtIssuerContractTests
         var issuer = TestHelpers.CreateIssuer();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             issuer.CreateSdJwt(claims, selectivelyDisclosableClaims, null!, hashAlgorithm));
     }
 
@@ -166,7 +166,7 @@ public class SdJwtIssuerContractTests
 
         var payloadBase64 = parts[1];
         // Add padding if needed
-        var padding = (4 - payloadBase64.Length % 4) % 4;
+        var padding = (4 - (payloadBase64.Length % 4)) % 4;
         payloadBase64 += new string('=', padding);
 
         // Convert base64url to base64

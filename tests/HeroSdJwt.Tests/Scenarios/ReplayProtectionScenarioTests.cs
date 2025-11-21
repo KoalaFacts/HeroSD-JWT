@@ -1,6 +1,5 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Exceptions;
-using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Presentation;
 using HeroSdJwt.Primitives;
@@ -66,7 +65,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             _signingKey,
             HashAlgorithm.Sha256
         );
@@ -88,7 +87,7 @@ public class ReplayProtectionScenarioTests : IDisposable
             {
                 try
                 {
-                    await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
+                    _ = await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
                     return true; // Verification succeeded
                 }
                 catch (ReplayAttackException ex)
@@ -138,7 +137,7 @@ public class ReplayProtectionScenarioTests : IDisposable
             var issuer = TestHelpers.CreateIssuer();
             var sdJwt = issuer.CreateSdJwt(
                 claims,
-                new[] { "email" },
+                ["email"],
                 _signingKey,
                 HashAlgorithm.Sha256
             );
@@ -196,7 +195,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             _signingKey,
             HashAlgorithm.Sha256
         );
@@ -220,7 +219,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         // The _cache entry would be gone, but token expiration validation happens first
         var exception = await Assert.ThrowsAsync<SdJwtException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
+            _ = await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         });
 
         // Assert - Should fail with TokenExpired (not ReplayAttack)
@@ -250,7 +249,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             _signingKey,
             HashAlgorithm.Sha256
         );
@@ -269,7 +268,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         // Act - Immediately verify again (within TTL)
         var exception = await Assert.ThrowsAsync<ReplayAttackException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
+            _ = await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         });
 
         // Assert
@@ -306,7 +305,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             issuerClaims,
-            new[] { "email", "birthdate" },
+            ["email", "birthdate"],
             _signingKey,
             HashAlgorithm.Sha256
         );
@@ -334,7 +333,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         // Act - Attacker captures token and tries to replay
         var attackException = await Assert.ThrowsAsync<ReplayAttackException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
+            _ = await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         });
 
         // Assert - Replay attack is detected
@@ -373,8 +372,8 @@ public class ReplayProtectionScenarioTests : IDisposable
         };
 
         var issuer = TestHelpers.CreateIssuer();
-        var sdJwt1 = issuer.CreateSdJwt(issuer1Claims, new[] { "email" }, _signingKey, HashAlgorithm.Sha256);
-        var sdJwt2 = issuer.CreateSdJwt(issuer2Claims, new[] { "email" }, _signingKey, HashAlgorithm.Sha256);
+        var sdJwt1 = issuer.CreateSdJwt(issuer1Claims, ["email"], _signingKey, HashAlgorithm.Sha256);
+        var sdJwt2 = issuer.CreateSdJwt(issuer2Claims, ["email"], _signingKey, HashAlgorithm.Sha256);
 
         var presenter = new SdJwtPresenter();
         var presentation1 = presenter.FormatPresentation(presenter.CreatePresentationWithAllClaims(sdJwt1));
@@ -424,7 +423,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             _signingKey,
             HashAlgorithm.Sha256
         );
@@ -485,7 +484,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             _signingKey,
             HashAlgorithm.Sha256
         );
@@ -505,7 +504,7 @@ public class ReplayProtectionScenarioTests : IDisposable
         // Act - Second verification is prevented (replay protection)
         var exception = await Assert.ThrowsAsync<ReplayAttackException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
+            _ = await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         });
 
         // Assert - Replay attack is detected

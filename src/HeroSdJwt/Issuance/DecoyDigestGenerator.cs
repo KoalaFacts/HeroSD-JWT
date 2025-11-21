@@ -71,7 +71,7 @@ public class DecoyDigestGenerator(IDigestCalculator digestCalculator) : IDecoyDi
 
         if (decoyDigests.Count == 0)
         {
-            return new List<string>(realDigests);
+            return [.. realDigests];
         }
 
         // Combine all digests

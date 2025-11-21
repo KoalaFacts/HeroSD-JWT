@@ -112,7 +112,7 @@ public class SdJwtVerifierContractTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -153,7 +153,7 @@ public class SdJwtVerifierContractTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -197,7 +197,7 @@ public class SdJwtVerifierContractTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -235,7 +235,7 @@ public class SdJwtVerifierContractTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email", "age" },
+            ["email", "age"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -271,7 +271,7 @@ public class SdJwtVerifierContractTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            Array.Empty<string>(), // No selectively disclosable claims
+            [], // No selectively disclosable claims
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -299,7 +299,7 @@ public class SdJwtVerifierContractTests
         var verifier = TestHelpers.CreateVerifier();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             verifier.TryVerifyPresentation(null!, signingKey));
     }
 
@@ -328,7 +328,7 @@ public class SdJwtVerifierContractTests
         var verifier = TestHelpers.CreateVerifier();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             verifier.TryVerifyPresentation(presentation, (byte[])null!));
     }
 
@@ -372,8 +372,8 @@ public class SdJwtVerifierContractTests
         var signingKey = GenerateSecureTestKey();
 
         // Create a JWT with "none" algorithm (algorithm confusion attack)
-        var header = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes("{\"alg\":\"none\",\"typ\":\"JWT\"}"));
-        var payload = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes("{\"sub\":\"user123\"}"));
+        var header = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"alg\":\"none\",\"typ\":\"JWT\"}"));
+        var payload = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"sub\":\"user123\"}"));
         var presentation = $"{header}.{payload}.~~";
 
         // Act
@@ -395,7 +395,7 @@ public class SdJwtVerifierContractTests
         // Create a valid JWT part
         var claims = new Dictionary<string, object> { { "sub", "user123" } };
         var issuer = TestHelpers.CreateIssuer();
-        var sdJwt = issuer.CreateSdJwt(claims, Array.Empty<string>(), signingKey, HashAlgorithm.Sha256);
+        var sdJwt = issuer.CreateSdJwt(claims, [], signingKey, HashAlgorithm.Sha256);
 
         // Add 101 fake disclosures (exceeds max of 100)
         var disclosures = new List<string> { sdJwt.Jwt };
@@ -430,7 +430,7 @@ public class SdJwtVerifierContractTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email", "age" },
+            ["email", "age"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -469,7 +469,7 @@ public class SdJwtVerifierContractTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email", "age" },
+            ["email", "age"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -536,7 +536,7 @@ public class SdJwtVerifierContractTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email", "age" },
+            ["email", "age"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -575,8 +575,8 @@ public class SdJwtVerifierContractTests
         var verifier = TestHelpers.CreateVerifier();
 
         // Create JWT with unsupported hash algorithm
-        var header = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes("{\"alg\":\"HS256\",\"typ\":\"JWT\"}"));
-        var payload = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes("{\"sub\":\"user123\",\"_sd_alg\":\"md5\",\"_sd\":[]}"));
+        var header = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"alg\":\"HS256\",\"typ\":\"JWT\"}"));
+        var payload = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"sub\":\"user123\",\"_sd_alg\":\"md5\",\"_sd\":[]}"));
 
         // Sign it properly
         using var hmac = new HMACSHA256(signingKey);
@@ -608,7 +608,7 @@ public class SdJwtVerifierContractTests
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" }, // Only email is selectively disclosable
+            ["email"], // Only email is selectively disclosable
             signingKey,
             HashAlgorithm.Sha256
         );

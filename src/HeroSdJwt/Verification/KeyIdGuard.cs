@@ -1,6 +1,5 @@
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
-using System.Linq;
 
 namespace HeroSdJwt.Verification;
 
@@ -31,7 +30,7 @@ internal static class KeyIdGuard
         }
 
         // Only printable ASCII (32-126) is allowed to prevent control-character injection in logs/metrics.
-        if (keyId.Any(c => c < 32 || c > 126))
+        if (keyId.Any(c => c is < ' ' or > '~'))
         {
             throw new SdJwtException(
                 "JWT 'kid' contains non-printable characters. Only ASCII 32-126 are allowed.",

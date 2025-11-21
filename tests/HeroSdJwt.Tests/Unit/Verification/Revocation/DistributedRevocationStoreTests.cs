@@ -1,4 +1,4 @@
-using HeroSdJwt.Verification.Revocation;
+using HeroSdJwt.AspNetCore.Verification.Revocation;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;

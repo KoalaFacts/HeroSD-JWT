@@ -90,7 +90,7 @@ public class TokensController(
             // Issue SD-JWT with tenant's current key
             var sdJwt = _issuer.CreateSdJwt(
                 claims,
-                request.SelectivelyDisclosableClaims ?? Array.Empty<string>(),
+                request.SelectivelyDisclosableClaims ?? [],
                 signingKey,
                 HashAlgorithm.Sha256,
                 SignatureAlgorithm.HS256,
@@ -107,7 +107,7 @@ public class TokensController(
                 TenantId = request.TenantId,
                 KeyId = tenant.CurrentKeyId,
                 ExpiresAt = expiresAt,
-                SelectivelyDisclosableClaims = request.SelectivelyDisclosableClaims ?? Array.Empty<string>()
+                SelectivelyDisclosableClaims = request.SelectivelyDisclosableClaims ?? []
             });
         }
         catch (Exception ex)
@@ -188,7 +188,7 @@ public class TokensController(
                 return Ok(new TokenVerifyResponse
                 {
                     IsValid = false,
-                    Errors = new[] { "Could not determine tenant from presentation" }
+                    Errors = ["Could not determine tenant from presentation"]
                 });
             }
 
@@ -199,7 +199,7 @@ public class TokensController(
                 {
                     IsValid = false,
                     TenantId = tenantId,
-                    Errors = new[] { $"Tenant '{tenantId}' not found or inactive" }
+                    Errors = [$"Tenant '{tenantId}' not found or inactive"]
                 });
             }
 
@@ -232,7 +232,7 @@ public class TokensController(
                 TenantId = tenantId,
                 KeyId = keyId,
                 DisclosedClaims = result.IsValid ? result.DisclosedClaims : null,
-                Errors = result.IsValid ? null : result.Errors.Select(e => e.ToString()).ToArray()
+                Errors = result.IsValid ? null : [.. result.Errors.Select(e => e.ToString())]
             });
         }
         catch (Exception ex)
@@ -241,7 +241,7 @@ public class TokensController(
             return Ok(new TokenVerifyResponse
             {
                 IsValid = false,
-                Errors = new[] { "Internal verification error" }
+                Errors = ["Internal verification error"]
             });
         }
     }
@@ -268,7 +268,7 @@ public class TokensController(
 
     private static string AddBase64Padding(string base64)
     {
-        var padding = (4 - base64.Length % 4) % 4;
+        var padding = (4 - (base64.Length % 4)) % 4;
         return base64 + new string('=', padding);
     }
 }

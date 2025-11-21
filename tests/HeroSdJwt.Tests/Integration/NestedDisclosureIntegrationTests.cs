@@ -17,9 +17,9 @@ public class NestedDisclosureIntegrationTests
 
     public NestedDisclosureIntegrationTests()
     {
-        this._signingKey = new byte[32];
-        RandomNumberGenerator.Fill(this._signingKey);
-        this._issuer = TestHelpers.CreateIssuer();
+        _signingKey = new byte[32];
+        RandomNumberGenerator.Fill(_signingKey);
+        _issuer = TestHelpers.CreateIssuer();
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class NestedDisclosureIntegrationTests
 
         // Assert
         Assert.NotNull(sdJwt);
-        Assert.Single(sdJwt.Disclosures); // One nested disclosure
+        _ = Assert.Single(sdJwt.Disclosures); // One nested disclosure
 
         // Decode JWT payload
         var jwtParts = sdJwt.Jwt.Split('.');
@@ -70,7 +70,7 @@ public class NestedDisclosureIntegrationTests
         // Address should have _sd array with zipcode digest
         Assert.True(addressObj.TryGetProperty("_sd", out var sdArray));
         Assert.Equal(JsonValueKind.Array, sdArray.ValueKind);
-        Assert.Single(sdArray.EnumerateArray());
+        _ = Assert.Single(sdArray.EnumerateArray());
 
         // Zipcode should NOT be in the address object
         Assert.False(addressObj.TryGetProperty("zipcode", out _));
@@ -162,7 +162,7 @@ public class NestedDisclosureIntegrationTests
 
         // Top-level _sd should exist with email digest
         Assert.True(payload.TryGetProperty("_sd", out var topLevelSd));
-        Assert.Single(topLevelSd.EnumerateArray());
+        _ = Assert.Single(topLevelSd.EnumerateArray());
 
         // Address object should exist
         var addressObj = payload.GetProperty("address");
@@ -170,7 +170,7 @@ public class NestedDisclosureIntegrationTests
 
         // Address should have its own _sd array with city digest
         var nestedSd = addressObj.GetProperty("_sd");
-        Assert.Single(nestedSd.EnumerateArray());
+        _ = Assert.Single(nestedSd.EnumerateArray());
 
         // City should not be in address object
         Assert.False(addressObj.TryGetProperty("city", out _));
@@ -283,7 +283,7 @@ public class NestedDisclosureIntegrationTests
 
         // Age should be in _sd array
         Assert.True(profileObj.TryGetProperty("_sd", out var sdArray));
-        Assert.Single(sdArray.EnumerateArray());
+        _ = Assert.Single(sdArray.EnumerateArray());
         Assert.False(profileObj.TryGetProperty("age", out _));
     }
 }

@@ -1,6 +1,5 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Exceptions;
-using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
@@ -56,7 +55,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -99,7 +98,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -141,7 +140,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -161,7 +160,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         // Act & Assert - Second verification should throw ReplayAttackException
         var exception = await Assert.ThrowsAsync<ReplayAttackException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
+            _ = await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
         });
 
         Assert.Equal(jti, exception.Jti);
@@ -196,7 +195,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -236,7 +235,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -252,7 +251,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         // Act & Assert - Should throw SdJwtException for missing jti
         var exception = await Assert.ThrowsAsync<SdJwtException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
+            _ = await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
         });
 
         Assert.Equal(ErrorCode.MissingRequiredClaim, exception.ErrorCode);
@@ -277,7 +276,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );
@@ -293,7 +292,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         // Act & Assert - Should throw SdJwtException for missing issuer
         var exception = await Assert.ThrowsAsync<SdJwtException>(async () =>
         {
-            await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
+            _ = await VerifyPresentationAsync(verifier, presentationString, signingKey, cancellationToken: _ct);
         });
 
         Assert.Equal(ErrorCode.MissingRequiredClaim, exception.ErrorCode);
@@ -327,8 +326,8 @@ public class ReplayProtectionIntegrationTests : IDisposable
         };
 
         var issuer = TestHelpers.CreateIssuer();
-        var sdJwt1 = issuer.CreateSdJwt(claims1, new[] { "email" }, signingKey, HashAlgorithm.Sha256);
-        var sdJwt2 = issuer.CreateSdJwt(claims2, new[] { "email" }, signingKey, HashAlgorithm.Sha256);
+        var sdJwt1 = issuer.CreateSdJwt(claims1, ["email"], signingKey, HashAlgorithm.Sha256);
+        var sdJwt2 = issuer.CreateSdJwt(claims2, ["email"], signingKey, HashAlgorithm.Sha256);
 
         var presenter = new SdJwtPresenter();
         var presentation1 = presenter.FormatPresentation(presenter.CreatePresentationWithAllClaims(sdJwt1));
@@ -369,7 +368,7 @@ public class ReplayProtectionIntegrationTests : IDisposable
         var issuer = TestHelpers.CreateIssuer();
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            new[] { "email" },
+            ["email"],
             signingKey,
             HashAlgorithm.Sha256
         );

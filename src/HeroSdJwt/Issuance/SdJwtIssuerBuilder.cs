@@ -42,7 +42,10 @@ public class SdJwtIssuerBuilder
     /// <summary>
     /// Creates a new builder instance.
     /// </summary>
-    public static SdJwtIssuerBuilder Create() => new();
+    public static SdJwtIssuerBuilder Create()
+    {
+        return new SdJwtIssuerBuilder();
+    }
 
     /// <summary>
     /// Sets all claims for the SD-JWT.
@@ -159,7 +162,9 @@ public class SdJwtIssuerBuilder
     public SdJwtIssuerBuilder WithDecoys(int count)
     {
         if (count < 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(count), "Decoy count cannot be negative");
+        }
 
         _decoyDigestCount = count;
         return this;
@@ -188,10 +193,14 @@ public class SdJwtIssuerBuilder
     public SdJwt Build()
     {
         if (_claims == null)
+        {
             throw new InvalidOperationException("Claims must be set. Call WithClaims() or WithClaim().");
+        }
 
         if (_signingKey == null)
+        {
             throw new InvalidOperationException("Signing key must be set. Call SignWithHmac(), SignWithRsa(), SignWithEcdsa(), or SignWithEd25519().");
+        }
 
         var issuer = new SdJwtIssuer(
             new DisclosureGenerator(),

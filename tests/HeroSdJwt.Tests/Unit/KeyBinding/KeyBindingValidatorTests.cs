@@ -40,7 +40,7 @@ public class KeyBindingValidatorTests
         string? nonce = DEFAULT_NONCE)
     {
         var audiences = audience == null
-            ? Array.Empty<string>()
+            ? []
             : new[] { audience };
 
         return _validator.ValidateKeyBinding(
@@ -80,7 +80,7 @@ public class KeyBindingValidatorTests
     public void Constructor_WithNullTimeProvider_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new KeyBindingValidator(null!));
     }
 
@@ -150,7 +150,7 @@ public class KeyBindingValidatorTests
             keyBindingJwt,
             _publicKey,
             sdJwtHash,
-            new[] { "https://aud.a.example.com", audience },
+            ["https://aud.a.example.com", audience],
             nonce);
 
         // Assert
@@ -181,7 +181,7 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithNullJwt_ThrowsArgumentNullException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             Validate(null!, _publicKey, "hash"));
     }
 
@@ -192,7 +192,7 @@ public class KeyBindingValidatorTests
         var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "aud", "nonce");
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             _validator.ValidateKeyBinding(jwt, null!, "hash", DEFAULT_AUDIENCE, DEFAULT_NONCE));
     }
 
@@ -203,7 +203,7 @@ public class KeyBindingValidatorTests
         var jwt = _generator.CreateKeyBindingJwt(_privateKey, "hash", "aud", "nonce");
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             _validator.ValidateKeyBinding(jwt, _publicKey, null!, DEFAULT_AUDIENCE, DEFAULT_NONCE));
     }
 
@@ -492,8 +492,8 @@ public class KeyBindingValidatorTests
     {
         // Arrange - Create JWT with iat 59 seconds in the future (within tolerance)
         var timeProvider = new FakeTimeProvider();
-        var generator = new KeyBindingGenerator(timeProvider);
-        var validator = new KeyBindingValidator(timeProvider);
+        _ = new KeyBindingGenerator(timeProvider);
+        _ = new KeyBindingValidator(timeProvider);
 
         var futureTime = _timeProvider.GetUtcNow().AddSeconds(59);
         var header = JsonSerializer.Serialize(new { alg = "ES256", typ = "kb+jwt" });
@@ -609,7 +609,7 @@ public class KeyBindingValidatorTests
         var parts = jwt.Split('.');
 
         // Change the payload
-        var tamperedPayload = Base64UrlEncoder.Encode("{\"sd_hash\":\"tampered\"}");
+        var tamperedPayload = Base64UrlEncoder.Encode(/*lang=json,strict*/ "{\"sd_hash\":\"tampered\"}");
         var tamperedJwt = $"{parts[0]}.{tamperedPayload}.{parts[2]}";
 
         // Act
@@ -682,7 +682,7 @@ public class KeyBindingValidatorTests
     {
         // Arrange - JWT with invalid JSON in header
         var invalidHeader = Base64UrlEncoder.Encode("{not valid json");
-        var validPayload = Base64UrlEncoder.Encode("{\"sd_hash\":\"hash\",\"iat\":123}");
+        var validPayload = Base64UrlEncoder.Encode(/*lang=json,strict*/ "{\"sd_hash\":\"hash\",\"iat\":123}");
         var jwt = $"{invalidHeader}.{validPayload}.signature";
 
         // Act
@@ -696,7 +696,7 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithInvalidJsonInPayload_ReturnsFalse()
     {
         // Arrange - JWT with invalid JSON in payload
-        var validHeader = Base64UrlEncoder.Encode("{\"alg\":\"ES256\",\"typ\":\"kb+jwt\"}");
+        var validHeader = Base64UrlEncoder.Encode(/*lang=json,strict*/ "{\"alg\":\"ES256\",\"typ\":\"kb+jwt\"}");
         var invalidPayload = Base64UrlEncoder.Encode("{not valid json");
         var jwt = $"{validHeader}.{invalidPayload}.signature";
 
@@ -715,8 +715,8 @@ public class KeyBindingValidatorTests
     {
         // Arrange - Create JWT with iat exactly 299 seconds ago (just within limit)
         var timeProvider = new FakeTimeProvider();
-        var generator = new KeyBindingGenerator(timeProvider);
-        var validator = new KeyBindingValidator(timeProvider);
+        _ = new KeyBindingGenerator(timeProvider);
+        _ = new KeyBindingValidator(timeProvider);
 
         var boundaryTime = _timeProvider.GetUtcNow().AddSeconds(-299);
         var header = JsonSerializer.Serialize(new { alg = "ES256", typ = "kb+jwt" });
@@ -749,7 +749,7 @@ public class KeyBindingValidatorTests
     public void ValidateKeyBinding_WithInvalidBase64InSignature_ReturnsFalse()
     {
         // Arrange - Create valid JWT but with invalid base64 signature
-        var header = Base64UrlEncoder.Encode("{\"alg\":\"ES256\",\"typ\":\"kb+jwt\"}");
+        var header = Base64UrlEncoder.Encode(/*lang=json,strict*/ "{\"alg\":\"ES256\",\"typ\":\"kb+jwt\"}");
         var payload = Base64UrlEncoder.Encode($"{{\"sd_hash\":\"hash\",\"iat\":{_timeProvider.GetUtcNow().ToUnixTimeSeconds()}}}");
         var jwt = $"{header}.{payload}.!!!invalid-base64!!!";
 

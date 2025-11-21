@@ -187,7 +187,7 @@ public class Ed25519Rfc8032Tests
         var seed2 = HexToBytes("4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb");
         var message = HexToBytes("74657374"); // "test" in hex
 
-        var (publicKey1, expandedPrivateKey1) = Ed25519.KeyPairFromSeed(seed1);
+        var (_, expandedPrivateKey1) = Ed25519.KeyPairFromSeed(seed1);
         var (publicKey2, _) = Ed25519.KeyPairFromSeed(seed2);
 
         var signature = Ed25519.Sign(message, expandedPrivateKey1);
@@ -203,7 +203,9 @@ public class Ed25519Rfc8032Tests
     private static byte[] HexToBytes(string hex)
     {
         if (hex.Length % 2 != 0)
+        {
             throw new ArgumentException("Hex string must have even length");
+        }
 
         var bytes = new byte[hex.Length / 2];
         for (int i = 0; i < bytes.Length; i++)

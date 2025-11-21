@@ -29,9 +29,14 @@ public readonly record struct KeyPair
         ArgumentNullException.ThrowIfNull(publicKey);
 
         if (privateKey.Length == 0)
+        {
             throw new ArgumentException("Private key cannot be empty", nameof(privateKey));
+        }
+
         if (publicKey.Length == 0)
+        {
             throw new ArgumentException("Public key cannot be empty", nameof(publicKey));
+        }
 
         PrivateKey = privateKey;
         PublicKey = publicKey;

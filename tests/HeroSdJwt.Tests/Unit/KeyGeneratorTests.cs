@@ -46,9 +46,9 @@ public class KeyGeneratorTests
     public void GenerateHmacKey_WithInvalidSize_ThrowsArgumentException()
     {
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => _keyGenerator.GenerateHmacKey(0));
-        Assert.Throws<ArgumentException>(() => _keyGenerator.GenerateHmacKey(-1));
-        Assert.Throws<ArgumentException>(() => _keyGenerator.GenerateHmacKey(7)); // Not multiple of 8
+        _ = Assert.Throws<ArgumentException>(() => _keyGenerator.GenerateHmacKey(0));
+        _ = Assert.Throws<ArgumentException>(() => _keyGenerator.GenerateHmacKey(-1));
+        _ = Assert.Throws<ArgumentException>(() => _keyGenerator.GenerateHmacKey(7)); // Not multiple of 8
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class KeyGeneratorTests
     public void GenerateRsaKeyPair_WithCustomSize_ReturnsCorrectSize()
     {
         // Act
-        var (privateKey, publicKey) = _keyGenerator.GenerateRsaKeyPair(4096);
+        var (privateKey, _) = _keyGenerator.GenerateRsaKeyPair(4096);
 
         // Assert
         using var rsa = RSA.Create();
@@ -207,9 +207,9 @@ public class KeyGeneratorTests
         // Should not throw
         var sdJwt = issuer.CreateSdJwt(
             claims,
-            Array.Empty<string>(),
+            [],
             privateKey,
-            HeroSdJwt.Primitives.HashAlgorithm.Sha256,
+            Primitives.HashAlgorithm.Sha256,
             SignatureAlgorithm.EdDSA);
 
         // Verify the signature

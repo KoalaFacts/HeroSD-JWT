@@ -13,13 +13,6 @@ namespace HeroSdJwt.Tests.Unit.Verification;
 /// </summary>
 public class DigestValidatorTests
 {
-    private static byte[] GenerateSecureTestKey()
-    {
-        var key = new byte[32];
-        RandomNumberGenerator.Fill(key);
-        return key;
-    }
-
     [Fact]
     public void ValidateDigest_WithMatchingDigest_ReturnsTrue()
     {
@@ -60,7 +53,7 @@ public class DigestValidatorTests
         var digest = new Digest("test", HashAlgorithm.Sha256);
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new DigestValidator().ValidateDigest(null!, digest, HashAlgorithm.Sha256));
     }
 
@@ -147,7 +140,7 @@ public class DigestValidatorTests
         var expectedDigests = Array.Empty<Digest>();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new DigestValidator().ValidateAllDigests(null!, expectedDigests, HashAlgorithm.Sha256));
     }
 
@@ -158,7 +151,7 @@ public class DigestValidatorTests
         var disclosures = Array.Empty<string>();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new DigestValidator().ValidateAllDigests(disclosures, null!, HashAlgorithm.Sha256));
     }
 

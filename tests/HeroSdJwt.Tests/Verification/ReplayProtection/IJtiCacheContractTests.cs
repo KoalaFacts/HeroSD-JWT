@@ -50,7 +50,7 @@ public abstract class IJtiCacheContractTests : IAsyncLifetime
         var jti = Guid.NewGuid().ToString();
         var ttl = TimeSpan.FromHours(1);
 
-        await Cache!.TryAddAsync(issuer, jti, ttl, TestContext.Current.CancellationToken);
+        _ = await Cache!.TryAddAsync(issuer, jti, ttl, TestContext.Current.CancellationToken);
 
         // Act - Try to add same jti again
         var result = await Cache.TryAddAsync(issuer, jti, ttl, TestContext.Current.CancellationToken);
@@ -85,7 +85,7 @@ public abstract class IJtiCacheContractTests : IAsyncLifetime
         var ttl = TimeSpan.FromHours(1);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() =>
             Cache!.TryAddAsync(null!, jti, ttl, TestContext.Current.CancellationToken));
     }
 
@@ -97,7 +97,7 @@ public abstract class IJtiCacheContractTests : IAsyncLifetime
         var ttl = TimeSpan.FromHours(1);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+        _ = await Assert.ThrowsAsync<ArgumentNullException>(() =>
             Cache!.TryAddAsync(issuer, null!, ttl, TestContext.Current.CancellationToken));
     }
 
@@ -109,7 +109,7 @@ public abstract class IJtiCacheContractTests : IAsyncLifetime
         var ttl = TimeSpan.FromHours(1);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        _ = await Assert.ThrowsAsync<ArgumentException>(() =>
             Cache!.TryAddAsync(string.Empty, jti, ttl, TestContext.Current.CancellationToken));
     }
 
@@ -121,7 +121,7 @@ public abstract class IJtiCacheContractTests : IAsyncLifetime
         var ttl = TimeSpan.FromHours(1);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        _ = await Assert.ThrowsAsync<ArgumentException>(() =>
             Cache!.TryAddAsync(issuer, string.Empty, ttl, TestContext.Current.CancellationToken));
     }
 
@@ -133,7 +133,7 @@ public abstract class IJtiCacheContractTests : IAsyncLifetime
         var jti = Guid.NewGuid().ToString();
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        _ = await Assert.ThrowsAsync<ArgumentException>(() =>
             Cache!.TryAddAsync(issuer, jti, TimeSpan.Zero, TestContext.Current.CancellationToken));
     }
 
@@ -145,7 +145,7 @@ public abstract class IJtiCacheContractTests : IAsyncLifetime
         var jti = Guid.NewGuid().ToString();
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() =>
+        _ = await Assert.ThrowsAsync<ArgumentException>(() =>
             Cache!.TryAddAsync(issuer, jti, TimeSpan.FromSeconds(-1), TestContext.Current.CancellationToken));
     }
 
@@ -157,7 +157,7 @@ public abstract class IJtiCacheContractTests : IAsyncLifetime
         var jti = Guid.NewGuid().ToString();
         var ttl = TimeSpan.FromHours(1);
 
-        await Cache!.TryAddAsync(issuer, jti, ttl, TestContext.Current.CancellationToken);
+        _ = await Cache!.TryAddAsync(issuer, jti, ttl, TestContext.Current.CancellationToken);
 
         // Act
         var exists = await Cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken);
@@ -188,7 +188,7 @@ public abstract class IJtiCacheContractTests : IAsyncLifetime
         var jti = Guid.NewGuid().ToString();
         var ttl = TimeSpan.FromHours(1);
 
-        await Cache!.TryAddAsync(issuer, jti, ttl, TestContext.Current.CancellationToken);
+        _ = await Cache!.TryAddAsync(issuer, jti, ttl, TestContext.Current.CancellationToken);
         await Cache.RemoveAsync(issuer, jti, TestContext.Current.CancellationToken);
 
         // Act
@@ -217,7 +217,7 @@ public abstract class IJtiCacheContractTests : IAsyncLifetime
         var jti = Guid.NewGuid().ToString();
         var ttl = TimeSpan.FromHours(1);
 
-        await Cache!.TryAddAsync(issuer, jti, ttl, TestContext.Current.CancellationToken);
+        _ = await Cache!.TryAddAsync(issuer, jti, ttl, TestContext.Current.CancellationToken);
 
         // Act
         await Cache.RemoveAsync(issuer, jti, TestContext.Current.CancellationToken);

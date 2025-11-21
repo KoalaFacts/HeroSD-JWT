@@ -36,7 +36,7 @@ public class DisclosureTests
         var claimValue = JsonDocument.Parse("\"value\"").RootElement;
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new Disclosure(null!, "claimName", claimValue));
+        _ = Assert.Throws<ArgumentNullException>(() => new Disclosure(null!, "claimName", claimValue));
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class DisclosureTests
         var claimValue = JsonDocument.Parse("\"value\"").RootElement;
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new Disclosure("salt", null!, claimValue));
+        _ = Assert.Throws<ArgumentNullException>(() => new Disclosure("salt", null!, claimValue));
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public class DisclosureTests
         var claimValue = JsonDocument.Parse("\"value\"").RootElement;
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new Disclosure(null!, claimValue));
+        _ = Assert.Throws<ArgumentNullException>(() => new Disclosure(null!, claimValue));
     }
 
     [Fact]
@@ -596,9 +596,9 @@ public class DisclosureTests
         var hashSet = new HashSet<Disclosure>();
 
         // Act
-        hashSet.Add(disclosure1);
-        hashSet.Add(disclosure2);
-        hashSet.Add(disclosure1Duplicate); // Should not be added
+        _ = hashSet.Add(disclosure1);
+        _ = hashSet.Add(disclosure2);
+        _ = hashSet.Add(disclosure1Duplicate); // Should not be added
 
         // Assert
         Assert.Equal(2, hashSet.Count);
@@ -612,10 +612,11 @@ public class DisclosureTests
         // Arrange
         var claimValue = JsonDocument.Parse("\"value\"").RootElement;
         var disclosure = new Disclosure("salt", "claim", claimValue);
-        var dict = new Dictionary<Disclosure, string>();
-
-        // Act
-        dict[disclosure] = "test-data";
+        var dict = new Dictionary<Disclosure, string>
+        {
+            // Act
+            [disclosure] = "test-data"
+        };
         var retrievedValue = dict[disclosure];
 
         // Assert

@@ -40,7 +40,7 @@ public class DisclosureParser : IDisclosureParser
         // Per SD-JWT spec section 4.2.4:
         // - 3-element array: [salt, claim_name, claim_value] for object properties
         // - 2-element array: [salt, claim_value] for array elements
-        if (arrayLength != 2 && arrayLength != 3)
+        if (arrayLength is not 2 and not 3)
         {
             throw new MalformedDisclosureException(
                 "Disclosure must be a JSON array with 2 elements (array element) or 3 elements (object property)");

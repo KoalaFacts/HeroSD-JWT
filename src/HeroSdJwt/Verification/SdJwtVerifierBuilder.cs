@@ -3,9 +3,6 @@ using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification.Revocation;
 using HeroSdJwt.Verification.ReplayProtection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace HeroSdJwt.Verification;
 
@@ -59,7 +56,10 @@ public class SdJwtVerifierBuilder
     /// <summary>
     /// Creates a new builder instance with default settings.
     /// </summary>
-    public static SdJwtVerifierBuilder Create() => new();
+    public static SdJwtVerifierBuilder Create()
+    {
+        return new SdJwtVerifierBuilder();
+    }
 
     /// <summary>
     /// Sets the maximum allowed clock skew for temporal claim validation.
@@ -102,7 +102,7 @@ public class SdJwtVerifierBuilder
     public SdJwtVerifierBuilder WithExpectedAudience(string audience)
     {
         ArgumentNullException.ThrowIfNull(audience);
-        _expectedAudiences = new List<string> { audience };
+        _expectedAudiences = [audience];
         return this;
     }
 

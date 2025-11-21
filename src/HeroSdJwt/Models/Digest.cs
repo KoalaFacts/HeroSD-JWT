@@ -66,12 +66,8 @@ public readonly struct Digest : IEquatable<Digest>
             var otherBytes = Base64UrlEncoder.DecodeBytes(other.Value);
 
             // CryptographicOperations.FixedTimeEquals requires same length
-            if (valueBytes.Length != otherBytes.Length)
-            {
-                return false;
-            }
-
-            return CryptographicOperations.FixedTimeEquals(valueBytes, otherBytes);
+            return valueBytes.Length == otherBytes.Length &&
+                CryptographicOperations.FixedTimeEquals(valueBytes, otherBytes);
         }
         catch
         {

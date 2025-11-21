@@ -190,7 +190,7 @@ public class ClaimValidatorTests
         var payload = CreatePayload(new { sub = "user123" });
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() =>
+        _ = Assert.Throws<ArgumentNullException>(() =>
             new ClaimValidator().ValidateTemporalClaims(payload, null!));
     }
 

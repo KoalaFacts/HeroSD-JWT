@@ -2,6 +2,8 @@ using HeroSdJwt.Cryptography;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Presentation;
+using HeroSdJwt.AspNetCore.Verification.ReplayProtection;
+using HeroSdJwt.AspNetCore.Verification.Revocation;
 using HeroSdJwt.Verification;
 using HeroSdJwt.Verification.ReplayProtection;
 using HeroSdJwt.Verification.Revocation;
@@ -66,7 +68,7 @@ public static class SdJwtServiceCollectionExtensions
                 serviceProvider.GetRequiredService<IClaimValidator>()
             );
         });
-        services.TryAddSingleton<ISdJwtVerifierAsync>(sp =>
+        services.TryAddSingleton(sp =>
             (ISdJwtVerifierAsync)sp.GetRequiredService<ISdJwtVerifier>());
 
         // Register issuance services (for applications that need to issue SD-JWTs)

@@ -187,7 +187,7 @@ public class JtiValidatorTests
         };
 
         // Act & Assert - Should throw due to expiration
-        await Assert.ThrowsAsync<SdJwtException>(() =>
+        _ = await Assert.ThrowsAsync<SdJwtException>(() =>
             _validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
     }
 

@@ -26,7 +26,7 @@ public class SaltSecurityTests
             var disclosure = generator.GenerateDisclosure(claimName, claimValue);
             var decoded = DecodeDisclosure(disclosure);
             var salt = decoded[0].GetString()!;
-            salts.Add(salt);
+            _ = salts.Add(salt);
         }
 
         // Assert
@@ -133,7 +133,7 @@ public class SaltSecurityTests
 
         // Act
         // Generate disclosures concurrently to test thread safety of RNG
-        Parallel.For(0, iterations, _ =>
+        _ = Parallel.For(0, iterations, _ =>
         {
             var disclosure = generator.GenerateDisclosure(claimName, claimValue);
             var decoded = DecodeDisclosure(disclosure);
@@ -197,7 +197,7 @@ public class SaltSecurityTests
     private static string ConvertFromBase64Url(string base64Url)
     {
         var base64 = base64Url.Replace('-', '+').Replace('_', '/');
-        var padding = (4 - base64.Length % 4) % 4;
+        var padding = (4 - (base64.Length % 4)) % 4;
         return base64 + new string('=', padding);
     }
 

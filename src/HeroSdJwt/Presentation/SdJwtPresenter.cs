@@ -53,9 +53,8 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
             foreach (var requestedPath in selectedClaimsList)
             {
                 string claimPath = requestedPath;
-                int disclosureIndex;
 
-                if (!claimPathToIndex.TryGetValue(claimPath, out disclosureIndex))
+                if (!claimPathToIndex.TryGetValue(claimPath, out var disclosureIndex))
                 {
                     // Check if this is a simple claim name (legacy support)
                     // Manual loop to avoid LINQ allocation
@@ -94,7 +93,7 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
                 }
 
                 // Add this disclosure
-                selectedDisclosureIndices.Add(disclosureIndex);
+                _ = selectedDisclosureIndices.Add(disclosureIndex);
 
                 // For nested paths, also add all parent disclosures
                 // E.g., for "address.geo.lat", also add "address.geo"
@@ -108,10 +107,10 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
                     if (nextDotIndex >= 0)
                     {
                         int parentLength = dotIndex + 1 + nextDotIndex;
-                        string parentPath = claimPath.Substring(0, parentLength);
+                        string parentPath = claimPath[..parentLength];
                         if (claimPathToIndex.TryGetValue(parentPath, out var parentIndex))
                         {
-                            selectedDisclosureIndices.Add(parentIndex);
+                            _ = selectedDisclosureIndices.Add(parentIndex);
                         }
                         dotIndex = parentLength;
                     }

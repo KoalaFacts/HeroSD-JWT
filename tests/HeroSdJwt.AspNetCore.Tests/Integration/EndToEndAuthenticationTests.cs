@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -38,7 +37,7 @@ public class EndToEndAuthenticationTests : IDisposable
 
         // Create issuer and presenter for test setup
         var services = new ServiceCollection();
-        services.AddSdJwtServices();
+        _ = services.AddSdJwtServices();
         var serviceProvider = services.BuildServiceProvider();
 
         _issuer = serviceProvider.GetRequiredService<ISdJwtIssuer>();
@@ -68,8 +67,8 @@ public class EndToEndAuthenticationTests : IDisposable
             claims,
             selectiveClaims,
             _testKey,
-            HeroSdJwt.Primitives.HashAlgorithm.Sha256,
-            HeroSdJwt.Primitives.SignatureAlgorithm.HS256);
+            Primitives.HashAlgorithm.Sha256,
+            SignatureAlgorithm.HS256);
         var presentation = _presenter.FormatPresentation(
             _presenter.CreatePresentationWithAllClaims(sdJwt));
 
@@ -141,10 +140,10 @@ public class EndToEndAuthenticationTests : IDisposable
 
         var sdJwt = _issuer.CreateSdJwt(
             claims,
-            Array.Empty<string>(),
+            [],
             wrongKey,
-            HeroSdJwt.Primitives.HashAlgorithm.Sha256,
-            HeroSdJwt.Primitives.SignatureAlgorithm.HS256);
+            Primitives.HashAlgorithm.Sha256,
+            SignatureAlgorithm.HS256);
         var presentation = _presenter.FormatPresentation(
             _presenter.CreatePresentationWithAllClaims(sdJwt));
 
@@ -181,12 +180,12 @@ public class EndToEndAuthenticationTests : IDisposable
             claims,
             selectiveClaims,
             _testKey,
-            HeroSdJwt.Primitives.HashAlgorithm.Sha256,
-            HeroSdJwt.Primitives.SignatureAlgorithm.HS256);
+            Primitives.HashAlgorithm.Sha256,
+            SignatureAlgorithm.HS256);
 
         // Only disclose email and age, NOT ssn
         var presentation = _presenter.FormatPresentation(
-            _presenter.CreatePresentation(sdJwt, new[] { "email", "age" }));
+            _presenter.CreatePresentation(sdJwt, ["email", "age"]));
 
         // Act
         client.DefaultRequestHeaders.Authorization =
@@ -213,12 +212,12 @@ public class EndToEndAuthenticationTests : IDisposable
         var hostBuilder = new HostBuilder()
             .ConfigureWebHost(webHost =>
             {
-                webHost.UseTestServer();
-                webHost.ConfigureServices(services =>
+                _ = webHost.UseTestServer();
+                _ = webHost.ConfigureServices(services =>
                 {
-                    services.AddRouting();
-                    services.AddSdJwtServices();
-                    services.AddSingleton<ISdJwtVerifier>(_ =>
+                    _ = services.AddRouting();
+                    _ = services.AddSdJwtServices();
+                    _ = services.AddSingleton<ISdJwtVerifier>(_ =>
                         new SdJwtVerifier(
                             new SdJwtVerificationOptions { ExpectedKeyType = VerificationKeyType.Symmetric },
                             new EcPublicKeyConverter(),
@@ -226,7 +225,7 @@ public class EndToEndAuthenticationTests : IDisposable
                             new DigestValidator(),
                             new KeyBindingValidator(TimeProvider.System),
                             new ClaimValidator()));
-                    services.AddAuthentication()
+                    _ = services.AddAuthentication()
                         .AddSdJwt(options =>
                         {
                             options.VerificationOptions = new SdJwtVerificationOptions
@@ -235,18 +234,18 @@ public class EndToEndAuthenticationTests : IDisposable
                             };
                             options.FallbackKey = _testKey;
                         });
-                    services.AddAuthorization();
+                    _ = services.AddAuthorization();
                 });
 
-                webHost.Configure(app =>
+                _ = webHost.Configure(app =>
                 {
                     // Correct middleware order for ASP.NET Core
-                    app.UseRouting();
-                    app.UseAuthentication();
-                    app.UseAuthorization();
-                    app.UseEndpoints(endpoints =>
+                    _ = app.UseRouting();
+                    _ = app.UseAuthentication();
+                    _ = app.UseAuthorization();
+                    _ = app.UseEndpoints(endpoints =>
                     {
-                        endpoints.MapGet("/protected", async context =>
+                        _ = endpoints.MapGet("/protected", async context =>
                         {
                             if (!context.User.Identity?.IsAuthenticated ?? true)
                             {
@@ -267,7 +266,7 @@ public class EndToEndAuthenticationTests : IDisposable
                             await context.Response.WriteAsync(JsonSerializer.Serialize(result));
                         }).RequireAuthorization();
 
-                        endpoints.MapGet("/claims", async context =>
+                        _ = endpoints.MapGet("/claims", async context =>
                         {
                             if (!context.User.Identity?.IsAuthenticated ?? true)
                             {
@@ -292,7 +291,9 @@ public class EndToEndAuthenticationTests : IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _disposed = true;
         GC.SuppressFinalize(this);
