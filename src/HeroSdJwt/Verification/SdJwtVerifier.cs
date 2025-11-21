@@ -398,10 +398,8 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
             {
                 var keyId = kidElement.GetString();
 
-                if (string.IsNullOrWhiteSpace(keyId))
-                {
-                    throw new SdJwtException("JWT header contains empty 'kid' claim", ErrorCode.InvalidInput);
-                }
+                KeyIdGuard.EnsureValid(keyId);
+                var resolvedKeyId = keyId!;
 
                 // Use resolver
                 if (keyResolver == null)
@@ -413,11 +411,11 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
 
                 try
                 {
-                    verificationKey = keyResolver(keyId)!;
+                    verificationKey = keyResolver(resolvedKeyId)!;
                     if (verificationKey == null)
                     {
                         throw new SdJwtException(
-                            $"Key resolver could not find key for kid '{keyId}'",
+                            $"Key resolver could not find key for kid '{resolvedKeyId}'",
                             ErrorCode.KeyIdNotFound);
                     }
                 }
@@ -428,7 +426,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
                 catch (Exception ex)
                 {
                     throw new SdJwtException(
-                        $"Key resolver threw an exception while resolving kid '{keyId}': {ex.Message}",
+                        $"Key resolver threw an exception while resolving kid '{resolvedKeyId}': {ex.Message}",
                         ErrorCode.KeyResolverFailed,
                         ex);
                 }
@@ -1045,6 +1043,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
             if (header.TryGetProperty("kid", out var kidElement) && kidElement.ValueKind == JsonValueKind.String)
             {
                 var keyId = kidElement.GetString()!;
+                KeyIdGuard.EnsureValid(keyId);
                 var isRevoked = await _revocationStore.IsKeyRevokedAsync(keyId, cancellationToken).ConfigureAwait(false);
                 if (isRevoked)
                 {
@@ -1073,6 +1072,11 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
         catch (TokenRevokedException)
         {
             // Re-throw revocation exceptions
+            throw;
+        }
+        catch (SdJwtException)
+        {
+            // Surface key-id validation failures directly (do not treat as revocation IO failure)
             throw;
         }
         catch (Exception ex) when (_options.Revocation.FailureMode == RevocationFailureMode.FailOpen)

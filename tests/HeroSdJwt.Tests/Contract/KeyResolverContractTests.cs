@@ -1,8 +1,10 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Exceptions;
+using HeroSdJwt.Encoding;
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
+using System.Text.Json;
 
 namespace HeroSdJwt.Tests.Contract;
 
@@ -343,5 +345,79 @@ public class KeyResolverContractTests
 
         // Assert
         Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void VerifyPresentation_KidWithControlCharacters_FailsBeforeResolver()
+    {
+        // Arrange
+        var hmacKey = _keyGen.GenerateHmacKey();
+        var presentation = CreatePresentationWithCustomKid("key-\u0001-invalid");
+
+        var resolverCalled = false;
+        KeyResolver resolver = kid =>
+        {
+            resolverCalled = true;
+            return hmacKey;
+        };
+
+        var verifier = TestHelpers.CreateVerifier();
+
+        // Act & Assert
+        var exception = Assert.Throws<SdJwtException>(() =>
+            verifier.VerifyPresentation(presentation, resolver));
+
+        Assert.Equal(ErrorCode.KeyIdInvalidCharacters, exception.ErrorCode);
+        Assert.False(resolverCalled);
+    }
+
+    [Fact]
+    public void TryVerifyPresentation_KeyIdTooLong_ReturnsInvalidResult()
+    {
+        // Arrange
+        var hmacKey = _keyGen.GenerateHmacKey();
+        var longKid = new string('k', 300);
+        var presentation = CreatePresentationWithCustomKid(longKid);
+
+        var resolverCalled = false;
+        KeyResolver resolver = kid =>
+        {
+            resolverCalled = true;
+            return hmacKey;
+        };
+
+        var verifier = TestHelpers.CreateVerifier();
+
+        // Act
+        var result = verifier.TryVerifyPresentation(presentation, resolver);
+
+        // Assert
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.KeyIdTooLong, result.Errors);
+        Assert.False(resolverCalled);
+    }
+
+    private static string CreatePresentationWithCustomKid(string keyId)
+    {
+        var headerJson = JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            ["alg"] = "HS256",
+            ["kid"] = keyId
+        });
+
+        var payloadJson = JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            ["sub"] = "user-123",
+            ["exp"] = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds(),
+            ["_sd"] = Array.Empty<string>(),
+            ["_sd_alg"] = "sha-256"
+        });
+
+        var header = Base64UrlEncoder.Encode(headerJson);
+        var payload = Base64UrlEncoder.Encode(payloadJson);
+        var signature = Base64UrlEncoder.Encode("sig");
+
+        var jwt = $"{header}.{payload}.{signature}";
+        return $"{jwt}~";
     }
 }

@@ -226,4 +226,54 @@ public class SignatureValidatorKeyResolverTests
         // Assert
         Assert.True(isValid);
     }
+
+    [Fact]
+    public void VerifyJwtSignature_KidWithControlCharacters_Throws()
+    {
+        // Arrange
+        var hmacKey = _keyGen.GenerateHmacKey();
+        var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
+        var keyId = "key-\u0001-invalid";
+
+        var jwt = _signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, keyId);
+
+        var resolverCalled = false;
+        KeyResolver resolver = kid =>
+        {
+            resolverCalled = true;
+            return hmacKey;
+        };
+
+        // Act & Assert
+        var exception = Assert.Throws<SdJwtException>(() =>
+            _validator.VerifyJwtSignature(jwt, resolver));
+
+        Assert.Equal(ErrorCode.KeyIdInvalidCharacters, exception.ErrorCode);
+        Assert.False(resolverCalled);
+    }
+
+    [Fact]
+    public void VerifyJwtSignature_KeyIdTooLong_ThrowsBeforeResolver()
+    {
+        // Arrange
+        var hmacKey = _keyGen.GenerateHmacKey();
+        var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
+        var keyId = new string('k', 300);
+
+        var jwt = _signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, keyId);
+
+        var resolverCalled = false;
+        KeyResolver resolver = kid =>
+        {
+            resolverCalled = true;
+            return hmacKey;
+        };
+
+        // Act & Assert
+        var exception = Assert.Throws<SdJwtException>(() =>
+            _validator.VerifyJwtSignature(jwt, resolver));
+
+        Assert.Equal(ErrorCode.KeyIdTooLong, exception.ErrorCode);
+        Assert.False(resolverCalled);
+    }
 }

@@ -428,12 +428,8 @@ public class SignatureValidator : ISignatureValidator
         {
             var keyId = kidElement.GetString();
 
-            if (string.IsNullOrWhiteSpace(keyId))
-            {
-                throw new SdJwtException(
-                    "JWT header contains empty 'kid' claim",
-                    ErrorCode.InvalidInput);
-            }
+            KeyIdGuard.EnsureValid(keyId);
+            var resolvedKeyId = keyId!;
 
             // Kid is present - must use resolver
             if (keyResolver == null)
@@ -446,12 +442,12 @@ public class SignatureValidator : ISignatureValidator
             // Resolve key ID to verification key
             try
             {
-                verificationKey = keyResolver(keyId)!;
+                verificationKey = keyResolver(resolvedKeyId)!;
 
                 if (verificationKey == null)
                 {
                     throw new SdJwtException(
-                        $"Key resolver could not find key for kid '{keyId}'",
+                        $"Key resolver could not find key for kid '{resolvedKeyId}'",
                         ErrorCode.KeyIdNotFound);
                 }
             }
@@ -462,7 +458,7 @@ public class SignatureValidator : ISignatureValidator
             catch (Exception ex)
             {
                 throw new SdJwtException(
-                    $"Key resolver threw an exception while resolving kid '{keyId}': {ex.Message}",
+                    $"Key resolver threw an exception while resolving kid '{resolvedKeyId}': {ex.Message}",
                     ErrorCode.KeyResolverFailed,
                     ex);
             }
