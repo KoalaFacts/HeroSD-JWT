@@ -1,6 +1,7 @@
 using HeroSdJwt.Verification;
 using HeroSdJwt.Primitives;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
+using System.Linq;
 
 namespace HeroSdJwt.Tests.Unit.Verification;
 
@@ -23,6 +24,7 @@ public class SdJwtVerificationOptionsTests
         Assert.False(options.RequireKeyBinding);
         Assert.Null(options.ExpectedIssuer);
         Assert.Null(options.ExpectedAudience);
+        Assert.Null(options.ExpectedAudiences);
         Assert.Null(options.ExpectedHashAlgorithm);
         Assert.Null(options.ExpectedNonce);
         Assert.Equal(VerificationKeyType.Asymmetric, options.ExpectedKeyType);
@@ -234,6 +236,47 @@ public class SdJwtVerificationOptionsTests
 
     #endregion
 
+    #region ExpectedAudiences Tests
+
+    [Fact]
+    public void ExpectedAudiences_WithValues_StoresValues()
+    {
+        // Arrange
+        var audiences = new[] { "https://one.example.com", "https://two.example.com" };
+        var options = new SdJwtVerificationOptions { ExpectedAudiences = audiences };
+
+        // Act & Assert
+        Assert.Equal(audiences, options.ExpectedAudiences);
+        options.Validate();
+    }
+
+    [Fact]
+    public void GetExpectedAudiences_DeduplicatesAndSkipsWhitespace()
+    {
+        // Arrange
+        var options = new SdJwtVerificationOptions
+        {
+            ExpectedAudience = "https://verifier.example.com",
+            ExpectedAudiences = new[]
+            {
+                "https://verifier.example.com",
+                "https://api.example.com",
+                string.Empty,
+                "   "
+            }
+        };
+
+        // Act
+        var audiences = options.GetExpectedAudiences();
+
+        // Assert
+        Assert.Equal(2, audiences.Count);
+        Assert.Contains("https://verifier.example.com", audiences);
+        Assert.Contains("https://api.example.com", audiences);
+    }
+
+    #endregion
+
     #region ExpectedHashAlgorithm Tests
 
     [Fact]
@@ -373,6 +416,26 @@ public class SdJwtVerificationOptionsTests
         Assert.True(options.RequireKeyBinding);
         Assert.Equal("required-nonce", options.ExpectedNonce);
         options.Validate();
+    }
+
+    [Fact]
+    public void Options_WithKeyBindingAndMultipleAudiences_ValidatesSuccessfully()
+    {
+        // Arrange
+        var options = new SdJwtVerificationOptions
+        {
+            RequireKeyBinding = true,
+            ExpectedAudiences = new[]
+            {
+                "https://verifier.example.com",
+                "https://backup-verifier.example.com"
+            },
+            ExpectedNonce = "required-nonce"
+        };
+
+        // Act & Assert
+        options.Validate();
+        Assert.Equal(2, options.GetExpectedAudiences().Count);
     }
 
     [Fact]

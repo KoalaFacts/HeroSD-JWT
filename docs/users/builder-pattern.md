@@ -130,7 +130,11 @@ var jtiValidator = CreateJtiValidator(); // Your replay protection setup
 var verifier = SdJwtVerifierBuilder.Create()
     // Validation rules
     .WithExpectedIssuer("https://issuer.example.com")
-    .WithExpectedAudience("https://api.example.com")
+    .WithExpectedAudiences(new[]
+    {
+        "https://api.example.com",
+        "https://mobile.example.com"
+    })
     .WithExpectedHashAlgorithm(HashAlgorithm.Sha256)
     .WithExpectedNonce("challenge-nonce-123")
     .WithClockSkew(TimeSpan.FromMinutes(2))

@@ -1,4 +1,5 @@
-
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 
 namespace HeroSdJwt.Verification;
@@ -108,9 +109,33 @@ public class ClaimValidator : IClaimValidator
     /// <returns>True if audience matches or expectedAudience is null; otherwise, false.</returns>
     public bool ValidateAudience(JsonElement payload, string? expectedAudience)
     {
-        if (string.IsNullOrWhiteSpace(expectedAudience))
+        var audiences = string.IsNullOrWhiteSpace(expectedAudience)
+            ? Array.Empty<string>()
+            : new[] { expectedAudience };
+
+        return ValidateAudience(payload, audiences);
+    }
+
+    /// <summary>
+    /// Validates audience claim if expected audience is configured.
+    /// </summary>
+    /// <param name="payload">The decoded JWT payload.</param>
+    /// <param name="expectedAudiences">The expected audience values.</param>
+    /// <returns>True if audience matches or expectedAudiences are empty; otherwise, false.</returns>
+    public bool ValidateAudience(JsonElement payload, IReadOnlyCollection<string>? expectedAudiences)
+    {
+        if (expectedAudiences == null || expectedAudiences.Count == 0)
         {
             return true; // Audience validation not required
+        }
+
+        var expectedSet = new HashSet<string>(
+            expectedAudiences.Where(aud => !string.IsNullOrWhiteSpace(aud)),
+            StringComparer.Ordinal);
+
+        if (expectedSet.Count == 0)
+        {
+            return true; // Effectively not configured after normalization
         }
 
         if (!payload.TryGetProperty("aud", out var audElement))
@@ -122,14 +147,15 @@ public class ClaimValidator : IClaimValidator
         if (audElement.ValueKind == JsonValueKind.String)
         {
             var actualAudience = audElement.GetString();
-            return string.Equals(actualAudience, expectedAudience, StringComparison.Ordinal);
+            return actualAudience != null && expectedSet.Contains(actualAudience);
         }
         else if (audElement.ValueKind == JsonValueKind.Array)
         {
             foreach (var aud in audElement.EnumerateArray())
             {
                 if (aud.ValueKind == JsonValueKind.String &&
-                    string.Equals(aud.GetString(), expectedAudience, StringComparison.Ordinal))
+                    aud.GetString() is string value &&
+                    expectedSet.Contains(value))
                 {
                     return true;
                 }
