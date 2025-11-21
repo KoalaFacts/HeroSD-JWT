@@ -5,6 +5,7 @@ using HeroSdJwt.Verification;
 using HeroSdJwt.Verification.Revocation;
 using HeroSdJwt.Verification.ReplayProtection;
 using System;
+using System.Linq;
 using System.Reflection;
 using Xunit;
 
@@ -128,7 +129,8 @@ public class SdJwtVerifierBuilderTests
             .Build();
 
         // Assert
-        Assert.NotNull(verifier);
+        var options = GetOptions(verifier);
+        Assert.Contains(audience, options.GetExpectedAudiences());
     }
 
     [Fact]
@@ -137,6 +139,40 @@ public class SdJwtVerifierBuilderTests
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
             SdJwtVerifierBuilder.Create().WithExpectedAudience(null!));
+    }
+
+    [Fact]
+    public void WithExpectedAudiences_SetsAudiences()
+    {
+        // Arrange
+        var audiences = new[] { "https://api1.example.com", "https://api2.example.com" };
+
+        // Act
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedAudiences(audiences)
+            .Build();
+
+        // Assert
+        var options = GetOptions(verifier);
+        Assert.Equal(2, options.GetExpectedAudiences().Count);
+        Assert.Contains(audiences[0], options.GetExpectedAudiences());
+        Assert.Contains(audiences[1], options.GetExpectedAudiences());
+    }
+
+    [Fact]
+    public void WithExpectedAudiences_WithNull_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            SdJwtVerifierBuilder.Create().WithExpectedAudiences(null!));
+    }
+
+    [Fact]
+    public void WithExpectedAudiences_WithOnlyWhitespace_ThrowsArgumentException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() =>
+            SdJwtVerifierBuilder.Create().WithExpectedAudiences(new[] { "   ", "\t" }));
     }
 
     [Fact]

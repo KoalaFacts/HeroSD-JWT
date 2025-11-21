@@ -110,32 +110,32 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
                 string.Join(", ", result.Errors),
                 result.ErrorDetails);
 
-            return AuthenticateResult.Fail($"SD-JWT verification failed: {result.ErrorDetails}");
-        }
+                return AuthenticateResult.Fail($"SD-JWT verification failed: {result.ErrorDetails}");
+            }
 
-        // Map both JWT payload claims and disclosed claims to ClaimsPrincipal
-        var claims = MapAllClaimsToPrincipal(token, result);
-        var identity = new ClaimsIdentity(claims, Scheme.Name, Options.NameClaimType, Options.RoleClaimType);
-        var principal = new ClaimsPrincipal(identity);
+            // Map both JWT payload claims and disclosed claims to ClaimsPrincipal
+            var claims = MapAllClaimsToPrincipal(token, result);
+            var identity = new ClaimsIdentity(claims, Scheme.Name, Options.NameClaimType, Options.RoleClaimType);
+            var principal = new ClaimsPrincipal(identity);
 
-        // Create authentication ticket
-        var ticket = new AuthenticationTicket(principal, Scheme.Name);
+            // Create authentication ticket
+            var ticket = new AuthenticationTicket(principal, Scheme.Name);
 
-        // Save token if configured
-        if (Options.SaveToken)
-        {
-            ticket.Properties.StoreTokens(new[]
+            // Save token if configured
+            if (Options.SaveToken)
             {
+                ticket.Properties.StoreTokens(new[]
+                {
                 new AuthenticationToken { Name = "access_token", Value = token }
             });
+            }
+
+            Logger.LogInformation(
+                "SD-JWT authentication succeeded for user with {ClaimCount} disclosed claims",
+                result.DisclosedClaims.Count);
+
+            return AuthenticateResult.Success(ticket);
         }
-
-        Logger.LogInformation(
-            "SD-JWT authentication succeeded for user with {ClaimCount} disclosed claims",
-            result.DisclosedClaims.Count);
-
-        return AuthenticateResult.Success(ticket);
-    }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Exception occurred during SD-JWT authentication");

@@ -295,6 +295,51 @@ public class ClaimValidatorTests
     }
 
     [Fact]
+    public void ValidateAudience_WithMultipleExpectedAudiences_MatchesStringPayload()
+    {
+        // Arrange
+        var payload = CreatePayload(new { aud = "https://api2.example.com" });
+        var expectedAudiences = new[] { "https://api1.example.com", "https://api2.example.com" };
+
+        // Act
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudiences);
+
+        // Assert
+        Assert.True(result, "Any expected audience value should satisfy validation");
+    }
+
+    [Fact]
+    public void ValidateAudience_WithMultipleExpectedAudiences_MatchesArrayPayload()
+    {
+        // Arrange
+        var payload = CreatePayload(new
+        {
+            aud = new[] { "https://api1.example.com", "https://api3.example.com" }
+        });
+        var expectedAudiences = new[] { "https://api2.example.com", "https://api3.example.com" };
+
+        // Act
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudiences);
+
+        // Assert
+        Assert.True(result, "Should match any configured audience in array payload");
+    }
+
+    [Fact]
+    public void ValidateAudience_WithMultipleExpectedAudiences_NoMatch_ReturnsFalse()
+    {
+        // Arrange
+        var payload = CreatePayload(new { aud = "https://api.example.com" });
+        var expectedAudiences = new[] { "https://other1.example.com", "https://other2.example.com" };
+
+        // Act
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudiences);
+
+        // Assert
+        Assert.False(result, "Should fail when no expected audiences match the payload");
+    }
+
+    [Fact]
     public void ValidateAudience_WithNonMatchingAudienceString_ReturnsFalse()
     {
         // Arrange
@@ -332,7 +377,7 @@ public class ClaimValidatorTests
         var payload = CreatePayload(new { aud = "https://api.example.com" });
 
         // Act
-        var result = new ClaimValidator().ValidateAudience(payload, null);
+        var result = new ClaimValidator().ValidateAudience(payload, expectedAudience: null);
 
         // Assert
         Assert.True(result, "Null expected audience should skip validation");

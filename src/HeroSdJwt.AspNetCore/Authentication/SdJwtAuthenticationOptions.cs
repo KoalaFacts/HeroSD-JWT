@@ -1,6 +1,7 @@
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using Microsoft.AspNetCore.Authentication;
+using System.Linq;
 
 namespace HeroSdJwt.AspNetCore.Authentication;
 
@@ -76,11 +77,16 @@ public class SdJwtAuthenticationOptions : AuthenticationSchemeOptions
         // Validate core verification options
         VerificationOptions?.Validate();
 
-        if (VerificationOptions?.RequireKeyBinding == true &&
-            string.IsNullOrWhiteSpace(VerificationOptions.ExpectedAudience))
+        if (VerificationOptions?.RequireKeyBinding == true)
         {
-            throw new InvalidOperationException(
-                "ExpectedAudience must be configured when key binding is required to prevent token replay across audiences.");
+            var hasAudience = !string.IsNullOrWhiteSpace(VerificationOptions.ExpectedAudience) ||
+                (VerificationOptions.ExpectedAudiences?.Any(aud => !string.IsNullOrWhiteSpace(aud)) == true);
+
+            if (!hasAudience)
+            {
+                throw new InvalidOperationException(
+                    "ExpectedAudience/ExpectedAudiences must be configured when key binding is required to prevent token replay across audiences.");
+            }
         }
 
         // Validate key configuration

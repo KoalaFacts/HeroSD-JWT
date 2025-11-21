@@ -7,6 +7,7 @@
 - Added builder hook `.WithExpectedKeyType(...)` for configuring key-type policy via `SdJwtVerifierBuilder`.
 - Added async verification APIs (`ISdJwtVerifierAsync`) so replay protection and revocation checks no longer block when using async caches/stores.
 - ASP.NET handler now prefers async verification when available; in-memory revocation cleanup loop moved to non-blocking `PeriodicTimer`.
+- Multi-audience verification: configure multiple expected audiences via `ExpectedAudiences`/`WithExpectedAudiences(...)` with matching enforcement for key binding JWTs.
 - Key resolver robustness: verifier now rejects empty/too-long/non-printable `kid` values before calling the resolver or revocation checks, surfacing dedicated key ID error codes (also in Try* flows).
 
 ## [1.1.7] - 2025-11-20

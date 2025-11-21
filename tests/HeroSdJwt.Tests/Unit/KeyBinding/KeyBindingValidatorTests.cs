@@ -39,11 +39,15 @@ public class KeyBindingValidatorTests
         string? audience = DEFAULT_AUDIENCE,
         string? nonce = DEFAULT_NONCE)
     {
+        var audiences = audience == null
+            ? Array.Empty<string>()
+            : new[] { audience };
+
         return _validator.ValidateKeyBinding(
             jwt,
             publicKey ?? _publicKey,
             sdJwtHash ?? DEFAULT_SD_JWT_HASH,
-            audience,
+            audiences,
             nonce);
     }
 
@@ -127,6 +131,27 @@ public class KeyBindingValidatorTests
 
         // Act
         var result = Validate(keyBindingJwt, _publicKey, sdJwtHash, audience, nonce);
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ValidateKeyBinding_WithMultipleExpectedAudiences_ReturnsTrue()
+    {
+        // Arrange
+        var sdJwtHash = "hash-multi";
+        var audience = "https://aud.b.example.com";
+        var nonce = "nonce-multi";
+        var keyBindingJwt = _generator.CreateKeyBindingJwt(_privateKey, sdJwtHash, audience, nonce);
+
+        // Act
+        var result = _validator.ValidateKeyBinding(
+            keyBindingJwt,
+            _publicKey,
+            sdJwtHash,
+            new[] { "https://aud.a.example.com", audience },
+            nonce);
 
         // Assert
         Assert.True(result);

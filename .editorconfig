@@ -1,5 +1,3 @@
-# EditorConfig for HeroSD-JWT
-# Top-most EditorConfig file
 root = true
 
 # All files
@@ -83,6 +81,9 @@ dotnet_naming_style.upper_case.capitalization = all_upper
 
 # Code quality
 dotnet_code_quality_unused_parameters = all:warning
+dotnet_analyzer_diagnostic.category-Style.severity = warning
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1822.severity = none
 
 # Nullable reference types
 dotnet_diagnostic.CS8600.severity = error

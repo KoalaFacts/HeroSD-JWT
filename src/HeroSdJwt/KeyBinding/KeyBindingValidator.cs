@@ -1,6 +1,7 @@
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -41,13 +42,57 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
         string? expectedAudience = null,
         string? expectedNonce = null)
     {
+        var audiences = expectedAudience == null
+            ? Array.Empty<string>()
+            : new[] { expectedAudience };
+
+        return ValidateKeyBinding(
+            keyBindingJwt,
+            holderPublicKey,
+            expectedSdJwtHash,
+            audiences,
+            expectedNonce);
+    }
+
+    /// <summary>
+    /// Validates a key binding JWT against the holder's public key using multiple expected audiences.
+    /// </summary>
+    /// <param name="keyBindingJwt">The key binding JWT to validate.</param>
+    /// <param name="holderPublicKey">The holder's public key from the cnf claim.</param>
+    /// <param name="expectedSdJwtHash">The expected SD-JWT hash.</param>
+    /// <param name="expectedAudiences">The acceptable audiences.</param>
+    /// <param name="expectedNonce">The expected nonce.</param>
+    /// <returns>True if valid; otherwise, false.</returns>
+    public bool ValidateKeyBinding(
+        string keyBindingJwt,
+        byte[] holderPublicKey,
+        string expectedSdJwtHash,
+        IReadOnlyCollection<string> expectedAudiences,
+        string? expectedNonce = null)
+    {
         ArgumentNullException.ThrowIfNull(keyBindingJwt);
         ArgumentNullException.ThrowIfNull(holderPublicKey);
         ArgumentNullException.ThrowIfNull(expectedSdJwtHash);
 
-        if (string.IsNullOrWhiteSpace(expectedAudience))
+        ArgumentNullException.ThrowIfNull(expectedAudiences);
+
+        if (expectedAudiences.Count == 0)
         {
             return false; // Spec requires audience binding
+        }
+
+        var expectedAudienceSet = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var audience in expectedAudiences)
+        {
+            if (!string.IsNullOrWhiteSpace(audience))
+            {
+                expectedAudienceSet.Add(audience);
+            }
+        }
+
+        if (expectedAudienceSet.Count == 0)
+        {
+            return false; // Spec requires at least one non-empty audience
         }
 
         if (string.IsNullOrWhiteSpace(expectedNonce))
@@ -100,11 +145,36 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
                 return false;
             }
 
-            var audClaim = audElement.GetString();
-            if (string.IsNullOrWhiteSpace(audClaim) ||
-                !string.Equals(audClaim, expectedAudience, StringComparison.Ordinal))
+            bool audienceMatches = false;
+            if (audElement.ValueKind == JsonValueKind.String)
             {
-                return false;
+                if (audElement.GetString() is { Length: > 0 } audClaim &&
+                    expectedAudienceSet.Contains(audClaim))
+                {
+                    audienceMatches = true;
+                }
+            }
+            else if (audElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in audElement.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.String &&
+                        item.GetString() is { Length: > 0 } audClaim &&
+                        expectedAudienceSet.Contains(audClaim))
+                    {
+                        audienceMatches = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                return false; // Unsupported audience format
+            }
+
+            if (!audienceMatches)
+            {
+                return false; // Audience mismatch
             }
 
             // Validate nonce (required)

@@ -7,6 +7,7 @@ using HeroSdJwt.Presentation;
 using HeroSdJwt.Verification.ReplayProtection;
 using HeroSdJwt.Verification.Revocation;
 using HeroSdJwt.Primitives;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
@@ -475,6 +476,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
     {
         var errors = new List<ErrorCode>();
         var errorDetails = new List<string>();
+        var expectedAudiences = _options.GetExpectedAudiences();
 
         try
         {
@@ -611,6 +613,8 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
+            var payloadAudiences = ExtractAudiences(payload);
+
             // Step 3: Validate temporal claims (exp, nbf, iat)
             bool claimsValid = _claimValidator.ValidateTemporalClaims(payload, _options);
             if (!claimsValid)
@@ -627,7 +631,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
             }
 
             // Validate audience if configured
-            if (!_claimValidator.ValidateAudience(payload, _options.ExpectedAudience))
+            if (!_claimValidator.ValidateAudience(payload, expectedAudiences))
             {
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add("Audience validation failed");
@@ -687,6 +691,8 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
                     errorDetails.Add("Disclosure digest validation failed");
                 }
             }
+
+            var keyBindingAudiences = GetMatchingAudiences(expectedAudiences, payloadAudiences);
 
             // Step 5: Validate key binding if present or required
             if (!string.IsNullOrWhiteSpace(keyBindingJwt))
@@ -783,7 +789,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
                     keyBindingJwt,
                     holderPublicKey,
                     sdJwtHash,
-                    _options.ExpectedAudience,
+                    keyBindingAudiences,
                     _options.ExpectedNonce);
 
                 if (!keyBindingValid)
@@ -1091,6 +1097,62 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
             errorDetails.Add($"Revocation check failed: {ex.Message}");
             throw new SdJwtException("Revocation check failed (fail-closed mode)", ErrorCode.InvalidInput, ex);
         }
+    }
+
+    private static IReadOnlyList<string> ExtractAudiences(JsonElement payload)
+    {
+        if (!payload.TryGetProperty("aud", out var audElement))
+        {
+            return Array.Empty<string>();
+        }
+
+        if (audElement.ValueKind == JsonValueKind.String)
+        {
+            var value = audElement.GetString();
+            return string.IsNullOrWhiteSpace(value)
+                ? Array.Empty<string>()
+                : new[] { value };
+        }
+
+        if (audElement.ValueKind == JsonValueKind.Array)
+        {
+            var audiences = new List<string>();
+            foreach (var item in audElement.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.String &&
+                    item.GetString() is { Length: > 0 } value)
+                {
+                    audiences.Add(value);
+                }
+            }
+
+            return audiences;
+        }
+
+        return Array.Empty<string>();
+    }
+
+    private static IReadOnlyList<string> GetMatchingAudiences(
+        IReadOnlyCollection<string> expectedAudiences,
+        IReadOnlyCollection<string> actualAudiences)
+    {
+        if (expectedAudiences.Count == 0 || actualAudiences.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        var expectedSet = new HashSet<string>(expectedAudiences, StringComparer.Ordinal);
+        var matches = new List<string>();
+
+        foreach (var audience in actualAudiences)
+        {
+            if (expectedSet.Contains(audience))
+            {
+                matches.Add(audience);
+            }
+        }
+
+        return matches;
     }
 
     /// <summary>

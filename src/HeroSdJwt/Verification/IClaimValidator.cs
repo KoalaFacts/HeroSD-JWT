@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json;
 
 namespace HeroSdJwt.Verification;
@@ -31,7 +32,7 @@ public interface IClaimValidator
     /// Validates the audience claim (aud) if configured.
     /// </summary>
     /// <param name="payload">The decoded JWT payload.</param>
-    /// <param name="expectedAudience">Expected audience value (null to skip validation).</param>
+    /// <param name="expectedAudiences">Expected audience values (null/empty collection to skip validation).</param>
     /// <returns>True if audience is valid or not configured; otherwise, false.</returns>
-    bool ValidateAudience(JsonElement payload, string? expectedAudience);
+    bool ValidateAudience(JsonElement payload, IReadOnlyCollection<string>? expectedAudiences);
 }

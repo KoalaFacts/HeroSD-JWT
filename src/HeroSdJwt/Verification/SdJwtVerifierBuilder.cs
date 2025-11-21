@@ -4,6 +4,8 @@ using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification.Revocation;
 using HeroSdJwt.Verification.ReplayProtection;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HeroSdJwt.Verification;
 
@@ -39,7 +41,7 @@ public class SdJwtVerifierBuilder
     private TimeSpan _clockSkew = TimeSpan.FromMinutes(5);
     private bool _requireKeyBinding = false;
     private string? _expectedIssuer;
-    private string? _expectedAudience;
+    private IReadOnlyCollection<string>? _expectedAudiences;
     private HashAlgorithm? _expectedHashAlgorithm;
     private string? _expectedNonce;
     private VerificationKeyType _expectedKeyType = VerificationKeyType.Asymmetric;
@@ -99,7 +101,37 @@ public class SdJwtVerifierBuilder
     /// <param name="audience">Expected audience URI.</param>
     public SdJwtVerifierBuilder WithExpectedAudience(string audience)
     {
-        _expectedAudience = audience ?? throw new ArgumentNullException(nameof(audience));
+        ArgumentNullException.ThrowIfNull(audience);
+        _expectedAudiences = new List<string> { audience };
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the expected audiences (aud claim).
+    /// When set, presentations without any of these audiences will fail verification.
+    /// </summary>
+    /// <param name="audiences">Expected audience URIs.</param>
+    public SdJwtVerifierBuilder WithExpectedAudiences(IEnumerable<string> audiences)
+    {
+        ArgumentNullException.ThrowIfNull(audiences);
+
+        var audienceList = new List<string>();
+        foreach (var audience in audiences)
+        {
+            ArgumentNullException.ThrowIfNull(audience);
+
+            if (!string.IsNullOrWhiteSpace(audience))
+            {
+                audienceList.Add(audience);
+            }
+        }
+
+        if (audienceList.Count == 0)
+        {
+            throw new ArgumentException("At least one non-empty audience is required.", nameof(audiences));
+        }
+
+        _expectedAudiences = audienceList;
         return this;
     }
 
@@ -237,13 +269,17 @@ public class SdJwtVerifierBuilder
     /// <exception cref="ArgumentException">Thrown when configuration is invalid.</exception>
     public SdJwtVerifier Build()
     {
+        var expectedAudiences = _expectedAudiences?.ToArray();
+        var primaryAudience = expectedAudiences?.FirstOrDefault();
+
         // Build verification options
         var options = new SdJwtVerificationOptions
         {
             ClockSkew = _clockSkew,
             RequireKeyBinding = _requireKeyBinding,
             ExpectedIssuer = _expectedIssuer,
-            ExpectedAudience = _expectedAudience,
+            ExpectedAudience = primaryAudience,
+            ExpectedAudiences = expectedAudiences,
             ExpectedHashAlgorithm = _expectedHashAlgorithm,
             ExpectedNonce = _expectedNonce,
             ExpectedKeyType = _expectedKeyType,

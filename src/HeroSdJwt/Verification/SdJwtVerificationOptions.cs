@@ -1,6 +1,8 @@
-using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
-using HeroSdJwt.Verification.Revocation;
 using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification.Revocation;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HeroSdJwt.Verification;
 
@@ -10,6 +12,8 @@ namespace HeroSdJwt.Verification;
 /// </summary>
 public class SdJwtVerificationOptions
 {
+    private IReadOnlyList<string>? _expectedAudiences;
+
     /// <summary>
     /// Gets the maximum allowed clock skew for temporal claim validation.
     /// Default is 5 minutes (300 seconds).
@@ -37,6 +41,17 @@ public class SdJwtVerificationOptions
     /// Default is null (audience not validated).
     /// </summary>
     public string? ExpectedAudience { get; init; }
+
+    /// <summary>
+    /// Gets the set of acceptable audiences (aud claim).
+    /// When provided, presentations must contain at least one of these audiences.
+    /// Default is null/empty (audience not validated).
+    /// </summary>
+    public IReadOnlyList<string>? ExpectedAudiences
+    {
+        get => _expectedAudiences;
+        init => _expectedAudiences = value?.ToArray();
+    }
 
     /// <summary>
     /// Gets the expected hash algorithm for disclosure digests.
@@ -82,13 +97,15 @@ public class SdJwtVerificationOptions
                 nameof(ClockSkew));
         }
 
+        var audiences = GetExpectedAudiences();
+
         if (RequireKeyBinding)
         {
-            if (string.IsNullOrWhiteSpace(ExpectedAudience))
+            if (audiences.Count == 0)
             {
                 throw new ArgumentException(
                     "Key binding requires an expected audience value.",
-                    nameof(ExpectedAudience));
+                    nameof(ExpectedAudiences));
             }
 
             if (string.IsNullOrWhiteSpace(ExpectedNonce))
@@ -98,5 +115,39 @@ public class SdJwtVerificationOptions
                     nameof(ExpectedNonce));
             }
         }
+    }
+
+    /// <summary>
+    /// Returns the configured expected audiences, normalized and deduplicated.
+    /// Combines the singular ExpectedAudience with the plural ExpectedAudiences.
+    /// </summary>
+    internal IReadOnlyList<string> GetExpectedAudiences()
+    {
+        var audiences = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(ExpectedAudience))
+        {
+            audiences.Add(ExpectedAudience);
+        }
+
+        if (_expectedAudiences is { Count: > 0 })
+        {
+            foreach (var audience in _expectedAudiences)
+            {
+                if (!string.IsNullOrWhiteSpace(audience))
+                {
+                    audiences.Add(audience);
+                }
+            }
+        }
+
+        if (audiences.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        return audiences
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
     }
 }
