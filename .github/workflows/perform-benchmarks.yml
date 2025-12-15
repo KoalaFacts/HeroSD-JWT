@@ -121,7 +121,7 @@ jobs:
         save-data-file: true
 
     - name: Upload benchmark artifacts ${{ matrix.framework }}
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       if: always() && steps.storebenchmark.outputs.benchmark-result-file-path != ''
       with:
         name: benchmark-results-${{ matrix.framework }}
