@@ -103,7 +103,7 @@ public readonly struct Disclosure : IEquatable<Disclosure>
             if (!IsArrayElement)
             {
                 // Object property disclosure: [salt, claim_name, claim_value]
-                writer.WriteStringValue(ClaimName!);
+                writer.WriteStringValue(ClaimName);
             }
 
             // Write the JsonElement value

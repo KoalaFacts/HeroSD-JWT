@@ -39,8 +39,8 @@
       },
       "Microsoft.Bcl.Memory": {
         "type": "Transitive",
-        "resolved": "10.0.0",
-        "contentHash": "a5PdIQh+01OrOViDfJA0zfo2ty5ruSxpR+4ZOkY1nGr0ybvm3XKxckxKp0BVR9ZtVIauQscgHABFysUJYOqnsg=="
+        "resolved": "10.0.8",
+        "contentHash": "8Axjm54ToNejQXiKBeSR+dN5szdvLOrlfrYY1jKGAYceKCTm9blk97Q9IcYRcL1vFmTYc2N7QlajvMLAxpUktg=="
       },
       "Microsoft.Build.Tasks.Git": {
         "type": "Transitive",
@@ -55,7 +55,7 @@
       "HeroSD-JWT": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Bcl.Memory": "[10.0.0, )"
+          "Microsoft.Bcl.Memory": "[10.0.8, )"
         }
       }
     },
