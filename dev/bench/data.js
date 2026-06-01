@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1780315504861,
+  "lastUpdate": 1780315521270,
   "repoUrl": "https://github.com/KoalaFacts/HeroSD-JWT",
   "entries": {
     "Benchmark": [
@@ -432,6 +432,222 @@ window.BENCHMARK_DATA = {
             "value": 1286.292739868164,
             "unit": "ns",
             "range": "± 18.24144411310303"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ldsenow@gmail.com",
+            "name": "ldsenow",
+            "username": "ldsenow"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c1d5f2e384a67685a6a358d3bd7bf3b7d40fd097",
+          "message": "docs: add CLAUDE.md for AI assistant guidance (#54)\n\n* docs: add CLAUDE.md for AI assistant guidance\n\nTrack CLAUDE.md in-repo so codebase guidance is shared with all\ncontributors; remove it from .gitignore.\n\n* docs: fix test-filter examples to match namespace-based organization\n\nTests are grouped by folder/namespace, not xUnit traits, so the\n\"Category=...\" filter examples matched no tests. Use FullyQualifiedName\nfilters instead, and correct the coverage command to the collector-based\n--collect:\"XPlat Code Coverage\" that the project actually references.\n\n* fix(build): repair CI break from SDK/advisory drift on stale base\n\n- Bump Microsoft.Bcl.Memory 10.0.0 -> 10.0.8 (CVE-2026-26127, NU1903)\n- Regenerate packages.lock.json (stale vs current ILLink.Tasks, NU1004)\n- Resolve IDE0270/IDE0370 analyzer errors surfaced by the newer SDK\n  (treated as errors via TreatWarningsAsErrors/EnforceCodeStyleInBuild)\n\nRestore (locked mode), Release build (all TFMs), dotnet format, and the\nfull test suite (1064 passed) all pass locally.\n\n* ci: pin third-party GitHub Actions to commit SHAs\n\nPin all external actions (checkout, setup-dotnet, upload/download-artifact,\ndependency-review, attest-build-provenance, codecov, publish-unit-test-result,\ngithub-action-benchmark, NuGet/login, security-devops, codeql-action) to full\ncommit SHAs with version comments, hardening against mutable-tag supply-chain\nrisk. Local composite actions (./.github/actions/*) are left as path refs.\n\n* ci: update pinned actions to latest releases\n\nBump to newest majors: checkout v6.0.2, upload-artifact v7.0.1,\ndownload-artifact v8.0.1, dependency-review-action v5.0.0,\nattest-build-provenance v4.1.0, codecov-action v6.0.1, and\nsecurity-devops-action v1.12.0. All remain pinned to commit SHAs.\n\n* ci: drop EnricoMi/publish-unit-test-result-action\n\nRemove the third-party test-result publisher. Test failures still fail the\njob via 'dotnet test', and TRX files remain available as build artifacts.\nDrop the now-unused 'checks: write' permission (least privilege).\n\n* ci: drop unused checks:write permission from integration workflow\n\nThe nightly integration workflow declared checks:write but never calls the\nChecks API (it only writes job summaries and handles artifacts). Reduce to\ncontents:read per least privilege.\n\n* ci: add native test-result summary (no third-party action)\n\nReplace the removed third-party publisher with an inline bash step that\nparses the TRX output into $GITHUB_STEP_SUMMARY (pass/fail counts + failed\ntest names). No external action, no added permissions, no fork-PR token\nexposure. Mirrors the existing pattern in run-integrations.yml.\n\n* ci: make test-result summary portable to macOS bash 3.2\n\nThe summary step used 'shopt -s globstar' and '**', which are invalid in\nbash 3.2 (the default on GitHub macOS runners) and aborted under 'set -e',\nfailing all macOS legs. Replace globbing with 'find' and drop bash-4-only\nfeatures so it runs on bash 3.2/4/5 and BSD/GNU userland alike.\n\n* fix(benchmarks): set Symmetric key type for HMAC verification benchmark\n\nVerifyWithoutKeyBinding verifies an HS256 (HMAC) presentation, but the\nverifier defaults ExpectedKeyType to Asymmetric (alg/key-confusion guard).\nThe throwing VerifyPresentation therefore raised every iteration, so\nBenchmarkDotNet produced no statistics for it. The resulting null Statistics\ncrashed the github-action-benchmark step (Cannot read properties of null\n(reading 'Mean')) and failed the Perform Benchmarks workflow. Setting\nExpectedKeyType = Symmetric makes the benchmark verify successfully.\n\n* style(benchmarks): use using-alias for VerificationKeyType (fix IDE0002)\n\nThe fully-qualified HeroSdJwt.Primitives.VerificationKeyType.Symmetric\ntripped IDE0002 (name can be simplified), failing 'dotnet format\n--verify-no-changes' in the Code Quality job. Use a using-alias to match\nthe file's existing SdJwtHashAlgorithm pattern.\n\n* docs(ci): note gh-pages baseline requirement for benchmark step\n\nDocument that the Perform Benchmarks workflow needs the 'gh-pages' branch\nto exist; the action hard-fails ('couldn't find remote ref gh-pages')\notherwise. (Re-triggers the workflow now that gh-pages has been seeded.)\n\n---------\n\nCo-authored-by: Claude <noreply@anthropic.com>",
+          "timestamp": "2026-06-01T21:59:27+10:00",
+          "tree_id": "8052b1acd893d8c85daacd13ebc5dbf2be76c21d",
+          "url": "https://github.com/KoalaFacts/HeroSD-JWT/commit/c1d5f2e384a67685a6a358d3bd7bf3b7d40fd097"
+        },
+        "date": 1780315520781,
+        "tool": "benchmarkdotnet",
+        "benches": [
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithHmac(claimCount: 10)",
+            "value": 45081.23110351562,
+            "unit": "ns",
+            "range": "± 297.62115182429324"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithRsa(claimCount: 10)",
+            "value": 1995257.6417100695,
+            "unit": "ns",
+            "range": "± 2930.266086900207"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithEcdsa(claimCount: 10)",
+            "value": 278549.76372070314,
+            "unit": "ns",
+            "range": "± 788.2321115599141"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithHmac(claimCount: 10)",
+            "value": 44335.99609375,
+            "unit": "ns",
+            "range": "± 647.8935019470626"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithRsa(claimCount: 10)",
+            "value": 2012445.61328125,
+            "unit": "ns",
+            "range": "± 6392.566686483665"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithEcdsa(claimCount: 10)",
+            "value": 279006.0813802083,
+            "unit": "ns",
+            "range": "± 364.1443939702506"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithHmac(claimCount: 50)",
+            "value": 262996.2608398438,
+            "unit": "ns",
+            "range": "± 2317.99490243258"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithRsa(claimCount: 50)",
+            "value": 2244890.518359375,
+            "unit": "ns",
+            "range": "± 5873.813173061171"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithEcdsa(claimCount: 50)",
+            "value": 501116.61328125,
+            "unit": "ns",
+            "range": "± 1169.825189321287"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithHmac(claimCount: 50)",
+            "value": 259458.17513020834,
+            "unit": "ns",
+            "range": "± 1851.919462180527"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithRsa(claimCount: 50)",
+            "value": 2232601.5221354165,
+            "unit": "ns",
+            "range": "± 3051.2350820545257"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithEcdsa(claimCount: 50)",
+            "value": 505938.0843098958,
+            "unit": "ns",
+            "range": "± 11745.737514309385"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithHmac(claimCount: 100)",
+            "value": 537716.885546875,
+            "unit": "ns",
+            "range": "± 1936.575180416547"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithRsa(claimCount: 100)",
+            "value": 2515764.9267578125,
+            "unit": "ns",
+            "range": "± 5422.995237414244"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithEcdsa(claimCount: 100)",
+            "value": 780389.4685546875,
+            "unit": "ns",
+            "range": "± 4790.105517459403"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithHmac(claimCount: 100)",
+            "value": 547164.9947916666,
+            "unit": "ns",
+            "range": "± 6880.495207497031"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithRsa(claimCount: 100)",
+            "value": 2513218.2174479165,
+            "unit": "ns",
+            "range": "± 10143.92170967111"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.IssuanceBenchmarks.IssueWithEcdsa(claimCount: 100)",
+            "value": 782156.80859375,
+            "unit": "ns",
+            "range": "± 5972.134856422582"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.VerificationBenchmarks.VerifyWithoutKeyBinding",
+            "value": 21387.317364501952,
+            "unit": "ns",
+            "range": "± 300.1774535420305"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.VerificationBenchmarks.VerifyWithKeyBinding",
+            "value": 1010014.6801215278,
+            "unit": "ns",
+            "range": "± 1145.1290354777946"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.VerificationBenchmarks.TryVerifyWithoutKeyBinding",
+            "value": 21316.915666368273,
+            "unit": "ns",
+            "range": "± 97.17434427637566"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.VerificationBenchmarks.VerifyWithoutKeyBinding",
+            "value": 21818.884043375652,
+            "unit": "ns",
+            "range": "± 323.75489591927186"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.VerificationBenchmarks.VerifyWithKeyBinding",
+            "value": 1024990.9993489584,
+            "unit": "ns",
+            "range": "± 14064.55815225027"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.VerificationBenchmarks.TryVerifyWithoutKeyBinding",
+            "value": 21460.458079020184,
+            "unit": "ns",
+            "range": "± 13.48892848037117"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.PresentationBenchmarks.CreatePresentationFewClaims",
+            "value": 1089.7975746154784,
+            "unit": "ns",
+            "range": "± 17.14160445406144"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.PresentationBenchmarks.CreatePresentationManyClaims",
+            "value": 3464.1442741394044,
+            "unit": "ns",
+            "range": "± 101.80349630145824"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.PresentationBenchmarks.CreatePresentationAllClaims",
+            "value": 1441.8337755203247,
+            "unit": "ns",
+            "range": "± 21.045229585749933"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.PresentationBenchmarks.CreatePresentationWithKeyBinding",
+            "value": 1153.8530739678276,
+            "unit": "ns",
+            "range": "± 28.168858980742968"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.PresentationBenchmarks.CreatePresentationFewClaims",
+            "value": 1135.2277425130208,
+            "unit": "ns",
+            "range": "± 18.049028365905222"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.PresentationBenchmarks.CreatePresentationManyClaims",
+            "value": 3504.851979573568,
+            "unit": "ns",
+            "range": "± 85.12327983364797"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.PresentationBenchmarks.CreatePresentationAllClaims",
+            "value": 1479.2212594350178,
+            "unit": "ns",
+            "range": "± 36.475452379413234"
+          },
+          {
+            "name": "HeroSdJwt.Benchmarks.PresentationBenchmarks.CreatePresentationWithKeyBinding",
+            "value": 1151.899408976237,
+            "unit": "ns",
+            "range": "± 16.151301583458693"
           }
         ]
       }
