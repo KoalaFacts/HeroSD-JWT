@@ -103,6 +103,9 @@ jobs:
         jq -s '.[0] * {Benchmarks: (map(.Benchmarks // []) | add)}' $FILES > "$OUTPUT_FILE"
         echo "Combined benchmark report: $OUTPUT_FILE"
 
+    # Requires the 'gh-pages' branch to exist: the action fetches it to read the
+    # baseline (and, on pushes to main, appends history under dev/bench/). If the
+    # branch is missing the step fails with "couldn't find remote ref gh-pages".
     - name: Store benchmark result ${{ matrix.framework }}
       id: storebenchmark
       uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
