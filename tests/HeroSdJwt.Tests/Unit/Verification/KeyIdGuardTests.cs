@@ -55,13 +55,13 @@ public class KeyIdGuardTests
 
     public static TheoryData<string> NonPrintableKeyIds()
     {
-        return new TheoryData<string>
-        {
+        return
+        [
             "key" + (char)0x0A + "newline", // LF control char (< 32)
             "key" + (char)0x00 + "nul",     // embedded NUL (< 32)
             "key" + (char)0x7F + "del",     // DEL (127, above printable range)
             "caf" + (char)0x00E9,           // non-ASCII 'é' (> 126)
-        };
+        ];
     }
 
     [Theory]

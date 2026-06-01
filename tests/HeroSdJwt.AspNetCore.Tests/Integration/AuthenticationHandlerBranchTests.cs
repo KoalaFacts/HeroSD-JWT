@@ -1,3 +1,4 @@
+using HeroSdJwt.AspNetCore.Authentication;
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Presentation;
@@ -5,6 +6,7 @@ using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Verification;
 using HeroSdJwt.Primitives;
 using Microsoft.AspNetCore.Authentication;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -19,7 +21,7 @@ using System.Text.Json;
 namespace HeroSdJwt.AspNetCore.Tests.Integration;
 
 /// <summary>
-/// Branch-focused tests for <see cref="HeroSdJwt.AspNetCore.Authentication.SdJwtAuthenticationHandler"/>.
+/// Branch-focused tests for <see cref="SdJwtAuthenticationHandler"/>.
 /// The existing end-to-end tests cover the happy path and a couple of failures; these target the
 /// handler's less-travelled branches: token extraction edge cases, the challenge (WWW-Authenticate)
 /// response, SaveToken, the KeyResolver code path, and array-claim mapping.
@@ -47,7 +49,7 @@ public class AuthenticationHandlerBranchTests : IDisposable
     private string CreatePresentation(Dictionary<string, object> claims, string[] selective, string[] disclose)
     {
         var sdJwt = _issuer.CreateSdJwt(
-            claims, selective, _testKey, HeroSdJwt.Primitives.HashAlgorithm.Sha256, SignatureAlgorithm.HS256);
+            claims, selective, _testKey, HashAlgorithm.Sha256, SignatureAlgorithm.HS256);
         return _presenter.FormatPresentation(_presenter.CreatePresentation(sdJwt, disclose));
     }
 
@@ -194,7 +196,7 @@ public class AuthenticationHandlerBranchTests : IDisposable
         Assert.Contains("auditor", roles);
     }
 
-    private async Task<IHost> CreateTestHost(Action<HeroSdJwt.AspNetCore.Authentication.SdJwtAuthenticationOptions>? configure = null)
+    private async Task<IHost> CreateTestHost(Action<SdJwtAuthenticationOptions>? configure = null)
     {
         var hostBuilder = new HostBuilder()
             .ConfigureWebHost(webHost =>
@@ -235,7 +237,7 @@ public class AuthenticationHandlerBranchTests : IDisposable
                         _ = endpoints.MapGet("/protected", async context =>
                         {
                             context.Response.ContentType = "application/json";
-                            await context.Response.WriteAsync("{\"ok\":true}");
+                            await context.Response.WriteAsync(JsonSerializer.Serialize(new { ok = true }));
                         }).RequireAuthorization();
 
                         _ = endpoints.MapGet("/token", async context =>

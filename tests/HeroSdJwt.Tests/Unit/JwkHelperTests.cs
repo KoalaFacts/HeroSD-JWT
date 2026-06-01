@@ -73,8 +73,8 @@ public class JwkHelperTests
         var jwk = _converter.ToJwk(publicKey);
 
         // Assert
-        var x = jwk["x"].ToString()!;
-        var y = jwk["y"].ToString()!;
+        var x = jwk["x"].ToString();
+        var y = jwk["y"].ToString();
 
         // Base64url should not contain +, /, =
         Assert.DoesNotContain("+", x);

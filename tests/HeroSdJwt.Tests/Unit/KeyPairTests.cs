@@ -1,6 +1,6 @@
 using HeroSdJwt.Primitives;
 
-namespace HeroSdJwt.Tests.Unit.PrimitiveTypes;
+namespace HeroSdJwt.Tests.Unit;
 
 /// <summary>
 /// Tests for the <see cref="KeyPair"/> value type, including its construction guards
@@ -11,8 +11,8 @@ public class KeyPairTests
     [Fact]
     public void Constructor_WithValidKeys_StoresKeys()
     {
-        var priv = new byte[] { 1, 2, 3 };
-        var pub = new byte[] { 4, 5, 6 };
+        byte[] priv = [1, 2, 3];
+        byte[] pub = [4, 5, 6];
 
         var pair = new KeyPair(priv, pub);
 
@@ -49,8 +49,8 @@ public class KeyPairTests
     [Fact]
     public void Deconstruct_ReturnsBothKeys()
     {
-        var priv = new byte[] { 7, 8 };
-        var pub = new byte[] { 9, 10 };
+        byte[] priv = [7, 8];
+        byte[] pub = [9, 10];
         var pair = new KeyPair(priv, pub);
 
         var (deconstructedPrivate, deconstructedPublic) = pair;

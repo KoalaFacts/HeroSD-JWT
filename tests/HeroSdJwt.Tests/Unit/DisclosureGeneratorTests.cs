@@ -77,7 +77,7 @@ public class DisclosureGeneratorTests
         var value = decoded[2].GetString();
 
         Assert.NotNull(salt);
-        Assert.NotEmpty(salt!);
+        Assert.NotEmpty(salt);
         Assert.Equal(claimName, name);
         Assert.Equal("US", value);
     }

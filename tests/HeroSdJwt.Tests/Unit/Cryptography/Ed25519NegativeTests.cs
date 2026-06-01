@@ -10,13 +10,13 @@ namespace HeroSdJwt.Tests.Unit.Cryptography;
 /// </summary>
 public class Ed25519NegativeTests
 {
-    private static readonly byte[] Seed =
+    private static readonly byte[] _seed =
         Convert.FromHexString("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60");
 
     [Fact]
     public void Verify_WithNullArguments_Throws()
     {
-        var (publicKey, expandedPrivateKey) = Ed25519.KeyPairFromSeed(Seed);
+        var (publicKey, expandedPrivateKey) = Ed25519.KeyPairFromSeed(_seed);
         var signature = Ed25519.Sign([1, 2, 3], expandedPrivateKey);
 
         Assert.Throws<ArgumentNullException>(() => Ed25519.Verify(null!, [1, 2, 3], publicKey));
@@ -31,7 +31,7 @@ public class Ed25519NegativeTests
     [InlineData(128)]
     public void Verify_WithWrongSignatureLength_Throws(int length)
     {
-        var (publicKey, _) = Ed25519.KeyPairFromSeed(Seed);
+        var (publicKey, _) = Ed25519.KeyPairFromSeed(_seed);
 
         Assert.Throws<ArgumentException>(() => Ed25519.Verify(new byte[length], [1, 2, 3], publicKey));
     }
@@ -51,7 +51,7 @@ public class Ed25519NegativeTests
     [Fact]
     public void Sign_WithNullArguments_Throws()
     {
-        var (_, expandedPrivateKey) = Ed25519.KeyPairFromSeed(Seed);
+        var (_, expandedPrivateKey) = Ed25519.KeyPairFromSeed(_seed);
 
         Assert.Throws<ArgumentNullException>(() => Ed25519.Sign(null!, expandedPrivateKey));
         Assert.Throws<ArgumentNullException>(() => Ed25519.Sign([1, 2, 3], null!));
@@ -78,8 +78,8 @@ public class Ed25519NegativeTests
     [Fact]
     public void PublicKeyFromSeed_MatchesKeyPairFromSeed()
     {
-        var publicKey = Ed25519.PublicKeyFromSeed(Seed);
-        var (expectedPublicKey, _) = Ed25519.KeyPairFromSeed(Seed);
+        var publicKey = Ed25519.PublicKeyFromSeed(_seed);
+        var (expectedPublicKey, _) = Ed25519.KeyPairFromSeed(_seed);
 
         Assert.Equal(expectedPublicKey, publicKey);
     }
@@ -94,7 +94,7 @@ public class Ed25519NegativeTests
     [Fact]
     public void Verify_WhenMessageTampered_ReturnsFalse()
     {
-        var (publicKey, expandedPrivateKey) = Ed25519.KeyPairFromSeed(Seed);
+        var (publicKey, expandedPrivateKey) = Ed25519.KeyPairFromSeed(_seed);
         var message = new byte[] { 1, 2, 3, 4, 5 };
         var signature = Ed25519.Sign(message, expandedPrivateKey);
 
@@ -108,7 +108,7 @@ public class Ed25519NegativeTests
     {
         // A robust verifier must reject any single-byte corruption across the whole 64-byte signature,
         // including the S (scalar) half where malleability bugs typically hide.
-        var (publicKey, expandedPrivateKey) = Ed25519.KeyPairFromSeed(Seed);
+        var (publicKey, expandedPrivateKey) = Ed25519.KeyPairFromSeed(_seed);
         var message = new byte[] { 10, 20, 30 };
         var signature = Ed25519.Sign(message, expandedPrivateKey);
 
@@ -124,7 +124,7 @@ public class Ed25519NegativeTests
     [Fact]
     public void Verify_WithAllZeroSignature_ReturnsFalse()
     {
-        var (publicKey, _) = Ed25519.KeyPairFromSeed(Seed);
+        var (publicKey, _) = Ed25519.KeyPairFromSeed(_seed);
 
         Assert.False(Ed25519.Verify(new byte[Ed25519.SIGNATURE_SIZE_IN_BYTES], [1, 2, 3], publicKey));
     }
@@ -132,7 +132,7 @@ public class Ed25519NegativeTests
     [Fact]
     public void Verify_WithAllZeroPublicKey_ReturnsFalse()
     {
-        var (_, expandedPrivateKey) = Ed25519.KeyPairFromSeed(Seed);
+        var (_, expandedPrivateKey) = Ed25519.KeyPairFromSeed(_seed);
         var message = new byte[] { 1, 2, 3 };
         var signature = Ed25519.Sign(message, expandedPrivateKey);
 
@@ -144,7 +144,7 @@ public class Ed25519NegativeTests
     public void Sign_IsDeterministic_ForSameKeyAndMessage()
     {
         // Ed25519 signatures are deterministic per RFC 8032.
-        var (_, expandedPrivateKey) = Ed25519.KeyPairFromSeed(Seed);
+        var (_, expandedPrivateKey) = Ed25519.KeyPairFromSeed(_seed);
         var message = new byte[] { 9, 8, 7, 6 };
 
         var s1 = Ed25519.Sign(message, expandedPrivateKey);
@@ -156,7 +156,7 @@ public class Ed25519NegativeTests
     [Fact]
     public void Verify_AcceptsEmptyMessage()
     {
-        var (publicKey, expandedPrivateKey) = Ed25519.KeyPairFromSeed(Seed);
+        var (publicKey, expandedPrivateKey) = Ed25519.KeyPairFromSeed(_seed);
         var signature = Ed25519.Sign([], expandedPrivateKey);
 
         Assert.True(Ed25519.Verify(signature, [], publicKey));
