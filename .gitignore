@@ -262,7 +262,6 @@ secrets.json
 *.local.json
 .specify/
 specs/
-CLAUDE.md
 
 # Temporary documentation files (session-specific)
 *-SUMMARY.md

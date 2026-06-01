@@ -155,19 +155,23 @@ dotnet test
 # Run with verbose output
 dotnet test --verbosity normal
 
-# Run specific test category
-dotnet test --filter Category=Security
+# Run a specific test group (tests are organized by namespace, not traits)
+dotnet test --filter "FullyQualifiedName~HeroSdJwt.Tests.Security"
 
 # Run tests with code coverage
-dotnet test /p:CollectCoverage=true
+dotnet test --collect:"XPlat Code Coverage"
 ```
 
 ### Test Categories
 
-- **Unit Tests** - Test individual components in isolation
-- **Integration Tests** - Test end-to-end flows
-- **Contract Tests** - Test public API behavior
-- **Security Tests** - Test security-critical functionality
+Tests are organized by folder/namespace under `tests/HeroSdJwt.Tests` (filter with
+`--filter "FullyQualifiedName~HeroSdJwt.Tests.<Group>"`):
+
+- **Unit** (`Unit/`) - Test individual components in isolation
+- **Integration** (`Integration/`) - Test end-to-end flows
+- **Contract** (`Contract/`) - Test public API behavior
+- **Security** (`Security/`) - Test security-critical functionality
+- **Scenarios**, **Fuzz**, **Load** - End-to-end scenarios, property-based fuzzing, and load tests
 
 ### Writing Tests
 
