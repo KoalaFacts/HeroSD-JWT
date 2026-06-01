@@ -16,8 +16,7 @@ concurrency:
 
 permissions:
   contents: read
-  checks: write
-  pull-requests: write
+  pull-requests: write  # For dependency review PR comment
   security-events: write  # For dependency review
 
 env:
@@ -69,13 +68,6 @@ jobs:
 
     - name: Run tests
       run: dotnet test --configuration Release --no-build --framework ${{ matrix.framework }} --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
-
-    - name: Publish test results
-      uses: EnricoMi/publish-unit-test-result-action@c950f6fb443cb5af20a377fd0dfaa78838901040 # v2.23.0
-      if: always() && matrix.os == 'ubuntu-latest' && matrix.framework == 'net10.0'
-      with:
-        files: 'TestResults/**/*.trx'
-        check_name: 'Test Results (${{ matrix.os }} - ${{ matrix.framework }})'
 
     - name: Upload test results
       if: always()
