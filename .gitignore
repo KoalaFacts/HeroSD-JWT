@@ -259,7 +259,7 @@ secrets.json
 *.p12
 
 # User-specific AI assistant files (Claude Code local settings)
-.claude/
+*.local.json
 .specify/
 specs/
 
