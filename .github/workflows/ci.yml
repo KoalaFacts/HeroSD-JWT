@@ -69,6 +69,42 @@ jobs:
     - name: Run tests
       run: dotnet test --configuration Release --no-build --framework ${{ matrix.framework }} --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
 
+    # Native test-result summary (no third-party action / no extra permissions).
+    - name: Publish test results summary
+      if: always()
+      shell: bash
+      run: |
+        shopt -s globstar nullglob
+        trx=(TestResults/**/*.trx)
+        {
+          echo "## Test Results — ${{ matrix.os }} / ${{ matrix.framework }}"
+          if (( ${#trx[@]} == 0 )); then
+            echo "_No test result (.trx) files were produced._"
+          else
+            passed=0; failed=0
+            for f in "${trx[@]}"; do
+              passed=$(( passed + $({ grep -oh 'outcome="Passed"' "$f" || true; } | wc -l) ))
+              failed=$(( failed + $({ grep -oh 'outcome="Failed"' "$f" || true; } | wc -l) ))
+            done
+            echo ""
+            echo "| Result | Count |"
+            echo "| --- | ----: |"
+            echo "| ✅ Passed | $passed |"
+            echo "| ❌ Failed | $failed |"
+            if (( failed > 0 )); then
+              echo ""
+              echo "<details><summary>Failed tests</summary>"
+              echo ""
+              for f in "${trx[@]}"; do
+                { grep -o 'testName="[^"]*"[^>]*outcome="Failed"' "$f" || true; } \
+                  | sed -E 's/.*testName="([^"]*)".*/- `\1`/'
+              done | sort -u
+              echo ""
+              echo "</details>"
+            fi
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
+
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
