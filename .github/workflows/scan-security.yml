@@ -37,7 +37,7 @@ jobs:
       frameworks: ${{ steps.config.outputs.frameworks }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
 
       - name: Extract configuration
         id: config
@@ -55,7 +55,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
 
       - name: Setup all .NET SDKs
         uses: ./.github/actions/setup-dotnet-sdks
@@ -76,7 +76,7 @@ jobs:
           fi
 
       - name: Upload audit results
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: nuget-audit-${{ matrix.framework }}
           path: audit-${{ matrix.framework }}.log
@@ -94,7 +94,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           fetch-depth: 0  # Full history for better analysis
 
@@ -104,7 +104,7 @@ jobs:
           dotnet-version: ${{ needs.setup.outputs.versions }}
 
       - name: Setup .NET 6.0 (required by Security DevOps tools)
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@9a946fdbd5fb07b82b2f5a4466058b876ab72bb2 # v5.3.0
         with:
           dotnet-version: '6.0.x'
 
@@ -115,20 +115,20 @@ jobs:
         run: dotnet build src/HeroSdJwt/HeroSdJwt.csproj --configuration Release --no-restore --framework ${{ matrix.framework }}
 
       - name: Run Microsoft Security DevOps
-        uses: microsoft/security-devops-action@v1
+        uses: microsoft/security-devops-action@5b26a185ff02cf7c100778adeff0ebbf704ca144 # v1
         id: msdo
         with:
           # Available tools: antimalware, binskim, credscan, eslint, templateanalyzer, terrascan, trivy
           tools: 'binskim,credscan'
 
       - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4.36.0
         if: always() && steps.msdo.outputs.sarifFile != ''
         with:
           sarif_file: ${{ steps.msdo.outputs.sarifFile }}
 
       - name: Upload SARIF Artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         if: always() && steps.msdo.outputs.sarifFile != ''
         with:
           name: security-devops-${{ matrix.framework }}

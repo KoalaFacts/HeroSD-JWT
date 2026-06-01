@@ -38,7 +38,7 @@ jobs:
       frameworks: ${{ steps.config.outputs.frameworks }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
 
       - name: Extract configuration
         id: config
@@ -56,7 +56,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
 
     - name: Setup all .NET SDKs
       uses: ./.github/actions/setup-dotnet-sdks
@@ -105,7 +105,7 @@ jobs:
 
     - name: Store benchmark result ${{ matrix.framework }}
       id: storebenchmark
-      uses: benchmark-action/github-action-benchmark@v1
+      uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
       with:
         tool: 'benchmarkdotnet'
         output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/combined-report-${{ matrix.framework }}.json
@@ -121,7 +121,7 @@ jobs:
         save-data-file: true
 
     - name: Upload benchmark artifacts ${{ matrix.framework }}
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
       if: always() && steps.storebenchmark.outputs.benchmark-result-file-path != ''
       with:
         name: benchmark-results-${{ matrix.framework }}
