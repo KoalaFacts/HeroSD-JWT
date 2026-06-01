@@ -74,31 +74,35 @@ jobs:
       if: always()
       shell: bash
       run: |
-        shopt -s globstar nullglob
-        trx=(TestResults/**/*.trx)
+        # Portable across bash 3.2 (macOS) and 4/5: no globstar, find instead of **.
+        trx_files=$(find TestResults -name '*.trx' 2>/dev/null || true)
         {
           echo "## Test Results — ${{ matrix.os }} / ${{ matrix.framework }}"
-          if (( ${#trx[@]} == 0 )); then
+          if [ -z "$trx_files" ]; then
             echo "_No test result (.trx) files were produced._"
           else
             passed=0; failed=0
-            for f in "${trx[@]}"; do
-              passed=$(( passed + $({ grep -oh 'outcome="Passed"' "$f" || true; } | wc -l) ))
-              failed=$(( failed + $({ grep -oh 'outcome="Failed"' "$f" || true; } | wc -l) ))
-            done
+            while IFS= read -r f; do
+              [ -n "$f" ] || continue
+              p=$({ grep -oh 'outcome="Passed"' "$f" || true; } | wc -l | tr -d '[:space:]')
+              q=$({ grep -oh 'outcome="Failed"' "$f" || true; } | wc -l | tr -d '[:space:]')
+              passed=$((passed + p))
+              failed=$((failed + q))
+            done <<< "$trx_files"
             echo ""
             echo "| Result | Count |"
             echo "| --- | ----: |"
             echo "| ✅ Passed | $passed |"
             echo "| ❌ Failed | $failed |"
-            if (( failed > 0 )); then
+            if [ "$failed" -gt 0 ]; then
               echo ""
               echo "<details><summary>Failed tests</summary>"
               echo ""
-              for f in "${trx[@]}"; do
+              while IFS= read -r f; do
+                [ -n "$f" ] || continue
                 { grep -o 'testName="[^"]*"[^>]*outcome="Failed"' "$f" || true; } \
                   | sed -E 's/.*testName="([^"]*)".*/- `\1`/'
-              done | sort -u
+              done <<< "$trx_files" | sort -u
               echo ""
               echo "</details>"
             fi
