@@ -436,14 +436,10 @@ public class SignatureValidator : ISignatureValidator
             // Resolve key ID to verification key
             try
             {
-                verificationKey = keyResolver(resolvedKeyId)!;
-
-                if (verificationKey == null)
-                {
-                    throw new SdJwtException(
+                verificationKey = keyResolver(resolvedKeyId)
+                    ?? throw new SdJwtException(
                         $"Key resolver could not find key for kid '{resolvedKeyId}'",
                         ErrorCode.KeyIdNotFound);
-                }
             }
             catch (SdJwtException)
             {

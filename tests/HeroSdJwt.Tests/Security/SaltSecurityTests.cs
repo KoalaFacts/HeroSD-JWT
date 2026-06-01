@@ -109,7 +109,7 @@ public class SaltSecurityTests
         // Act
         var disclosure = generator.GenerateDisclosure(claimName, claimValue);
         var decoded = DecodeDisclosure(disclosure);
-        var salt = decoded[0].GetString()!;
+        var salt = decoded[0].GetString();
 
         // Assert
         // Base64url must not contain +, /, or =

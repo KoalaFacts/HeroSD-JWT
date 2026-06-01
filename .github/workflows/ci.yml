@@ -16,8 +16,7 @@ concurrency:
 
 permissions:
   contents: read
-  checks: write
-  pull-requests: write
+  pull-requests: write  # For dependency review PR comment
   security-events: write  # For dependency review
 
 env:
@@ -34,7 +33,7 @@ jobs:
       frameworks: ${{ steps.config.outputs.frameworks }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Extract configuration
         id: config
@@ -52,7 +51,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         fetch-depth: 0  # Full history for Source Link
 
@@ -70,16 +69,49 @@ jobs:
     - name: Run tests
       run: dotnet test --configuration Release --no-build --framework ${{ matrix.framework }} --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
 
-    - name: Publish test results
-      uses: EnricoMi/publish-unit-test-result-action@v2
-      if: always() && matrix.os == 'ubuntu-latest' && matrix.framework == 'net10.0'
-      with:
-        files: 'TestResults/**/*.trx'
-        check_name: 'Test Results (${{ matrix.os }} - ${{ matrix.framework }})'
+    # Native test-result summary (no third-party action / no extra permissions).
+    - name: Publish test results summary
+      if: always()
+      shell: bash
+      run: |
+        # Portable across bash 3.2 (macOS) and 4/5: no globstar, find instead of **.
+        trx_files=$(find TestResults -name '*.trx' 2>/dev/null || true)
+        {
+          echo "## Test Results — ${{ matrix.os }} / ${{ matrix.framework }}"
+          if [ -z "$trx_files" ]; then
+            echo "_No test result (.trx) files were produced._"
+          else
+            passed=0; failed=0
+            while IFS= read -r f; do
+              [ -n "$f" ] || continue
+              p=$({ grep -oh 'outcome="Passed"' "$f" || true; } | wc -l | tr -d '[:space:]')
+              q=$({ grep -oh 'outcome="Failed"' "$f" || true; } | wc -l | tr -d '[:space:]')
+              passed=$((passed + p))
+              failed=$((failed + q))
+            done <<< "$trx_files"
+            echo ""
+            echo "| Result | Count |"
+            echo "| --- | ----: |"
+            echo "| ✅ Passed | $passed |"
+            echo "| ❌ Failed | $failed |"
+            if [ "$failed" -gt 0 ]; then
+              echo ""
+              echo "<details><summary>Failed tests</summary>"
+              echo ""
+              while IFS= read -r f; do
+                [ -n "$f" ] || continue
+                { grep -o 'testName="[^"]*"[^>]*outcome="Failed"' "$f" || true; } \
+                  | sed -E 's/.*testName="([^"]*)".*/- `\1`/'
+              done <<< "$trx_files" | sort -u
+              echo ""
+              echo "</details>"
+            fi
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
 
     - name: Upload test results
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: test-results-${{ matrix.os }}-${{ matrix.framework }}
         path: TestResults/**/*.trx
@@ -87,7 +119,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       if: matrix.os == 'ubuntu-latest' && matrix.framework == 'net10.0'
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
       with:
         files: 'TestResults/**/coverage.cobertura.xml'
         fail_ci_if_error: false
@@ -101,7 +133,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         fetch-depth: 0
 
@@ -126,12 +158,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         fetch-depth: 0  # Need full history for comparing commits on push events
 
     - name: Dependency Review
-      uses: actions/dependency-review-action@v4
+      uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
       with:
         fail-on-severity: high
         deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0

@@ -575,11 +575,14 @@ dotnet test
 # Run with verbose output
 dotnet test --verbosity normal
 
-# Run integration tests only
-dotnet test --filter "Category=Integration"
+# Run integration tests only (tests are grouped by namespace, not traits)
+dotnet test --filter "FullyQualifiedName~HeroSdJwt.Tests.Integration"
 
 # Run unit tests only
-dotnet test --filter "Category!=Integration"
+dotnet test --filter "FullyQualifiedName~HeroSdJwt.Tests.Unit"
+
+# Run a single test class or method
+dotnet test --filter "FullyQualifiedName~SdJwtVerifierTests"
 ```
 
 ### Distributed Replay Protection & Revocation

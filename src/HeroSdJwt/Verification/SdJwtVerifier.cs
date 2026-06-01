@@ -409,13 +409,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
 
                 try
                 {
-                    verificationKey = keyResolver(resolvedKeyId)!;
-                    if (verificationKey == null)
-                    {
-                        throw new SdJwtException(
+                    verificationKey = keyResolver(resolvedKeyId)
+                        ?? throw new SdJwtException(
                             $"Key resolver could not find key for kid '{resolvedKeyId}'",
                             ErrorCode.KeyIdNotFound);
-                    }
                 }
                 catch (SdJwtException)
                 {
@@ -1107,7 +1104,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
             var value = audElement.GetString();
             return string.IsNullOrWhiteSpace(value)
                 ? []
-                : [value!];
+                : [value];
         }
 
         if (audElement.ValueKind == JsonValueKind.Array)

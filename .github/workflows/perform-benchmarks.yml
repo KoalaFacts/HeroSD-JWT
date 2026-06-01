@@ -38,7 +38,7 @@ jobs:
       frameworks: ${{ steps.config.outputs.frameworks }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Extract configuration
         id: config
@@ -56,7 +56,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
     - name: Setup all .NET SDKs
       uses: ./.github/actions/setup-dotnet-sdks
@@ -103,9 +103,12 @@ jobs:
         jq -s '.[0] * {Benchmarks: (map(.Benchmarks // []) | add)}' $FILES > "$OUTPUT_FILE"
         echo "Combined benchmark report: $OUTPUT_FILE"
 
+    # Requires the 'gh-pages' branch to exist: the action fetches it to read the
+    # baseline (and, on pushes to main, appends history under dev/bench/). If the
+    # branch is missing the step fails with "couldn't find remote ref gh-pages".
     - name: Store benchmark result ${{ matrix.framework }}
       id: storebenchmark
-      uses: benchmark-action/github-action-benchmark@v1
+      uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
       with:
         tool: 'benchmarkdotnet'
         output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/combined-report-${{ matrix.framework }}.json
@@ -121,7 +124,7 @@ jobs:
         save-data-file: true
 
     - name: Upload benchmark artifacts ${{ matrix.framework }}
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       if: always() && steps.storebenchmark.outputs.benchmark-result-file-path != ''
       with:
         name: benchmark-results-${{ matrix.framework }}
