@@ -8,6 +8,7 @@ using HeroSdJwt.Verification;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using SdJwtHashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
+using SdJwtVerificationKeyType = HeroSdJwt.Primitives.VerificationKeyType;
 
 namespace HeroSdJwt.Benchmarks;
 
@@ -113,7 +114,7 @@ public class VerificationBenchmarks
             // The presentation is HS256 (HMAC); the verifier defaults to Asymmetric,
             // so without this the throwing VerifyPresentation raises an alg/key-confusion
             // error every iteration (no statistics -> breaks the benchmark report).
-            ExpectedKeyType = HeroSdJwt.Primitives.VerificationKeyType.Symmetric
+            ExpectedKeyType = SdJwtVerificationKeyType.Symmetric
         };
 
         _verifier = new SdJwtVerifier(
