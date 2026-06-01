@@ -4,6 +4,7 @@ using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Models;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Buffers.Text;
 using System.Security.Cryptography;
@@ -109,7 +110,10 @@ public class VerificationBenchmarks
 
         var verifierOptions = new SdJwtVerificationOptions
         {
-            ExpectedIssuer = "https://issuer.example.com"
+            ExpectedIssuer = "https://issuer.example.com",
+            // The presentation is HMAC-signed (HS256); the default ExpectedKeyType is
+            // Asymmetric, which the algorithm-confusion guard rejects for symmetric keys.
+            ExpectedKeyType = VerificationKeyType.Symmetric
         };
 
         _verifier = new SdJwtVerifier(
