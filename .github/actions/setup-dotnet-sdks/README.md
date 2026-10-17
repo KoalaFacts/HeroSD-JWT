@@ -26,9 +26,9 @@ With caching disabled:
 
 ## Benefits
 
-- **Single source of truth**: SDK versions defined once in `Directory.Build.props`
+- **Explicit SDK baseline**: CI installs the exact versions in `Directory.Build.props`
 - **No duplication**: All workflows use the same action
-- **Easy maintenance**: Update SDK versions in one place
+- **Reproducible restore**: `global.json` selects the pinned build SDK on developer machines and CI
 - **Consistent**: All workflows use identical SDK setup
 
 ## Outputs
@@ -40,4 +40,9 @@ With caching disabled:
 
 - Repository must have a `Directory.Build.props` file at the root
 - The file must contain a `<SupportedSdkVersions>` element with semicolon-separated versions
-- Example: `<SupportedSdkVersions>8.0.x;9.0.x;10.0.x</SupportedSdkVersions>`
+- Example: `<SupportedSdkVersions>8.0.426;9.0.319;10.0.402</SupportedSdkVersions>`
+
+When updating the SDK baseline, update `global.json` to the matching build SDK,
+run `dotnet restore --force-evaluate` to regenerate the package locks, then verify
+`dotnet restore --locked-mode` and build and test all supported target frameworks.
+SDK servicing updates can change implicit `Microsoft.NET.ILLink.Tasks` dependencies.

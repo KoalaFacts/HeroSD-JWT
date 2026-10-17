@@ -81,6 +81,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
+      - name: Extract build configuration
+        id: config
+        uses: ./.github/actions/extract-build-config
+
+      - name: Setup .NET SDKs
+        uses: ./.github/actions/setup-dotnet-sdks
+        with:
+          dotnet-version: ${{ steps.config.outputs.versions }}
+          cache: 'false'
+
       - name: Record version in summary
         run: |
           echo "## Publishing NuGet package" >> $GITHUB_STEP_SUMMARY

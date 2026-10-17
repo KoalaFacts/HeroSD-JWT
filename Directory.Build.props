@@ -4,9 +4,8 @@
     <!-- Individual projects can override if they need specific frameworks (e.g., source generators using netstandard2.0) -->
     <SupportedTargetFrameworks>net8.0;net9.0;net10.0</SupportedTargetFrameworks>
 
-    <!-- Corresponding SDK versions for CI/CD workflows -->
-    <!-- Format: Major.Minor.x (e.g., 8.0.x, 9.0.x, 10.0.x) -->
-    <SupportedSdkVersions>8.0.x;9.0.x;10.0.x</SupportedSdkVersions>
+    <!-- Pin SDKs alongside global.json and package locks; SDK updates can change implicit ILLink dependencies. -->
+    <SupportedSdkVersions>8.0.426;9.0.319;10.0.402</SupportedSdkVersions>
 
     <!-- Enable NuGet package lock files for reproducible builds -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
@@ -36,12 +35,7 @@
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
+  <!-- Source Link is included in .NET SDK 8+. Use the patched SDK copy rather than overriding it. -->
 
   <!-- Test and Benchmark project settings -->
   <PropertyGroup
