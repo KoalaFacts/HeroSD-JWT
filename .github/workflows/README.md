@@ -251,7 +251,7 @@ All workflows use multi-layer caching:
 
 2. **.NET SDK cache** (via `setup-dotnet` action)
    - Caches .NET SDK downloads
-   - Automatic in `setup-dotnet@v5`
+   - Automatic in `setup-dotnet@v6`
 
 **Cache hits save approximately 30-60 seconds per workflow run.**
 

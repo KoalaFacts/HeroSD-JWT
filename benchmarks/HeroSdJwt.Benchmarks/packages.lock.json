@@ -4,11 +4,11 @@
     "net10.0": {
       "BenchmarkDotNet": {
         "type": "Direct",
-        "requested": "[0.15.7, )",
-        "resolved": "0.15.7",
-        "contentHash": "KCA4RWGbkbgOkpHc7A2MlFf1+F+KEBgyAOtZqgoZ5vPw220bv9Sgs+ESKL9GUGgteyMhkFihFpNfIRWVOYzrcA==",
+        "requested": "[0.15.8, )",
+        "resolved": "0.15.8",
+        "contentHash": "paCfrWxSeHqn3rUZc0spYXVFnHCF0nzRhG0nOLnyTjZYs8spsimBaaNmb3vwqvALKIplbYq/TF393vYiYSnh/Q==",
         "dependencies": {
-          "BenchmarkDotNet.Annotations": "0.15.7",
+          "BenchmarkDotNet.Annotations": "0.15.8",
           "CommandLineParser": "2.9.1",
           "Gee.External.Capstone": "2.3.0",
           "Iced": "1.21.0",
@@ -22,8 +22,8 @@
       },
       "BenchmarkDotNet.Annotations": {
         "type": "Transitive",
-        "resolved": "0.15.7",
-        "contentHash": "3vQkqhsrXi2Ma1U5etuciLHZEauMr32M51u5wdROZoIFzWXI/J6Ro+XIUR+MgvQQ0traUUjq+txNEzayAP8ekw=="
+        "resolved": "0.15.8",
+        "contentHash": "hfucY0ycAsB0SsoaZcaAp9oq5wlWBJcylvEJb9pmvdYUx6PD6S4mDiYnZWjdjAlLhIpe/xtGCwzORfzAzPqvzA=="
       },
       "CommandLineParser": {
         "type": "Transitive",
@@ -173,11 +173,11 @@
     "net8.0": {
       "BenchmarkDotNet": {
         "type": "Direct",
-        "requested": "[0.15.7, )",
-        "resolved": "0.15.7",
-        "contentHash": "KCA4RWGbkbgOkpHc7A2MlFf1+F+KEBgyAOtZqgoZ5vPw220bv9Sgs+ESKL9GUGgteyMhkFihFpNfIRWVOYzrcA==",
+        "requested": "[0.15.8, )",
+        "resolved": "0.15.8",
+        "contentHash": "paCfrWxSeHqn3rUZc0spYXVFnHCF0nzRhG0nOLnyTjZYs8spsimBaaNmb3vwqvALKIplbYq/TF393vYiYSnh/Q==",
         "dependencies": {
-          "BenchmarkDotNet.Annotations": "0.15.7",
+          "BenchmarkDotNet.Annotations": "0.15.8",
           "CommandLineParser": "2.9.1",
           "Gee.External.Capstone": "2.3.0",
           "Iced": "1.21.0",
@@ -191,8 +191,8 @@
       },
       "BenchmarkDotNet.Annotations": {
         "type": "Transitive",
-        "resolved": "0.15.7",
-        "contentHash": "3vQkqhsrXi2Ma1U5etuciLHZEauMr32M51u5wdROZoIFzWXI/J6Ro+XIUR+MgvQQ0traUUjq+txNEzayAP8ekw=="
+        "resolved": "0.15.8",
+        "contentHash": "hfucY0ycAsB0SsoaZcaAp9oq5wlWBJcylvEJb9pmvdYUx6PD6S4mDiYnZWjdjAlLhIpe/xtGCwzORfzAzPqvzA=="
       },
       "CommandLineParser": {
         "type": "Transitive",
@@ -211,8 +211,8 @@
       },
       "Microsoft.Bcl.Memory": {
         "type": "Transitive",
-        "resolved": "10.0.8",
-        "contentHash": "8Axjm54ToNejQXiKBeSR+dN5szdvLOrlfrYY1jKGAYceKCTm9blk97Q9IcYRcL1vFmTYc2N7QlajvMLAxpUktg=="
+        "resolved": "10.0.13",
+        "contentHash": "AOGTKbd+0Xzi/ZsU1n6TwHJqcZqVVRg1iLLNh+D2mQ3++lIRGcuSfH+TYosuqCo3259s0giL+mFJ2rxAf+xDSQ=="
       },
       "Microsoft.CodeAnalysis.Analyzers": {
         "type": "Transitive",
@@ -354,18 +354,18 @@
       "HeroSD-JWT": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Bcl.Memory": "[10.0.8, )"
+          "Microsoft.Bcl.Memory": "[10.0.13, )"
         }
       }
     },
     "net9.0": {
       "BenchmarkDotNet": {
         "type": "Direct",
-        "requested": "[0.15.7, )",
-        "resolved": "0.15.7",
-        "contentHash": "KCA4RWGbkbgOkpHc7A2MlFf1+F+KEBgyAOtZqgoZ5vPw220bv9Sgs+ESKL9GUGgteyMhkFihFpNfIRWVOYzrcA==",
+        "requested": "[0.15.8, )",
+        "resolved": "0.15.8",
+        "contentHash": "paCfrWxSeHqn3rUZc0spYXVFnHCF0nzRhG0nOLnyTjZYs8spsimBaaNmb3vwqvALKIplbYq/TF393vYiYSnh/Q==",
         "dependencies": {
-          "BenchmarkDotNet.Annotations": "0.15.7",
+          "BenchmarkDotNet.Annotations": "0.15.8",
           "CommandLineParser": "2.9.1",
           "Gee.External.Capstone": "2.3.0",
           "Iced": "1.21.0",
@@ -379,8 +379,8 @@
       },
       "BenchmarkDotNet.Annotations": {
         "type": "Transitive",
-        "resolved": "0.15.7",
-        "contentHash": "3vQkqhsrXi2Ma1U5etuciLHZEauMr32M51u5wdROZoIFzWXI/J6Ro+XIUR+MgvQQ0traUUjq+txNEzayAP8ekw=="
+        "resolved": "0.15.8",
+        "contentHash": "hfucY0ycAsB0SsoaZcaAp9oq5wlWBJcylvEJb9pmvdYUx6PD6S4mDiYnZWjdjAlLhIpe/xtGCwzORfzAzPqvzA=="
       },
       "CommandLineParser": {
         "type": "Transitive",

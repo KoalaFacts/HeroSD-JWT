@@ -41,7 +41,7 @@ jobs:
       frameworks: ${{ steps.config.outputs.frameworks }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Extract configuration
         id: config
@@ -59,7 +59,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Setup all .NET SDKs
       uses: ./.github/actions/setup-dotnet-sdks
@@ -122,7 +122,7 @@ jobs:
     # branch is missing the step fails with "couldn't find remote ref gh-pages".
     - name: Store benchmark result ${{ matrix.framework }}
       id: storebenchmark
-      uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
+      uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
       with:
         name: ${{ steps.baseline.outputs.name }}
         tool: 'benchmarkdotnet'
@@ -139,7 +139,7 @@ jobs:
         save-data-file: true
 
     - name: Upload benchmark artifacts ${{ matrix.framework }}
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       if: always() && steps.storebenchmark.outputs.benchmark-result-file-path != ''
       with:
         name: benchmark-results-${{ matrix.framework }}
