@@ -160,6 +160,15 @@ was reset. The original raw file remains available at
 (SHA-256 `de68172aa4e39d645c3c83d95d5de0f1a7005d18f22ff2f671e907033b9976bc`).
 Adding a framework requires a separately verified, attributable baseline first.
 
+Raw BenchmarkDotNet logs and full/combined JSON reports are uploaded directly from
+`BenchmarkDotNet.Artifacts` after both successful and failed benchmark comparisons,
+independent of the comparison action's outputs. Each framework has its own
+`benchmark-results-netX.0` artifact with 30-day retention. Uploads include only root
+`.log` files and `results/*.json`; hidden files, generated builds, and other
+repository files are excluded. If an earlier failure produced no artifacts, the
+upload warns without replacing that original failure. This evidence collection
+does not alter the benchmark failure gate, jobs, historical data, or 105% threshold.
+
 ---
 
 ## Workflow Dependencies

@@ -140,8 +140,14 @@ jobs:
 
     - name: Upload benchmark artifacts ${{ matrix.framework }}
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-      if: always() && steps.storebenchmark.outputs.benchmark-result-file-path != ''
+      if: always()
       with:
         name: benchmark-results-${{ matrix.framework }}
-        path: ${{ steps.storebenchmark.outputs.benchmark-result-file-path }}
+        # Keep raw evidence even when the comparison step fails or emits no output.
+        # Limit uploads to reports/logs, excluding generated builds and repository files.
+        path: |
+          benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/*.log
+          benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/*.json
+        if-no-files-found: warn
+        include-hidden-files: false
         retention-days: 30
