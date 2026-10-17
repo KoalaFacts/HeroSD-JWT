@@ -131,6 +131,37 @@ This directory contains the automated CI/CD workflows for HeroSD-JWT. The workfl
 
 ---
 
+### 5. Performance Benchmarks (`perform-benchmarks.yml`)
+
+Each target framework compares only with its own `Benchmark netX.0` history in
+`gh-pages:dev/bench/data.js`. The preflight rejects a missing or empty framework
+baseline before running benchmarks; it never falls back to another framework or
+silently starts a new baseline. Keep the 105% alert threshold and failure gate.
+Run the preflight regression tests with:
+
+```bash
+python3 -m unittest discover -s .github/scripts/tests
+```
+
+The original shared `Benchmark` history is preserved unchanged. Its three entries
+were copied into framework-specific histories using the non-overlapping store
+step times from [run 26753534673](https://github.com/KoalaFacts/HeroSD-JWT/actions/runs/26753534673):
+
+| Framework | Entry timestamp (milliseconds) | Store step, 2026-06-01 UTC | Job |
+| --- | --- | --- | --- |
+| net8.0 | 1780315504094 | 12:05:03–12:05:06 | [78847373490](https://github.com/KoalaFacts/HeroSD-JWT/actions/runs/26753534673/job/78847373490) |
+| net9.0 | 1780315520781 | 12:05:20–12:05:22 | [78847373527](https://github.com/KoalaFacts/HeroSD-JWT/actions/runs/26753534673/job/78847373527) |
+| net10.0 | 1780315501444 | 12:05:01–12:05:03 | [78847373574](https://github.com/KoalaFacts/HeroSD-JWT/actions/runs/26753534673/job/78847373574) |
+
+All entries retain their original commit, timestamps, and 32 measurements,
+including the existing custom-job/ShortRun duplicates. No measurement or threshold
+was reset. The original raw file remains available at
+[`6a260993:dev/bench/data.js`](https://github.com/KoalaFacts/HeroSD-JWT/blob/6a2609931f308092c43a962e792a0e353a8d771f/dev/bench/data.js)
+(SHA-256 `de68172aa4e39d645c3c83d95d5de0f1a7005d18f22ff2f671e907033b9976bc`).
+Adding a framework requires a separately verified, attributable baseline first.
+
+---
+
 ## Workflow Dependencies
 
 ```

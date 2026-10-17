@@ -6,12 +6,15 @@ on:
     paths:
       - 'src/**'
       - 'benchmarks/**'
+      - '.github/scripts/**'
       - '.github/workflows/perform-benchmarks.yml'
   push:
     branches: [ main ]
     paths:
       - 'src/**'
       - 'benchmarks/**'
+      - '.github/scripts/**'
+      - '.github/workflows/perform-benchmarks.yml'
   workflow_dispatch:  # Allow manual trigger
 
 # Cancel in-progress runs for the same workflow and ref
@@ -63,6 +66,17 @@ jobs:
       with:
         dotnet-version: ${{ needs.setup.outputs.versions }}
 
+    - name: Validate framework-specific benchmark baseline
+      id: baseline
+      env:
+        FRAMEWORK: ${{ matrix.framework }}
+      run: |
+        python3 -m unittest discover -s .github/scripts/tests
+        git fetch --no-tags origin gh-pages
+        git show FETCH_HEAD:dev/bench/data.js > "$RUNNER_TEMP/benchmark-baseline.js"
+        python3 .github/scripts/validate_benchmark_baseline.py \
+          "$RUNNER_TEMP/benchmark-baseline.js" "$FRAMEWORK" >> "$GITHUB_OUTPUT"
+
     - name: Restore dependencies (all frameworks, locked mode)
       run: dotnet restore
 
@@ -110,6 +124,7 @@ jobs:
       id: storebenchmark
       uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba # v1.22.1
       with:
+        name: ${{ steps.baseline.outputs.name }}
         tool: 'benchmarkdotnet'
         output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/combined-report-${{ matrix.framework }}.json
         github-token: ${{ secrets.GITHUB_TOKEN }}
