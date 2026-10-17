@@ -22,11 +22,11 @@ Versions were checked against the official NuGet flat-container indexes. Framewo
 | [Microsoft.AspNetCore.TestHost](https://www.nuget.org/packages/Microsoft.AspNetCore.TestHost) | 10.0.0, 8.0.11, 9.0.0 | 10.0.13, 8.0.32, 9.0.21 |
 | [Bogus](https://www.nuget.org/packages/Bogus) | 35.6.5 | 35.6.5 |
 | [CsCheck](https://www.nuget.org/packages/CsCheck) | 4.4.1 | 4.9.1 |
-| [NBomber](https://www.nuget.org/packages/NBomber) | 6.1.2 | 6.1.2 (license review deferred) |
-| [MessagePack](https://www.nuget.org/packages/MessagePack) | 2.5.307 | 2.5.307 |
+| [NBomber](https://www.nuget.org/packages/NBomber) | 6.1.2 | Removed; repository-owned BCL runner |
+| [MessagePack](https://www.nuget.org/packages/MessagePack) | 2.5.307 | Removed with unused NBomber dependencies |
 | [Microsoft.Extensions.Caching.Memory](https://www.nuget.org/packages/Microsoft.Extensions.Caching.Memory) | 9.0.0 | 9.0.21 |
 
-The .NET 9 examples retain Microsoft.OpenApi 1.x through Microsoft.AspNetCore.OpenApi 9.0.21. The .NET 8 and .NET 10 examples explicitly use OpenApi 2.12.2, which satisfies the ASP.NET Core 10.0.13 dependency range `[2.12.2, 3.0.0)`. NBomber remains at 6.1.2; the explicit MessagePack 2.5.307 pin protects its older transitive dependency.
+The .NET 9 examples retain Microsoft.OpenApi 1.x through Microsoft.AspNetCore.OpenApi 9.0.21. The .NET 8 and .NET 10 examples explicitly use OpenApi 2.12.2, which satisfies the ASP.NET Core 10.0.13 dependency range `[2.12.2, 3.0.0)`. The subsequent approved [manual load-runner replacement](manual-load-runner.md) removes NBomber and its no-longer-needed MessagePack pin. The [current test dependency license inventory](load-test-license-inventory.json) comes from restored package metadata.
 
 ## GitHub Actions
 
@@ -50,12 +50,12 @@ setup-dotnet v6 uses the same inputs, outputs, and Node 24 runtime as v5.4; its 
 
 ## Deliberately separate migrations
 
-- NBomber 6.7.1: its bundled license changes from v2.0 to [v3.2](https://nbomber.com/assets/NBOMBER-LICENSE-AGREEMENT-3.2.pdf), which explicitly requires a commercial subscription for organizational use. Retain 6.1.2 until project applicability is reviewed; the older version also has a proprietary subscription agreement, so retention does not establish a free organizational-use entitlement. A temporary validation probe ran the newer package before this distinction was noticed, but it is excluded from this dependency commit.
+- NBomber 6.7.1: its bundled license changes from v2.0 to [v3.2](https://nbomber.com/assets/NBOMBER-LICENSE-AGREEMENT-3.2.pdf), which explicitly requires a commercial subscription for organizational use. The older version also has a proprietary subscription agreement. The subsequent approved replacement removes NBomber entirely rather than accepting new terms or assuming a free organizational-use entitlement. A temporary validation probe ran the newer package before this distinction was noticed, but it is excluded from this dependency commit.
 
 - xunit.v3 4.x and xunit.runner.visualstudio 4.x: keep the existing xUnit 3/VSTest integration while refreshing its 3.x patch. A test-platform migration deserves a separate suite/coverage verification.
 - coverlet.collector 10.x: keep the existing 6.0.4 coverage collector, its latest 6.x release. Changing coverage infrastructure is separate from this compatible batch.
 - Microsoft.OpenApi 3.x: incompatible with the ASP.NET Core 10 package's upper bound and the .NET 9 1.x integration.
-- MessagePack 3.x: do not force a serialization-major change under NBomber's 2.x contract.
+- MessagePack 3.x: no migration is needed after removal of the sole NBomber-dependent reference.
 - Microsoft.Extensions.Caching.Memory 10.x: the test-only reference stays on its patched 9.0.21 line for this batch.
 
 ## Performance evidence

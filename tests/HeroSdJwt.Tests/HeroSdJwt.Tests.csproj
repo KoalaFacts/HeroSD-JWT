@@ -19,9 +19,6 @@
     </PackageReference>
     <PackageReference Include="CsCheck" Version="4.9.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
-    <PackageReference Include="NBomber" Version="6.1.2" />
-    <!-- NBomber.Contracts otherwise resolves a vulnerable MessagePack 2.x version. -->
-    <PackageReference Include="MessagePack" Version="2.5.307" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.21" />
     <PackageReference Include="xunit.v3" Version="3.2.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">

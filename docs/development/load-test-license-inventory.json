@@ -1,0 +1,516 @@
+{
+  "project": "tests/HeroSdJwt.Tests/HeroSdJwt.Tests.csproj",
+  "source": "NuGet-restored nuspec metadata and regenerated packages.lock.json",
+  "scope": "Resolved NuGet graph after removing NBomber; framework/runtime licenses and local project references are outside this inventory. License metadata is informational, not legal advice.",
+  "runnerLicense": "MIT (repository LICENSE); no replacement package",
+  "packages": [
+    {
+      "name": "Bogus",
+      "version": "35.6.5",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "file",
+        "value": "LICENSE"
+      },
+      "licenseUrl": "https://aka.ms/deprecateLicenseUrl",
+      "source": "https://api.nuget.org/v3-flatcontainer/bogus/35.6.5/bogus.nuspec",
+      "contentHash": "2FGZn+aAVHjmCgClgmGkTDBVZk0zkLvAKGaxEf5JL6b3i9JbHTE4wnuY4vHCuzlCmJdU6VZjgDfHwmYkQF8VAA=="
+    },
+    {
+      "name": "coverlet.collector",
+      "version": "6.0.4",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/coverlet.collector/6.0.4/coverlet.collector.nuspec",
+      "contentHash": "lkhqpF8Pu2Y7IiN7OntbsTtdbpR1syMsm2F3IgX6ootA4ffRqWL5jF7XipHuZQTdVuWG/gVAAcf8mjk8Tz0xPg=="
+    },
+    {
+      "name": "CsCheck",
+      "version": "4.9.1",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "Apache-2.0"
+      },
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "source": "https://api.nuget.org/v3-flatcontainer/cscheck/4.9.1/cscheck.nuspec",
+      "contentHash": "rEmuFiG19sF8U4Ef/S79cu9HW4pUGraoCTkmYs0z7SvsGqGAVO3wCjxQPS0KQvPa1g2/w1wBbnAP6cDZKBFEcA=="
+    },
+    {
+      "name": "Microsoft.Extensions.Caching.Memory",
+      "version": "9.0.21",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.caching.memory/9.0.21/microsoft.extensions.caching.memory.nuspec",
+      "contentHash": "k5l5tMZe21AXHdqw/L92lol7HDzvDpgL5MSXtTdnch5c2fHtWqUsYqF3Y69xyMAnfQwPKWv625Rz6WlLPFZbpg=="
+    },
+    {
+      "name": "Microsoft.NET.Test.Sdk",
+      "version": "18.11.0",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.net.test.sdk/18.11.0/microsoft.net.test.sdk.nuspec",
+      "contentHash": "xf/bR0LNkhK0SnadDRlZIQmC4sac5Wk0e1WAdiQjRN3MSo6gQ9M2c4c1XRNnVGjfOvckh704W5CJ19AL0/Xsdg=="
+    },
+    {
+      "name": "xunit.runner.visualstudio",
+      "version": "3.1.5",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "Apache-2.0"
+      },
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.runner.visualstudio/3.1.5/xunit.runner.visualstudio.nuspec",
+      "contentHash": "tKi7dSTwP4m5m9eXPM2Ime4Kn7xNf4x4zT9sdLO/G4hZVnQCRiMTWoSZqI/pYTVeI27oPPqHBKYI/DjJ9GsYgA=="
+    },
+    {
+      "name": "xunit.v3",
+      "version": "3.2.2",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "Apache-2.0"
+      },
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3/3.2.2/xunit.v3.nuspec",
+      "contentHash": "L+4/4y0Uqcg8/d6hfnxhnwh4j9FaeULvefTwrk30rr1o4n/vdPfyUQ8k0yzH8VJx7bmFEkDdcRfbtbjEHlaYcA=="
+    },
+    {
+      "name": "Microsoft.ApplicationInsights",
+      "version": "2.23.0",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.applicationinsights/2.23.0/microsoft.applicationinsights.nuspec",
+      "contentHash": "nWArUZTdU7iqZLycLKWe0TDms48KKGE6pONH2terYNa8REXiqixrMOkf1sk5DHGMaUTqONU2YkS4SAXBhLStgw=="
+    },
+    {
+      "name": "Microsoft.Bcl.AsyncInterfaces",
+      "version": "6.0.0",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.bcl.asyncinterfaces/6.0.0/microsoft.bcl.asyncinterfaces.nuspec",
+      "contentHash": "UcSjPsst+DfAdJGVDsu346FX0ci0ah+lw3WRtn18NUwEqRt70HaOQ7lI72vy3+1LxtqI3T5GWwV39rQSrCzAeg=="
+    },
+    {
+      "name": "Microsoft.CodeCoverage",
+      "version": "18.11.0",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.codecoverage/18.11.0/microsoft.codecoverage.nuspec",
+      "contentHash": "MhN9wpvL1Es4hfIYslrsVgIsUdDFxuOBTbAl9mGIMvFo8PP5CLf4DrGdNrfwWSyn0lqi6sssm+I/qkkLL3MU+g=="
+    },
+    {
+      "name": "Microsoft.Extensions.Caching.Abstractions",
+      "version": "9.0.21",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.caching.abstractions/9.0.21/microsoft.extensions.caching.abstractions.nuspec",
+      "contentHash": "F2kLO07nTYGeS3ygjOcu1yEWT6gHLsoUrd5XIvL9YQlZcbSLxjfVQS6iHx/cp65kaUTJFVIC6s3V32ZFk7i4YA=="
+    },
+    {
+      "name": "Microsoft.Extensions.DependencyInjection.Abstractions",
+      "version": "9.0.21",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection.abstractions/9.0.21/microsoft.extensions.dependencyinjection.abstractions.nuspec",
+      "contentHash": "qHgkGpzmAqxBE1+uib0KMwHyukwyRdIC8JHHnzGCP7IKfySgEQn/KeVnXybFYrYJkOG5uzzEjchRB6dT4lmWTw=="
+    },
+    {
+      "name": "Microsoft.Extensions.Logging.Abstractions",
+      "version": "9.0.21",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging.abstractions/9.0.21/microsoft.extensions.logging.abstractions.nuspec",
+      "contentHash": "y1yIJYal4AgJ5P+tWnWHwB4zEODSzG2eSN/PamXxs7Qw16Z/kRK87UH9LIfKOahlnet5GSYYqHgctq4m03nWOQ=="
+    },
+    {
+      "name": "Microsoft.Extensions.Options",
+      "version": "9.0.21",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.options/9.0.21/microsoft.extensions.options.nuspec",
+      "contentHash": "oWSBxUMtAFKDRZXhItBEFpXCE1TpDi410JT/vvPJmgh1HNNgQmbtSx/Ly3HmoleNIYH9k5nPhykms6d9jMvd6w=="
+    },
+    {
+      "name": "Microsoft.Extensions.Primitives",
+      "version": "9.0.21",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.primitives/9.0.21/microsoft.extensions.primitives.nuspec",
+      "contentHash": "WBOg9sKnfnfFfjo+w5Osk73BMFabRHxpbDefxgK16KGLbrLljUCaRPsHfOHpTpM7bcIbkRJKBtWypHQOewy1tw=="
+    },
+    {
+      "name": "Microsoft.Testing.Extensions.Telemetry",
+      "version": "1.9.1",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.testing.extensions.telemetry/1.9.1/microsoft.testing.extensions.telemetry.nuspec",
+      "contentHash": "No5AudZMmSb+uNXjlgL2y3/stHD2IT4uxqc5yHwkE+/nNux9jbKcaJMvcp9SwgP4DVD8L9/P3OUz8mmmcvEIdQ=="
+    },
+    {
+      "name": "Microsoft.Testing.Extensions.TrxReport.Abstractions",
+      "version": "1.9.1",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.testing.extensions.trxreport.abstractions/1.9.1/microsoft.testing.extensions.trxreport.abstractions.nuspec",
+      "contentHash": "AL46Xe1WBi85Ntd4mNPvat5ZSsZ2uejiVqoKCypr8J3wK0elA5xJ3AN4G/Q4GIwzUFnggZoH/DBjnr9J18IO/g=="
+    },
+    {
+      "name": "Microsoft.Testing.Platform",
+      "version": "1.9.1",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.testing.platform/1.9.1/microsoft.testing.platform.nuspec",
+      "contentHash": "QafNtNSmEI0zazdebnsIkDKmFtTSpmx/5PLOjURWwozcPb3tvRxzosQSL8xwYNM1iPhhKiBksXZyRSE2COisrA=="
+    },
+    {
+      "name": "Microsoft.Testing.Platform.MSBuild",
+      "version": "1.9.1",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.testing.platform.msbuild/1.9.1/microsoft.testing.platform.msbuild.nuspec",
+      "contentHash": "oTUtyR4X/s9ytuiNA29FGsNCCH0rNmY5Wdm14NCKLjTM1cT9edVSlA+rGS/mVmusPqcP0l/x9qOnMXg16v87RQ=="
+    },
+    {
+      "name": "Microsoft.TestPlatform.ObjectModel",
+      "version": "18.11.0",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.testplatform.objectmodel/18.11.0/microsoft.testplatform.objectmodel.nuspec",
+      "contentHash": "BXBHYnwSOljKute8UYCMXOLAdB7awxEMppPSpqOF1ZxLD/W/OH+vTBgFaXA7q0aditJTVXSMVenel+wOkEIyNg=="
+    },
+    {
+      "name": "Microsoft.TestPlatform.TestHost",
+      "version": "18.11.0",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.testplatform.testhost/18.11.0/microsoft.testplatform.testhost.nuspec",
+      "contentHash": "AKjwKpyRBwoQFQmpcchtoYlfJEBlaY/40uxBRi+qXP4NR7xT8t+XTJtOyEyumfvfJcH5pASs75LwNdXYRr4XNA=="
+    },
+    {
+      "name": "Microsoft.Win32.Registry",
+      "version": "5.0.0",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.win32.registry/5.0.0/microsoft.win32.registry.nuspec",
+      "contentHash": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg=="
+    },
+    {
+      "name": "xunit.analyzers",
+      "version": "1.27.0",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "Apache-2.0"
+      },
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.analyzers/1.27.0/xunit.analyzers.nuspec",
+      "contentHash": "y/pxIQaLvk/kxAoDkZW9GnHLCEqzwl5TW0vtX3pweyQpjizB9y3DXhb9pkw2dGeUqhLjsxvvJM1k89JowU6z3g=="
+    },
+    {
+      "name": "xunit.v3.assert",
+      "version": "3.2.2",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "Apache-2.0"
+      },
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.assert/3.2.2/xunit.v3.assert.nuspec",
+      "contentHash": "BPciBghgEEaJN/JG00QfCYDfEfnLgQhfnYEy+j1izoeHVNYd5+3Wm8GJ6JgYysOhpBPYGE+sbf75JtrRc7jrdA=="
+    },
+    {
+      "name": "xunit.v3.common",
+      "version": "3.2.2",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "Apache-2.0"
+      },
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.common/3.2.2/xunit.v3.common.nuspec",
+      "contentHash": "Hj775PEH6GTbbg0wfKRvG2hNspDCvTH9irXhH4qIWgdrOSV1sQlqPie+DOvFeigsFg2fxSM3ZAaaCDQs+KreFA=="
+    },
+    {
+      "name": "xunit.v3.core.mtp-v1",
+      "version": "3.2.2",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "Apache-2.0"
+      },
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.core.mtp-v1/3.2.2/xunit.v3.core.mtp-v1.nuspec",
+      "contentHash": "Ga5aA2Ca9ktz+5k3g5ukzwfexwoqwDUpV6z7atSEUvqtd6JuybU1XopHqg1oFd78QdTfZgZE9h5sHpO4qYIi5w=="
+    },
+    {
+      "name": "xunit.v3.extensibility.core",
+      "version": "3.2.2",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "Apache-2.0"
+      },
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.extensibility.core/3.2.2/xunit.v3.extensibility.core.nuspec",
+      "contentHash": "srY8z/oMPvh/t8axtO2DwrHajhFMH7tnqKildvYrVQIfICi8fOn3yIBWkVPAcrKmHMwvXRJ/XsQM3VMR6DOYfQ=="
+    },
+    {
+      "name": "xunit.v3.mtp-v1",
+      "version": "3.2.2",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "Apache-2.0"
+      },
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.mtp-v1/3.2.2/xunit.v3.mtp-v1.nuspec",
+      "contentHash": "O41aAzYKBT5PWqATa1oEWVNCyEUypFQ4va6K0kz37dduV3EKzXNMaV2UnEhufzU4Cce1I33gg0oldS8tGL5I0A=="
+    },
+    {
+      "name": "xunit.v3.runner.common",
+      "version": "3.2.2",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "Apache-2.0"
+      },
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.runner.common/3.2.2/xunit.v3.runner.common.nuspec",
+      "contentHash": "/hkHkQCzGrugelOAehprm7RIWdsUFVmIVaD6jDH/8DNGCymTlKKPTbGokD5czbAfqfex47mBP0sb0zbHYwrO/g=="
+    },
+    {
+      "name": "xunit.v3.runner.inproc.console",
+      "version": "3.2.2",
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net9.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "Apache-2.0"
+      },
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "source": "https://api.nuget.org/v3-flatcontainer/xunit.v3.runner.inproc.console/3.2.2/xunit.v3.runner.inproc.console.nuspec",
+      "contentHash": "ulWOdSvCk+bPXijJZ73bth9NyoOHsAs1ZOvamYbCkD4DNLX/Bd29Ve2ZNUwBbK0MqfIYWXHZViy/HKrdEC/izw=="
+    },
+    {
+      "name": "Microsoft.Bcl.Memory",
+      "version": "10.0.13",
+      "frameworks": [
+        "net8.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/microsoft.bcl.memory/10.0.13/microsoft.bcl.memory.nuspec",
+      "contentHash": "AOGTKbd+0Xzi/ZsU1n6TwHJqcZqVVRg1iLLNh+D2mQ3++lIRGcuSfH+TYosuqCo3259s0giL+mFJ2rxAf+xDSQ=="
+    },
+    {
+      "name": "System.Diagnostics.DiagnosticSource",
+      "version": "9.0.21",
+      "frameworks": [
+        "net8.0"
+      ],
+      "license": {
+        "type": "expression",
+        "value": "MIT"
+      },
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "source": "https://api.nuget.org/v3-flatcontainer/system.diagnostics.diagnosticsource/9.0.21/system.diagnostics.diagnosticsource.nuspec",
+      "contentHash": "T8BzakVyY9pf74/kMjCyl/iF+5X07KKAFzDUUWeGkjMJV5GLfDLveCyNTeBHhu7dKsA8uw0G/LLC2NsY83koKA=="
+    }
+  ]
+}

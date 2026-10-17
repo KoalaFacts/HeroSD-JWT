@@ -1,380 +1,204 @@
 using HeroSdJwt.Extensions;
 using HeroSdJwt.Primitives;
-using NBomber.CSharp;
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 
 namespace HeroSdJwt.Tests.Load;
 
 /// <summary>
-/// Load tests using NBomber to simulate realistic usage patterns and identify performance bottlenecks.
-/// These tests are skipped by default and should be run manually when needed.
+/// Manual load tests using the bounded BCL runner. Remove the relevant Skip to run in Release mode.
+/// The short runner correctness tests do not establish these manual performance baselines.
 /// </summary>
-/// <remarks>
-/// To run load tests manually, remove the Skip attribute and run:
-/// <code>
-/// dotnet test --filter "FullyQualifiedName~Load" --configuration Release
-/// </code>
-/// </remarks>
-public class SdJwtLoadTests
+public class SdJwtLoadTests(ITestOutputHelper output)
 {
-    /// <summary>
-    /// Load test for SD-JWT issuance - simulates creating many SD-JWTs concurrently.
-    /// Tests the scalability of the issuance process under high load.
-    /// Baseline (after 30.3x presentation optimization): RPS > 50, P99 < 100ms
-    /// </summary>
-    [Fact(Skip = "Load test - run manually when needed")]
-    public void IssuanceLoadTest_HandlesHighConcurrency()
-    {
-        // Arrange
-        var issuer = TestHelpers.CreateIssuer();
-        var key = new byte[32];
-        RandomNumberGenerator.Fill(key);
+    private static LoadSchedule TenSeconds(int rate) => new(new LoadStage(rate, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10)));
 
-        var scenario = Scenario.Create("sd_jwt_issuance", async context =>
+    [Fact(Skip = "Load test - run manually when needed")]
+    public async Task IssuanceLoadTest_HandlesHighConcurrency()
+    {
+        var stats = await RunIssuanceAsync(TenSeconds(100), TestContext.Current.CancellationToken);
+        CheckHarness(stats);
+        Assert.True(stats.RequestsPerSecond > 50, $"Expected RPS > 50, got {stats.RequestsPerSecond}");
+        Assert.True(stats.P99Milliseconds < 100, $"Expected P99 < 100ms, got {stats.P99Milliseconds}ms");
+    }
+
+    [Fact(Skip = "Load test - run manually when needed")]
+    public async Task VerificationLoadTest_HandlesHighThroughput()
+    {
+        var stats = await RunVerificationAsync(TenSeconds(200), TestContext.Current.CancellationToken);
+        CheckHarness(stats);
+        Assert.True(stats.RequestsPerSecond > 100, $"Expected RPS > 100, got {stats.RequestsPerSecond}");
+        Assert.True(stats.P99Milliseconds < 50, $"Expected P99 < 50ms, got {stats.P99Milliseconds}ms");
+        Assert.True(stats.FailureCount == 0, $"Expected 0 failures, got {stats.FailureCount}");
+    }
+
+    [Fact(Skip = "Load test - run manually when needed")]
+    public async Task KeyBindingLoadTest_HandlesCryptographicLoad()
+    {
+        var stats = await RunKeyBindingAsync(TenSeconds(50), TestContext.Current.CancellationToken);
+        CheckHarness(stats);
+        Assert.True(stats.RequestsPerSecond > 25, $"Expected RPS > 25, got {stats.RequestsPerSecond}");
+        Assert.True(stats.P99Milliseconds < 200, $"Expected P99 < 200ms, got {stats.P99Milliseconds}ms");
+    }
+
+    [Fact(Skip = "Load test - run manually when needed")]
+    public async Task MixedScenarioLoadTest_SimulatesRealisticUsage()
+    {
+        var results = await RunMixedAsync(TenSeconds(50), TenSeconds(100), TestContext.Current.CancellationToken);
+        var issuance = results.Single(s => s.Name == "issuance");
+        var verification = results.Single(s => s.Name == "verification");
+        CheckHarness(issuance);
+        CheckHarness(verification);
+        Assert.True(issuance.RequestsPerSecond > 30, $"Expected issuance RPS > 30, got {issuance.RequestsPerSecond}");
+        Assert.True(verification.RequestsPerSecond > 40, $"Expected verification RPS > 40, got {verification.RequestsPerSecond}");
+    }
+
+    [Fact(Skip = "Load test - run manually when needed")]
+    public async Task StressTest_RampUpToBreakingPoint()
+    {
+        var schedule = new LoadSchedule([.. new[] { 10, 50, 100, 200 }.Select(rate =>
+            new LoadStage(rate, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10), Ramp: true))]);
+        var stats = await RunStressAsync(schedule, TestContext.Current.CancellationToken);
+        CheckHarness(stats);
+        Assert.True(stats.P99Milliseconds < 500, $"Expected P99 latency < 500ms under stress, got {stats.P99Milliseconds}ms");
+        Assert.True(stats.FailureRate < 0.01, $"Expected fail rate < 1%, got {stats.FailureRate * 100:F2}%");
+    }
+
+    private void CheckHarness(LoadResult result)
+    {
+        output.WriteLine(result.ToString());
+        Assert.True(result.SuccessCount > 0, "The workload must actually complete successful operations.");
+        Assert.True(result.RejectedCount == 0, $"Runner capacity was exceeded: {result.RejectedCount} arrivals rejected.");
+    }
+
+    internal static async Task<LoadResult> RunIssuanceAsync(LoadSchedule schedule, CancellationToken token)
+    {
+        var issuer = TestHelpers.CreateIssuer();
+        var key = RandomNumberGenerator.GetBytes(32);
+        var scenario = new LoadScenario("sd_jwt_issuance", schedule, (id, _) =>
         {
             var claims = new Dictionary<string, object>
             {
-                ["sub"] = $"user-{context.ScenarioInfo.InstanceId}-{context.InvocationNumber}",
-                ["email"] = $"user{context.InvocationNumber}@example.com",
-                ["name"] = $"User {context.InvocationNumber}",
+                ["sub"] = $"user-{id}",
+                ["email"] = $"user{id}@example.com",
+                ["name"] = $"User {id}",
                 ["role"] = "tester"
             };
-
-            try
-            {
-                var sdJwt = issuer.CreateSdJwt(
-                    claims,
-                    ["email", "name"],
-                    key,
-                    Primitives.HashAlgorithm.Sha256,
-                    SignatureAlgorithm.HS256);
-
-                return await Task.FromResult(Response.Ok(sdJwt));
-            }
-            catch (Exception ex)
-            {
-                return await Task.FromResult(Response.Fail<object>(ex.Message));
-            }
-        })
-        .WithoutWarmUp()
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 100, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(10))
-        );
-
-        // Act
-        var stats = NBomberRunner
-            .RegisterScenarios(scenario)
-            .Run();
-
-        // Assert
-        var scenarioStats = stats.ScenarioStats[0];
-        Assert.True(scenarioStats.Ok.Request.RPS > 50,
-            $"Expected RPS > 50, got {scenarioStats.Ok.Request.RPS}");
-        Assert.True(scenarioStats.Ok.Latency.Percent99 < 100,
-            $"Expected P99 < 100ms, got {scenarioStats.Ok.Latency.Percent99}ms");
+            issuer.CreateSdJwt(claims, ["email", "name"], key, Primitives.HashAlgorithm.Sha256, SignatureAlgorithm.HS256);
+            return ValueTask.FromResult(true);
+        });
+        return (await BoundedLoadRunner.RunAsync([scenario], token))[0];
     }
 
-    /// <summary>
-    /// Load test for SD-JWT verification - simulates verifying many presentations concurrently.
-    /// Tests the scalability of the verification process under high load.
-    /// Baseline (after 30.3x presentation optimization): RPS > 100, P99 < 50ms, 0 failures
-    /// </summary>
-    [Fact(Skip = "Load test - run manually when needed")]
-    public void VerificationLoadTest_HandlesHighThroughput()
+    internal static async Task<LoadResult> RunVerificationAsync(LoadSchedule schedule, CancellationToken token)
     {
-        // Arrange - Pre-generate SD-JWTs for verification
         var issuer = TestHelpers.CreateIssuer();
         var verifier = TestHelpers.CreateVerifier();
-        var key = new byte[32];
-        RandomNumberGenerator.Fill(key);
-
+        var key = RandomNumberGenerator.GetBytes(32);
         var presentations = new List<string>();
         for (int i = 0; i < 1000; i++)
         {
+            token.ThrowIfCancellationRequested();
             var claims = new Dictionary<string, object>
             {
                 ["sub"] = $"user-{i}",
                 ["email"] = $"user{i}@example.com",
                 ["name"] = $"User {i}"
             };
-
-            var sdJwt = issuer.CreateSdJwt(
-                claims,
-                ["email"],
-                key,
-                Primitives.HashAlgorithm.Sha256,
-                SignatureAlgorithm.HS256);
-
+            var sdJwt = issuer.CreateSdJwt(claims, ["email"], key, Primitives.HashAlgorithm.Sha256, SignatureAlgorithm.HS256);
             presentations.Add(sdJwt.ToPresentation("email"));
         }
-
-        var scenario = Scenario.Create("sd_jwt_verification", async context =>
-        {
-            var presentation = presentations[(int)(context.InvocationNumber % presentations.Count)];
-
-            try
-            {
-                var result = verifier.TryVerifyPresentation(presentation, key);
-
-                return result.IsValid
-                    ? await Task.FromResult(Response.Ok(result))
-                    : await Task.FromResult(Response.Fail<object>("Verification failed"));
-            }
-            catch (Exception ex)
-            {
-                return await Task.FromResult(Response.Fail<object>(ex.Message));
-            }
-        })
-        .WithoutWarmUp()
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 200, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(10))
-        );
-
-        // Act
-        var stats = NBomberRunner
-            .RegisterScenarios(scenario)
-            .Run();
-
-        // Assert
-        var scenarioStats = stats.ScenarioStats[0];
-        Assert.True(scenarioStats.Ok.Request.RPS > 100,
-            $"Expected RPS > 100, got {scenarioStats.Ok.Request.RPS}");
-        Assert.True(scenarioStats.Ok.Latency.Percent99 < 50,
-            $"Expected P99 < 50ms, got {scenarioStats.Ok.Latency.Percent99}ms");
-        Assert.True(scenarioStats.Fail.Request.Count == 0,
-            $"Expected 0 failures, got {scenarioStats.Fail.Request.Count}");
+        var scenario = new LoadScenario("sd_jwt_verification", schedule, (id, _) =>
+            ValueTask.FromResult(verifier.TryVerifyPresentation(presentations[(int)(id % presentations.Count)], key).IsValid));
+        return (await BoundedLoadRunner.RunAsync([scenario], token))[0];
     }
 
-    /// <summary>
-    /// Load test for key binding operations - simulates creating and verifying JWTs with key binding.
-    /// Tests the performance of cryptographic operations under high load.
-    /// Baseline (after 30.3x presentation optimization): RPS > 25, P99 < 200ms
-    /// </summary>
-    [Fact(Skip = "Load test - run manually when needed")]
-    public void KeyBindingLoadTest_HandlesCryptographicLoad()
+    internal static async Task<LoadResult> RunKeyBindingAsync(LoadSchedule schedule, CancellationToken token)
     {
-        // Arrange
         var issuer = TestHelpers.CreateIssuer();
         var verifier = TestHelpers.CreateVerifier();
-        var issuerKey = new byte[32];
-        RandomNumberGenerator.Fill(issuerKey);
-
-        // Pre-generate holder key pairs for reuse
+        var issuerKey = RandomNumberGenerator.GetBytes(32);
         var holderKeys = new List<ECDsa>();
-        for (int i = 0; i < 10; i++)
+        try
         {
-            var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-            holderKeys.Add(ecdsa);
-        }
-
-        var scenario = Scenario.Create("sd_jwt_key_binding", async context =>
-        {
-            try
+            for (int i = 0; i < 10; i++)
             {
-                var holderKey = holderKeys[(int)(context.InvocationNumber % holderKeys.Count)];
-                var holderPublicKey = holderKey.ExportSubjectPublicKeyInfo();
-
-                var claims = new Dictionary<string, object>
+                token.ThrowIfCancellationRequested();
+                holderKeys.Add(ECDsa.Create(ECCurve.NamedCurves.nistP256));
+            }
+            var scenario = new LoadScenario("sd_jwt_key_binding", schedule, (id, _) =>
+            {
+                var holderKey = holderKeys[(int)(id % holderKeys.Count)];
+                byte[] holderPublicKey;
+                // ECDsa instance methods are not promised thread-safe; keep each export in the measured operation.
+                lock (holderKey)
                 {
-                    ["sub"] = $"user-{context.InvocationNumber}",
-                    ["email"] = $"user{context.InvocationNumber}@example.com"
-                };
-
-                var sdJwt = issuer.CreateSdJwt(
-                    claims,
-                    ["email"],
-                    issuerKey,
-                    Primitives.HashAlgorithm.Sha256,
-                    SignatureAlgorithm.HS256,
-                    holderPublicKey);
-
-                var presentation = sdJwt.ToPresentation("email");
-                var result = verifier.TryVerifyPresentation(presentation, issuerKey);
-
-                return result.IsValid
-                    ? await Task.FromResult(Response.Ok(result))
-                    : await Task.FromResult(Response.Fail<object>("Verification failed"));
-            }
-            catch (Exception ex)
-            {
-                return await Task.FromResult(Response.Fail<object>(ex.Message));
-            }
-        })
-        .WithoutWarmUp()
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 50, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(10))
-        );
-
-        // Act
-        var stats = NBomberRunner
-            .RegisterScenarios(scenario)
-            .Run();
-
-        // Assert - Cleanup
-        foreach (var key in holderKeys)
-        {
-            key.Dispose();
-        }
-
-        var scenarioStats = stats.ScenarioStats[0];
-        Assert.True(scenarioStats.Ok.Request.RPS > 25,
-            $"Expected RPS > 25, got {scenarioStats.Ok.Request.RPS}");
-        Assert.True(scenarioStats.Ok.Latency.Percent99 < 200,
-            $"Expected P99 < 200ms, got {scenarioStats.Ok.Latency.Percent99}ms");
-    }
-
-    /// <summary>
-    /// Mixed scenario load test - simulates realistic usage with issuance and verification.
-    /// Tests the system under a realistic workload pattern.
-    /// Baseline (after 30.3x presentation optimization): Issuance RPS > 30, Verification RPS > 40
-    /// </summary>
-    [Fact(Skip = "Load test - run manually when needed")]
-    public void MixedScenarioLoadTest_SimulatesRealisticUsage()
-    {
-        // Arrange
-        var issuer = TestHelpers.CreateIssuer();
-        var verifier = TestHelpers.CreateVerifier();
-        var key = new byte[32];
-        RandomNumberGenerator.Fill(key);
-
-        var presentations = new System.Collections.Concurrent.ConcurrentBag<string>();
-
-        var issuanceScenario = Scenario.Create("issuance", async context =>
-        {
-            try
-            {
-                var claims = new Dictionary<string, object>
-                {
-                    ["sub"] = $"user-{context.InvocationNumber}",
-                    ["email"] = $"user{context.InvocationNumber}@example.com",
-                    ["name"] = $"User {context.InvocationNumber}",
-                    ["department"] = "Engineering"
-                };
-
-                var sdJwt = issuer.CreateSdJwt(
-                    claims,
-                    ["email", "department"],
-                    key,
-                    Primitives.HashAlgorithm.Sha256,
-                    SignatureAlgorithm.HS256);
-
-                var presentation = sdJwt.ToPresentation("email", "department");
-                presentations.Add(presentation);
-
-                return await Task.FromResult(Response.Ok());
-            }
-            catch (Exception ex)
-            {
-                return await Task.FromResult(Response.Fail<object>(ex.Message));
-            }
-        })
-        .WithoutWarmUp()
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 50, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(10))
-        );
-
-        var verificationScenario = Scenario.Create("verification", async context =>
-        {
-            try
-            {
-                if (presentations.TryTake(out var presentation))
-                {
-                    var result = verifier.TryVerifyPresentation(presentation, key);
-                    return result.IsValid ? await Task.FromResult(Response.Ok()) : (NBomber.Contracts.IResponse)await Task.FromResult(Response.Fail<object>("Verification failed"));
+                    holderPublicKey = holderKey.ExportSubjectPublicKeyInfo();
                 }
-
-                return await Task.FromResult(Response.Fail<object>("No presentations available"));
-            }
-            catch (Exception ex)
-            {
-                return await Task.FromResult(Response.Fail<object>(ex.Message));
-            }
-        })
-        .WithoutWarmUp()
-        .WithLoadSimulations(
-            Simulation.Inject(rate: 100, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(10))
-        );
-
-        // Act
-        var stats = NBomberRunner
-            .RegisterScenarios(issuanceScenario, verificationScenario)
-            .Run();
-
-        // Assert
-        var issuanceStats = stats.ScenarioStats.First(s => s.ScenarioName == "issuance");
-        var verificationStats = stats.ScenarioStats.First(s => s.ScenarioName == "verification");
-
-        Assert.True(issuanceStats.Ok.Request.RPS > 30,
-            $"Expected issuance RPS > 30, got {issuanceStats.Ok.Request.RPS}");
-        Assert.True(verificationStats.Ok.Request.RPS > 40,
-            $"Expected verification RPS > 40, got {verificationStats.Ok.Request.RPS} (after 30.3x optimization)");
-    }
-
-    /// <summary>
-    /// Stress test with ramp-up - gradually increases load to find breaking point.
-    /// Tests system behavior under increasing stress.
-    /// Baseline (after 30.3x presentation optimization): P99 < 500ms under stress, fail rate < 1%
-    /// </summary>
-    [Fact(Skip = "Load test - run manually when needed")]
-    public void StressTest_RampUpToBreakingPoint()
-    {
-        // Arrange
-        var issuer = TestHelpers.CreateIssuer();
-        var verifier = TestHelpers.CreateVerifier();
-        var key = new byte[32];
-        RandomNumberGenerator.Fill(key);
-
-        var scenario = Scenario.Create("stress_test", async context =>
-        {
-            try
-            {
                 var claims = new Dictionary<string, object>
                 {
-                    ["sub"] = $"user-{context.InvocationNumber}",
-                    ["email"] = $"user{context.InvocationNumber}@example.com"
+                    ["sub"] = $"user-{id}",
+                    ["email"] = $"user{id}@example.com"
                 };
-
-                var sdJwt = issuer.CreateSdJwt(
-                    claims,
-                    ["email"],
-                    key,
-                    Primitives.HashAlgorithm.Sha256,
-                    SignatureAlgorithm.HS256);
-
+                var sdJwt = issuer.CreateSdJwt(claims, ["email"], issuerKey, Primitives.HashAlgorithm.Sha256,
+                    SignatureAlgorithm.HS256, holderPublicKey);
                 var presentation = sdJwt.ToPresentation("email");
-                var result = verifier.TryVerifyPresentation(presentation, key);
-
-                return result.IsValid ? await Task.FromResult(Response.Ok()) : (NBomber.Contracts.IResponse)await Task.FromResult(Response.Fail<object>("Verification failed"));
-            }
-            catch (Exception ex)
+                return ValueTask.FromResult(verifier.TryVerifyPresentation(presentation, issuerKey).IsValid);
+            });
+            return (await BoundedLoadRunner.RunAsync([scenario], token))[0];
+        }
+        finally
+        {
+            foreach (var key in holderKeys)
             {
-                return await Task.FromResult(Response.Fail<object>(ex.Message));
+                key.Dispose();
             }
-        })
-        .WithoutWarmUp()
-        .WithLoadSimulations(
-            Simulation.RampingInject(rate: 10, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(10)),
-            Simulation.RampingInject(rate: 50, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(10)),
-            Simulation.RampingInject(rate: 100, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(10)),
-            Simulation.RampingInject(rate: 200, interval: TimeSpan.FromSeconds(1), during: TimeSpan.FromSeconds(10))
-        );
+        }
+    }
 
-        // Act
-        var stats = NBomberRunner
-            .RegisterScenarios(scenario)
-            .Run();
+    internal static Task<LoadResult[]> RunMixedAsync(LoadSchedule issuanceSchedule, LoadSchedule verificationSchedule, CancellationToken token)
+        => BoundedLoadRunner.RunAsync(CreateMixedScenarios(issuanceSchedule, verificationSchedule), token);
 
-        // Assert
-        var scenarioStats = stats.ScenarioStats[0];
+    internal static LoadScenario[] CreateMixedScenarios(LoadSchedule issuanceSchedule, LoadSchedule verificationSchedule)
+    {
+        var issuer = TestHelpers.CreateIssuer();
+        var verifier = TestHelpers.CreateVerifier();
+        var key = RandomNumberGenerator.GetBytes(32);
+        // Each issuance adds at most one item; the finite arrival budget bounds retained payloads.
+        var presentations = new ConcurrentBag<string>();
+        var issuance = new LoadScenario("issuance", issuanceSchedule, (id, _) =>
+        {
+            var claims = new Dictionary<string, object>
+            {
+                ["sub"] = $"user-{id}",
+                ["email"] = $"user{id}@example.com",
+                ["name"] = $"User {id}",
+                ["department"] = "Engineering"
+            };
+            var sdJwt = issuer.CreateSdJwt(claims, ["email", "department"], key, Primitives.HashAlgorithm.Sha256, SignatureAlgorithm.HS256);
+            presentations.Add(sdJwt.ToPresentation("email", "department"));
+            return ValueTask.FromResult(true);
+        });
+        var verification = new LoadScenario("verification", verificationSchedule, (_, _) =>
+            ValueTask.FromResult(presentations.TryTake(out var presentation) && verifier.TryVerifyPresentation(presentation, key).IsValid));
+        return [issuance, verification];
+    }
 
-        // The test succeeds if the system handles the load without crashing
-        // and maintains reasonable latency even under high load
-        Assert.True(scenarioStats.Ok.Latency.Percent99 < 500,
-            $"Expected P99 latency < 500ms under stress, got {scenarioStats.Ok.Latency.Percent99}ms");
-
-        // Fail rate should be low even under stress
-        var totalRequests = scenarioStats.Ok.Request.Count + scenarioStats.Fail.Request.Count;
-        var failRate = totalRequests > 0 ? scenarioStats.Fail.Request.Count / (double)totalRequests : 0;
-        Assert.True(failRate < 0.01, $"Expected fail rate < 1%, got {failRate * 100:F2}%");
+    internal static async Task<LoadResult> RunStressAsync(LoadSchedule schedule, CancellationToken token)
+    {
+        var issuer = TestHelpers.CreateIssuer();
+        var verifier = TestHelpers.CreateVerifier();
+        var key = RandomNumberGenerator.GetBytes(32);
+        var scenario = new LoadScenario("stress_test", schedule, (id, _) =>
+        {
+            var claims = new Dictionary<string, object>
+            {
+                ["sub"] = $"user-{id}",
+                ["email"] = $"user{id}@example.com"
+            };
+            var sdJwt = issuer.CreateSdJwt(claims, ["email"], key, Primitives.HashAlgorithm.Sha256, SignatureAlgorithm.HS256);
+            return ValueTask.FromResult(verifier.TryVerifyPresentation(sdJwt.ToPresentation("email"), key).IsValid);
+        });
+        return (await BoundedLoadRunner.RunAsync([scenario], token))[0];
     }
 }
