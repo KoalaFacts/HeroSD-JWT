@@ -31,6 +31,7 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   CI: true
+  BENCHMARK_ALERT_THRESHOLD: '105%'
 
 jobs:
   setup:
@@ -70,12 +71,13 @@ jobs:
       id: baseline
       env:
         FRAMEWORK: ${{ matrix.framework }}
+        CURRENT_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       run: |
         python3 -m unittest discover -s .github/scripts/tests
         git fetch --no-tags origin gh-pages
         git show FETCH_HEAD:dev/bench/data.js > "$RUNNER_TEMP/benchmark-baseline.js"
         python3 .github/scripts/validate_benchmark_baseline.py \
-          "$RUNNER_TEMP/benchmark-baseline.js" "$FRAMEWORK" >> "$GITHUB_OUTPUT"
+          "$RUNNER_TEMP/benchmark-baseline.js" "$FRAMEWORK" "$CURRENT_COMMIT" >> "$GITHUB_OUTPUT"
 
     - name: Restore dependencies (all frameworks, locked mode)
       run: dotnet restore
@@ -117,6 +119,18 @@ jobs:
         jq -s '.[0] * {Benchmarks: (map(.Benchmarks // []) | add)}' $FILES > "$OUTPUT_FILE"
         echo "Combined benchmark report: $OUTPUT_FILE"
 
+    - name: Validate job identities and prepare comparison report
+      id: comparison
+      env:
+        FRAMEWORK: ${{ matrix.framework }}
+        CURRENT_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: |
+        REPORT_DIR=benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results
+        python3 .github/scripts/prepare_benchmark_comparison.py \
+          "$RUNNER_TEMP/benchmark-baseline.js" "$FRAMEWORK" \
+          "$REPORT_DIR/combined-report-$FRAMEWORK.json" \
+          "$REPORT_DIR/comparison-report-$FRAMEWORK.json" "$CURRENT_COMMIT"
+
     # Requires the 'gh-pages' branch to exist: the action fetches it to read the
     # baseline (and, on pushes to main, appends history under dev/bench/). If the
     # branch is missing the step fails with "couldn't find remote ref gh-pages".
@@ -126,17 +140,34 @@ jobs:
       with:
         name: ${{ steps.baseline.outputs.name }}
         tool: 'benchmarkdotnet'
-        output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/combined-report-${{ matrix.framework }}.json
+        output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/comparison-report-${{ matrix.framework }}.json
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        # Pin metadata for workflow_dispatch, whose branch may move during the run.
+        ref: ${{ github.sha }}
         comment-on-alert: true
         fail-on-alert: true
-        alert-threshold: '105%'  # Fail if >5% slower
+        alert-threshold: ${{ env.BENCHMARK_ALERT_THRESHOLD }}  # Fail if >5% slower
         comment-always: true
         benchmark-data-dir-path: 'dev/bench'
         auto-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         summary-always: true
         gh-pages-branch: 'gh-pages'
         save-data-file: true
+
+    - name: Enforce verified snapshot performance gate
+      if: always() && steps.comparison.outcome == 'success'
+      env:
+        FRAMEWORK: ${{ matrix.framework }}
+        CURRENT_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: |
+        # The store action refetches gh-pages. A concurrent update must not bypass
+        # the exact baseline whose job identities were validated for this run.
+        REPORT_DIR=benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results
+        python3 .github/scripts/prepare_benchmark_comparison.py \
+          "$RUNNER_TEMP/benchmark-baseline.js" "$FRAMEWORK" \
+          "$REPORT_DIR/combined-report-$FRAMEWORK.json" \
+          "$REPORT_DIR/comparison-report-$FRAMEWORK.json" "$CURRENT_COMMIT" \
+          --check "$BENCHMARK_ALERT_THRESHOLD"
 
     - name: Upload benchmark artifacts ${{ matrix.framework }}
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

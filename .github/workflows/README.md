@@ -160,6 +160,28 @@ was reset. The original raw file remains available at
 (SHA-256 `de68172aa4e39d645c3c83d95d5de0f1a7005d18f22ff2f671e907033b9976bc`).
 Adding a framework requires a separately verified, attributable baseline first.
 
+The comparison also requires one unambiguous identity per configured benchmark
+job. BenchmarkDotNet's `FullName` alone omits the job; the third-party action
+otherwise compares both the 10-iteration job and 3-iteration ShortRun with the
+first historical row of that name. The preflight now rejects duplicate historical
+names explicitly. Historical rows are not assigned a job from array order, dropped,
+or reset. Until verified job provenance is available, this is an infrastructure
+ambiguity failure, not a cleared performance gate.
+
+For future attributable histories, `prepare_benchmark_comparison.py` writes a
+separate `comparison-report-netX.0.json`, adding the configured iteration, launch,
+and warmup counts to each `FullName`. Random generated job IDs and retained sample
+counts are not identities. Original full reports, combined JSON, measurement
+arrays, and history remain unchanged. Unknown job configurations, duplicate jobs,
+missing/extra identities, unsupported units, and invalid timing values fail closed.
+
+The action retains its existing storage and comment behavior. Because it may
+refetch a newer gh-pages revision, a mandatory second comparison also enforces
+the same 105% limit against the exact preflight snapshot, even if the store step
+fails. Both gates read the single `BENCHMARK_ALERT_THRESHOLD` setting. Dispatch
+metadata is pinned to the workflow SHA. Neither a concurrent history update nor
+an unmatched benchmark can silently bypass the verified-snapshot gate.
+
 Raw BenchmarkDotNet logs and full/combined JSON reports are uploaded directly from
 `BenchmarkDotNet.Artifacts` after both successful and failed benchmark comparisons,
 independent of the comparison action's outputs. Each framework has its own

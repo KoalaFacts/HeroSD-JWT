@@ -13,6 +13,29 @@ SPEC.loader.exec_module(baseline)
 
 
 class BenchmarkBaselineTests(unittest.TestCase):
+    def test_rejects_ambiguous_duplicate_job_names_without_changing_history(self):
+        import copy
+        data = {"entries": {"Benchmark net10.0": [{
+            "tool": "benchmarkdotnet", "benches": [
+                {"name": "IssueWithHmac(50)", "value": 206014.1846923828},
+                {"name": "IssueWithHmac(50)", "value": 239807.73502604166},
+            ],
+        }]}}
+        original = copy.deepcopy(data)
+        with self.assertRaisesRegex(ValueError, "Ambiguous.*job.*IssueWithHmac"):
+            baseline.select_suite(data, "net10.0")
+        self.assertEqual(data, original)
+
+    def test_rejects_duplicate_names_even_when_values_match(self):
+        data = {"entries": {"Benchmark net8.0": [{
+            "tool": "benchmarkdotnet", "benches": [
+                {"name": "SameMethod", "value": 1},
+                {"name": "SameMethod", "value": 1},
+            ],
+        }]}}
+        with self.assertRaisesRegex(ValueError, "Ambiguous"):
+            baseline.select_suite(data, "net8.0")
+
     def test_selects_only_the_requested_framework(self):
         data = {"entries": {
             f"Benchmark net{version}.0": [{
@@ -63,7 +86,8 @@ class BenchmarkBaselineTests(unittest.TestCase):
         workflow = (SCRIPT_DIR.parent / "workflows" / "perform-benchmarks.yml").read_text()
         self.assertIn("name: ${{ steps.baseline.outputs.name }}", workflow)
         self.assertIn("validate_benchmark_baseline.py", workflow)
-        self.assertIn("alert-threshold: '105%'", workflow)
+        self.assertIn("BENCHMARK_ALERT_THRESHOLD: '105%'", workflow)
+        self.assertIn("alert-threshold: ${{ env.BENCHMARK_ALERT_THRESHOLD }}", workflow)
         self.assertIn("fail-on-alert: true", workflow)
 
 
