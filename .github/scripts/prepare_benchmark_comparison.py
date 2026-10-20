@@ -16,6 +16,23 @@ def numeric_value(value, identity):
     return value
 
 
+def job_identity(benchmark):
+    """Use configured iterations, never Statistics.N after outlier removal."""
+    name = benchmark.get("FullName")
+    if not isinstance(name, str) or not name:
+        raise ValueError("Missing current benchmark FullName")
+    display = benchmark.get("DisplayInfo", "")
+    # Fail closed if a characteristic is added rather than silently dropping it.
+    match = re.fullmatch(
+        r".+: (Job-[A-Z]+|ShortRun)\(IterationCount=(10|3), "
+        r"LaunchCount=1, WarmupCount=3\)(?: \[.+\])?", display
+    )
+    if match is None or ((match[1] == "ShortRun") != (match[2] == "3")):
+        raise ValueError(f"Unsupported benchmark job configuration: {display}")
+    identity = f"{name} [job:IterationCount={match[2]},LaunchCount=1,WarmupCount=3]"
+    return identity, int(match[2])
+
+
 def prepare_report(data, framework, report, current_commit):
     suite = select_suite(data, framework, current_commit)
     previous = next(entry for entry in reversed(data["entries"][suite])
@@ -31,20 +48,7 @@ def prepare_report(data, framework, report, current_commit):
         raise ValueError("Missing or empty current benchmark report")
     seen = set()
     for benchmark in benchmarks:
-        name = benchmark.get("FullName")
-        if not isinstance(name, str) or not name:
-            raise ValueError("Missing current benchmark FullName")
-        display = benchmark.get("DisplayInfo", "")
-        # These are the two jobs configured by this repository. Fail closed if
-        # another characteristic is added, rather than silently dropping it.
-        match = re.fullmatch(
-            r".+: (Job-[A-Z]+|ShortRun)\(IterationCount=(10|3), "
-            r"LaunchCount=1, WarmupCount=3\)(?: \[.+\])?", display
-        )
-        if match is None or ((match[1] == "ShortRun") != (match[2] == "3")):
-            raise ValueError(f"Unsupported benchmark job configuration: {display}")
-        # Use configured iteration count, never Statistics.N after outlier removal.
-        identity = f"{name} [job:IterationCount={match[2]},LaunchCount=1,WarmupCount=3]"
+        identity, _ = job_identity(benchmark)
         statistics = benchmark.get("Statistics")
         numeric_value(statistics.get("Mean") if isinstance(statistics, dict) else None, identity)
         if identity in seen:

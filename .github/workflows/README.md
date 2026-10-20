@@ -134,14 +134,35 @@ This directory contains the automated CI/CD workflows for HeroSD-JWT. The workfl
 ### 5. Performance Benchmarks (`perform-benchmarks.yml`)
 
 Each target framework compares only with its own `Benchmark netX.0` history in
-`gh-pages:dev/bench/data.js`. The preflight rejects a missing or empty framework
-baseline before running benchmarks; it never falls back to another framework or
-silently starts a new baseline. Keep the 105% alert threshold and failure gate.
+`gh-pages:dev/bench/data.js`. Historical validation rejects a missing or empty framework
+baseline before comparison or storage; it never falls back to another framework or
+silently starts a new baseline. Current evidence collection runs first so an
+unrecoverable historical ambiguity does not prevent fresh diagnostic evidence. Keep the 105% alert threshold and failure gate.
 Run the preflight regression tests with:
 
 ```bash
 python3 -m unittest discover -s .github/scripts/tests
 ```
+
+`collect_benchmark_reports.py` replaces the lossy wildcard `jq` combination. It
+requires exactly one full report for each of the three benchmark classes, the
+16 expected names and both configured jobs for every name (32 rows total).
+Each file must use the pinned BenchmarkDotNet 0.15.8 nanosecond JSON schema,
+target the requested .NET framework, and have identical host metadata. Missing,
+extra, duplicate or unknown identities, invalid numbers, and mismatched units
+fail closed before historical comparison. Raw files and measurement arrays are
+not rewritten; the separate `current-evidence-netX.0.json` manifest records every
+source filename and SHA-256, each row's source and configured job, the combined
+report hash, and the actual checked-out Git revision/tree (which can be a PR merge
+revision rather than the PR head). These hashes bind the retained evidence;
+they do not independently authenticate an arbitrary externally supplied report.
+
+The ordinary CI matrix and 60-minute job timeout are unchanged. After successful
+current collection, historical validation must still pass before comparison or
+storage can run. While historical job coverage is unverified, the manifest says
+`historical_coverage_unverified` and `historical_acceptance_passed: false`; complete
+current evidence is diagnostic, not an acceptance verdict. The always-run artifact
+upload retains reports and manifests even when historical validation fails.
 
 The original shared `Benchmark` history is preserved unchanged. Its three entries
 were copied into framework-specific histories using the non-overlapping store
