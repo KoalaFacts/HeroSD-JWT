@@ -196,13 +196,26 @@ counts are not identities. Original full reports, combined JSON, measurement
 arrays, and history remain unchanged. Unknown job configurations, duplicate jobs,
 missing/extra identities, unsupported units, and invalid timing values fail closed.
 
-The exact preflight snapshot's 105% gate runs before the storage action, which
-can push to gh-pages before evaluating its own alerts. A failed snapshot check
-must never reach that action. Because the action may refetch a newer gh-pages
-revision, the retained snapshot is also checked afterward, even if the store
-step fails. All gates read the single `BENCHMARK_ALERT_THRESHOLD` setting. Dispatch
-metadata is pinned to the workflow SHA. Neither a concurrent history update nor
-an unmatched benchmark can silently bypass the verified-snapshot gate.
+The exact preflight snapshot's 105% gate runs before local result preparation.
+The upstream action has `auto-push: false`: it may refetch history and prepare a
+local gh-pages commit, but must finish its own alerts before any remote write.
+The retained snapshot is also checked afterward, even if preparation fails.
+
+`validate_benchmark_publication.py` resolves the prepared commit once and checks
+both the retained snapshot and that commit's actual parent using the same
+historical identity and 105% gates. It requires preservation of all history and
+other framework suites, exactly one appended result matching the original raw
+means/names/units and current commit, and no unrelated changed files. Only after
+all steps succeed may a push-to-main run publish that exact validated SHA using
+an ordinary non-force push. There is no refetch/rebase/retry after validation.
+Competing forward/divergent updates therefore fail closed; this is not a strict
+compare-and-swap guarantee against administrative force-rewinds of gh-pages.
+Main-push framework jobs are serialized to avoid competing with each other;
+PR/dispatch jobs retain parallel measurement and never publish remotely.
+
+All gates read the single `BENCHMARK_ALERT_THRESHOLD` setting. Dispatch metadata
+is pinned to the workflow SHA. No new historical acceptance or credentials are
+introduced, and existing snapshot and upstream alert checks remain enabled.
 
 Current raw collection requires nonempty `Workload`/`Result` measurements and
 an integer `Statistics.N` equal to their count, as defined by the pinned BDN
