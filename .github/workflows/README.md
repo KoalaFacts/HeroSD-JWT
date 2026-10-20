@@ -196,12 +196,19 @@ counts are not identities. Original full reports, combined JSON, measurement
 arrays, and history remain unchanged. Unknown job configurations, duplicate jobs,
 missing/extra identities, unsupported units, and invalid timing values fail closed.
 
-The action retains its existing storage and comment behavior. Because it may
-refetch a newer gh-pages revision, a mandatory second comparison also enforces
-the same 105% limit against the exact preflight snapshot, even if the store step
-fails. Both gates read the single `BENCHMARK_ALERT_THRESHOLD` setting. Dispatch
+The exact preflight snapshot's 105% gate runs before the storage action, which
+can push to gh-pages before evaluating its own alerts. A failed snapshot check
+must never reach that action. Because the action may refetch a newer gh-pages
+revision, the retained snapshot is also checked afterward, even if the store
+step fails. All gates read the single `BENCHMARK_ALERT_THRESHOLD` setting. Dispatch
 metadata is pinned to the workflow SHA. Neither a concurrent history update nor
 an unmatched benchmark can silently bypass the verified-snapshot gate.
+
+Current raw collection requires nonempty `Workload`/`Result` measurements and
+an integer `Statistics.N` equal to their count, as defined by the pinned BDN
+exporter. These are already adjusted by BDN for overhead and outlier removal;
+the retained count need not equal the configured iteration count. This check
+does not recompute outliers, reassign jobs, or establish historical acceptance.
 
 Raw BenchmarkDotNet logs and full/combined JSON reports are uploaded directly from
 `BenchmarkDotNet.Artifacts` after both successful and failed benchmark comparisons,

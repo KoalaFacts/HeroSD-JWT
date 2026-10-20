@@ -82,6 +82,16 @@ def validate_row(row, type_name):
         operations = measurement.get("Operations")
         if type(operations) is not int or operations <= 0:
             raise ValueError(f"Invalid raw operation count: {identity}")
+    # BDN ResultStatistics uses Workload/Result, after its own outlier removal
+    # and overhead adjustment. Do not substitute the configured iteration count.
+    results = [measurement for measurement in measurements
+               if measurement.get("IterationMode") == "Workload"
+               and measurement.get("IterationStage") == "Result"]
+    if not results:
+        raise ValueError(f"Missing workload result measurements: {identity}")
+    sample_count = statistics.get("N")
+    if type(sample_count) is not int or sample_count != len(results):
+        raise ValueError(f"Statistics sample count differs from workload results: {identity}")
     return identity, iterations
 
 

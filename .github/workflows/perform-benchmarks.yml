@@ -110,7 +110,7 @@ jobs:
         python3 .github/scripts/validate_benchmark_baseline.py \
           "$RUNNER_TEMP/benchmark-baseline.js" "$FRAMEWORK" "$CURRENT_COMMIT" >> "$GITHUB_OUTPUT"
 
-    - name: Validate job identities and prepare comparison report
+    - name: Validate job identities and snapshot performance before storage
       id: comparison
       env:
         FRAMEWORK: ${{ matrix.framework }}
@@ -120,11 +120,14 @@ jobs:
         python3 .github/scripts/prepare_benchmark_comparison.py \
           "$RUNNER_TEMP/benchmark-baseline.js" "$FRAMEWORK" \
           "$REPORT_DIR/combined-report-$FRAMEWORK.json" \
-          "$REPORT_DIR/comparison-report-$FRAMEWORK.json" "$CURRENT_COMMIT"
+          "$REPORT_DIR/comparison-report-$FRAMEWORK.json" "$CURRENT_COMMIT" \
+          --check "$BENCHMARK_ALERT_THRESHOLD"
 
     # Requires the 'gh-pages' branch to exist: the action fetches it to read the
     # baseline (and, on pushes to main, appends history under dev/bench/). If the
     # branch is missing the step fails with "couldn't find remote ref gh-pages".
+    # The action may push before checking its own alerts. The preceding snapshot
+    # gate must succeed before this action can publish any current measurements.
     - name: Store benchmark result ${{ matrix.framework }}
       id: storebenchmark
       uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2

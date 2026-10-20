@@ -38,7 +38,13 @@ def fixtures():
                 rows.append(dict(Namespace='HeroSdJwt.Benchmarks', Type=type_name, Method=method,
                                  Parameters=parameters, FullName=name, DisplayInfo=display,
                                  Statistics={'Mean': 100, 'StandardDeviation': 1, 'N': count - 1},
-                                 Measurements=[{'Nanoseconds': 100, 'Operations': 1}],
+                                 Measurements=[{'IterationMode': 'Workload', 'IterationStage': 'Warmup',
+                                                'LaunchIndex': 1, 'IterationIndex': 1,
+                                                'Nanoseconds': 100, 'Operations': 1}] +
+                                              [{'IterationMode': 'Workload', 'IterationStage': 'Result',
+                                                'LaunchIndex': 1, 'IterationIndex': index + 1,
+                                                'Nanoseconds': 100, 'Operations': 1}
+                                               for index in range(count - 1)],
                                  Memory={'BytesAllocatedPerOperation': 20}))
         reports[f'HeroSdJwt.Benchmarks.{type_name}-report-full-compressed.json'] = {
             'Title': type_name + '-timestamp',
@@ -166,6 +172,26 @@ class CurrentReportTests(unittest.TestCase):
             self.collect(reports)
         with tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
             collector.collect_reports(Path(directory), 'net10.0', 'unknown', 'b' * 40)
+
+    def test_rejects_statistics_without_workload_result_measurements(self):
+        reports = fixtures()
+        row = next(iter(reports.values()))['Benchmarks'][0]
+        row['Measurements'] = [m for m in row['Measurements'] if m['IterationStage'] != 'Result']
+        with self.assertRaisesRegex(ValueError, 'workload result'):
+            self.collect(reports)
+
+    def test_rejects_statistics_sample_count_disagreeing_with_results(self):
+        for count in (0, -1, True, None, '9', 9.0, 10):
+            reports = fixtures()
+            next(iter(reports.values()))['Benchmarks'][0]['Statistics']['N'] = count
+            with self.subTest(count=count), self.assertRaisesRegex(ValueError, 'sample count'):
+                self.collect(reports)
+
+    def test_accepts_result_count_after_outlier_removal_without_changing_identity(self):
+        (combined, manifest), _ = self.collect()
+        row = combined['Benchmarks'][0]
+        self.assertEqual(row['Statistics']['N'], 9)
+        self.assertEqual(manifest['rows'][0]['iteration_count'], 10)
 
     def test_cli_publishes_only_after_validation_and_never_replaces_raw(self):
         with tempfile.TemporaryDirectory() as directory:
