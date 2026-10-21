@@ -521,7 +521,7 @@ Create `COMPLIANCE.md` showing:
 - Throughput limits documentation
 
 **Recommendation:**
-- Add k6 or NBomber load tests
+- Run the built-in manual BCL load tests or add service-level k6 tests
 - Test concurrent verification scenarios
 - Memory profiling under load
 - Document performance limits
@@ -892,7 +892,7 @@ Add for critical algorithms (round-trip properties)
 ---
 
 #### 4.4 Load & Stress Testing (3 days)
-- [ ] Add k6 or NBomber load tests
+- [ ] Run the built-in manual BCL load tests or add service-level k6 tests
 - [ ] Test concurrent verification
 - [ ] Profile memory under load
 - [ ] Document performance limits
@@ -925,7 +925,7 @@ Add for critical algorithms (round-trip properties)
 - [ ] **Additional Signature Algorithms** - ES384, ES512, PS256 support
 - [ ] **Architecture Documentation** - ADRs and design pattern explanations
 - [ ] **Compliance Documentation** - Spec coverage matrix
-- [ ] **Load Testing** - k6/NBomber scenarios
+- [ ] **Load Testing** - built-in BCL or service-level k6 scenarios
 - [ ] **Advanced Verification** - Custom validators and policies
 - [ ] **Side-Channel Analysis** - Constant-time operation verification
 

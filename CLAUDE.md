@@ -73,7 +73,7 @@ Everything is built around **constructor-injected interfaces** — the implement
 
 ## Tests
 
-- xUnit **v3** (`xunit.v3`). Property-based tests use **CsCheck**, fake data uses **Bogus**, load tests use **NBomber**.
+- xUnit **v3** (`xunit.v3`). Property-based tests use **CsCheck**, fake data uses **Bogus**, manual load tests use a **bounded BCL-only runner** (see `docs/development/manual-load-runner.md`).
 - Two test projects: `tests/HeroSdJwt.Tests` (core) and `tests/HeroSdJwt.AspNetCore.Tests`. Internals are exposed via `InternalsVisibleTo("HeroSdJwt.Tests")`.
 - Tests are organized **by folder/namespace**, not xUnit traits: `Unit/`, `Integration/`, `Contract/`, `Scenarios/`, `Security/`, `Fuzz/`, `Load/`, plus `Verification/ReplayProtection/`. The README's `--filter "Category=Integration"` examples do not match any traits in this repo — filter by `FullyQualifiedName~<Namespace-or-ClassName>` instead.
 - Test naming convention: `Should_ExpectedBehavior_When_Condition`.
