@@ -119,11 +119,14 @@ class BenchmarkPublicationCommitTests(unittest.TestCase):
         action = next(step for step in steps if "id: storebenchmark\n" in step)
         ref = re.search(r"(?m)^        ref: \$\{\{ (.*?) \}\}$", action)
         self.assertIsNotNone(ref)
+        return self.resolve_event_ref(ref[1], event_sha, pr_head)
+
+    def resolve_event_ref(self, expression, event_sha, pr_head):
         # Resolve the actual action input using these two documented event values.
         # This is an offline context fixture, not an execution of the hosted action.
         values = {"github.sha": event_sha, "github.event.pull_request.head.sha": pr_head}
-        terms = [term.strip() for term in ref[1].split("||")]
-        self.assertTrue(all(term in values for term in terms), ref[1])
+        terms = [term.strip() for term in expression.split("||")]
+        self.assertTrue(all(term in values for term in terms), expression)
         return next(values[term] for term in terms if values[term])
 
     def assert_workflow_report_validates(self, event_sha, pr_head=None):
@@ -139,6 +142,35 @@ class BenchmarkPublicationCommitTests(unittest.TestCase):
         self.git("commit", "--allow-empty", "-m", "synthetic PR merge")
         merge_sha = self.git("rev-parse", "HEAD").strip()
         self.assertNotEqual(merge_sha, self.current)
+        self.assert_workflow_report_validates(merge_sha, pr_head=self.current)
+
+    def test_pr_checkout_benchmarks_head_without_base_only_merge_content(self):
+        self.git("switch", "-c", "updated-base")
+        (self.work / "base-only").write_text("Unrelated base branch code\n")
+        self.git("add", "base-only")
+        self.git("commit", "-m", "base branch advanced")
+        self.git("switch", "source")
+        (self.work / "head-only").write_text("PR head code\n")
+        self.git("add", "head-only")
+        self.git("commit", "-m", "PR head")
+        self.current = self.git("rev-parse", "HEAD").strip()
+        self.git("merge", "--no-ff", "updated-base", "-m", "synthetic PR merge")
+        merge_sha = self.git("rev-parse", "HEAD").strip()
+        self.assertTrue((self.work / "base-only").exists())
+        self.assertNotEqual(self.git("rev-parse", f"{merge_sha}^{{tree}}"),
+                            self.git("rev-parse", f"{self.current}^{{tree}}"))
+        checkouts = re.findall(r"^ {4,6}- name: Checkout code\n.*?(?=^ {4,6}- name:|\Z)",
+                               WORKFLOW.read_text(), re.MULTILINE | re.DOTALL)
+        self.assertEqual(len(checkouts), 2, "Both configuration and benchmark jobs must use the same source")
+        for checkout in checkouts:
+            ref = re.search(r"(?m)^ +ref: \$\{\{ (.*?) \}\}$", checkout)
+            # actions/checkout's pull_request default is the synthetic merge SHA.
+            actual = self.resolve_event_ref(ref[1] if ref else "github.sha", merge_sha, self.current)
+            self.git("checkout", "--detach", actual)
+            self.assertEqual(self.git("rev-parse", "HEAD").strip(), self.current)
+            self.assertEqual(self.workflow_reported_commit(merge_sha, self.current), self.current)
+            self.assertFalse((self.work / "base-only").exists())
+            self.assertEqual((self.work / "head-only").read_text(), "PR head code\n")
         self.assert_workflow_report_validates(merge_sha, pr_head=self.current)
 
     def test_push_action_reports_event_commit(self):
