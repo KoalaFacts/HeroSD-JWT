@@ -136,8 +136,8 @@ jobs:
         tool: 'benchmarkdotnet'
         output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/comparison-report-${{ matrix.framework }}.json
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        # Pin metadata for workflow_dispatch, whose branch may move during the run.
-        ref: ${{ github.sha }}
+        # Match CURRENT_COMMIT: PR head, or the pinned event SHA for push/dispatch.
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
         comment-on-alert: true
         fail-on-alert: true
         alert-threshold: ${{ env.BENCHMARK_ALERT_THRESHOLD }}  # Fail if >5% slower

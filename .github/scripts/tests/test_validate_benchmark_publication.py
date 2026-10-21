@@ -113,6 +113,42 @@ class BenchmarkPublicationCommitTests(unittest.TestCase):
         self.assertRegex(workflow, r"(?m)^        auto-push: false$")
         self.assertIn("        fail-on-alert: true", workflow)
 
+    def workflow_reported_commit(self, event_sha, pr_head=None):
+        steps = re.findall(r"^    - name:.*?(?=^    - name:|\Z)", WORKFLOW.read_text(),
+                           re.MULTILINE | re.DOTALL)
+        action = next(step for step in steps if "id: storebenchmark\n" in step)
+        ref = re.search(r"(?m)^        ref: \$\{\{ (.*?) \}\}$", action)
+        self.assertIsNotNone(ref)
+        # Resolve the actual action input using these two documented event values.
+        # This is an offline context fixture, not an execution of the hosted action.
+        values = {"github.sha": event_sha, "github.event.pull_request.head.sha": pr_head}
+        terms = [term.strip() for term in ref[1].split("||")]
+        self.assertTrue(all(term in values for term in terms), ref[1])
+        return next(values[term] for term in terms if values[term])
+
+    def assert_workflow_report_validates(self, event_sha, pr_head=None):
+        reported = self.workflow_reported_commit(event_sha, pr_head)
+        candidate = self.candidate(mutate_candidate=lambda data: data["entries"]["Benchmark net10.0"][-1]
+                                   ["commit"].update(id=reported))
+        result = self.validate()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, f"commit={candidate}\n")
+        self.assertEqual(self.remote_tip(), self.parent)
+
+    def test_pr_action_reports_head_not_synthetic_merge_commit(self):
+        self.git("commit", "--allow-empty", "-m", "synthetic PR merge")
+        merge_sha = self.git("rev-parse", "HEAD").strip()
+        self.assertNotEqual(merge_sha, self.current)
+        self.assert_workflow_report_validates(merge_sha, pr_head=self.current)
+
+    def test_push_action_reports_event_commit(self):
+        self.assert_workflow_report_validates(self.current)
+
+    def test_dispatch_action_reports_pinned_event_commit_when_branch_moves(self):
+        self.git("commit", "--allow-empty", "-m", "branch moved after dispatch")
+        self.assertNotEqual(self.git("rev-parse", "HEAD").strip(), self.current)
+        self.assert_workflow_report_validates(self.current)
+
     def test_publication_follows_all_gates_and_never_runs_for_pr_or_dispatch(self):
         workflow = WORKFLOW.read_text()
         steps = re.findall(r"^    - name:.*?(?=^    - name:|\Z)", workflow, re.MULTILINE | re.DOTALL)

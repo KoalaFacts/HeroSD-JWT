@@ -173,7 +173,7 @@ class BenchmarkComparisonTests(unittest.TestCase):
         workflow = (SCRIPT_DIR.parent / "workflows/perform-benchmarks.yml").read_text()
         self.assertIn("id: comparison", workflow)
         self.assertIn("if: always() && steps.comparison.outcome == 'success'", workflow)
-        self.assertIn("ref: ${{ github.sha }}", workflow)
+        self.assertIn("ref: ${{ github.event.pull_request.head.sha || github.sha }}", workflow)
         self.assertIn("BENCHMARK_ALERT_THRESHOLD: '105%'", workflow)
         self.assertIn("alert-threshold: ${{ env.BENCHMARK_ALERT_THRESHOLD }}", workflow)
         self.assertIn('--check "$BENCHMARK_ALERT_THRESHOLD"', workflow)
