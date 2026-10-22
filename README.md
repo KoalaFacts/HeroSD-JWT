@@ -48,7 +48,7 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
 - **Decoy digests** - Privacy protection against claim enumeration
 - Holder-controlled claim disclosure
 - Cryptographic verification of signatures and claim integrity
-- Zero third-party dependencies (uses only .NET BCL including `System.Security.Cryptography`, `System.Text.Json`, `System.Buffers.Text`)
+- Uses .NET BCL APIs plus `Microsoft.Bcl.Memory` on .NET 8; Ed25519 uses vendored source (see [Requirements](#requirements))
 - Constant-time comparison for security-critical operations
 - Algorithm confusion prevention (rejects "none" algorithm)
 - Multi-targeting .NET 8.0, .NET 9.0, and .NET 10.0
@@ -68,12 +68,12 @@ Install-Package HeroSD-JWT
 
 ### Simple API (Recommended)
 
-The fluent builder provides an easy, discoverable API:
+The fluent builder provides an easy, discoverable API. Subsequent snippets reuse imports and variables from the preceding example unless marked as alternatives:
 
 ```csharp
 using HeroSdJwt.Issuance;
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.Extensions;
 
 // Generate a signing key
 var keyGen = KeyGenerator.Instance;
@@ -100,6 +100,7 @@ Selectively disclose nested properties with full JSONPath-style syntax:
 ```csharp
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.KeyBinding;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 
 // Create SD-JWT with nested object claims
@@ -122,7 +123,7 @@ var presentation = sdJwt.ToPresentation("address.street", "address.geo.lat");
 
 // Verifier receives and verifies
 var verifier = new SdJwtVerifier(
-    new SdJwtVerificationOptions(),
+    new SdJwtVerificationOptions { ExpectedKeyType = VerificationKeyType.Symmetric },
     new EcPublicKeyConverter(),
     new SignatureValidator(),
     new DigestValidator(),
@@ -236,7 +237,7 @@ KeyResolver resolver = keyId => keys.GetValueOrDefault(keyId);
 
 // Verify presentation using key resolver
 var verifier = new SdJwtVerifier(
-    new SdJwtVerificationOptions(),
+    new SdJwtVerificationOptions { ExpectedKeyType = VerificationKeyType.Symmetric },
     new EcPublicKeyConverter(),
     new SignatureValidator(),
     new DigestValidator(),
@@ -317,6 +318,8 @@ For advanced scenarios, use the low-level API:
 ```csharp
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.Primitives;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 var issuer = new SdJwtIssuer(
     new DisclosureGenerator(),
@@ -329,7 +332,7 @@ var claims = new Dictionary<string, object>
     ["email"] = "alice@example.com"
 };
 
-var signingKey = new byte[32];
+var signingKey = KeyGenerator.Instance.GenerateHmacKey();
 var sdJwt = issuer.CreateSdJwt(
     claims,
     selectivelyDisclosableClaims: new[] { "email" },
@@ -393,6 +396,8 @@ var sdJwt = issuer.CreateSdJwt(
 
 ### 2. Holder: Create Presentation
 
+Continue from the first Advanced API HMAC example (the `email` claim, `sdJwt`, and `signingKey`); the array and asymmetric examples above are separate alternatives.
+
 ```csharp
 using HeroSdJwt.Presentation;
 
@@ -401,11 +406,11 @@ var presenter = new SdJwtPresenter();
 
 var presentation = presenter.CreatePresentation(
     sdJwt,
-    claimsToDisclose: new[] { "birthdate" } // Only disclose birthdate
+    selectedClaimNames: new[] { "email" } // Disclose the issuer's email claim
 );
 
 // Format for transmission
-string presentationString = presentation.ToCombinedFormat();
+string presentationString = presenter.FormatPresentation(presentation);
 // Format: "eyJhbGc...jwt...~WyI2cU1R...disclosure..."
 ```
 
@@ -414,39 +419,35 @@ string presentationString = presentation.ToCombinedFormat();
 ```csharp
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.KeyBinding;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
-
-// Parse presentation string
-var parts = presentationString.Split('~');
-var jwt = parts[0];
-var disclosures = parts[1..^1]; // All parts between JWT and key binding
 
 // Verify presentation
 var verifier = new SdJwtVerifier(
-    new SdJwtVerificationOptions(),
+    new SdJwtVerificationOptions { ExpectedKeyType = VerificationKeyType.Symmetric },
     new EcPublicKeyConverter(),
     new SignatureValidator(),
     new DigestValidator(),
     new KeyBindingValidator(),
     new ClaimValidator());
-var verificationKey = new byte[32]; // Same key used for signing (HS256)
+var verificationKey = signingKey; // Reuse the actual HS256 signing key from the issuer example
 
 // Option 1: Throws exception on failure (recommended for most cases)
 var result = verifier.VerifyPresentation(presentationString, verificationKey);
-Console.WriteLine($"Birthdate: {result.DisclosedClaims["birthdate"]}");
+Console.WriteLine($"Email: {result.DisclosedClaims["email"]}");
 
 // Option 2: Returns result without throwing (Try* pattern)
-var result = verifier.TryVerifyPresentation(presentationString, verificationKey);
-if (result.IsValid)
+var tryResult = verifier.TryVerifyPresentation(presentationString, verificationKey);
+if (tryResult.IsValid)
 {
     Console.WriteLine("Verification succeeded!");
-    var birthdate = result.DisclosedClaims["birthdate"];
-    Console.WriteLine($"Birthdate: {birthdate}");
+    var email = tryResult.DisclosedClaims["email"];
+    Console.WriteLine($"Email: {email}");
 }
 else
 {
     Console.WriteLine("Verification failed!");
-    foreach (var error in result.Errors)
+    foreach (var error in tryResult.Errors)
     {
         Console.WriteLine($"Error: {error}");
     }
@@ -485,7 +486,7 @@ This library implements security best practices:
 - **Constant-time comparison**: Uses `CryptographicOperations.FixedTimeEquals` for digest validation to prevent timing attacks
 - **Algorithm confusion prevention**: Rejects "none" algorithm (both lowercase and uppercase)
 - **Cryptographically secure salts**: Uses `RandomNumberGenerator` for 128-bit salts
-- **No third-party dependencies**: Zero supply chain risk from third-party packages (uses only .NET BCL)
+- **Dependency transparency**: .NET 8 uses `Microsoft.Bcl.Memory`; Ed25519 includes vendored source. Review package and source provenance as part of security maintenance.
 - **Strict validation**: Treats warnings as errors, validates all inputs
 
 ### Supported Algorithms
@@ -504,9 +505,10 @@ For vulnerability reporting and security best practices, see:
 
 ## Requirements
 
-- **.NET 8.0** (LTS), **.NET 9.0**, or **.NET 10.0**
-- No third-party dependencies (uses only .NET BCL)
-  - Note: .NET 8.0 includes a polyfill dependency (`Microsoft.Bcl.Memory`) to backport .NET 9.0+'s native `Base64Url` APIs
+- **Package consumers**: supported target frameworks are `net8.0`, `net9.0`, and `net10.0`.
+- **Building this repository**: install exactly **.NET SDK 10.0.402** as pinned by [global.json](global.json), with SDK roll-forward disabled. Install the corresponding runtimes to run tests for all three target frameworks.
+- **Core package dependencies**: the .NET 8 target references `Microsoft.Bcl.Memory` to provide `Base64Url` APIs; .NET 9/10 use the native BCL APIs.
+- **Vendored cryptography**: Ed25519 includes source ported from Chaos.NaCl; see [third-party notices](src/HeroSdJwt/Internal/Ed25519/THIRD-PARTY-NOTICES.txt).
 
 ## Native AOT and Trimming Compatibility
 
@@ -515,7 +517,7 @@ For vulnerability reporting and security best practices, see:
 **Implementation approach**:
 - Uses `Utf8JsonWriter` for all **internal** JSON serialization (disclosures, JWTs, key binding)
 - Direct dictionary parsing for JWK handling (no serialize-then-deserialize round-trips)
-- All cryptographic operations use standard BCL APIs
+- HMAC, RSA, and ECDSA use standard BCL APIs; Ed25519 uses the vendored implementation
 - Minimal reflection usage - only at API boundary for user-provided claim values
 
 **API Boundary Consideration**:
@@ -551,7 +553,7 @@ var claims = new Dictionary<string, object>
 
 ### Building the Project
 
-The project uses the modern .slnx solution format:
+Source builds require the exact .NET SDK **10.0.402** pinned in `global.json`, independently of the package's .NET 8/9/10 consumption targets. The project uses the modern .slnx solution format:
 
 ```bash
 # Build the entire solution
