@@ -676,7 +676,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
                 }
             }
 
-            if (disclosures.Count > 0 && expectedDigests.Count > 0)
+            if (disclosures.Count > 0)
             {
                 bool digestsValid = _digestValidator.ValidateAllDigests(disclosures, expectedDigests, algorithm);
                 if (!digestsValid)
@@ -999,6 +999,13 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
             // Recursively search array elements (increment depth)
             foreach (var item in element.EnumerateArray())
             {
+                if (item.ValueKind == JsonValueKind.Object &&
+                    item.TryGetProperty("...", out var arrayDigest) &&
+                    arrayDigest.ValueKind == JsonValueKind.String)
+                {
+                    digests.Add(new Digest(arrayDigest.GetString()!, algorithm));
+                }
+
                 CollectAllSdDigests(item, digests, algorithm, depth + 1);
             }
         }
