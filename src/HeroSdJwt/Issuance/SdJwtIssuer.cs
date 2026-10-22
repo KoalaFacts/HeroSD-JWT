@@ -248,11 +248,10 @@ public class SdJwtIssuer(
                     }
                     else
                     {
-                        // Non-selectively-disclosable element - keep as-is
-                        // Suppression: Converting JsonElement back to object for JWT payload construction.
-#pragma warning disable IL2026, IL3050 // JsonSerializer.Deserialize at API boundary
-                        newArray.Add(JsonSerializer.Deserialize<object>(arrayElement[i].GetRawText())!);
-#pragma warning restore IL2026, IL3050
+                        // Keep an independent JSON value without a reflection-based roundtrip.
+                        // Preserve the existing JSON null -> CLR null payload representation.
+                        var elementValue = arrayElement[i];
+                        newArray.Add(elementValue.ValueKind == JsonValueKind.Null ? null! : elementValue.Clone());
                     }
                 }
 
