@@ -13,8 +13,8 @@ public class RetainedJsonElementTests
     [InlineData("true")]
     [InlineData("1.2300e+02")]
     [InlineData("\"escaped\\u0061\\n\"")]
-    [InlineData("{\"nested\":[null,1.2300e+02,{\"x\":true}]}")]
-    [InlineData("[null,{\"nested\":[false,\"value\"]}]")]
+    [InlineData(/*lang=json,strict*/ "{\"nested\":[null,1.2300e+02,{\"x\":true}]}")]
+    [InlineData(/*lang=json,strict*/ "[null,{\"nested\":[false,\"value\"]}]")]
     public void Should_PreserveNullOwnershipAndSignedJson_When_RetainingArrayValue(string json)
     {
         var signer = new CapturingSigner();
@@ -38,8 +38,8 @@ public class RetainedJsonElementTests
     [InlineData("false")]
     [InlineData("1.2300e+02")]
     [InlineData("\"escaped\\u0061\\n\"")]
-    [InlineData("{\"nested\":[null,1.2300e+02,{\"x\":true}]}")]
-    [InlineData("[null,{\"nested\":[false,\"value\"]}]")]
+    [InlineData(/*lang=json,strict*/ "{\"nested\":[null,1.2300e+02,{\"x\":true}]}")]
+    [InlineData(/*lang=json,strict*/ "[null,{\"nested\":[false,\"value\"]}]")]
     public void Should_PreserveNullOwnershipAndSignedJson_When_RetainingNestedValue(string json)
     {
         var signer = new CapturingSigner();
@@ -103,7 +103,7 @@ public class RetainedJsonElementTests
         }
         Assert.Equal(signer.Jwt, new JwtSigner().CreateJwt(legacyPayload, new byte[32], SignatureAlgorithm.HS256));
 
-        using var payload = JsonDocument.Parse(HeroSdJwt.Encoding.Base64UrlEncoder.DecodeString(jwtAfterDisposal.Split('.')[1]));
+        using var payload = JsonDocument.Parse(Encoding.Base64UrlEncoder.DecodeString(jwtAfterDisposal.Split('.')[1]));
         var retained = isArray ? payload.RootElement.GetProperty(claim)[0] : payload.RootElement.GetProperty(claim).GetProperty("retained");
         using var expected = JsonDocument.Parse(json);
         // Both paths use JsonElement.WriteTo, including its escaping normalization.

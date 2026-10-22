@@ -134,14 +134,35 @@ This directory contains the automated CI/CD workflows for HeroSD-JWT. The workfl
 ### 5. Performance Benchmarks (`perform-benchmarks.yml`)
 
 Each target framework compares only with its own `Benchmark netX.0` history in
-`gh-pages:dev/bench/data.js`. The preflight rejects a missing or empty framework
-baseline before running benchmarks; it never falls back to another framework or
-silently starts a new baseline. Keep the 105% alert threshold and failure gate.
+`gh-pages:dev/bench/data.js`. Historical validation rejects a missing or empty framework
+baseline before comparison or storage; it never falls back to another framework or
+silently starts a new baseline. Current evidence collection runs first so an
+unrecoverable historical ambiguity does not prevent fresh diagnostic evidence. Keep the 105% alert threshold and failure gate.
 Run the preflight regression tests with:
 
 ```bash
 python3 -m unittest discover -s .github/scripts/tests
 ```
+
+`collect_benchmark_reports.py` replaces the lossy wildcard `jq` combination. It
+requires exactly one full report for each of the three benchmark classes, the
+16 expected names and both configured jobs for every name (32 rows total).
+Each file must use the pinned BenchmarkDotNet 0.15.8 nanosecond JSON schema,
+target the requested .NET framework, and have identical host metadata. Missing,
+extra, duplicate or unknown identities, invalid numbers, and mismatched units
+fail closed before historical comparison. Raw files and measurement arrays are
+not rewritten; the separate `current-evidence-netX.0.json` manifest records every
+source filename and SHA-256, each row's source and configured job, the combined
+report hash, and the actual checked-out Git revision/tree (which can be a PR merge
+revision rather than the PR head). These hashes bind the retained evidence;
+they do not independently authenticate an arbitrary externally supplied report.
+
+The ordinary CI matrix and 60-minute job timeout are unchanged. After successful
+current collection, historical validation must still pass before comparison or
+storage can run. While historical job coverage is unverified, the manifest says
+`historical_coverage_unverified` and `historical_acceptance_passed: false`; complete
+current evidence is diagnostic, not an acceptance verdict. The always-run artifact
+upload retains reports and manifests even when historical validation fails.
 
 The original shared `Benchmark` history is preserved unchanged. Its three entries
 were copied into framework-specific histories using the non-overlapping store
@@ -175,12 +196,32 @@ counts are not identities. Original full reports, combined JSON, measurement
 arrays, and history remain unchanged. Unknown job configurations, duplicate jobs,
 missing/extra identities, unsupported units, and invalid timing values fail closed.
 
-The action retains its existing storage and comment behavior. Because it may
-refetch a newer gh-pages revision, a mandatory second comparison also enforces
-the same 105% limit against the exact preflight snapshot, even if the store step
-fails. Both gates read the single `BENCHMARK_ALERT_THRESHOLD` setting. Dispatch
-metadata is pinned to the workflow SHA. Neither a concurrent history update nor
-an unmatched benchmark can silently bypass the verified-snapshot gate.
+The exact preflight snapshot's 105% gate runs before local result preparation.
+The upstream action has `auto-push: false`: it may refetch history and prepare a
+local gh-pages commit, but must finish its own alerts before any remote write.
+The retained snapshot is also checked afterward, even if preparation fails.
+
+`validate_benchmark_publication.py` resolves the prepared commit once and checks
+both the retained snapshot and that commit's actual parent using the same
+historical identity and 105% gates. It requires preservation of all history and
+other framework suites, exactly one appended result matching the original raw
+means/names/units and current commit, and no unrelated changed files. Only after
+all steps succeed may a push-to-main run publish that exact validated SHA using
+an ordinary non-force push. There is no refetch/rebase/retry after validation.
+Competing forward/divergent updates therefore fail closed; this is not a strict
+compare-and-swap guarantee against administrative force-rewinds of gh-pages.
+Main-push framework jobs are serialized to avoid competing with each other;
+PR/dispatch jobs retain parallel measurement and never publish remotely.
+
+All gates read the single `BENCHMARK_ALERT_THRESHOLD` setting. Dispatch metadata
+is pinned to the workflow SHA. No new historical acceptance or credentials are
+introduced, and existing snapshot and upstream alert checks remain enabled.
+
+Current raw collection requires nonempty `Workload`/`Result` measurements and
+an integer `Statistics.N` equal to their count, as defined by the pinned BDN
+exporter. These are already adjusted by BDN for overhead and outlier removal;
+the retained count need not equal the configured iteration count. This check
+does not recompute outliers, reassign jobs, or establish historical acceptance.
 
 Raw BenchmarkDotNet logs and full/combined JSON reports are uploaded directly from
 `BenchmarkDotNet.Artifacts` after both successful and failed benchmark comparisons,
