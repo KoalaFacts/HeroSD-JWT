@@ -4,7 +4,6 @@ using HeroSdJwt.Presentation;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Integration;
@@ -14,8 +13,8 @@ namespace HeroSdJwt.Tests.Integration;
 /// </summary>
 public class KeyBindingAlgorithmConformanceTests
 {
-    private const string Audience = "https://verifier.example.test";
-    private const string Nonce = "nonce-conformance";
+    private const string AUDIENCE = "https://verifier.example.test";
+    private const string NONCE = "nonce-conformance";
 
     [Theory]
     [InlineData(HashAlgorithm.Sha256)]
@@ -34,7 +33,7 @@ public class KeyBindingAlgorithmConformanceTests
             new Dictionary<string, object>
             {
                 ["sub"] = "holder-123",
-                ["aud"] = Audience,
+                ["aud"] = AUDIENCE,
                 ["department"] = "Security"
             },
             ["department"],
@@ -45,7 +44,7 @@ public class KeyBindingAlgorithmConformanceTests
 
         var presenter = new SdJwtPresenter();
         var withoutBinding = presenter.FormatPresentation(presenter.CreatePresentationWithAllClaims(sdJwt));
-        var digestInput = Encoding.ASCII.GetBytes(withoutBinding);
+        var digestInput = System.Text.Encoding.ASCII.GetBytes(withoutBinding);
         var expectedHash = disclosureAlgorithm switch
         {
             HashAlgorithm.Sha256 => SHA256.HashData(digestInput),
@@ -57,14 +56,14 @@ public class KeyBindingAlgorithmConformanceTests
         var verifier = TestHelpers.CreateVerifier(new SdJwtVerificationOptions
         {
             RequireKeyBinding = true,
-            ExpectedAudience = Audience,
-            ExpectedNonce = Nonce,
+            ExpectedAudience = AUDIENCE,
+            ExpectedNonce = NONCE,
             ExpectedKeyType = VerificationKeyType.Symmetric
         });
 
         var generator = new KeyBindingGenerator();
         var correctBinding = generator.CreateKeyBindingJwt(
-            holderPrivateKey, Base64UrlEncoder.Encode(expectedHash), Audience, Nonce);
+            holderPrivateKey, Base64UrlEncoder.Encode(expectedHash), AUDIENCE, NONCE);
         var correctPresentation = presenter.FormatPresentation(
             presenter.CreatePresentationWithAllClaims(sdJwt, correctBinding));
         var validResult = verifier.TryVerifyPresentation(correctPresentation, issuerKey);
@@ -74,7 +73,7 @@ public class KeyBindingAlgorithmConformanceTests
         {
             var incorrectSha256Hash = Base64UrlEncoder.Encode(SHA256.HashData(digestInput));
             var wrongBinding = generator.CreateKeyBindingJwt(
-                holderPrivateKey, incorrectSha256Hash, Audience, Nonce);
+                holderPrivateKey, incorrectSha256Hash, AUDIENCE, NONCE);
             var wrongPresentation = presenter.FormatPresentation(
                 presenter.CreatePresentationWithAllClaims(sdJwt, wrongBinding));
             var wrongResult = verifier.TryVerifyPresentation(wrongPresentation, issuerKey);
@@ -94,18 +93,18 @@ public class KeyBindingAlgorithmConformanceTests
         var privateKey = holder.ExportECPrivateKey();
         var publicKey = holder.ExportSubjectPublicKeyInfo();
 
-        var expectedHash = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.ASCII.GetBytes("signed.jwt~")));
+        var expectedHash = Base64UrlEncoder.Encode(SHA256.HashData(System.Text.Encoding.ASCII.GetBytes("signed.jwt~")));
         var legitimate = new KeyBindingGenerator().CreateKeyBindingJwt(
-            privateKey, expectedHash, Audience, Nonce);
+            privateKey, expectedHash, AUDIENCE, NONCE);
         var parts = legitimate.Split('.');
         var header = declaredAlgorithm == null
             ? "{\"typ\":\"kb+jwt\"}"
             : $"{{\"alg\":\"{declaredAlgorithm}\",\"typ\":\"kb+jwt\"}}";
         var signedInput = $"{Base64UrlEncoder.Encode(header)}.{parts[1]}";
-        var signature = holder.SignData(Encoding.ASCII.GetBytes(signedInput), HashAlgorithmName.SHA256);
+        var signature = holder.SignData(System.Text.Encoding.ASCII.GetBytes(signedInput), HashAlgorithmName.SHA256);
         var altered = $"{signedInput}.{Base64UrlEncoder.Encode(signature)}";
 
         Assert.False(new KeyBindingValidator().ValidateKeyBinding(
-            altered, publicKey, expectedHash, Audience, Nonce));
+            altered, publicKey, expectedHash, AUDIENCE, NONCE));
     }
 }
