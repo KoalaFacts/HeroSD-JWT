@@ -35,7 +35,7 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
         if (!EcCurveGuard.IsP256(ecdsa))
         {
             throw new ArgumentException(
-                "Only the named NIST P-256 elliptic curve is supported for ES256.",
+                $"Only P-256 (256-bit) elliptic curve is supported. Provided key is {ecdsa.KeySize}-bit; ES256 requires the named NIST P-256 curve.",
                 nameof(publicKeyBytes));
         }
 

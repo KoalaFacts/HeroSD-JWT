@@ -20,14 +20,14 @@ public sealed class Es256CurveConformanceTests
     private const string SD_HASH = "test-sd-hash";
 
     // Test-only secp256k1 SubjectPublicKeyInfo and SEC1 private key fixtures.
-    private static readonly byte[] Secp256k1PublicKey = Convert.FromBase64String(
+    private static readonly byte[] _secp256k1PublicKey = Convert.FromBase64String(
         "MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE5RZiQ2oLjAVSXWR3SUY8X0AUmw5sOQHCcoBGMnvsxN1/EBookky59vQxeYH5HXlsUsUh0owjt821PiWpoteMrg==");
-    private static readonly byte[] Secp256k1PrivateKey = Convert.FromBase64String(
+    private static readonly byte[] _secp256k1PrivateKey = Convert.FromBase64String(
         "MHQCAQEEIAAAAAAAiMVkPhKqfdZpX0sFODGr6ZIZNylAE5MBkCgjoAcGBSuBBAAKoUQDQgAE5RZiQ2oLjAVSXWR3SUY8X0AUmw5sOQHCcoBGMnvsxN1/EBookky59vQxeYH5HXlsUsUh0owjt821PiWpoteMrg==");
 
     // Genuine ECDSA/SHA-256 signature with JOSE raw R||S bytes over this
     // compact KB-JWT, using the secp256k1 private key above (not NIST P-256).
-    private const string Secp256k1SignedProof =
+    private const string SECP256K1_SIGNED_PROOF =
         "eyJhbGciOiJFUzI1NiIsInR5cCI6ImtiK2p3dCJ9." +
         "eyJzZF9oYXNoIjoidGVzdC1zZC1oYXNoIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZmllci5leGFtcGxlLnRlc3QiLCJub25jZSI6InNlY3AyNTZrMS1yZWdyZXNzaW9uIiwiaWF0IjoxODkzNDU2MDAwfQ." +
         "IuAYlNCJYk30Fjvg-tuIJcJ-t0-HciG_vggoDdHFx00gyhIk6PT7-i8bf7Wv8uFgeDG_CgSmCDeg4Dwq2LjgXA";
@@ -45,7 +45,7 @@ public sealed class Es256CurveConformanceTests
         Assert.True(validator.ValidateKeyBinding(
             p256Proof, p256.ExportSubjectPublicKeyInfo(), SD_HASH, AUDIENCE, NONCE));
         Assert.False(validator.ValidateKeyBinding(
-            Secp256k1SignedProof, Secp256k1PublicKey, SD_HASH, AUDIENCE, NONCE));
+            SECP256K1_SIGNED_PROOF, _secp256k1PublicKey, SD_HASH, AUDIENCE, NONCE));
     }
 
     [Fact]
@@ -53,8 +53,8 @@ public sealed class Es256CurveConformanceTests
     {
         var clock = new FixedTimeProvider(new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero));
         Assert.Throws<ArgumentException>(() => new KeyBindingGenerator(clock).CreateKeyBindingJwt(
-            Secp256k1PrivateKey, SD_HASH, AUDIENCE, NONCE));
-        Assert.Throws<ArgumentException>(() => new EcPublicKeyConverter().ToJwk(Secp256k1PublicKey));
+            _secp256k1PrivateKey, SD_HASH, AUDIENCE, NONCE));
+        Assert.Throws<ArgumentException>(() => new EcPublicKeyConverter().ToJwk(_secp256k1PublicKey));
 
         using var p256 = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         Assert.Equal("P-256", new EcPublicKeyConverter().ToJwk(p256.ExportSubjectPublicKeyInfo())["crv"]);
@@ -64,7 +64,7 @@ public sealed class Es256CurveConformanceTests
     public void Should_RejectUnsupportedLegacyHolderCurve_BeforeCallingKeyBindingValidator()
     {
         var secret = RandomNumberGenerator.GetBytes(32);
-        var cnf = new Dictionary<string, object> { ["jwk"] = Convert.ToBase64String(Secp256k1PublicKey) };
+        var cnf = new Dictionary<string, object> { ["jwk"] = Convert.ToBase64String(_secp256k1PublicKey) };
         var issued = SdJwtIssuerBuilder.Create()
             .WithClaim("iss", ISSUER)
             .WithClaim("aud", AUDIENCE)
@@ -88,7 +88,7 @@ public sealed class Es256CurveConformanceTests
 
         // The permissive test collaborator isolates the verifier's curve guard.
         // An unsupported holder key must be rejected before it is called.
-        var result = verifier.TryVerifyPresentation(issued + Secp256k1SignedProof, secret);
+        var result = verifier.TryVerifyPresentation(issued + SECP256K1_SIGNED_PROOF, secret);
 
         Assert.False(result.IsValid);
         Assert.False(bindingValidator.WasCalled);
