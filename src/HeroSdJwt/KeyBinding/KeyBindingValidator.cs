@@ -75,6 +75,13 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
 
         ArgumentNullException.ThrowIfNull(expectedAudiences);
 
+        // Direct callers bypass the SD-JWT presentation size gate. Bound a
+        // compact KB-JWT before splitting or decoding untrusted input.
+        if (keyBindingJwt.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            return false;
+        }
+
         if (expectedAudiences.Count == 0)
         {
             return false; // Spec requires audience binding
@@ -114,7 +121,8 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
 
             // Decode and validate header
             var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
-            var header = JsonDocument.Parse(headerJson).RootElement;
+            using var headerDocument = JsonDocument.Parse(headerJson);
+            var header = headerDocument.RootElement;
 
             // Only ES256 key-binding JWTs are supported. Reject a missing or
             // contradictory JOSE algorithm even if the bytes verify as ES256.
@@ -140,7 +148,8 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
 
             // Decode and validate payload
             var payloadJson = Base64UrlEncoder.DecodeString(payloadBase64);
-            var payload = JsonDocument.Parse(payloadJson).RootElement;
+            using var payloadDocument = JsonDocument.Parse(payloadJson);
+            var payload = payloadDocument.RootElement;
             if (payload.ValueKind != JsonValueKind.Object)
             {
                 return false; // The KB-JWT payload must be a JSON object.
