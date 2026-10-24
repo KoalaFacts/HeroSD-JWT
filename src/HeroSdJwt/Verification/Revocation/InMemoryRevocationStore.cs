@@ -79,7 +79,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     /// <inheritdoc />
     public Task<bool> IsJtiRevokedAsync(string jti, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(jti);
+        ValidateId(jti, nameof(jti));
         cancellationToken.ThrowIfCancellationRequested();
 
         // Expiration is effective at read time, not only when the five-minute
@@ -114,7 +114,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     /// <inheritdoc />
     public Task<bool> IsKeyRevokedAsync(string keyId, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(keyId);
+        ValidateId(keyId, nameof(keyId));
         cancellationToken.ThrowIfCancellationRequested();
 
         return Task.FromResult(_revokedKeys.ContainsKey(keyId));
@@ -123,7 +123,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     /// <inheritdoc />
     public Task UnrevokeKeyAsync(string keyId, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(keyId);
+        ValidateId(keyId, nameof(keyId));
         cancellationToken.ThrowIfCancellationRequested();
 
         // Idempotent: TryRemove returns false if key doesn't exist, which is fine
@@ -157,7 +157,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     /// <inheritdoc />
     public Task<bool> IsUserRevokedAsync(string userId, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(userId);
+        ValidateId(userId, nameof(userId));
         cancellationToken.ThrowIfCancellationRequested();
 
         return Task.FromResult(_revokedUsers.ContainsKey(userId));
@@ -166,7 +166,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     /// <inheritdoc />
     public Task UnrevokeUserAsync(string userId, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(userId);
+        ValidateId(userId, nameof(userId));
         cancellationToken.ThrowIfCancellationRequested();
 
         // Idempotent: TryRemove returns false if user doesn't exist, which is fine
@@ -201,6 +201,15 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         }
 
         return Task.CompletedTask;
+    }
+
+    private static void ValidateId(string value, string paramName)
+    {
+        ArgumentNullException.ThrowIfNull(value, paramName);
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new ArgumentException($"{paramName} cannot be empty or whitespace", paramName);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════

@@ -213,6 +213,56 @@ public class InMemoryRevocationStoreTests
         Assert.False(revokedAfter);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task IsJtiRevokedAsync_WithBlankIdentifier_ThrowsArgumentException(string invalid)
+    {
+        using var store = new InMemoryRevocationStore();
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => store.IsJtiRevokedAsync(invalid, _ct));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task IsKeyRevokedAsync_WithBlankIdentifier_ThrowsArgumentException(string invalid)
+    {
+        using var store = new InMemoryRevocationStore();
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => store.IsKeyRevokedAsync(invalid, _ct));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task UnrevokeKeyAsync_WithBlankIdentifier_ThrowsArgumentException(string invalid)
+    {
+        using var store = new InMemoryRevocationStore();
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => store.UnrevokeKeyAsync(invalid, _ct));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task IsUserRevokedAsync_WithBlankIdentifier_ThrowsArgumentException(string invalid)
+    {
+        using var store = new InMemoryRevocationStore();
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => store.IsUserRevokedAsync(invalid, _ct));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task UnrevokeUserAsync_WithBlankIdentifier_ThrowsArgumentException(string invalid)
+    {
+        using var store = new InMemoryRevocationStore();
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => store.UnrevokeUserAsync(invalid, _ct));
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // Cleanup Tests
     // ═══════════════════════════════════════════════════════════════════════
