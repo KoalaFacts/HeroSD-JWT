@@ -252,6 +252,27 @@ public class InMemoryRevocationStoreTests
         Assert.True(isRevoked);
     }
 
+    [Fact]
+    public void Dispose_WhenCalledTwice_DoesNotThrow()
+    {
+        var store = new InMemoryRevocationStore();
+
+        store.Dispose();
+        store.Dispose();
+    }
+
+    [Fact]
+    public async Task Dispose_WhenCalledConcurrently_DoesNotThrow()
+    {
+        var store = new InMemoryRevocationStore();
+        var disposals = Enumerable.Range(0, 32)
+            .Select(_ => Task.Run(store.Dispose))
+            .ToArray();
+
+        await Task.WhenAll(disposals);
+        store.Dispose();
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // Concurrency Tests
     // ═══════════════════════════════════════════════════════════════════════

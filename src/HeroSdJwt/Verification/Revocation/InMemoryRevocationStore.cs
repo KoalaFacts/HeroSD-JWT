@@ -37,6 +37,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     // Background cleanup loop for automatic cleanup of expired JTI entries
     private readonly CancellationTokenSource _cleanupCts = new();
     private readonly Task _cleanupTask;
+    private int _disposed;
 
     // Cleanup interval (default: 5 minutes)
     private static readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(5);
@@ -211,6 +212,13 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     /// </summary>
     public void Dispose()
     {
+        // A service container and an owning caller may both dispose the same
+        // instance. Only one caller may cancel and dispose the shared CTS.
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         _cleanupCts.Cancel();
         try
         {
