@@ -129,6 +129,15 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
                 return false;
             }
 
+            // No JOSE critical extensions (including RFC 7797's b64 override) are
+            // implemented. Never accept a valid signature while ignoring a required
+            // header interpretation; b64 also requires critical handling.
+            if (header.TryGetProperty("crit", out _) ||
+                header.TryGetProperty("b64", out _))
+            {
+                return false;
+            }
+
             // Decode and validate payload
             var payloadJson = Base64UrlEncoder.DecodeString(payloadBase64);
             var payload = JsonDocument.Parse(payloadJson).RootElement;
