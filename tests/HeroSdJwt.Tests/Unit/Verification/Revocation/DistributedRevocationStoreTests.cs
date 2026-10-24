@@ -74,6 +74,22 @@ public class DistributedRevocationStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task RevokeJtiAsync_ExistingPermanentMarkerMustRemainPermanent()
+    {
+        var backend = new AtomicRevocationCacheFixture();
+        var store = new DistributedRevocationStore(backend);
+        var token = TestContext.Current.CancellationToken;
+
+        // Simulate a permanent marker written before the atomic renewal upgrade.
+        // It must not become expiring when a second writer revokes the same JTI.
+        backend.Set("sdjwt:revocation:jti:permanent", [1], new DistributedCacheEntryOptions());
+        await store.RevokeJtiAsync("permanent", DateTimeOffset.UtcNow.AddMinutes(1), token);
+
+        backend.Advance(TimeSpan.FromMinutes(2));
+        Assert.True(await store.IsJtiRevokedAsync("permanent", token));
+    }
+
+    [Fact]
     public async Task RevokeJtiAsync_BackendFailureIsPropagatedWithoutAdmission()
     {
         var backend = new AtomicRevocationCacheFixture { FailAtomicWrites = true };
@@ -113,7 +129,11 @@ public class DistributedRevocationStoreTests : IDisposable
     // operation, not an actual Redis/SQL cross-instance implementation.
     private sealed class AtomicRevocationCacheFixture : IAtomicRevocationCache
     {
+#if NET9_0_OR_GREATER
+        private readonly Lock _sync = new();
+#else
         private readonly object _sync = new();
+#endif
         private readonly Dictionary<string, (byte[] Value, DateTimeOffset? Expires)> _entries = new(StringComparer.Ordinal);
         private DateTimeOffset _now = DateTimeOffset.UtcNow;
 
