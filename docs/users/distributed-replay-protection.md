@@ -136,3 +136,26 @@ configuration as part of deployment acceptance.
 Distributed revocation remains a separate adapter and does not require the
 atomic replay capability. Register it with `AddSdJwtDistributedRevocation()` when
 needed.
+
+## Single-instance in-memory cache capacity
+
+`InMemoryJtiCache` is suitable only for a single live process. It does not retain
+markers across restarts or share them with other nodes. **At `MaxCacheEntries`
+it now fails closed:** after reclaiming genuinely expired records, it throws
+`InvalidOperationException` for a new identifier rather than evicting any
+still-live replay marker. Duplicate identifiers continue to be rejected even
+when full. The default verifier converts a capacity failure into unsuccessful
+verification; applications using `IJtiCache` directly must also reject the
+operation on this exception. **Do not catch the exception and accept a token.**
+
+This intentionally replaces the older eviction-on-capacity behavior, which
+could make a used, still-valid JWT admissible again. Choose enough capacity
+for peak unique-JTI traffic across the *full* marker retention window, issue
+shorter-lived credentials when appropriate, and alert on capacity failures.
+Expired markers are reclaimed before refusing new entries; a cleanup timer
+also removes expired entries periodically. Changing `MaxCacheEntries` after
+constructing the cache does not change that instance's capacity.
+
+For multi-instance, restart-safe or failover-sensitive operation use a verified
+shared atomic `IJtiCache` or `IAtomicDistributedCache` backend instead.
+An in-process stress test cannot establish cross-instance replay safety.
