@@ -98,6 +98,32 @@ public class InMemoryRevocationStoreTests
     }
 
     [Fact]
+    public async Task IsJtiRevokedAsync_ExpiredMarker_ReturnsFalseBeforeBackgroundCleanup()
+    {
+        using var store = new InMemoryRevocationStore();
+        const string jti = "expired-without-cleanup";
+
+        await store.RevokeJtiAsync(jti, DateTimeOffset.UtcNow.AddMinutes(-1), _ct);
+
+        // A stored expired marker must not block verification until the periodic
+        // five-minute cleanup runs. The previous ContainsKey implementation did.
+        Assert.False(await store.IsJtiRevokedAsync(jti, _ct));
+    }
+
+    [Fact]
+    public async Task IsJtiRevokedAsync_ExtendedMarker_RemainsRevokedBeforeBackgroundCleanup()
+    {
+        using var store = new InMemoryRevocationStore();
+        const string jti = "extended-without-cleanup";
+        var now = DateTimeOffset.UtcNow;
+
+        await store.RevokeJtiAsync(jti, now.AddMinutes(-1), _ct);
+        await store.RevokeJtiAsync(jti, now.AddHours(1), _ct);
+
+        Assert.True(await store.IsJtiRevokedAsync(jti, _ct));
+    }
+
+    [Fact]
     public async Task IsJtiRevokedAsync_WithNonExistentJti_ReturnsFalse()
     {
         var store = new InMemoryRevocationStore();

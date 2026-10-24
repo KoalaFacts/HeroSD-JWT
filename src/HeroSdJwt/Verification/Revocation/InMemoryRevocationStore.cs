@@ -81,7 +81,11 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         ArgumentNullException.ThrowIfNull(jti);
         cancellationToken.ThrowIfCancellationRequested();
 
-        return Task.FromResult(_revokedJtis.ContainsKey(jti));
+        // Expiration is effective at read time, not only when the five-minute
+        // background cleanup removes the dictionary entry. Match the semantics
+        // of distributed stores that expire revocation markers on read.
+        var now = DateTimeOffset.UtcNow;
+        return Task.FromResult(_revokedJtis.TryGetValue(jti, out var expiresAt) && expiresAt > now);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
