@@ -132,9 +132,14 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             // Decode and validate payload
             var payloadJson = Base64UrlEncoder.DecodeString(payloadBase64);
             var payload = JsonDocument.Parse(payloadJson).RootElement;
+            if (payload.ValueKind != JsonValueKind.Object)
+            {
+                return false; // The KB-JWT payload must be a JSON object.
+            }
 
             // Validate sd_hash claim exists and matches expected value
-            if (!payload.TryGetProperty("sd_hash", out var sdHashElement))
+            if (!payload.TryGetProperty("sd_hash", out var sdHashElement) ||
+                sdHashElement.ValueKind != JsonValueKind.String)
             {
                 return false;
             }
@@ -184,7 +189,8 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             }
 
             // Validate nonce (required)
-            if (!payload.TryGetProperty("nonce", out var nonceElement))
+            if (!payload.TryGetProperty("nonce", out var nonceElement) ||
+                nonceElement.ValueKind != JsonValueKind.String)
             {
                 return false;
             }
@@ -199,17 +205,23 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             // Validate iat (issued at) claim for freshness - REQUIRED by spec section 4.3.3
             // "The Verifier MUST check that the creation time of the Key Binding JWT,
             // as determined by the iat claim, is within an acceptable window."
-            if (!payload.TryGetProperty("iat", out var iatElement))
-            {
-                return false; // iat claim is required
-            }
-
-            if (!iatElement.TryGetInt64(out var iatUnixSeconds))
+            if (!payload.TryGetProperty("iat", out var iatElement) ||
+                iatElement.ValueKind != JsonValueKind.Number ||
+                !iatElement.TryGetInt64(out var iatUnixSeconds))
             {
                 return false; // Invalid iat format
             }
 
-            var iat = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds);
+            DateTimeOffset iat;
+            try
+            {
+                iat = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return false; // Out-of-range numeric dates are invalid claims.
+            }
+
             var now = _timeProvider.GetUtcNow();
 
             // Reject if KB-JWT is too old (replay attack prevention)
