@@ -823,6 +823,12 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
+            // Invalid presentations must not reserve a JTI that belongs to a valid token.
+            if (errors.Count > 0)
+            {
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
             // Step 5.5: Validate replay protection (jti) if JtiValidator is present
             if (_jtiValidator != null)
             {

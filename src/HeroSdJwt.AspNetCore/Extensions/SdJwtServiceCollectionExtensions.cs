@@ -1,4 +1,5 @@
 using HeroSdJwt.Cryptography;
+using HeroSdJwt.AspNetCore.Authentication;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Presentation;
@@ -51,23 +52,18 @@ public static class SdJwtServiceCollectionExtensions
         services.TryAddSingleton<IClaimValidator, ClaimValidator>();
 
         // Register core verifiers (sync + async interface on same instance)
-        services.TryAddSingleton<ISdJwtVerifier>(serviceProvider =>
+        services.TryAddSingleton(serviceProvider => new AuthenticationVerifierFactory(() =>
         {
-            // Default options - can be overridden by authentication configuration
-            var options = new SdJwtVerificationOptions
-            {
-                ClockSkew = TimeSpan.FromMinutes(5)
-            };
-
-            return new SdJwtVerifier(
-                options,
-                serviceProvider.GetRequiredService<IEcPublicKeyConverter>(),
-                serviceProvider.GetRequiredService<ISignatureValidator>(),
-                serviceProvider.GetRequiredService<IDigestValidator>(),
-                serviceProvider.GetRequiredService<IKeyBindingValidator>(),
-                serviceProvider.GetRequiredService<IClaimValidator>()
-            );
-        });
+            var converter = serviceProvider.GetRequiredService<IEcPublicKeyConverter>();
+            var signatureValidator = serviceProvider.GetRequiredService<ISignatureValidator>();
+            var digestValidator = serviceProvider.GetRequiredService<IDigestValidator>();
+            var keyBindingValidator = serviceProvider.GetRequiredService<IKeyBindingValidator>();
+            var claimValidator = serviceProvider.GetRequiredService<IClaimValidator>();
+            return options => new SdJwtVerifier(
+                options, converter, signatureValidator, digestValidator, keyBindingValidator, claimValidator);
+        }));
+        services.TryAddSingleton<ISdJwtVerifier>(sp =>
+            sp.GetRequiredService<AuthenticationVerifierFactory>().DefaultVerifier);
         services.TryAddSingleton(sp =>
             (ISdJwtVerifierAsync)sp.GetRequiredService<ISdJwtVerifier>());
 

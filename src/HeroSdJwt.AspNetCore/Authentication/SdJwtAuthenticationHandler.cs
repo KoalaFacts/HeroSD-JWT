@@ -3,6 +3,7 @@ using HeroSdJwt.Models;
 using HeroSdJwt.Verification;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
@@ -56,7 +57,11 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
         {
             // Verify the SD-JWT presentation (prefer async when available to avoid blocking caches/stores)
             VerificationResult result;
-            var asyncVerifier = _verifier as ISdJwtVerifierAsync;
+            var factory = Context.RequestServices?.GetService<AuthenticationVerifierFactory>();
+            var verifier = factory is not null && factory.Owns(_verifier)
+                ? factory.Create(Options.VerificationOptions)
+                : _verifier;
+            var asyncVerifier = verifier as ISdJwtVerifierAsync;
 
             if (Options.KeyResolver != null)
             {
@@ -67,7 +72,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
                         Options.FallbackKey,
                         Options.VerificationOptions.ExpectedHashAlgorithm,
                         Context.RequestAborted).ConfigureAwait(false)
-                    : _verifier.TryVerifyPresentation(
+                    : verifier.TryVerifyPresentation(
                         token,
                         Options.KeyResolver,
                         Options.FallbackKey,
@@ -81,7 +86,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
                         Options.FallbackKey,
                         Options.VerificationOptions.ExpectedHashAlgorithm,
                         Context.RequestAborted).ConfigureAwait(false)
-                    : _verifier.TryVerifyPresentation(
+                    : verifier.TryVerifyPresentation(
                         token,
                         Options.FallbackKey,
                         Options.VerificationOptions.ExpectedHashAlgorithm);
