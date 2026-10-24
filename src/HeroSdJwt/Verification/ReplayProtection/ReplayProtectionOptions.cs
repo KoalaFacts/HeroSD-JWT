@@ -24,13 +24,16 @@ public class ReplayProtectionOptions
     public int MaxCacheEntries { get; set; } = 1_000_000;
 
     /// <summary>
-    /// Gets or sets the default TTL for tokens without exp claim.
-    /// Default: 1 hour (conservative for security).
+    /// Gets or sets the legacy default TTL value (1 hour).
+    /// Missing or malformed exp claims are rejected when replay checking is enabled;
+    /// a fallback TTL cannot safely protect an unbounded credential lifetime.
+    /// Retained for compatibility with existing configurations.
     /// </summary>
     public TimeSpan DefaultTtl { get; set; } = TimeSpan.FromHours(1);
 
     /// <summary>
-    /// Gets or sets the maximum TTL for any cache entry.
+    /// Gets or sets the maximum supported lifetime of a replay marker.
+    /// Credentials requiring longer marker retention are rejected, not truncated.
     /// Default: 24 hours (prevents unbounded cache growth).
     /// </summary>
     public TimeSpan MaximumTtl { get; set; } = TimeSpan.FromHours(24);

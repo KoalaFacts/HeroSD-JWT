@@ -57,10 +57,10 @@ The code is organized by the three-party SD-JWT roles. Data flows: **Issuance �
 - **`Primitives/`** — enums and constants: `SignatureAlgorithm` (HS256, RS256, ES256, EdDSA), `HashAlgorithm` (SHA-256/384/512), `VerificationKeyType`, `ErrorCode`, `KeyResolver`.
 - **`Internal/Ed25519/`** — a self-contained, constant-time Ed25519 implementation (BCL has no managed EdDSA across all TFMs). Treat as a vendored crypto primitive; don't casually refactor.
 
-Everything is built around **constructor-injected interfaces** — the implementations are stateless and thread-safe, so they're registered as singletons. When adding a component, follow the `IFoo` + `Foo` + DI-registration pattern.
+Everything is built around **constructor-injected interfaces**. Built-in stateless cryptographic, claim, issuance and presentation components use singleton defaults. The default verifier and its async alias are scoped so customized validators, replay and revocation dependencies retain their request lifetime. Authentication derives a scheme-specific verifier through `ISdJwtVerifierFactory`; custom implementations and subclasses must preserve their behavior when applying the complete scheme policy. See `docs/users/authentication-policy.md`. When adding a component, follow the `IFoo` + `Foo` + DI-registration pattern and respect dependency lifetimes.
 
 ### ASP.NET Core layer (`src/HeroSdJwt.AspNetCore`)
-- `AddSdJwtServices()` (in `SdJwtServiceCollectionExtensions`, deliberately under namespace `Microsoft.Extensions.DependencyInjection`) registers the whole pipeline. `AddSdJwtDistributedReplayProtection()` / `AddSdJwtDistributedRevocation()` swap the in-memory adapters for `IDistributedCache`-backed ones. The auth handler prefers the async verification path when available.
+- `AddSdJwtServices()` (in `SdJwtServiceCollectionExtensions`, deliberately under namespace `Microsoft.Extensions.DependencyInjection`) registers the whole pipeline. `AddSdJwtDistributedReplayProtection()` registers an enabled scoped replay validator and an adapter requiring `IAtomicDistributedCache`, or preserves an application-provided `IJtiCache`. Ordinary `IDistributedCache` cannot supply atomic replay admission. `AddSdJwtDistributedRevocation()` registers the separate revocation adapter. The auth handler prefers the async verification path when available.
 - `Authentication/SdJwtAuthenticationHandler` plugs SD-JWT verification into ASP.NET Core's auth scheme model.
 
 ## Conventions

@@ -10,8 +10,15 @@ namespace HeroSdJwt.AspNetCore.Authentication;
 public class SdJwtAuthenticationOptions : AuthenticationSchemeOptions
 {
     /// <summary>
-    /// Gets or sets the core verification options.
+    /// Gets or sets the complete verification policy for this authentication scheme.
     /// </summary>
+    /// <remarks>
+    /// The handler derives a verifier for this policy from the request-scoped registered
+    /// <see cref="ISdJwtVerifier"/>. Custom verifier implementations must also implement
+    /// <see cref="ISdJwtVerifierFactory"/>; otherwise authentication fails closed. The factory
+    /// must apply these options while retaining customized validators, replay and revocation services.
+    /// Existing <see cref="SdJwtVerifier"/> registrations support this contract automatically.
+    /// </remarks>
     public SdJwtVerificationOptions VerificationOptions { get; set; } = new SdJwtVerificationOptions
     {
         ClockSkew = TimeSpan.FromMinutes(5),

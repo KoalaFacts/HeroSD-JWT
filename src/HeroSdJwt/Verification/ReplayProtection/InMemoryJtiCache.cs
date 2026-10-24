@@ -1,30 +1,42 @@
-using System.Collections.Concurrent;
-
 namespace HeroSdJwt.Verification.ReplayProtection;
 
 /// <summary>
-/// In-memory implementation of IJtiCache using ConcurrentDictionary.
-/// Suitable for single-instance deployments.
-/// Thread-safe and provides atomic operations via ConcurrentDictionary.TryAdd.
+/// In-memory implementation of <see cref="IJtiCache"/> for single-instance deployments.
+/// Every admission and expiry removal is serialized so a live replay marker is never
+/// evicted to make room for a different token. Capacity exhaustion fails closed.
 /// </summary>
 public class InMemoryJtiCache : IJtiCache, IDisposable
 {
-    private readonly ConcurrentDictionary<JtiCacheKey, DateTimeOffset> _cache;
-    private readonly ReplayProtectionOptions _options;
-    private readonly Timer? _cleanupTimer;
+    private readonly Dictionary<JtiCacheKey, DateTimeOffset> _cache = [];
+#if NET9_0_OR_GREATER
+    private readonly Lock _sync = new();
+#else
+    private readonly object _sync = new();
+#endif
+    private readonly int _maxEntries;
+    private readonly TimeProvider _timeProvider;
+    private readonly Timer _cleanupTimer;
     private bool _disposed;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="InMemoryJtiCache"/> class.
+    /// Initializes an in-memory replay cache with the system clock.
     /// </summary>
-    /// <param name="options">Configuration options for replay protection.</param>
-    /// <exception cref="ArgumentNullException">Thrown when options is null.</exception>
+    /// <param name="options">Replay protection configuration.</param>
     public InMemoryJtiCache(ReplayProtectionOptions options)
+        : this(options, TimeProvider.System)
     {
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _cache = new ConcurrentDictionary<JtiCacheKey, DateTimeOffset>();
+    }
 
-        // Start periodic cleanup timer (every 5 minutes)
+    // Clock injection keeps expiry and capacity boundary tests deterministic
+    // without changing the public constructor or adding runtime dependencies.
+    internal InMemoryJtiCache(ReplayProtectionOptions options, TimeProvider timeProvider)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(timeProvider);
+        options.Validate();
+
+        _maxEntries = options.MaxCacheEntries;
+        _timeProvider = timeProvider;
         _cleanupTimer = new Timer(
             CleanupExpiredEntries,
             null,
@@ -33,119 +45,128 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     }
 
     /// <summary>
-    /// Attempts to add a jti to the cache atomically.
+    /// Atomically admits a new issuer/JTI pair or rejects an existing live marker.
+    /// Throws instead of evicting a live marker when capacity is exhausted.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// The cache has no free or expired slot; the presentation must be rejected.
+    /// </exception>
     public Task<bool> TryAddAsync(string issuer, string jti, TimeSpan ttl, CancellationToken cancellationToken = default)
     {
         ValidateParameters(issuer, jti, ttl);
+        cancellationToken.ThrowIfCancellationRequested();
 
         var cacheKey = new JtiCacheKey(issuer, jti);
-        var now = DateTimeOffset.UtcNow;
-        var expiration = now.Add(ttl);
-
-        // Check if key exists and is expired - remove it first
-        if (_cache.TryGetValue(cacheKey, out var existingExpiration) && existingExpiration < now)
+        lock (_sync)
         {
-            _ = _cache.TryRemove(cacheKey, out _);
+            ThrowIfDisposed();
+            cancellationToken.ThrowIfCancellationRequested();
+            var now = _timeProvider.GetUtcNow();
+            var expiration = now.Add(ttl);
+
+            if (_cache.TryGetValue(cacheKey, out var existingExpiration) && existingExpiration > now)
+            {
+                return Task.FromResult(false);
+            }
+
+            // All removals and inserts use this lock. An expiry check cannot
+            // remove a replacement marker inserted by another caller.
+            _ = _cache.Remove(cacheKey);
+
+            if (_cache.Count >= _maxEntries)
+            {
+                RemoveExpiredEntries(now);
+                if (_cache.Count >= _maxEntries)
+                {
+                    throw new InvalidOperationException(
+                        "In-memory replay cache capacity reached; refusing to evict live JTI markers.");
+                }
+            }
+
+            _cache.Add(cacheKey, expiration);
+            return Task.FromResult(true);
         }
-
-        // Atomic operation: TryAdd returns false if key already exists
-        var wasAdded = _cache.TryAdd(cacheKey, expiration);
-
-        // Check capacity and evict if needed
-        if (wasAdded && _cache.Count > _options.MaxCacheEntries)
-        {
-            EvictOldestEntries();
-        }
-
-        return Task.FromResult(wasAdded);
     }
 
     /// <summary>
-    /// Checks if a jti exists in the cache.
+    /// Checks whether the issuer/JTI pair has a live replay marker.
     /// </summary>
     public Task<bool> ExistsAsync(string issuer, string jti, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var cacheKey = new JtiCacheKey(issuer, jti);
-        var exists = _cache.TryGetValue(cacheKey, out var expiration);
-
-        // If entry exists but expired, remove it and return false
-        if (exists && expiration < DateTimeOffset.UtcNow)
+        lock (_sync)
         {
-            _ = _cache.TryRemove(cacheKey, out _);
+            ThrowIfDisposed();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!_cache.TryGetValue(cacheKey, out var expiration))
+            {
+                return Task.FromResult(false);
+            }
+
+            if (expiration > _timeProvider.GetUtcNow())
+            {
+                return Task.FromResult(true);
+            }
+
+            _ = _cache.Remove(cacheKey);
             return Task.FromResult(false);
         }
-
-        return Task.FromResult(exists);
     }
 
     /// <summary>
-    /// Removes a jti from the cache.
+    /// Explicitly removes an issuer/JTI pair. Only use for intended administrative resets.
     /// </summary>
     public Task RemoveAsync(string issuer, string jti, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var cacheKey = new JtiCacheKey(issuer, jti);
-        _ = _cache.TryRemove(cacheKey, out _);
-        return Task.CompletedTask;
+        lock (_sync)
+        {
+            ThrowIfDisposed();
+            cancellationToken.ThrowIfCancellationRequested();
+            _ = _cache.Remove(cacheKey);
+            return Task.CompletedTask;
+        }
     }
 
-    /// <summary>
-    /// Periodic cleanup of expired entries.
-    /// </summary>
     private void CleanupExpiredEntries(object? state)
     {
-        if (_disposed)
+        lock (_sync)
         {
-            return;
+            if (!_disposed)
+            {
+                RemoveExpiredEntries(_timeProvider.GetUtcNow());
+            }
         }
+    }
 
-        var now = DateTimeOffset.UtcNow;
+    // Called only while holding _sync.
+    private void RemoveExpiredEntries(DateTimeOffset now)
+    {
         var expiredKeys = _cache
-            .Where(kvp => kvp.Value < now)
-            .Select(kvp => kvp.Key)
-            .ToList();
+            .Where(pair => pair.Value <= now)
+            .Select(pair => pair.Key)
+            .ToArray();
 
         foreach (var key in expiredKeys)
         {
-            _ = _cache.TryRemove(key, out _);
+            _ = _cache.Remove(key);
         }
     }
 
-    /// <summary>
-    /// LRU eviction when cache reaches capacity.
-    /// Evicts oldest entries (by expiration time).
-    /// </summary>
-    private void EvictOldestEntries()
+    private void ThrowIfDisposed()
     {
-        // Evict 10% of entries when capacity reached
-        var evictionCount = (int)(_options.MaxCacheEntries * 0.1);
-
-        var oldestEntries = _cache
-            .OrderBy(kvp => kvp.Value)
-            .Take(evictionCount)
-            .Select(kvp => kvp.Key)
-            .ToList();
-
-        foreach (var key in oldestEntries)
+        if (_disposed)
         {
-            _ = _cache.TryRemove(key, out _);
+            throw new ObjectDisposedException(nameof(InMemoryJtiCache));
         }
     }
 
-    /// <summary>
-    /// Validates input parameters.
-    /// </summary>
     private static void ValidateParameters(string issuer, string jti, TimeSpan ttl)
     {
-        if (issuer == null)
-        {
-            throw new ArgumentNullException(nameof(issuer));
-        }
-
-        if (jti == null)
-        {
-            throw new ArgumentNullException(nameof(jti));
-        }
+        ArgumentNullException.ThrowIfNull(issuer);
+        ArgumentNullException.ThrowIfNull(jti);
 
         if (string.IsNullOrWhiteSpace(issuer))
         {
@@ -164,16 +185,21 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     }
 
     /// <summary>
-    /// Releases all resources used by the <see cref="InMemoryJtiCache"/>.
-    /// Stops the cleanup timer and clears the cache.
+    /// Stops cleanup and releases the in-memory marker set.
     /// </summary>
     public void Dispose()
     {
-        if (!_disposed)
+        lock (_sync)
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             _disposed = true;
-            _cleanupTimer?.Dispose();
             _cache.Clear();
         }
+
+        _cleanupTimer.Dispose();
     }
 }

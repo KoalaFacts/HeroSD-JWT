@@ -19,8 +19,9 @@ namespace HeroSdJwt.Verification;
 /// Verifies SD-JWT presentations by validating signatures, digests, and claims.
 /// Implements security measures including constant-time comparison, algorithm confusion prevention,
 /// and timing attack resistance.
+/// Configured hash algorithm policy and per-call hash algorithm constraints must both be satisfied.
 /// </summary>
-public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
+public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifierFactory
 {
     private readonly SdJwtVerificationOptions _options;
     private readonly IEcPublicKeyConverter _ecPublicKeyConverter;
@@ -68,6 +69,35 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
         _claimValidator = claimValidator;
         _jtiValidator = jtiValidator;
         _revocationStore = revocationStore;
+    }
+
+    /// <summary>
+    /// Creates a verifier for a separate policy while preserving configured validators, replay
+    /// protection and revocation dependencies. The source verifier's policy is never changed.
+    /// </summary>
+    /// <param name="options">The complete verification policy.</param>
+    /// <returns>A verifier for the supplied policy.</returns>
+    /// <remarks>
+    /// Derived verifiers must override this method to explicitly retain their custom behavior.
+    /// </remarks>
+    public virtual ISdJwtVerifier CreateVerifier(SdJwtVerificationOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (GetType() != typeof(SdJwtVerifier))
+        {
+            throw new InvalidOperationException(
+                "Derived verifiers must override ISdJwtVerifierFactory.CreateVerifier to preserve custom verification behavior.");
+        }
+
+        return new SdJwtVerifier(
+            options,
+            _ecPublicKeyConverter,
+            _signatureValidator,
+            _digestValidator,
+            _keyBindingValidator,
+            _claimValidator,
+            _jtiValidator,
+            _revocationStore);
     }
 
     /// <summary>
@@ -652,22 +682,38 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
             // Collect all _sd array digests from both the JWT payload AND disclosure values
             // This supports nested selective disclosure per SD-JWT spec
             var expectedDigests = new List<Digest>();
-            CollectAllSdDigests(payload, expectedDigests, algorithm);
+            var arrayDigests = new List<Digest>();
+            var nonArrayDisclosures = new List<string>();
+            if (!CollectAllSdDigests(payload, expectedDigests, arrayDigests, algorithm))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                return new VerificationResult(errors, "Invalid array disclosure placeholder");
+            }
 
             // Also collect _sd digests from disclosure values (for nested structures)
             foreach (var disclosure in disclosures)
             {
+                nonArrayDisclosures.Add(disclosure);
                 try
                 {
                     var json = Base64UrlEncoder.DecodeString(disclosure);
-                    var array = JsonDocument.Parse(json).RootElement;
+                    using var document = JsonDocument.Parse(json);
+                    var array = document.RootElement;
 
                     if (array.ValueKind == JsonValueKind.Array && array.GetArrayLength() >= 2)
                     {
                         // For 3-element disclosures, check if the value contains _sd arrays
                         var valueIndex = array.GetArrayLength() == 3 ? 2 : 1;
                         var value = array[valueIndex];
-                        CollectAllSdDigests(value, expectedDigests, algorithm);
+                        if (array.GetArrayLength() == 2)
+                        {
+                            nonArrayDisclosures.Remove(disclosure);
+                        }
+                        if (!CollectAllSdDigests(value, expectedDigests, arrayDigests, algorithm))
+                        {
+                            errors.Add(ErrorCode.InvalidInput);
+                            return new VerificationResult(errors, "Invalid array disclosure placeholder");
+                        }
                     }
                 }
                 catch
@@ -676,7 +722,14 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
                 }
             }
 
-            if (disclosures.Count > 0 && expectedDigests.Count > 0)
+            if (nonArrayDisclosures.Any(disclosure => arrayDigests.Any(digest =>
+                _digestValidator.ValidateDigest(disclosure, digest, algorithm))))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                return new VerificationResult(errors, "Array placeholders require two-element disclosures");
+            }
+
+            if (disclosures.Count > 0)
             {
                 bool digestsValid = _digestValidator.ValidateAllDigests(disclosures, expectedDigests, algorithm);
                 if (!digestsValid)
@@ -767,8 +820,14 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
                 string sdJwtHash;
                 try
                 {
-                    using var sha256 = SHA256.Create();
-                    var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(sdJwtString));
+                    var sdJwtBytes = System.Text.Encoding.UTF8.GetBytes(sdJwtString);
+                    var hashBytes = algorithm switch
+                    {
+                        HashAlgorithm.Sha256 => SHA256.HashData(sdJwtBytes),
+                        HashAlgorithm.Sha384 => SHA384.HashData(sdJwtBytes),
+                        HashAlgorithm.Sha512 => SHA512.HashData(sdJwtBytes),
+                        _ => throw new SdJwtException("Unsupported SD-JWT hash algorithm", ErrorCode.UnsupportedAlgorithm)
+                    };
                     sdJwtHash = Base64UrlEncoder.Encode(hashBytes);
                 }
                 catch (Exception ex)
@@ -800,7 +859,17 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
-            // Step 5.5: Validate replay protection (jti) if JtiValidator is present
+            // Reject all read-only validation failures before admitting a replay identifier.
+            if (errors.Count > 0)
+            {
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            // Reconstruction must also succeed before the stateful replay admission.
+            var disclosedClaims = ExtractDisclosedClaims(jwt, disclosures, algorithm);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // Step 6: Admit the verified presentation's replay identifier, if configured.
             if (_jtiValidator != null)
             {
                 try
@@ -833,13 +902,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
                 }
             }
 
-            // Step 6: Extract disclosed claims with full paths
-            var disclosedClaims = ExtractDisclosedClaims(jwt, disclosures, algorithm);
-
-            // Return result
-            return errors.Count > 0
-                ? new VerificationResult(errors, string.Join("; ", errorDetails))
-                : new VerificationResult(disclosedClaims);
+            return new VerificationResult(disclosedClaims);
         }
         catch
         {
@@ -870,7 +933,15 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
             };
         }
 
-        // Validate against expected algorithm if specified
+        // Configured policy cannot be overridden by a per-call constraint.
+        if (_options.ExpectedHashAlgorithm.HasValue && algorithm != _options.ExpectedHashAlgorithm.Value)
+        {
+            throw new SdJwtException(
+                $"Hash algorithm mismatch: configured policy requires {_options.ExpectedHashAlgorithm.Value}, got {algorithm}",
+                ErrorCode.AlgorithmConfusion);
+        }
+
+        // Validate against an additional expected algorithm if specified.
         if (expectedHashAlgorithm.HasValue && algorithm != expectedHashAlgorithm.Value)
         {
             throw new SdJwtException(
@@ -909,51 +980,43 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
             // Skip intermediate objects that contain _sd arrays (they're reconstruction helpers, not actual claims)
             foreach (var (fullPath, disclosureIndex) in claimPathToIndex)
             {
-                try
+                var disclosure = disclosures[disclosureIndex];
+                var json = Base64UrlEncoder.DecodeString(disclosure);
+                var array = JsonDocument.Parse(json).RootElement;
+
+                if (array.ValueKind != JsonValueKind.Array)
                 {
-                    var disclosure = disclosures[disclosureIndex];
-                    var json = Base64UrlEncoder.DecodeString(disclosure);
-                    var array = JsonDocument.Parse(json).RootElement;
+                    continue;
+                }
 
-                    if (array.ValueKind != JsonValueKind.Array)
+                var arrayLength = array.GetArrayLength();
+
+                if (arrayLength == 3)
+                {
+                    // Object property disclosure: [salt, claim_name, claim_value]
+                    var claimValue = array[2];
+
+                    // Skip intermediate nested objects (those containing _sd arrays)
+                    // These are needed for presentation but not for final disclosed claims
+                    bool isIntermediateObject = claimValue.ValueKind == JsonValueKind.Object &&
+                                               claimValue.TryGetProperty("_sd", out _);
+
+                    if (!isIntermediateObject)
                     {
-                        continue;
-                    }
-
-                    var arrayLength = array.GetArrayLength();
-
-                    if (arrayLength == 3)
-                    {
-                        // Object property disclosure: [salt, claim_name, claim_value]
-                        var claimValue = array[2];
-
-                        // Skip intermediate nested objects (those containing _sd arrays)
-                        // These are needed for presentation but not for final disclosed claims
-                        bool isIntermediateObject = claimValue.ValueKind == JsonValueKind.Object &&
-                                                   claimValue.TryGetProperty("_sd", out _);
-
-                        if (!isIntermediateObject)
-                        {
-                            claims[fullPath] = claimValue;
-                        }
-                    }
-                    else if (arrayLength == 2)
-                    {
-                        // Array element disclosure: [salt, claim_value]
-                        var claimValue = array[1];
                         claims[fullPath] = claimValue;
                     }
                 }
-                catch
+                else if (arrayLength == 2)
                 {
-                    // Skip invalid disclosures
+                    // Array element disclosure: [salt, claim_value]
+                    var claimValue = array[1];
+                    claims[fullPath] = claimValue;
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // If mapping fails, return empty claims dictionary
-            // This can happen with malformed JWT or disclosures
+            throw new SdJwtException("Disclosure reconstruction failed", ErrorCode.MalformedDisclosure, ex);
         }
 
         return claims;
@@ -963,7 +1026,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
     /// Recursively collects all _sd array digests from a JSON element.
     /// This supports nested selective disclosure structures per SD-JWT spec.
     /// </summary>
-    private static void CollectAllSdDigests(JsonElement element, List<Digest> digests, HashAlgorithm algorithm, int depth = 0)
+    private static bool CollectAllSdDigests(JsonElement element, List<Digest> digests, List<Digest> arrayDigests, HashAlgorithm algorithm, int depth = 0)
     {
         // Security: Prevent stack overflow with deeply nested structures
         const int MAX_NESTING_DEPTH = 10;
@@ -990,7 +1053,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
                 else if (property.Name != "_sd_alg")
                 {
                     // Recursively search nested objects and arrays (increment depth)
-                    CollectAllSdDigests(property.Value, digests, algorithm, depth + 1);
+                    if (!CollectAllSdDigests(property.Value, digests, arrayDigests, algorithm, depth + 1))
+                    {
+                        return false;
+                    }
                 }
             }
         }
@@ -999,9 +1065,27 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
             // Recursively search array elements (increment depth)
             foreach (var item in element.EnumerateArray())
             {
-                CollectAllSdDigests(item, digests, algorithm, depth + 1);
+                if (item.ValueKind == JsonValueKind.Object &&
+                    item.TryGetProperty("...", out var arrayDigest))
+                {
+                    if (item.EnumerateObject().Count() != 1 ||
+                        arrayDigest.ValueKind != JsonValueKind.String ||
+                        string.IsNullOrWhiteSpace(arrayDigest.GetString()))
+                    {
+                        return false;
+                    }
+                    var digest = new Digest(arrayDigest.GetString()!, algorithm);
+                    digests.Add(digest);
+                    arrayDigests.Add(digest);
+                }
+
+                if (!CollectAllSdDigests(item, digests, arrayDigests, algorithm, depth + 1))
+                {
+                    return false;
+                }
             }
         }
+        return true;
     }
     /// <summary>
     /// Checks if the token has been revoked via JTI, Key ID, or User ID.
