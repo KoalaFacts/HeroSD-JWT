@@ -116,6 +116,10 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
     /// <inheritdoc />
     public Task CleanupExpiredEntriesAsync(CancellationToken cancellationToken = default)
     {
+        // Even though distributed-cache cleanup is a no-op, callers must not
+        // observe success after requesting cancellation.
+        cancellationToken.ThrowIfCancellationRequested();
+
         // Distributed caches handle expiration internally; no-op.
         return Task.CompletedTask;
     }

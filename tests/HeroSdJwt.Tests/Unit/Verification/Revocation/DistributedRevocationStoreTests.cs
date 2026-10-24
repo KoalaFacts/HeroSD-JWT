@@ -125,6 +125,29 @@ public class DistributedRevocationStoreTests : IDisposable
         Assert.False(await store.IsUserRevokedAsync("user-1", TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task CleanupExpiredEntriesAsync_PreCanceledToken_ThrowsOperationCanceledException()
+    {
+        var store = new DistributedRevocationStore(_cache);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        _ = await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            store.CleanupExpiredEntriesAsync(cancellation.Token));
+    }
+
+    [Fact]
+    public async Task CleanupExpiredEntriesAsync_ActiveToken_PreservesPermanentKeyRevocation()
+    {
+        var store = new DistributedRevocationStore(_cache);
+        var token = TestContext.Current.CancellationToken;
+
+        await store.RevokeKeyAsync("cleanup-safety-key", token);
+        await store.CleanupExpiredEntriesAsync(token);
+
+        Assert.True(await store.IsKeyRevokedAsync("cleanup-safety-key", token));
+    }
+
     // Single-process contract fixture only. Its lock models an atomic backend
     // operation, not an actual Redis/SQL cross-instance implementation.
     private sealed class AtomicRevocationCacheFixture : IAtomicRevocationCache
