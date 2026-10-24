@@ -127,23 +127,19 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddSdJwtServices_ServicesAreRegisteredAsSingletons()
+    public void AddSdJwtServices_VerifierIsScopedAndIssuerIsSingleton()
     {
-        // Arrange
         var services = new ServiceCollection();
-
-        // Act
         _ = services.AddSdJwtServices();
-        var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+        using var first = serviceProvider.CreateScope();
+        using var second = serviceProvider.CreateScope();
 
-        // Assert - Services should be singletons (same instance returned)
-        var verifier1 = serviceProvider.GetService<ISdJwtVerifier>();
-        var verifier2 = serviceProvider.GetService<ISdJwtVerifier>();
-        Assert.Same(verifier1, verifier2);
-
-        var issuer1 = serviceProvider.GetService<ISdJwtIssuer>();
-        var issuer2 = serviceProvider.GetService<ISdJwtIssuer>();
-        Assert.Same(issuer1, issuer2);
+        var verifier = first.ServiceProvider.GetRequiredService<ISdJwtVerifier>();
+        Assert.Same(verifier, first.ServiceProvider.GetRequiredService<ISdJwtVerifier>());
+        Assert.Same(verifier, first.ServiceProvider.GetRequiredService<ISdJwtVerifierAsync>());
+        Assert.NotSame(verifier, second.ServiceProvider.GetRequiredService<ISdJwtVerifier>());
+        Assert.Same(first.ServiceProvider.GetRequiredService<ISdJwtIssuer>(), second.ServiceProvider.GetRequiredService<ISdJwtIssuer>());
     }
 
     [Fact]

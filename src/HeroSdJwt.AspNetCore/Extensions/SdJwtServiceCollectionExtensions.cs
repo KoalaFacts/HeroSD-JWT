@@ -1,5 +1,4 @@
 using HeroSdJwt.Cryptography;
-using HeroSdJwt.AspNetCore.Authentication;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Presentation;
@@ -27,9 +26,10 @@ public static class SdJwtServiceCollectionExtensions
     /// <param name="services">The <see cref="IServiceCollection" /> to add services to.</param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
     /// <remarks>
-    /// This method registers the following services as singletons (all implementations are stateless and thread-safe):
+    /// The core verifier is scoped so that customized validators and optional replay/revocation
+    /// services can retain their request lifetime. Built-in service lifetimes are:
     /// <list type="bullet">
-    /// <item><description><see cref="ISdJwtVerifier"/> - Core verification service</description></item>
+    /// <item><description><see cref="ISdJwtVerifier"/> - Scoped core verification service</description></item>
     /// <item><description><see cref="ISdJwtIssuer"/> - Core issuance service</description></item>
     /// <item><description><see cref="ISdJwtPresenter"/> - Presentation creation service</description></item>
     /// <item><description>All cryptographic and validation services</description></item>
@@ -52,19 +52,26 @@ public static class SdJwtServiceCollectionExtensions
         services.TryAddSingleton<IClaimValidator, ClaimValidator>();
 
         // Register core verifiers (sync + async interface on same instance)
-        services.TryAddSingleton(serviceProvider => new AuthenticationVerifierFactory(() =>
+        services.TryAddScoped<ISdJwtVerifier>(serviceProvider =>
         {
-            var converter = serviceProvider.GetRequiredService<IEcPublicKeyConverter>();
-            var signatureValidator = serviceProvider.GetRequiredService<ISignatureValidator>();
-            var digestValidator = serviceProvider.GetRequiredService<IDigestValidator>();
-            var keyBindingValidator = serviceProvider.GetRequiredService<IKeyBindingValidator>();
-            var claimValidator = serviceProvider.GetRequiredService<IClaimValidator>();
-            return options => new SdJwtVerifier(
-                options, converter, signatureValidator, digestValidator, keyBindingValidator, claimValidator);
-        }));
-        services.TryAddSingleton<ISdJwtVerifier>(sp =>
-            sp.GetRequiredService<AuthenticationVerifierFactory>().DefaultVerifier);
-        services.TryAddSingleton(sp =>
+            // Standalone defaults; authentication derives a verifier with its own scheme policy.
+            var options = new SdJwtVerificationOptions
+            {
+                ClockSkew = TimeSpan.FromMinutes(5)
+            };
+
+            return new SdJwtVerifier(
+                options,
+                serviceProvider.GetRequiredService<IEcPublicKeyConverter>(),
+                serviceProvider.GetRequiredService<ISignatureValidator>(),
+                serviceProvider.GetRequiredService<IDigestValidator>(),
+                serviceProvider.GetRequiredService<IKeyBindingValidator>(),
+                serviceProvider.GetRequiredService<IClaimValidator>(),
+                serviceProvider.GetService<JtiValidator>(),
+                serviceProvider.GetService<IRevocationStore>()
+            );
+        });
+        services.TryAddScoped(sp =>
             (ISdJwtVerifierAsync)sp.GetRequiredService<ISdJwtVerifier>());
 
         // Register issuance services (for applications that need to issue SD-JWTs)
@@ -100,14 +107,19 @@ public static class SdJwtServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds distributed replay protection using the configured <see cref="IDistributedCache"/>.
+    /// Adds enabled replay protection with a scoped adapter and validator.
+    /// The configured <see cref="IDistributedCache"/> must implement <see cref="IAtomicDistributedCache"/>.
+    /// Existing <see cref="IJtiCache"/>, <see cref="JtiValidator"/>, and <see cref="ReplayProtectionOptions"/>
+    /// registrations are preserved; ordinary caches fail closed when the adapter is resolved.
     /// </summary>
     public static IServiceCollection AddSdJwtDistributedReplayProtection(this IServiceCollection services, string keyPrefix = "sdjwt:jti")
     {
         ArgumentNullException.ThrowIfNull(services);
-        services.TryAddSingleton<IJtiCache>(sp => new DistributedJtiCache(
+        services.TryAddScoped<IJtiCache>(sp => new DistributedJtiCache(
             sp.GetRequiredService<IDistributedCache>(),
             keyPrefix));
+        services.TryAddSingleton(new ReplayProtectionOptions { Enabled = true });
+        services.TryAddScoped<JtiValidator>();
         return services;
     }
 

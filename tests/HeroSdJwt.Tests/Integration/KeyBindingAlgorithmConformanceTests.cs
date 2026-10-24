@@ -98,7 +98,7 @@ public class KeyBindingAlgorithmConformanceTests
             privateKey, expectedHash, AUDIENCE, NONCE);
         var parts = legitimate.Split('.');
         var header = declaredAlgorithm == null
-            ? "{\"typ\":\"kb+jwt\"}"
+            ? /*lang=json,strict*/ "{\"typ\":\"kb+jwt\"}"
             : $"{{\"alg\":\"{declaredAlgorithm}\",\"typ\":\"kb+jwt\"}}";
         var signedInput = $"{Base64UrlEncoder.Encode(header)}.{parts[1]}";
         var signature = holder.SignData(System.Text.Encoding.ASCII.GetBytes(signedInput), HashAlgorithmName.SHA256);

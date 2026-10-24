@@ -587,18 +587,26 @@ dotnet test --filter "FullyQualifiedName~HeroSdJwt.Tests.Unit"
 dotnet test --filter "FullyQualifiedName~SdJwtVerifierTests"
 ```
 
+### Authentication Policy and Custom Verifiers
+
+`AddSdJwt` applies the complete `VerificationOptions` policy separately for each authentication scheme. The default verifier is request-scoped. Custom verifier implementations must implement `ISdJwtVerifierFactory`, and subclasses of `SdJwtVerifier` must override `CreateVerifier` to preserve their custom behavior when applying the scheme policy.
+
+See [authentication policy migration](docs/users/authentication-policy.md) for the factory contract, dependency lifetimes, and upgrade guidance.
+
 ### Distributed Replay Protection & Revocation
 
-For multi-node deployments, use the distributed adapters backed by `IDistributedCache` (e.g., Redis/SQL Server memory cache):
+For multi-node replay protection, the cache must support **atomic create-if-absent with TTL**. Ordinary `IDistributedCache` implementations are rejected when `DistributedJtiCache` is constructed; a get-then-set sequence cannot prevent concurrent replay.
 
 ```csharp
+// ApplicationAtomicCache must implement IAtomicDistributedCache using your backend.
+builder.Services.AddSingleton<IDistributedCache, ApplicationAtomicCache>();
 builder.Services
     .AddSdJwtServices()
-    .AddSdJwtDistributedReplayProtection() // IJtiCache via distributed cache
-    .AddSdJwtDistributedRevocation();      // IRevocationStore via distributed cache
+    .AddSdJwtDistributedReplayProtection() // Atomic IJtiCache + enabled JtiValidator
+    .AddSdJwtDistributedRevocation();      // Separate IRevocationStore adapter
 ```
 
-The same `SdJwtVerifier` instance implements both sync and async interfaces; the ASP.NET handler will prefer the async path when available.
+No atomic Redis/SQL provider is bundled. You can also register an application-provided `IJtiCache` directly. See [distributed replay protection](docs/users/distributed-replay-protection.md) for the compatibility requirement, registration, backend contract, and real-backend validation requirements.
 
 ### Continuous Integration
 

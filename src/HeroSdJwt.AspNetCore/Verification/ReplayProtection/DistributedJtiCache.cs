@@ -4,13 +4,30 @@ using Microsoft.Extensions.Caching.Distributed;
 namespace HeroSdJwt.AspNetCore.Verification.ReplayProtection;
 
 /// <summary>
-/// Distributed implementation of <see cref="IJtiCache"/> using <see cref="IDistributedCache"/>.
-/// Intended for multi-node deployments; atomicity depends on the underlying cache provider.
+/// Distributed replay protection backed by an <see cref="IAtomicDistributedCache"/>.
+/// Ordinary distributed caches are rejected because read-then-write admission is not atomic.
 /// </summary>
-public sealed class DistributedJtiCache(IDistributedCache cache, string keyPrefix = "sdjwt:jti") : IJtiCache
+public sealed class DistributedJtiCache : IJtiCache
 {
-    private readonly IDistributedCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-    private readonly string _keyPrefix = string.IsNullOrWhiteSpace(keyPrefix) ? "sdjwt:jti" : keyPrefix.Trim();
+    private readonly IAtomicDistributedCache _cache;
+    private readonly string _keyPrefix;
+
+    /// <summary>
+    /// Creates an adapter that requires backend-atomic create-if-absent with expiration.
+    /// </summary>
+    /// <param name="cache">A cache implementing <see cref="IAtomicDistributedCache"/>.</param>
+    /// <param name="keyPrefix">The shared replay-marker namespace.</param>
+    /// <exception cref="ArgumentNullException">The cache is null.</exception>
+    /// <exception cref="NotSupportedException">The cache does not expose the atomic capability.</exception>
+    public DistributedJtiCache(IDistributedCache cache, string keyPrefix = "sdjwt:jti")
+    {
+        ArgumentNullException.ThrowIfNull(cache);
+        _cache = cache as IAtomicDistributedCache
+            ?? throw new NotSupportedException(
+                "Distributed replay protection requires IAtomicDistributedCache with backend-atomic " +
+                "create-if-absent and TTL. Register an atomic provider or a direct IJtiCache implementation.");
+        _keyPrefix = string.IsNullOrWhiteSpace(keyPrefix) ? "sdjwt:jti" : keyPrefix.Trim();
+    }
 
     /// <inheritdoc />
     public async Task<bool> TryAddAsync(
@@ -24,21 +41,7 @@ public sealed class DistributedJtiCache(IDistributedCache cache, string keyPrefi
 
         var key = BuildKey(issuer, jti);
 
-        // Check for existing entry
-        var existing = await _cache.GetAsync(key, cancellationToken).ConfigureAwait(false);
-        if (existing != null)
-        {
-            return false;
-        }
-
-        // Store marker with TTL
-        var options = new DistributedCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = ttl
-        };
-
-        await _cache.SetAsync(key, System.Text.Encoding.UTF8.GetBytes("1"), options, cancellationToken).ConfigureAwait(false);
-        return true;
+        return await _cache.TryAddAsync(key, [1], ttl, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -72,7 +75,9 @@ public sealed class DistributedJtiCache(IDistributedCache cache, string keyPrefi
 
     private string BuildKey(string issuer, string jti)
     {
-        return $"{_keyPrefix}:{issuer}:{jti}";
+        // Length-prefix every component, including the namespace, so embedded colons
+        // cannot alias a different (prefix, issuer, jti) tuple. Keep lengths culture-independent.
+        return FormattableString.Invariant($"sdjwt:jti:v2:{_keyPrefix.Length}:{_keyPrefix}:{issuer.Length}:{issuer}:{jti.Length}:{jti}");
     }
 
     private static void ValidateParameters(string issuer, string jti, TimeSpan ttl)

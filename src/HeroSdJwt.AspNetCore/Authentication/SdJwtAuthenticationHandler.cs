@@ -3,7 +3,6 @@ using HeroSdJwt.Models;
 using HeroSdJwt.Verification;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
@@ -57,10 +56,13 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
         {
             // Verify the SD-JWT presentation (prefer async when available to avoid blocking caches/stores)
             VerificationResult result;
-            var factory = Context.RequestServices?.GetService<AuthenticationVerifierFactory>();
-            var verifier = factory is not null && factory.Owns(_verifier)
-                ? factory.Create(Options.VerificationOptions)
-                : _verifier;
+            if (_verifier is not ISdJwtVerifierFactory factory)
+            {
+                return AuthenticateResult.Fail(
+                    "Custom SD-JWT verifiers must implement ISdJwtVerifierFactory to enforce authentication scheme VerificationOptions.");
+            }
+
+            var verifier = factory.CreateVerifier(Options.VerificationOptions);
             var asyncVerifier = verifier as ISdJwtVerifierAsync;
 
             if (Options.KeyResolver != null)
