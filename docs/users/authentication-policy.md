@@ -93,3 +93,18 @@ var verifier = scope.ServiceProvider.GetRequiredService<ISdJwtVerifier>();
 ```
 
 Do not retain a verifier beyond the scope that owns its dependencies. Factory products retain those dependencies too, so complete their use within that same scope.
+
+## KB-JWT audience wire format (RFC 9901)
+
+A holder's **signed Key Binding JWT** must contain exactly one string-valued
+`aud` claim. RFC 9901 Section 4.3 requires a **single string**, unlike the
+general-purpose JWT audience array allowed by RFC 7519. A KB-JWT with an
+array-valued `aud` is rejected even when an element matches the verifier.
+
+This is an intentional conformance-tightening change. An application can still
+configure multiple **acceptable verifier audiences** (via `ExpectedAudiences`);
+the proof must select exactly one of them for its string-valued `aud`.
+When upgrading, regenerate any nonconforming holder proofs with a single
+audience rather than disabling audience or nonce validation.
+
+Reference: https://www.rfc-editor.org/rfc/rfc9901.html#section-4.3

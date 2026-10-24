@@ -159,40 +159,17 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
                 return false; // SD-JWT hash mismatch
             }
 
-            // Validate audience (required)
-            if (!payload.TryGetProperty("aud", out var audElement))
+            // RFC 9901 Section 4.3 requires exactly one string audience in a KB-JWT.
+            // The verifier may be configured with multiple acceptable audiences,
+            // but the holder proof itself must not contain an audience array.
+            if (!payload.TryGetProperty("aud", out var audElement) ||
+                audElement.ValueKind != JsonValueKind.String)
             {
                 return false;
             }
 
-            bool audienceMatches = false;
-            if (audElement.ValueKind == JsonValueKind.String)
-            {
-                if (audElement.GetString() is { Length: > 0 } audClaim &&
-                    expectedAudienceSet.Contains(audClaim))
-                {
-                    audienceMatches = true;
-                }
-            }
-            else if (audElement.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var item in audElement.EnumerateArray())
-                {
-                    if (item.ValueKind == JsonValueKind.String &&
-                        item.GetString() is { Length: > 0 } audClaim &&
-                        expectedAudienceSet.Contains(audClaim))
-                    {
-                        audienceMatches = true;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                return false; // Unsupported audience format
-            }
-
-            if (!audienceMatches)
+            var audience = audElement.GetString();
+            if (string.IsNullOrEmpty(audience) || !expectedAudienceSet.Contains(audience))
             {
                 return false; // Audience mismatch
             }

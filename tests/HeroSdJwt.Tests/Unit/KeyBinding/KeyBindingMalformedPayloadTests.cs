@@ -21,6 +21,13 @@ public class KeyBindingMalformedPayloadTests
     [InlineData("sd-hash-number")]
     [InlineData("sd-hash-null")]
     [InlineData("sd-hash-object")]
+    [InlineData("aud-array-one")]
+    [InlineData("aud-array-many")]
+    [InlineData("aud-array-mixed")]
+    [InlineData("aud-array-null")]
+    [InlineData("aud-number")]
+    [InlineData("aud-null")]
+    [InlineData("aud-object")]
     [InlineData("nonce-bool")]
     [InlineData("nonce-null")]
     [InlineData("nonce-array")]
@@ -85,6 +92,27 @@ public class KeyBindingMalformedPayloadTests
                 break;
             case "sd-hash-object":
                 claims["sd_hash"] = new { unexpected = true };
+                break;
+            case "aud-array-one":
+                claims["aud"] = new[] { AUDIENCE };
+                break;
+            case "aud-array-many":
+                claims["aud"] = new[] { AUDIENCE, "https://second-verifier.example.test" };
+                break;
+            case "aud-array-mixed":
+                claims["aud"] = new object[] { AUDIENCE, 42 };
+                break;
+            case "aud-array-null":
+                claims["aud"] = new object?[] { AUDIENCE, null };
+                break;
+            case "aud-number":
+                claims["aud"] = 42;
+                break;
+            case "aud-null":
+                claims["aud"] = null;
+                break;
+            case "aud-object":
+                claims["aud"] = new { target = AUDIENCE };
                 break;
             case "nonce-bool":
                 claims["nonce"] = true;
