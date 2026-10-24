@@ -73,6 +73,11 @@ public class KeyBindingGenerator : IKeyBindingGenerator
         {
             throw new ArgumentException("Invalid ECDSA private key format", nameof(holderPrivateKey), ex);
         }
+        catch (PlatformNotSupportedException ex)
+        {
+            // The platform may refuse secp256k1 before the named-curve guard runs.
+            throw new ArgumentException("Unsupported ECDSA private key curve", nameof(holderPrivateKey), ex);
+        }
 
         // Validate elliptic curve - only P-256 (ES256) is supported
         if (!EcCurveGuard.IsP256(ecdsa))

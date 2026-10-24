@@ -805,6 +805,13 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     errorDetails.Add("Invalid cnf claim: jwk is not a valid ECDSA public key");
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
+                catch (PlatformNotSupportedException)
+                {
+                    // Reject unsupported holder curves on platforms that cannot import them.
+                    errors.Add(ErrorCode.UnsupportedAlgorithm);
+                    errorDetails.Add("Invalid cnf claim: holder key curve is unsupported on this platform");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
                 catch (ArgumentException ex)
                 {
                     errors.Add(ErrorCode.InvalidInput);

@@ -266,6 +266,11 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             // Cryptographic operation failed
             return false;
         }
+        catch (PlatformNotSupportedException)
+        {
+            // Some platforms reject an unsupported curve while importing its SPKI.
+            return false;
+        }
         catch (FormatException)
         {
             // Base64 decoding failed
