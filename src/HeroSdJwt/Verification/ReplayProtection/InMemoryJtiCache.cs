@@ -8,7 +8,11 @@ namespace HeroSdJwt.Verification.ReplayProtection;
 public class InMemoryJtiCache : IJtiCache, IDisposable
 {
     private readonly Dictionary<JtiCacheKey, DateTimeOffset> _cache = [];
+#if NET9_0_OR_GREATER
+    private readonly Lock _sync = new();
+#else
     private readonly object _sync = new();
+#endif
     private readonly int _maxEntries;
     private readonly TimeProvider _timeProvider;
     private readonly Timer _cleanupTimer;

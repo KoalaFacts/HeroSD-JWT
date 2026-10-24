@@ -48,12 +48,15 @@ public class ReplayAdmissionRegressionTests
         var key = RandomNumberGenerator.GetBytes(32);
         var expiration = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
         var signer = new JwtSigner();
-        string CreateToken(string jti) => signer.CreateJwt(new Dictionary<string, object>
+        string CreateToken(string jti)
         {
-            ["iss"] = "issuer",
-            ["jti"] = jti,
-            ["exp"] = expiration
-        }, key, SignatureAlgorithm.HS256) + "~";
+            return signer.CreateJwt(new Dictionary<string, object>
+            {
+                ["iss"] = "issuer",
+                ["jti"] = jti,
+                ["exp"] = expiration
+            }, key, SignatureAlgorithm.HS256) + "~";
+        }
 
         var original = CreateToken("first");
         var newcomer = CreateToken("second");

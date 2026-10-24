@@ -117,6 +117,37 @@ public class InMemoryJtiCacheTests : IJtiCacheContractTests
         }
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public async Task Should_PreserveEveryLiveMarker_WhenReplaysAndNewcomersRaceAtCapacity(int capacity)
+    {
+        using var cache = new InMemoryJtiCache(new ReplayProtectionOptions { MaxCacheEntries = capacity });
+        var token = TestContext.Current.CancellationToken;
+        for (var i = 0; i < capacity; i++)
+        {
+            Assert.True(await cache.TryAddAsync("issuer", $"live-{i}", TimeSpan.FromHours(1), token));
+        }
+
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tasks = Enumerable.Range(0, 32).Select(i => Task.Run(async () =>
+        {
+            await start.Task.WaitAsync(token);
+            Assert.False(await cache.TryAddAsync("issuer", $"live-{i % capacity}", TimeSpan.FromHours(1), token));
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                cache.TryAddAsync("issuer", $"new-{i}", TimeSpan.FromHours(1), token));
+            Assert.False(await cache.ExistsAsync("issuer", $"new-{i}", token));
+        }, token)).ToArray();
+        start.SetResult();
+        await Task.WhenAll(tasks);
+
+        for (var i = 0; i < capacity; i++)
+        {
+            Assert.True(await cache.ExistsAsync("issuer", $"live-{i}", token));
+            Assert.False(await cache.TryAddAsync("issuer", $"live-{i}", TimeSpan.FromHours(1), token));
+        }
+    }
+
     [Fact]
     public async Task Should_NotReserveJti_WhenAdmissionIsCancelled()
     {
