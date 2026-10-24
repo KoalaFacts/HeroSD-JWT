@@ -12,16 +12,77 @@ public class DistributedRevocationStoreTests : IDisposable
     [Fact]
     public async Task RevokeJtiAsync_SetsFlag_AndExpires()
     {
-        var store = new DistributedRevocationStore(_cache);
-        var expiresAt = DateTimeOffset.UtcNow.AddMilliseconds(200);
+        var backend = new AtomicRevocationCacheFixture();
+        var store = new DistributedRevocationStore(backend);
+        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(1);
 
         await store.RevokeJtiAsync("jti-1", expiresAt, TestContext.Current.CancellationToken);
 
         Assert.True(await store.IsJtiRevokedAsync("jti-1", TestContext.Current.CancellationToken));
 
-        await Task.Delay(300, TestContext.Current.CancellationToken);
+        backend.Advance(TimeSpan.FromMinutes(2));
 
         Assert.False(await store.IsJtiRevokedAsync("jti-1", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task RevokeJtiAsync_OrdinaryDistributedCache_FailsClosedBeforeWriting()
+    {
+        var store = new DistributedRevocationStore(_cache);
+
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            store.RevokeJtiAsync("unsafe-backend", DateTimeOffset.UtcNow.AddHours(1), TestContext.Current.CancellationToken));
+
+        Assert.False(await store.IsJtiRevokedAsync("unsafe-backend", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task RevokeJtiAsync_ShorterRenewalCannotShortenAnExistingRevocation()
+    {
+        var backend = new AtomicRevocationCacheFixture();
+        var firstNode = new DistributedRevocationStore(backend);
+        var secondNode = new DistributedRevocationStore(backend);
+        var now = DateTimeOffset.UtcNow;
+        var token = TestContext.Current.CancellationToken;
+
+        await firstNode.RevokeJtiAsync("same-jti", now.AddHours(1), token);
+        await secondNode.RevokeJtiAsync("same-jti", now.AddMinutes(1), token);
+
+        backend.Advance(TimeSpan.FromMinutes(2));
+        Assert.True(await firstNode.IsJtiRevokedAsync("same-jti", token));
+
+        backend.Advance(TimeSpan.FromHours(2));
+        Assert.False(await secondNode.IsJtiRevokedAsync("same-jti", token));
+    }
+
+    [Fact]
+    public async Task RevokeJtiAsync_ConcurrentRenewalsPreserveLongestExpiration()
+    {
+        var backend = new AtomicRevocationCacheFixture();
+        var now = DateTimeOffset.UtcNow;
+        var token = TestContext.Current.CancellationToken;
+        var attempts = Enumerable.Range(0, 64).Select(i => Task.Run(async () =>
+        {
+            var store = new DistributedRevocationStore(backend);
+            var expires = now.AddMinutes(i % 3 == 0 ? 60 : 1);
+            await store.RevokeJtiAsync("parallel-jti", expires, token);
+        }, token));
+        await Task.WhenAll(attempts);
+
+        backend.Advance(TimeSpan.FromMinutes(2));
+        Assert.True(await new DistributedRevocationStore(backend).IsJtiRevokedAsync("parallel-jti", token));
+    }
+
+    [Fact]
+    public async Task RevokeJtiAsync_BackendFailureIsPropagatedWithoutAdmission()
+    {
+        var backend = new AtomicRevocationCacheFixture { FailAtomicWrites = true };
+        var store = new DistributedRevocationStore(backend);
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            store.RevokeJtiAsync("backend-error", DateTimeOffset.UtcNow.AddHours(1), TestContext.Current.CancellationToken));
+
+        Assert.False(await store.IsJtiRevokedAsync("backend-error", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -46,6 +107,103 @@ public class DistributedRevocationStoreTests : IDisposable
 
         await store.UnrevokeUserAsync("user-1", TestContext.Current.CancellationToken);
         Assert.False(await store.IsUserRevokedAsync("user-1", TestContext.Current.CancellationToken));
+    }
+
+    // Single-process contract fixture only. Its lock models an atomic backend
+    // operation, not an actual Redis/SQL cross-instance implementation.
+    private sealed class AtomicRevocationCacheFixture : IAtomicRevocationCache
+    {
+        private readonly object _sync = new();
+        private readonly Dictionary<string, (byte[] Value, DateTimeOffset? Expires)> _entries = new(StringComparer.Ordinal);
+        private DateTimeOffset _now = DateTimeOffset.UtcNow;
+
+        public bool FailAtomicWrites { get; init; }
+
+        public void Advance(TimeSpan time)
+        {
+            lock (_sync)
+            {
+                _now += time;
+            }
+        }
+
+        public Task SetOrExtendAsync(string key, byte[] value, DateTimeOffset expiresAt, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (FailAtomicWrites)
+            {
+                throw new IOException("Atomic revocation backend unavailable");
+            }
+
+            lock (_sync)
+            {
+                if (expiresAt > _now &&
+                    (!_entries.TryGetValue(key, out var existing) ||
+                     (existing.Expires.HasValue && (existing.Expires.Value <= _now || existing.Expires.Value < expiresAt))))
+                {
+                    _entries[key] = (value, expiresAt);
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public byte[]? Get(string key)
+        {
+            lock (_sync)
+            {
+                return _entries.TryGetValue(key, out var entry) &&
+                    (!entry.Expires.HasValue || entry.Expires.Value > _now) ? entry.Value : null;
+            }
+        }
+
+        public Task<byte[]?> GetAsync(string key, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            return Task.FromResult(Get(key));
+        }
+
+        // The normal Set path deliberately retains overwrite semantics, so these
+        // regression tests would expose the old get/set-style renewal behavior.
+        public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
+        {
+            lock (_sync)
+            {
+                DateTimeOffset? expires = options.AbsoluteExpirationRelativeToNow.HasValue
+                    ? _now + options.AbsoluteExpirationRelativeToNow.Value
+                    : options.AbsoluteExpiration;
+                _entries[key] = (value, expires);
+            }
+        }
+
+        public Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            Set(key, value, options);
+            return Task.CompletedTask;
+        }
+
+        public void Refresh(string key) { }
+        public Task RefreshAsync(string key, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
+        }
+
+        public void Remove(string key)
+        {
+            lock (_sync)
+            {
+                _entries.Remove(key);
+            }
+        }
+
+        public Task RemoveAsync(string key, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            Remove(key);
+            return Task.CompletedTask;
+        }
     }
 
     public void Dispose()

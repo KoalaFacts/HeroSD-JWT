@@ -159,3 +159,31 @@ constructing the cache does not change that instance's capacity.
 For multi-instance, restart-safe or failover-sensitive operation use a verified
 shared atomic `IJtiCache` or `IAtomicDistributedCache` backend instead.
 An in-process stress test cannot establish cross-instance replay safety.
+
+## Atomic distributed JTI revocation renewal
+
+`DistributedRevocationStore.RevokeJtiAsync` now requires the configured
+`IDistributedCache` to also implement
+`HeroSdJwt.AspNetCore.Verification.Revocation.IAtomicRevocationCache`.
+This is **separate** from `IAtomicDistributedCache`, which is for replay
+admission. A generic `IDistributedCache.SetAsync` overwrites marker expiration:
+a second revocation with an earlier expiry can shorten the first revocation and
+allow a still-valid credential through. A get-then-set workaround has the same
+cross-process race. Unsupported caches throw `NotSupportedException` rather
+than silently weaken JTI revocation. Key and user revocation operations retain
+their existing `IDistributedCache` behavior.
+
+Implement `SetOrExtendAsync(key, value, expiresAt, cancellationToken)` with a
+**single backend-atomic create-or-extend operation**, retaining whichever
+absolute expiry is later. Existing permanent markers must not be replaced by
+expiring markers. A duplicate must never move expiry backwards; cancelled,
+failed or uncertain writes must never report success. All nodes must share a
+consistent backend clock and namespace. Standard Redis/SQL cache wrappers do
+not satisfy this merely by implementing `IDistributedCache`.
+
+The existing marker keys are **unchanged**; no revocation-key namespace reset is
+introduced by this fix. Existing markers still read through `GetAsync`.
+This package does **not** ship or certify an atomic revocation backend. Test
+against a real backend with independent clients and racing long/short expiry
+updates, TTL expiry, cancellation, failover, eviction and transport failures.
+Contract fixtures in this repository are single-process simulations only.

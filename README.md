@@ -606,7 +606,7 @@ builder.Services
     .AddSdJwtDistributedRevocation();      // Separate IRevocationStore adapter
 ```
 
-No atomic Redis/SQL provider is bundled. You can also register an application-provided `IJtiCache` directly. See [distributed replay protection](docs/users/distributed-replay-protection.md) for the compatibility requirement, registration, backend contract, and real-backend validation requirements.
+No atomic Redis/SQL provider is bundled. You can also register an application-provided `IJtiCache` directly. For distributed JTI **revocation**, the cache must additionally implement `IAtomicRevocationCache` so repeating a revocation can never shorten its expiry. Ordinary `IDistributedCache` remains supported for key/user revocation, but JTI revocation fails closed without that separate atomic capability. See [distributed replay and revocation requirements](docs/users/distributed-replay-protection.md) for both contracts, compatibility, and real-backend validation requirements.
 
 ### Continuous Integration
 
