@@ -116,7 +116,14 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
             var header = JsonDocument.Parse(headerJson).RootElement;
 
-            if (!header.TryGetProperty("typ", out var typElement) ||
+            // Only ES256 key-binding JWTs are supported. Reject a missing or
+            // contradictory JOSE algorithm even if the bytes verify as ES256.
+            if (header.ValueKind != JsonValueKind.Object ||
+                !header.TryGetProperty("alg", out var algElement) ||
+                algElement.ValueKind != JsonValueKind.String ||
+                algElement.GetString() != "ES256" ||
+                !header.TryGetProperty("typ", out var typElement) ||
+                typElement.ValueKind != JsonValueKind.String ||
                 typElement.GetString() != "kb+jwt")
             {
                 return false;

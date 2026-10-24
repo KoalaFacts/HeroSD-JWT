@@ -790,8 +790,16 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync
                 string sdJwtHash;
                 try
                 {
-                    using var sha256 = SHA256.Create();
-                    var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(sdJwtString));
+                    // RFC 9901 section 4.3.1: sd_hash uses the same algorithm
+                    // as the disclosure digests, not always SHA-256.
+                    var input = System.Text.Encoding.ASCII.GetBytes(sdJwtString);
+                    var hashBytes = algorithm switch
+                    {
+                        HashAlgorithm.Sha256 => SHA256.HashData(input),
+                        HashAlgorithm.Sha384 => SHA384.HashData(input),
+                        HashAlgorithm.Sha512 => SHA512.HashData(input),
+                        _ => throw new InvalidOperationException("Unsupported disclosure hash algorithm")
+                    };
                     sdJwtHash = Base64UrlEncoder.Encode(hashBytes);
                 }
                 catch (Exception ex)
