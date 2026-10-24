@@ -1,3 +1,4 @@
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
 using System.Buffers;
 using System.Security.Cryptography;
@@ -74,10 +75,10 @@ public class KeyBindingGenerator : IKeyBindingGenerator
         }
 
         // Validate elliptic curve - only P-256 (ES256) is supported
-        if (ecdsa.KeySize != 256)
+        if (!EcCurveGuard.IsP256(ecdsa))
         {
             throw new ArgumentException(
-                $"Only P-256 (256-bit) elliptic curve is supported for ES256. Provided key is {ecdsa.KeySize}-bit.",
+                "Only the named NIST P-256 elliptic curve is supported for ES256.",
                 nameof(holderPrivateKey));
         }
 

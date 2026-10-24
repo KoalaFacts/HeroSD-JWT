@@ -786,10 +786,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
 
                     // Only P-256 (ES256) is supported
-                    if (ecdsa.KeySize != 256)
+                    if (!EcCurveGuard.IsP256(ecdsa))
                     {
                         errors.Add(ErrorCode.UnsupportedAlgorithm);
-                        errorDetails.Add($"Unsupported elliptic curve: only P-256 is supported, got {ecdsa.KeySize}-bit key");
+                        errorDetails.Add("Unsupported elliptic curve: ES256 requires the named NIST P-256 curve.");
                         return new VerificationResult(errors, string.Join("; ", errorDetails));
                     }
                 }

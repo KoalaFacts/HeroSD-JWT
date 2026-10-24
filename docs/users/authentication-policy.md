@@ -108,3 +108,7 @@ When upgrading, regenerate any nonconforming holder proofs with a single
 audience rather than disabling audience or nonce validation.
 
 Reference: https://www.rfc-editor.org/rfc/rfc9901.html#section-4.3
+
+## Holder-key curve compatibility (ES256)
+
+ES256 means **ECDSA on the named NIST P-256 curve with SHA-256** (RFC 7518 section 3.4), not any 256-bit elliptic curve. Holder proof validation, proof generation, and SubjectPublicKeyInfo-to-JWK conversion reject other 256-bit curves such as secp256k1; the full presentation verifier also rejects those keys before holder-proof validation, including the legacy base64 cnf.jwk form. Genuine NIST P-256 credentials remain supported. Replace nonconforming holder keys and reissue credentials instead of relabelling their curve as P-256.

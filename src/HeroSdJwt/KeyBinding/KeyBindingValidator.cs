@@ -1,3 +1,4 @@
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
@@ -249,7 +250,7 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             }
 
             // Validate elliptic curve - only P-256 (ES256) is supported
-            if (ecdsa.KeySize != 256)
+            if (!EcCurveGuard.IsP256(ecdsa))
             {
                 return false; // Only P-256 curve is supported for ES256
             }
