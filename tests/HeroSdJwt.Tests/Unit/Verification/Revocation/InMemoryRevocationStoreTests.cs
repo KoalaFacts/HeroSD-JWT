@@ -58,6 +58,46 @@ public class InMemoryRevocationStoreTests
     }
 
     [Fact]
+    public async Task RevokeJtiAsync_ShorterSecondExpiration_DoesNotUnrevokeActiveToken()
+    {
+        using var store = new InMemoryRevocationStore();
+        const string jti = "monotonic-revocation";
+        var now = DateTimeOffset.UtcNow;
+
+        await store.RevokeJtiAsync(jti, now.AddHours(1), _ct);
+        await store.RevokeJtiAsync(jti, now.AddMinutes(-1), _ct);
+        await store.CleanupExpiredEntriesAsync(_ct);
+
+        Assert.True(await store.IsJtiRevokedAsync(jti, _ct));
+    }
+
+    [Fact]
+    public async Task ConcurrentEarlierRevocationsAndCleanup_CannotEraseLiveMarker()
+    {
+        using var store = new InMemoryRevocationStore();
+        const string jti = "concurrent-monotonic-revocation";
+        var now = DateTimeOffset.UtcNow;
+        await store.RevokeJtiAsync(jti, now.AddHours(1), _ct);
+
+        var operations = Enumerable.Range(0, 64)
+            .Select(index => Task.Run(async () =>
+            {
+                if (index % 2 == 0)
+                {
+                    await store.RevokeJtiAsync(jti, now.AddMinutes(-1), _ct);
+                }
+                else
+                {
+                    await store.CleanupExpiredEntriesAsync(_ct);
+                }
+            }, _ct));
+
+        await Task.WhenAll(operations);
+
+        Assert.True(await store.IsJtiRevokedAsync(jti, _ct));
+    }
+
+    [Fact]
     public async Task IsJtiRevokedAsync_WithNonExistentJti_ReturnsFalse()
     {
         var store = new InMemoryRevocationStore();

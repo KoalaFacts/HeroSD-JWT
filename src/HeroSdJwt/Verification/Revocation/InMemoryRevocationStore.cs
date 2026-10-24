@@ -66,8 +66,11 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Idempotent: AddOrUpdate ensures we update if already exists
-        _ = _revokedJtis.AddOrUpdate(jti, expiresAt, (_, __) => expiresAt);
+        // A repeated revocation must never shorten an existing live marker.
+        // Otherwise an earlier expiry supplied by a concurrent caller could
+        // cause cleanup to re-admit a credential that is still revoked.
+        _ = _revokedJtis.AddOrUpdate(jti, expiresAt,
+            (_, previousExpiry) => previousExpiry >= expiresAt ? previousExpiry : expiresAt);
 
         return Task.CompletedTask;
     }
@@ -181,13 +184,15 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         // Find all expired JTI entries
         var expiredJtis = _revokedJtis
             .Where(kvp => kvp.Value <= now)
-            .Select(kvp => kvp.Key)
             .ToList();
 
-        // Remove expired entries
-        foreach (var jti in expiredJtis)
+        // A revocation may be renewed after the snapshot is taken. Remove only
+        // when the key AND its observed expiry still match, so cleanup cannot
+        // discard a replacement revocation from another request.
+        var conditionalRemover = (ICollection<KeyValuePair<string, DateTimeOffset>>)_revokedJtis;
+        foreach (var expired in expiredJtis)
         {
-            _ = _revokedJtis.TryRemove(jti, out _);
+            _ = conditionalRemover.Remove(expired);
         }
 
         return Task.CompletedTask;
