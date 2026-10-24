@@ -19,6 +19,31 @@ cross-process atomic admission. This package does not ship a Redis or SQL atomic
 provider. The adapter tests use an in-process contract fixture; they do not certify
 a production backend.
 
+## Replay retention and credential expiry
+
+Replay protection is safe only if a replay marker survives for as long as the
+credential could still be admitted. Enabled `JtiValidator` now **requires a
+valid integer Unix `exp`**, and rejects a credential if the full remaining
+lifetime **plus `ClockSkewTolerance`** exceeds `MaximumTtl`. It does **not**
+silently cap the marker at `MaximumTtl`, or use `DefaultTtl` for missing or
+malformed expiry claims. Invalid/oversized expiries are rejected **before**
+calling the cache. This is a security compatibility change.
+
+For a credential that must be accepted for 48 hours, configure
+`MaximumTtl` longer than 48 hours **plus** your marker skew allowance,
+and ensure the backend can retain the marker for that period. Otherwise
+issue shorter-lived credentials. Existing `DefaultTtl` configuration is
+retained as a public compatibility property, but cannot make an unbounded
+credential safe. The general claim verifier also requires a valid `exp`.
+
+The JTI validator itself rejects claims once `exp` has elapsed; it can be
+stricter than the scheme's separate temporal `ClockSkew`. `RequireJtiClaim
+= false` deliberately skips replay tracking when no JTI exists, so do not
+use it when every accepted presentation must be one-time. Plan the migration
+for long-lived credentials before deploying; clients that previously succeeded
+with a capped marker will now fail authentication rather than receive a
+misleading replay guarantee.
+
 ## Marker-key migration
 
 The adapter now uses a versioned, length-prefixed encoding of the prefix, issuer,

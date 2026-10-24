@@ -41,7 +41,8 @@ public class DistributedReplayRegistrationTests
         var claims = new Dictionary<string, JsonElement>
         {
             ["iss"] = JsonSerializer.SerializeToElement("issuer"),
-            ["jti"] = JsonSerializer.SerializeToElement("registered-jti")
+            ["jti"] = JsonSerializer.SerializeToElement("registered-jti"),
+            ["exp"] = JsonSerializer.SerializeToElement(DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds())
         };
 
         await validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
@@ -78,7 +79,8 @@ public class DistributedReplayRegistrationTests
         var claims = new Dictionary<string, JsonElement>
         {
             ["iss"] = JsonSerializer.SerializeToElement("issuer"),
-            ["jti"] = JsonSerializer.SerializeToElement("scoped-jti")
+            ["jti"] = JsonSerializer.SerializeToElement("scoped-jti"),
+            ["exp"] = JsonSerializer.SerializeToElement(DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds())
         };
 
         await validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
@@ -98,7 +100,8 @@ public class DistributedReplayRegistrationTests
         var claims = new Dictionary<string, JsonElement>
         {
             ["iss"] = JsonSerializer.SerializeToElement("issuer"),
-            ["jti"] = JsonSerializer.SerializeToElement("custom-scoped-jti")
+            ["jti"] = JsonSerializer.SerializeToElement("custom-scoped-jti"),
+            ["exp"] = JsonSerializer.SerializeToElement(DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds())
         };
 
         await validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
