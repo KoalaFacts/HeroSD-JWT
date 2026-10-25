@@ -769,6 +769,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             {
                 // Extract holder's public key from cnf claim
                 if (!payload.TryGetProperty("cnf", out var cnfElement) ||
+                    cnfElement.ValueKind != JsonValueKind.Object ||
                     !cnfElement.TryGetProperty("jwk", out var jwkElement))
                 {
                     errors.Add(ErrorCode.InvalidInput);
