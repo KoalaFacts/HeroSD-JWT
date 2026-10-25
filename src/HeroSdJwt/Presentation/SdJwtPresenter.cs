@@ -180,16 +180,9 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
 
         // Calculate total length: JWT + separators + disclosures + keyBinding
         int totalLength = jwt.Length + 1; // JWT + separator
-        if (disclosures.Count > 0)
+        foreach (var disclosure in disclosures)
         {
-            foreach (var disclosure in disclosures)
-            {
-                totalLength += disclosure.Length + 1; // disclosure + separator
-            }
-        }
-        else
-        {
-            totalLength += 1; // empty disclosure + separator
+            totalLength += disclosure.Length + 1; // disclosure + separator
         }
         totalLength += keyBinding.Length; // final keyBinding (no trailing separator)
 
@@ -204,18 +197,10 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
             span[pos++] = separator;
 
             // Write disclosures
-            if (state.disclosures.Count > 0)
+            foreach (var disclosure in state.disclosures)
             {
-                foreach (var disclosure in state.disclosures)
-                {
-                    disclosure.AsSpan().CopyTo(span[pos..]);
-                    pos += disclosure.Length;
-                    span[pos++] = separator;
-                }
-            }
-            else
-            {
-                // Empty disclosure slot
+                disclosure.AsSpan().CopyTo(span[pos..]);
+                pos += disclosure.Length;
                 span[pos++] = separator;
             }
 
