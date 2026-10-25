@@ -133,7 +133,7 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                             : $"{currentPath}.{disclosure.ClaimName}";
 
                         // Add to mapping (including intermediate objects - they're needed for presentations)
-                        mapping[fullPath] = disclosureIndex;
+                        AddUnambiguousMapping(mapping, fullPath, disclosureIndex);
 
                         // Recursively process the disclosure value if it's an object or array
                         // This handles nested _sd arrays within selectively disclosable claims
@@ -167,7 +167,7 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                 {
                     // Array element path: "claimName[index]"
                     var arrayPath = $"{currentPath}[{index}]";
-                    mapping[arrayPath] = disclosureIndex;
+                    AddUnambiguousMapping(mapping, arrayPath, disclosureIndex);
 
                     // Recursively process the array element value
                     var disclosure = _disclosureParser.Parse(disclosures[disclosureIndex]);
@@ -183,5 +183,15 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
 
             index++;
         }
+    }
+    private static void AddUnambiguousMapping(Dictionary<string, int> mapping, string path, int disclosureIndex)
+    {
+        if (mapping.TryGetValue(path, out var existingIndex) && existingIndex != disclosureIndex)
+        {
+            throw new InvalidOperationException(
+                $"Ambiguous claim path '{path}' refers to multiple disclosures.");
+        }
+
+        mapping[path] = disclosureIndex;
     }
 }

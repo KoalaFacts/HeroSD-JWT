@@ -1,4 +1,7 @@
+using HeroSdJwt.Encoding;
+using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
+using System.Text.Json;
 
 namespace HeroSdJwt.Presentation;
 
@@ -25,7 +28,7 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
     /// Creates a presentation with the specified selected claims.
     /// </summary>
     /// <param name="sdJwt">The SD-JWT to present.</param>
-    /// <param name="selectedClaimNames">The names of claims to disclose.</param>
+    /// <param name="selectedClaimNames">Claim paths to disclose. An unqualified short name must match exactly one path; ambiguous names require full paths.</param>
     /// <param name="keyBindingJwt">Optional key binding JWT to prove holder possession of private key.</param>
     /// <returns>The presentation containing only selected disclosures.</returns>
     public SdJwtPresentation CreatePresentation(
@@ -56,34 +59,36 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
 
                 if (!claimPathToIndex.TryGetValue(claimPath, out var disclosureIndex))
                 {
-                    // Check if this is a simple claim name (legacy support)
-                    // Manual loop to avoid LINQ allocation
-                    bool found = false;
+                    // Legacy unqualified claim names remain convenient only when unique.
+                    // Otherwise choosing the first dictionary entry could disclose
+                    // a different claim than the holder intended.
                     string? matchedKey = null;
                     foreach (var kvp in claimPathToIndex)
                     {
-                        if (kvp.Key == claimPath ||
-                            kvp.Key.EndsWith($".{claimPath}", StringComparison.Ordinal) ||
+                        if (kvp.Key.EndsWith($".{claimPath}", StringComparison.Ordinal) ||
                             kvp.Key.EndsWith($"[{claimPath}]", StringComparison.Ordinal))
                         {
-                            disclosureIndex = kvp.Value;
+                            if (matchedKey != null)
+                            {
+                                throw new ArgumentException(
+                                    $"Claim path '{claimPath}' is ambiguous. Specify the full claim path.",
+                                    nameof(selectedClaimNames));
+                            }
+
                             matchedKey = kvp.Key;
-                            found = true;
-                            break;
+                            disclosureIndex = kvp.Value;
                         }
                     }
 
-                    if (found)
-                    {
-                        claimPath = matchedKey!; // Use the full matched path
-                    }
-                    else
+                    if (matchedKey == null)
                     {
                         throw new ArgumentException(
                             $"Claim path '{claimPath}' not found in SD-JWT. " +
                             $"Available paths: {string.Join(", ", claimPathToIndex.Keys)}",
                             nameof(selectedClaimNames));
                     }
+
+                    claimPath = matchedKey;
                 }
 
                 if (disclosureIndex < 0 || disclosureIndex >= sdJwt.Disclosures.Count)
@@ -95,28 +100,33 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
                 // Add this disclosure
                 _ = selectedDisclosureIndices.Add(disclosureIndex);
 
-                // For nested paths, also add all parent disclosures
-                // E.g., for "address.geo.lat", also add "address.geo"
-                // Use ReadOnlySpan to avoid string allocations
-                ReadOnlySpan<char> pathSpan = claimPath.AsSpan();
-                int dotIndex = pathSpan.IndexOf('.');
-                while (dotIndex >= 0)
+                // Only a digest reference inside a parent disclosure proves ancestry.
+                // Prefix text alone is unsafe: issuers may use literal names such as
+                // "profile.email", unrelated to a separately disclosed "profile".
+                int childIndex = disclosureIndex;
+                var digestCalculator = new DigestCalculator();
+                for (int position = claimPath.Length - 1; position >= 1; position--)
                 {
-                    // Find next dot for parent path
-                    int nextDotIndex = pathSpan[(dotIndex + 1)..].IndexOf('.');
-                    if (nextDotIndex >= 0)
+                    if (claimPath[position] is '.' or '[')
                     {
-                        int parentLength = dotIndex + 1 + nextDotIndex;
-                        string parentPath = claimPath[..parentLength];
-                        if (claimPathToIndex.TryGetValue(parentPath, out var parentIndex))
+                        var parentPath = claimPath[..position];
+                        if (!claimPathToIndex.TryGetValue(parentPath, out var parentIndex))
+                        {
+                            continue;
+                        }
+
+                        if (parentIndex < 0 || parentIndex >= sdJwt.Disclosures.Count)
+                        {
+                            throw new InvalidOperationException(
+                                $"Invalid disclosure index {parentIndex} for claim '{parentPath}'");
+                        }
+
+                        var childDigest = digestCalculator.ComputeDigest(sdJwt.Disclosures[childIndex], sdJwt.HashAlgorithm);
+                        if (ReferencesDigest(sdJwt.Disclosures[parentIndex], childDigest))
                         {
                             _ = selectedDisclosureIndices.Add(parentIndex);
+                            childIndex = parentIndex;
                         }
-                        dotIndex = parentLength;
-                    }
-                    else
-                    {
-                        break;
                     }
                 }
             }
@@ -208,5 +218,66 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
             state.keyBinding.AsSpan().CopyTo(span[pos..]);
         });
     }
+    // Check only structural SD-JWT digest references, never arbitrary claim text.
+    // The parsed document is disposed before returning; no JsonElement escapes.
+    private static bool ReferencesDigest(string parentDisclosure, string childDigest)
+    {
+        using var document = JsonDocument.Parse(Base64UrlEncoder.DecodeString(parentDisclosure));
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() is not 2 and not 3)
+        {
+            return false;
+        }
+
+        return ContainsDigestReference(root[root.GetArrayLength() - 1], childDigest);
+    }
+
+    private static bool ContainsDigestReference(JsonElement element, string digest)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            if (element.TryGetProperty("_sd", out var hashes) && hashes.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var value in hashes.EnumerateArray())
+                {
+                    if (value.ValueKind == JsonValueKind.String &&
+                        string.Equals(value.GetString(), digest, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            foreach (var property in element.EnumerateObject())
+            {
+                if (property.Name != "_sd" && ContainsDigestReference(property.Value, digest))
+                {
+                    return true;
+                }
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in element.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.Object &&
+                    item.TryGetProperty("...", out var placeholder) &&
+                    item.EnumerateObject().Count() == 1 &&
+                    placeholder.ValueKind == JsonValueKind.String &&
+                    string.Equals(placeholder.GetString(), digest, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                if (ContainsDigestReference(item, digest))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
 }
 
