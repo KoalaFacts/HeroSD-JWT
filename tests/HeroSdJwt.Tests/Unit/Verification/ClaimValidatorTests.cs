@@ -560,19 +560,13 @@ public class ClaimValidatorTests
     }
 
     [Fact]
-    public void ValidateTemporalClaims_WithExtremelyLargeExpTimestamp_HandlesGracefully()
+    public void ValidateTemporalClaims_WithOutOfRangeExpTimestamp_ReturnsFalse()
     {
-        // Arrange - Very large timestamp (year 2500+) that might cause overflow
+        // Unix seconds beyond DateTimeOffset's representable range are invalid.
         var payload = CreatePayload(new { exp = long.MaxValue });
         var options = new SdJwtVerificationOptions();
 
-        // Act
-        var result = new ClaimValidator().ValidateTemporalClaims(payload, options);
-
-        // Assert
-        // Should either return true (far future) or false (overflow caught)
-        // Either is valid behavior for extreme values
-        Assert.True(result || !result, "Extremely large timestamp should be handled gracefully");
+        Assert.False(new ClaimValidator().ValidateTemporalClaims(payload, options));
     }
 
     [Fact]
@@ -669,6 +663,83 @@ public class ClaimValidatorTests
 
         // Assert
         Assert.True(result, "All three valid temporal claims should pass validation");
+    }
+
+    [Theory]
+    [InlineData(/*lang=json,strict*/ "{\"iss\": 123}")]
+    [InlineData(/*lang=json,strict*/ "{\"iss\": true}")]
+    [InlineData(/*lang=json,strict*/ "{\"iss\": []}")]
+    [InlineData(/*lang=json,strict*/ "{\"iss\": {}}")]
+    [InlineData(/*lang=json,strict*/ "{\"iss\": null}")]
+    public void ValidateIssuer_WithNonStringClaim_ReturnsFalse(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+
+        Assert.False(new ClaimValidator().ValidateIssuer(
+            document.RootElement, "https://issuer.example.com"));
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("[]")]
+    [InlineData("42")]
+    [InlineData("\"not-an-object\"")]
+    public void ValidateIssuer_WithNonObjectPayload_ReturnsFalse(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+
+        Assert.False(new ClaimValidator().ValidateIssuer(
+            document.RootElement, "https://issuer.example.com"));
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("[]")]
+    [InlineData("42")]
+    [InlineData("\"not-an-object\"")]
+    public void ValidateAudience_WithNonObjectPayload_ReturnsFalse(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+
+        Assert.False(new ClaimValidator().ValidateAudience(
+            document.RootElement, ["https://api.example.com"]));
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("[]")]
+    [InlineData("42")]
+    [InlineData("\"not-an-object\"")]
+    public void ValidateTemporalClaims_WithNonObjectPayload_ReturnsFalse(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+
+        Assert.False(new ClaimValidator().ValidateTemporalClaims(
+            document.RootElement, new SdJwtVerificationOptions()));
+    }
+
+    [Fact]
+    public void ValidateTemporalClaims_WithLatestSupportedExpiration_ReturnsTrue()
+    {
+        // DateTimeOffset.MaxValue's Unix seconds are valid, even with clock skew.
+        using var document = JsonDocument.Parse("{\"exp\":253402300799}");
+        var now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+
+        Assert.True(new ClaimValidator().ValidateTemporalClaims(
+            document.RootElement, new SdJwtVerificationOptions(), now));
+    }
+
+    [Theory]
+    [InlineData(/*lang=json,strict*/ "{\"exp\":1893456000,\"nbf\":-62135596800}")]
+    [InlineData(/*lang=json,strict*/ "{\"exp\":1893456000,\"iat\":-62135596800}")]
+    public void ValidateTemporalClaims_WithEarliestSupportedOptionalDates_ReturnsTrue(string json)
+    {
+        // DateTimeOffset.MinValue's Unix seconds are valid, even with clock skew.
+        using var document = JsonDocument.Parse(json);
+        var now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+
+        Assert.True(new ClaimValidator().ValidateTemporalClaims(
+            document.RootElement, new SdJwtVerificationOptions(), now));
     }
 
     // Helper method to create a JSON payload
