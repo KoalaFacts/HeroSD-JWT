@@ -651,6 +651,15 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
+            // A JWS payload for SD-JWT must be a JSON claims object. Do not let
+            // malformed, correctly signed payloads escape as InvalidOperationException.
+            if (payload.ValueKind != JsonValueKind.Object)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("JWT payload must be a JSON object");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
             var payloadAudiences = ExtractAudiences(payload);
 
             // Step 3: Validate temporal claims (exp, nbf, iat)
@@ -942,6 +951,11 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
 
         if (payload.TryGetProperty("_sd_alg", out var sdAlgElement))
         {
+            if (sdAlgElement.ValueKind != JsonValueKind.String)
+            {
+                throw new SdJwtException("SD-JWT _sd_alg must be a string", ErrorCode.InvalidInput);
+            }
+
             var algString = sdAlgElement.GetString();
             algorithm = algString?.ToLowerInvariant() switch
             {
