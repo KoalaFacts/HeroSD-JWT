@@ -3,7 +3,6 @@ using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 
 namespace HeroSdJwt.Tests.Security;
@@ -57,7 +56,7 @@ public class JwtCriticalHeaderTests
         var parts = jwt.Split('.');
         using (var hmac = new HMACSHA256(SigningKey))
         {
-            var input = Encoding.UTF8.GetBytes(parts[0] + "." + parts[1]);
+            var input = System.Text.Encoding.UTF8.GetBytes(parts[0] + "." + parts[1]);
             Assert.Equal(Base64UrlEncoder.Encode(hmac.ComputeHash(input)), parts[2]);
         }
 
@@ -133,6 +132,6 @@ public class JwtCriticalHeaderTests
         var signingInput = Base64UrlEncoder.Encode(JsonSerializer.Serialize(header)) + "." +
                            Base64UrlEncoder.Encode(JsonSerializer.Serialize(payload));
         using var hmac = new HMACSHA256(SigningKey);
-        return signingInput + "." + Base64UrlEncoder.Encode(hmac.ComputeHash(Encoding.UTF8.GetBytes(signingInput)));
+        return signingInput + "." + Base64UrlEncoder.Encode(hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(signingInput)));
     }
 }
