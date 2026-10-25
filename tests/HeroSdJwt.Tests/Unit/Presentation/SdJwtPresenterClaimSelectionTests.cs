@@ -1,8 +1,10 @@
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
 using HeroSdJwt.Primitives;
+using System.Security.Cryptography;
 
 namespace HeroSdJwt.Tests.Unit.Presentation;
 
@@ -26,7 +28,8 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["profile.email"]);
 
-        Assert.Equal(new[] { profile, email }, presentation.SelectedDisclosures);
+        string[] expected = [profile, email];
+        Assert.Equal(expected, presentation.SelectedDisclosures);
     }
 
     [Fact]
@@ -46,7 +49,8 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["profile.contact.email"]);
 
-        Assert.Equal(new[] { profile, contact, email }, presentation.SelectedDisclosures);
+        string[] expected = [profile, contact, email];
+        Assert.Equal(expected, presentation.SelectedDisclosures);
     }
 
     [Fact]
@@ -68,7 +72,8 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["records[1].contact.email"]);
 
-        Assert.Equal(new[] { records, element, contact, email }, presentation.SelectedDisclosures);
+        string[] expected = [records, element, contact, email];
+        Assert.Equal(expected, presentation.SelectedDisclosures);
     }
 
     [Fact]
@@ -90,7 +95,8 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["groups[2][1].name"]);
 
-        Assert.Equal(new[] { groups, outer, inner, name }, presentation.SelectedDisclosures);
+        string[] expected = [groups, outer, inner, name];
+        Assert.Equal(expected, presentation.SelectedDisclosures);
     }
 
     [Theory]
@@ -110,7 +116,8 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, [literalName]);
 
-        Assert.Equal(new[] { selected }, presentation.SelectedDisclosures);
+        string[] expected = [selected];
+        Assert.Equal(expected, presentation.SelectedDisclosures);
     }
 
     [Fact]
@@ -130,7 +137,53 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["profile.contact.email"]);
 
-        Assert.Equal(new[] { contact, email }, presentation.SelectedDisclosures);
+        string[] expected = [contact, email];
+        Assert.Equal(expected, presentation.SelectedDisclosures);
+    }
+
+    [Theory]
+    [InlineData("profile", "profile.email")]
+    [InlineData("records", "records[1]")]
+    public void Should_NotLeakLiteralPrefix_When_ImportingSignedCredentialWithoutCachedMapping(string prefix, string literalName)
+    {
+        var unrelated = ObjectDisclosure(prefix, "\"private\"");
+        var selected = ObjectDisclosure(literalName, "\"public\"");
+        string[] digests = [Digest(unrelated), Digest(selected)];
+        var signedPayload = new Dictionary<string, object>
+        {
+            ["exp"] = 4102444800L,
+            ["_sd"] = digests
+        };
+        var issuerKey = RandomNumberGenerator.GetBytes(32);
+        var jwt = new JwtSigner().CreateJwt(signedPayload, issuerKey, SignatureAlgorithm.HS256);
+        var imported = new SdJwt(jwt, [unrelated, selected], HashAlgorithm.Sha256);
+
+        // Exercises DisclosureClaimPathMapper.BuildClaimPathMapping, not an injected map.
+        var presentation = new SdJwtPresenter().CreatePresentation(imported, [literalName]);
+
+        string[] expected = [selected];
+        Assert.Equal(expected, presentation.SelectedDisclosures);
+    }
+
+    [Fact]
+    public void Should_IncludeGenuineParent_When_ImportingSignedNestedCredential()
+    {
+        var child = ObjectDisclosure("email", "\"shown\"");
+        var parent = ObjectDisclosure("profile", NestedObject(Digest(child)));
+        string[] digests = [Digest(parent)];
+        var signedPayload = new Dictionary<string, object>
+        {
+            ["exp"] = 4102444800L,
+            ["_sd"] = digests
+        };
+        var issuerKey = RandomNumberGenerator.GetBytes(32);
+        var jwt = new JwtSigner().CreateJwt(signedPayload, issuerKey, SignatureAlgorithm.HS256);
+        var imported = new SdJwt(jwt, [parent, child], HashAlgorithm.Sha256);
+
+        var presentation = new SdJwtPresenter().CreatePresentation(imported, ["profile.email"]);
+
+        string[] expected = [parent, child];
+        Assert.Equal(expected, presentation.SelectedDisclosures);
     }
 
     [Fact]
@@ -164,7 +217,8 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["shipping.email"]);
 
-        Assert.Equal(new[] { "shipping" }, presentation.SelectedDisclosures);
+        string[] expected = ["shipping"];
+        Assert.Equal(expected, presentation.SelectedDisclosures);
     }
 
     [Fact]
@@ -180,7 +234,8 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["email"]);
 
-        Assert.Equal(new[] { "root" }, presentation.SelectedDisclosures);
+        string[] expected = ["root"];
+        Assert.Equal(expected, presentation.SelectedDisclosures);
     }
 
     [Fact]
@@ -196,7 +251,8 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["email"]);
 
-        Assert.Equal(new[] { "email" }, presentation.SelectedDisclosures);
+        string[] expected = ["email"];
+        Assert.Equal(expected, presentation.SelectedDisclosures);
     }
 
     private static SdJwt CreateCredential(string[] disclosures, Dictionary<string, int> mapping)
