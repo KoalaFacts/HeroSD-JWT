@@ -1,4 +1,5 @@
 using HeroSdJwt.Encoding;
+using HeroSdJwt.Exceptions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
 using System.Text.Json;
@@ -127,6 +128,14 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                     var disclosure = _disclosureParser.Parse(disclosures[disclosureIndex]);
                     if (disclosure.ClaimName != null)
                     {
+                        // RFC 9901 Section 7.1 prohibits a disclosure from replacing a
+                        // permanently disclosed claim at the same object level.
+                        if (obj.TryGetProperty(disclosure.ClaimName, out _))
+                        {
+                            throw new MalformedDisclosureException(
+                                "A disclosed claim cannot replace a permanently disclosed claim.");
+                        }
+
                         // Build the full path: currentPath + claim name
                         var fullPath = string.IsNullOrEmpty(currentPath)
                             ? disclosure.ClaimName

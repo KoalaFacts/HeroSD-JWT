@@ -148,6 +148,57 @@ public class DisclosureBindingBoundaryTests
         Assert.True(Verify([]).IsValid);
     }
 
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Should_RejectSignedDisclosureThatCollidesWithPermanentClaim(bool nested)
+    {
+        var disclosure = Base64UrlEncoder.Encode("[\"salt\",\"role\",\"admin\"]");
+        var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
+        var collidingObject = new Dictionary<string, object>
+        {
+            ["role"] = "member",
+            ["_sd"] = new[] { digest }
+        };
+        var payload = nested
+            ? new Dictionary<string, object> { ["profile"] = collidingObject }
+            : collidingObject;
+
+        var result = Verify(payload, disclosure);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.MalformedDisclosure, result.Errors);
+    }
+
+    [Theory]
+    [InlineData("_sd")]
+    [InlineData("...")]
+    public void Should_RejectSignedDisclosureWithReservedClaimName(string name)
+    {
+        var disclosure = Base64UrlEncoder.Encode($@"[""salt"",""{name}"",""value""]");
+        var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
+        var result = Verify(new Dictionary<string, object> { ["_sd"] = new[] { digest } }, disclosure);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.MalformedDisclosure, result.Errors);
+    }
+
+    [Fact]
+    public void Should_AcceptDistinctSelectiveAndPermanentlyDisclosedClaims()
+    {
+        var disclosure = Base64UrlEncoder.Encode("[\"salt\",\"email\",\"alice@example.test\"]");
+        var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
+        var result = Verify(new Dictionary<string, object>
+        {
+            ["role"] = "member",
+            ["_sd"] = new[] { digest }
+        }, disclosure);
+
+        Assert.True(result.IsValid, result.ErrorDetails);
+        Assert.Equal("alice@example.test", result.DisclosedClaims["email"].GetString());
+    }
+
     private static VerificationResult Verify(Dictionary<string, object> claims, params string[] disclosures)
     {
         var key = RandomNumberGenerator.GetBytes(32);
