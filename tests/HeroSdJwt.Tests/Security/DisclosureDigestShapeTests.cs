@@ -82,7 +82,7 @@ public class DisclosureDigestShapeTests
     public async Task Should_RejectMalformedDigestInPresentedNestedDisclosure()
     {
         var parentDisclosure = Base64UrlEncoder.Encode(
-            "[\"parent-salt\",\"profile\",{\"_sd\":[null]}]");
+            /*lang=json,strict*/ "[\"parent-salt\",\"profile\",{\"_sd\":[null]}]");
         var parentDigest = new DigestCalculator().ComputeDigest(parentDisclosure, HashAlgorithm.Sha256);
         var payload = JsonSerializer.Serialize(new { exp = 4102444800L, _sd = new[] { parentDigest } });
 
