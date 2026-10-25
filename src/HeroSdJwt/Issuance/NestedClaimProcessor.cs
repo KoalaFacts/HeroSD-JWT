@@ -171,12 +171,9 @@ internal class NestedClaimProcessor(IDisclosureGenerator disclosureGenerator, ID
             }
             else
             {
-                // Non-selective property - include as-is
-                // Suppression: Converting JsonElement to object for JWT payload construction.
-#pragma warning disable IL2026, IL3050 // JsonSerializer.Deserialize for JWT payload
-                var nativeValue = JsonSerializer.Deserialize<object>(propertyValue.GetRawText());
-#pragma warning restore IL2026, IL3050
-                result[propertyName] = nativeValue!;
+                // Keep an independent JSON value without a reflection-based roundtrip.
+                // Preserve the existing JSON null -> CLR null payload representation.
+                result[propertyName] = propertyValue.ValueKind == JsonValueKind.Null ? null! : propertyValue.Clone();
             }
         }
 

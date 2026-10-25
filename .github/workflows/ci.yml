@@ -6,6 +6,8 @@ on:
     tags: [ 'v*' ]  # Run on version tags for artifact generation
   pull_request:
     branches: [ main, develop ]
+    # Include base changes and drafts becoming ready, even without a new commit.
+    types: [ opened, synchronize, reopened, edited, ready_for_review ]
   merge_group:
   workflow_dispatch:
 

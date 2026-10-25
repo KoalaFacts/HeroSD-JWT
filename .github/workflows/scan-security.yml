@@ -7,6 +7,8 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+    # Include base changes and drafts becoming ready, even without a new commit.
+    types: [ opened, synchronize, reopened, edited, ready_for_review ]
   schedule:
     # Run weekly on Monday at 00:00 UTC
     - cron: '0 0 * * 1'
