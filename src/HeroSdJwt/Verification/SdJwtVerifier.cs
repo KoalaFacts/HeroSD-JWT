@@ -540,6 +540,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
             var disclosures = new List<string>();
+            HashSet<string>? seenDisclosures = null;
             var keyBindingJwt = parts.Length > 1 ? parts[^1] : null;
 
             // Extract disclosures (all parts between JWT and key binding, excluding empty strings)
@@ -555,6 +556,19 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                         errors.Add(ErrorCode.InvalidInput);
                         errorDetails.Add($"Too many disclosures: exceeds maximum of {Constants.MAX_DISCLOSURES}");
                         return new VerificationResult(errors, string.Join("; ", errorDetails));
+                    }
+
+                    // RFC 9901 Section 4 prohibits sending the same Disclosure twice.
+                    // Avoid an additional allocation for zero or one Disclosure.
+                    if (disclosures.Count > 0)
+                    {
+                        seenDisclosures ??= new HashSet<string>(StringComparer.Ordinal) { disclosures[0] };
+                        if (!seenDisclosures.Add(parts[i]))
+                        {
+                            errors.Add(ErrorCode.InvalidInput);
+                            errorDetails.Add("The same Disclosure must not appear more than once");
+                            return new VerificationResult(errors, string.Join("; ", errorDetails));
+                        }
                     }
 
                     disclosures.Add(parts[i]);
