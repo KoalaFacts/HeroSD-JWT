@@ -27,7 +27,8 @@ public class DisclosureParser : IDisclosureParser
         var json = Base64UrlEncoder.DecodeString(base64UrlDisclosure);
 
         // Parse JSON array
-        var jsonArray = JsonDocument.Parse(json).RootElement;
+        using var document = JsonDocument.Parse(json);
+        var jsonArray = document.RootElement;
 
         if (jsonArray.ValueKind != JsonValueKind.Array)
         {
@@ -46,23 +47,57 @@ public class DisclosureParser : IDisclosureParser
                 "Disclosure must be a JSON array with 2 elements (array element) or 3 elements (object property)");
         }
 
-        var salt = jsonArray[0].GetString()
-            ?? throw new MalformedDisclosureException("Disclosure salt cannot be null");
+        var saltElement = jsonArray[0];
+        if (saltElement.ValueKind == JsonValueKind.Null)
+        {
+            throw new MalformedDisclosureException("Disclosure salt cannot be null");
+        }
+
+        if (saltElement.ValueKind != JsonValueKind.String)
+        {
+            throw new MalformedDisclosureException("Disclosure salt must be a string");
+        }
+
+        var salt = saltElement.GetString()!;
+        if (string.IsNullOrWhiteSpace(salt))
+        {
+            throw new MalformedDisclosureException("Disclosure salt cannot be empty or whitespace");
+        }
 
         if (arrayLength == 2)
         {
             // Array element disclosure: [salt, claim_value]
             var claimValue = jsonArray[1];
-            return new Disclosure(salt, claimValue);
+            return new Disclosure(salt, claimValue.Clone());
         }
         else
         {
             // Object property disclosure: [salt, claim_name, claim_value]
-            var claimName = jsonArray[1].GetString()
-                ?? throw new MalformedDisclosureException("Disclosure claim name cannot be null");
+            var claimNameElement = jsonArray[1];
+            if (claimNameElement.ValueKind == JsonValueKind.Null)
+            {
+                throw new MalformedDisclosureException("Disclosure claim name cannot be null");
+            }
+
+            if (claimNameElement.ValueKind != JsonValueKind.String)
+            {
+                throw new MalformedDisclosureException("Disclosure claim name must be a string");
+            }
+
+            var claimName = claimNameElement.GetString()!;
+            if (string.IsNullOrWhiteSpace(claimName))
+            {
+                throw new MalformedDisclosureException("Disclosure claim name cannot be empty or whitespace");
+            }
+
+            // RFC 9901 Sections 4.2.1 and 7.1 reserve these SD-JWT control names.
+            if (claimName is "_sd" or "...")
+            {
+                throw new MalformedDisclosureException("Disclosure claim name is reserved");
+            }
 
             var claimValue = jsonArray[2];
-            return new Disclosure(salt, claimName, claimValue);
+            return new Disclosure(salt, claimName, claimValue.Clone());
         }
     }
 
