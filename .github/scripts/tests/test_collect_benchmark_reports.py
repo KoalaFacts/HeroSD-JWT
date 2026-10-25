@@ -211,7 +211,15 @@ class CurrentReportTests(unittest.TestCase):
     def test_workflow_collects_before_history_without_allowing_failed_history_to_store(self):
         workflow = (SCRIPT_DIR.parent / 'workflows/perform-benchmarks.yml').read_text()
         self.assertLess(workflow.index('collect_benchmark_reports.py'), workflow.index('id: baseline'))
-        self.assertNotIn('continue-on-error', workflow)
+        # Only unavailable historical *baseline* evidence may be inconclusive.
+        # A genuine current-report, comparison or publication error must still fail.
+        self.assertEqual(workflow.count('continue-on-error:'), 1)
+        baseline_step = workflow.split(
+            '    - name: Validate framework-specific benchmark baseline\n', 1
+        )[1].split('    - name: ', 1)[0]
+        self.assertIn('      continue-on-error: true\n', baseline_step)
+        self.assertIn("if: success() && steps.baseline.outcome == 'success'", workflow)
+        self.assertIn("if: success() && steps.comparison.outcome == 'success'", workflow)
         self.assertNotIn("jq -s", workflow)
         self.assertIn('timeout-minutes: 60', workflow)
         self.assertIn('git rev-parse HEAD^{tree}', workflow)

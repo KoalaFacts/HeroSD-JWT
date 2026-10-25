@@ -707,9 +707,6 @@ public class KeyBindingValidatorTests
         Assert.False(result);
     }
 
-    // NOTE: Tests for non-integer iat removed because TryGetInt64 throws InvalidOperationException
-    // on non-integer values, which is not caught by the validator's try-catch blocks.
-
     [Fact]
     public void ValidateKeyBinding_WithIatExactlyAtBoundary_Passes()
     {
@@ -759,11 +756,6 @@ public class KeyBindingValidatorTests
         // Assert
         Assert.False(result);
     }
-
-    // NOTE: Tests for non-string JSON types (typ, sd_hash, aud, nonce) removed because
-    // the validator calls GetString() which throws InvalidOperationException on type mismatch.
-    // This exception is not caught by the validator's try-catch blocks, so these would fail.
-    // This is a limitation of the current implementation that assumes well-formed JSON.
 
     #endregion
 

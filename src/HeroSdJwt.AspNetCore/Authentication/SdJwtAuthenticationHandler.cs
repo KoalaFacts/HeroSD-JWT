@@ -56,7 +56,14 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
         {
             // Verify the SD-JWT presentation (prefer async when available to avoid blocking caches/stores)
             VerificationResult result;
-            var asyncVerifier = _verifier as ISdJwtVerifierAsync;
+            if (_verifier is not ISdJwtVerifierFactory factory)
+            {
+                return AuthenticateResult.Fail(
+                    "Custom SD-JWT verifiers must implement ISdJwtVerifierFactory to enforce authentication scheme VerificationOptions.");
+            }
+
+            var verifier = factory.CreateVerifier(Options.VerificationOptions);
+            var asyncVerifier = verifier as ISdJwtVerifierAsync;
 
             if (Options.KeyResolver != null)
             {
@@ -67,7 +74,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
                         Options.FallbackKey,
                         Options.VerificationOptions.ExpectedHashAlgorithm,
                         Context.RequestAborted).ConfigureAwait(false)
-                    : _verifier.TryVerifyPresentation(
+                    : verifier.TryVerifyPresentation(
                         token,
                         Options.KeyResolver,
                         Options.FallbackKey,
@@ -81,7 +88,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
                         Options.FallbackKey,
                         Options.VerificationOptions.ExpectedHashAlgorithm,
                         Context.RequestAborted).ConfigureAwait(false)
-                    : _verifier.TryVerifyPresentation(
+                    : verifier.TryVerifyPresentation(
                         token,
                         Options.FallbackKey,
                         Options.VerificationOptions.ExpectedHashAlgorithm);

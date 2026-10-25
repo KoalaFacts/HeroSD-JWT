@@ -43,30 +43,122 @@ public class InMemoryJtiCacheTests : IJtiCacheContractTests
     }
 
     [Fact]
-    public async Task TryAddAsync_MaxCapacityReached_LruEviction()
+    public async Task Should_RejectAdmissionWithoutEvictingLiveJtis_WhenAtCapacity()
     {
-        // Arrange - Create cache with very small capacity
-        var smallOptions = new ReplayProtectionOptions
-        {
-            MaxCacheEntries = 10, // Very small for testing
-            DefaultTtl = TimeSpan.FromHours(1)
-        };
-        var smallCache = new InMemoryJtiCache(smallOptions);
+        var options = new ReplayProtectionOptions { MaxCacheEntries = 2 };
+        using var cache = new InMemoryJtiCache(options);
+        const string issuer = "https://issuer.example";
+        var token = TestContext.Current.CancellationToken;
 
-        var issuer = "https://issuer.example";
+        Assert.True(await cache.TryAddAsync(issuer, "first", TimeSpan.FromHours(1), token));
+        Assert.True(await cache.TryAddAsync(issuer, "second", TimeSpan.FromHours(1), token));
 
-        // Act - Add more entries than max capacity
-        for (int i = 0; i < 15; i++)
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            cache.TryAddAsync(issuer, "third", TimeSpan.FromHours(1), token));
+
+        Assert.Contains("capacity", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(await cache.ExistsAsync(issuer, "first", token));
+        Assert.True(await cache.ExistsAsync(issuer, "second", token));
+        Assert.False(await cache.ExistsAsync(issuer, "third", token));
+        Assert.False(await cache.TryAddAsync(issuer, "first", TimeSpan.FromHours(1), token));
+    }
+
+    [Fact]
+    public async Task Should_ReclaimOnlyExpiredMarkers_WhenCapacityIsFull()
+    {
+        var clock = new ManualTimeProvider(new DateTimeOffset(2026, 10, 24, 0, 0, 0, TimeSpan.Zero));
+        var options = new ReplayProtectionOptions { MaxCacheEntries = 2 };
+        using var cache = new InMemoryJtiCache(options, clock);
+        const string issuer = "issuer";
+        var token = TestContext.Current.CancellationToken;
+
+        Assert.True(await cache.TryAddAsync(issuer, "long-lived", TimeSpan.FromHours(1), token));
+        Assert.True(await cache.TryAddAsync(issuer, "short-lived", TimeSpan.FromMinutes(1), token));
+        clock.Advance(TimeSpan.FromMinutes(2));
+
+        Assert.True(await cache.TryAddAsync(issuer, "replacement", TimeSpan.FromMinutes(10), token));
+        Assert.True(await cache.ExistsAsync(issuer, "long-lived", token));
+        Assert.False(await cache.ExistsAsync(issuer, "short-lived", token));
+        Assert.True(await cache.ExistsAsync(issuer, "replacement", token));
+        Assert.False(await cache.TryAddAsync(issuer, "long-lived", TimeSpan.FromMinutes(1), token));
+    }
+
+    [Fact]
+    public async Task Should_AdmitAtMostCapacity_WhenDistinctJtisRace()
+    {
+        const int capacity = 4;
+        const int attempts = 32;
+        var options = new ReplayProtectionOptions { MaxCacheEntries = capacity };
+        using var cache = new InMemoryJtiCache(options);
+        var token = TestContext.Current.CancellationToken;
+        var tasks = Enumerable.Range(0, attempts).Select(i => Task.Run(async () =>
         {
-            var jti = $"jti-{i}";
-            _ = await smallCache.TryAddAsync(issuer, jti, TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
+            try
+            {
+                return await cache.TryAddAsync("issuer", $"concurrent-{i}", TimeSpan.FromHours(1), token);
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+        }, token));
+
+        var admitted = await Task.WhenAll(tasks);
+        Assert.Equal(capacity, admitted.Count(value => value));
+
+        for (var i = 0; i < attempts; i++)
+        {
+            var jti = $"concurrent-{i}";
+            Assert.Equal(admitted[i], await cache.ExistsAsync("issuer", jti, token));
+            if (admitted[i])
+            {
+                Assert.False(await cache.TryAddAsync("issuer", jti, TimeSpan.FromHours(1), token));
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public async Task Should_PreserveEveryLiveMarker_WhenReplaysAndNewcomersRaceAtCapacity(int capacity)
+    {
+        using var cache = new InMemoryJtiCache(new ReplayProtectionOptions { MaxCacheEntries = capacity });
+        var token = TestContext.Current.CancellationToken;
+        for (var i = 0; i < capacity; i++)
+        {
+            Assert.True(await cache.TryAddAsync("issuer", $"live-{i}", TimeSpan.FromHours(1), token));
         }
 
-        // Assert - Cache should not exceed max capacity
-        // We can't directly check cache size, but we verify behavior is correct
-        // (implementation should handle eviction internally)
-        var canAddMore = await smallCache.TryAddAsync(issuer, "jti-new", TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
-        Assert.True(canAddMore); // Should succeed even if cache full (eviction happened)
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tasks = Enumerable.Range(0, 32).Select(i => Task.Run(async () =>
+        {
+            await start.Task.WaitAsync(token);
+            Assert.False(await cache.TryAddAsync("issuer", $"live-{i % capacity}", TimeSpan.FromHours(1), token));
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                cache.TryAddAsync("issuer", $"new-{i}", TimeSpan.FromHours(1), token));
+            Assert.False(await cache.ExistsAsync("issuer", $"new-{i}", token));
+        }, token)).ToArray();
+        start.SetResult();
+        await Task.WhenAll(tasks);
+
+        for (var i = 0; i < capacity; i++)
+        {
+            Assert.True(await cache.ExistsAsync("issuer", $"live-{i}", token));
+            Assert.False(await cache.TryAddAsync("issuer", $"live-{i}", TimeSpan.FromHours(1), token));
+        }
+    }
+
+    [Fact]
+    public async Task Should_NotReserveJti_WhenAdmissionIsCancelled()
+    {
+        using var cache = new InMemoryJtiCache(new ReplayProtectionOptions { MaxCacheEntries = 1 });
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            cache.TryAddAsync("issuer", "cancelled", TimeSpan.FromMinutes(1), cancellation.Token));
+
+        Assert.False(await cache.ExistsAsync("issuer", "cancelled", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -110,4 +202,13 @@ public class InMemoryJtiCacheTests : IJtiCacheContractTests
         // Assert
         Assert.True(canAddAgain);
     }
+    private sealed class ManualTimeProvider(DateTimeOffset initialUtc) : TimeProvider
+    {
+        private DateTimeOffset _utcNow = initialUtc;
+
+        public override DateTimeOffset GetUtcNow() => _utcNow;
+
+        public void Advance(TimeSpan elapsed) => _utcNow = _utcNow.Add(elapsed);
+    }
+
 }

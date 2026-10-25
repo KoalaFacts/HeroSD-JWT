@@ -123,7 +123,8 @@ class BenchmarkPublicationCommitTests(unittest.TestCase):
             positions.append(position)
             self.assertNotIn("continue-on-error", steps[position])
         self.assertEqual(positions, sorted(positions))
-        self.assertNotRegex(steps[positions[3]], r"(?m)^      if:")
+        self.assertIn("if: success() && steps.storebenchmark.outcome == 'success'",
+                      steps[positions[3]])
         self.assertIn("if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'",
                       steps[positions[4]])
         self.assertIn("max-parallel: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 1 || 3 }}",

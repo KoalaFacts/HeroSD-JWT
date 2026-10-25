@@ -24,12 +24,20 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
             return;
         }
 
-        var key = BuildJtiKey(jti);
-        var options = new DistributedCacheEntryOptions
+        // A generic IDistributedCache.SetAsync overwrites the expiration of a
+        // previous revocation. Concurrent callers with shorter expirations can
+        // therefore re-admit an otherwise revoked, still-valid credential.
+        // Only a backend-atomic monotonic expiration update is safe.
+        if (_cache is not IAtomicRevocationCache atomicCache)
         {
-            AbsoluteExpirationRelativeToNow = ttl
-        };
-        await _cache.SetAsync(key, MarkerBytes(), options, cancellationToken).ConfigureAwait(false);
+            throw new NotSupportedException(
+                "Distributed JTI revocation requires IAtomicRevocationCache with backend-atomic " +
+                "create-or-extend expiration. Register a compliant provider or an IRevocationStore implementation.");
+        }
+
+        var key = BuildJtiKey(jti);
+        await atomicCache.SetOrExtendAsync(
+            key, MarkerBytes(), expiresAt, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -108,6 +116,10 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
     /// <inheritdoc />
     public Task CleanupExpiredEntriesAsync(CancellationToken cancellationToken = default)
     {
+        // Even though distributed-cache cleanup is a no-op, callers must not
+        // observe success after requesting cancellation.
+        cancellationToken.ThrowIfCancellationRequested();
+
         // Distributed caches handle expiration internally; no-op.
         return Task.CompletedTask;
     }
