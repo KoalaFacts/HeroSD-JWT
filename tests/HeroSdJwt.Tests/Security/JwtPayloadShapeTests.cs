@@ -98,7 +98,7 @@ public class JwtPayloadShapeTests
 
     private static string SignPayload(string payloadJson)
     {
-        const string headerJson = "{\"alg\":\"HS256\",\"kid\":\"key-1\"}";
+        const string headerJson = /*lang=json,strict*/ "{\"alg\":\"HS256\",\"kid\":\"key-1\"}";
         var input = Base64UrlEncoder.Encode(headerJson) + "." + Base64UrlEncoder.Encode(payloadJson);
         var digest = HMACSHA256.HashData(_signingKey, System.Text.Encoding.UTF8.GetBytes(input));
         return input + "." + Base64UrlEncoder.Encode(digest);
