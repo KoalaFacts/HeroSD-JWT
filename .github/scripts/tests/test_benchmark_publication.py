@@ -23,8 +23,8 @@ class BenchmarkPublicationTests(unittest.TestCase):
         storage = next(step for step in steps if "id: storebenchmark\n" in step)
         self.assertLess(steps.index(comparison), steps.index(storage))
         self.assertNotIn("continue-on-error", comparison)
-        # The storage action must retain GitHub's default success-only condition.
-        self.assertNotRegex(storage, r"(?m)^      if:")
+        # Storage requires both prior success and a completed comparison.
+        self.assertIn("if: success() && steps.comparison.outcome == 'success'", storage)
         run = re.search(r"^      run: \|\n((?:        .*\n|\n)+)", comparison, re.MULTILINE)
         self.assertIsNotNone(run)
         command = textwrap.dedent(run[1])
