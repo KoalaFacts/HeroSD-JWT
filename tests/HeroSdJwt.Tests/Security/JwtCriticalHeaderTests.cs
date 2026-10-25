@@ -142,6 +142,66 @@ public class JwtCriticalHeaderTests
         Assert.Equal(0, resolverCalls);
     }
 
+    [Theory]
+    [InlineData("alg", "null")]
+    [InlineData("alg", "true")]
+    [InlineData("alg", "42")]
+    [InlineData("alg", "[]")]
+    [InlineData("alg", "{}")]
+    [InlineData("typ", "null")]
+    [InlineData("typ", "false")]
+    [InlineData("typ", "42")]
+    [InlineData("typ", "[]")]
+    [InlineData("typ", "{}")]
+    [InlineData("cty", "null")]
+    [InlineData("cty", "true")]
+    [InlineData("cty", "42")]
+    [InlineData("cty", "[]")]
+    [InlineData("cty", "{}")]
+    public async Task Should_RejectSignedJwtWithMalformedStandardJoseHeader(string parameter, string json)
+    {
+        var header = NewHeader();
+        header[parameter] = JsonSerializer.Deserialize<JsonElement>(json);
+        var jwt = Sign(header);
+        var jwtParts = jwt.Split('.');
+        var signedInput = System.Text.Encoding.UTF8.GetBytes(jwtParts[0] + "." + jwtParts[1]);
+        Assert.Equal(Base64UrlEncoder.Encode(HMACSHA256.HashData(_signingKey, signedInput)), jwtParts[2]);
+
+        var resolverCalls = 0;
+        byte[]? Resolver(string _)
+        {
+            resolverCalls++;
+            return _signingKey;
+        }
+
+        var signatureValidator = new SignatureValidator();
+        var directException = Assert.Throws<SdJwtException>(() =>
+            signatureValidator.VerifyJwtSignature(jwt, _signingKey));
+        Assert.Equal(ErrorCode.InvalidInput, directException.ErrorCode);
+        var resolvedException = Assert.Throws<SdJwtException>(() =>
+            signatureValidator.VerifyJwtSignature(jwt, Resolver));
+        Assert.Equal(ErrorCode.InvalidInput, resolvedException.ErrorCode);
+
+        var verifier = CreateVerifier();
+        var direct = verifier.TryVerifyPresentation(jwt + "~", _signingKey);
+        Assert.False(direct.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
+
+        var resolved = verifier.TryVerifyPresentation(jwt + "~", Resolver);
+        Assert.False(resolved.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
+
+        var asyncResolved = await verifier.TryVerifyPresentationAsync(
+            jwt + "~", Resolver, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.False(asyncResolved.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, asyncResolved.Errors);
+
+        var throwingException = Assert.Throws<SdJwtException>(() =>
+            verifier.VerifyPresentation(jwt + "~", Resolver));
+        Assert.Equal(ErrorCode.InvalidInput, throwingException.ErrorCode);
+        Assert.Equal(0, resolverCalls);
+    }
+
     [Fact]
     public void Should_UseFallbackOnlyWhenKeyIdIsAbsent()
     {
@@ -169,6 +229,7 @@ public class JwtCriticalHeaderTests
     {
         var header = NewHeader();
         header["optional-extension"] = true;
+        header["cty"] = "application/example+jwt";
         var jwt = Sign(header);
 
         var signatureValidator = new SignatureValidator();
