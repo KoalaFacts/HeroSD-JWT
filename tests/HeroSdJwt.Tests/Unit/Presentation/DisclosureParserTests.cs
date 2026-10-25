@@ -285,6 +285,38 @@ public class DisclosureParserTests
         _ = Assert.ThrowsAny<JsonException>(() => _parser.Parse(base64Url));
     }
 
+
+    [Theory]
+    [InlineData(/*lang=json,strict*/ "[42,\"email\",\"value\"]")]
+    [InlineData(/*lang=json,strict*/ "[true,\"value\"]")]
+    [InlineData(/*lang=json,strict*/ "[\"salt\",false,\"value\"]")]
+    [InlineData(/*lang=json,strict*/ "[\"salt\",{},\"value\"]")]
+    public void Should_RejectNonStringSaltOrObjectClaimName(string json)
+    {
+        var disclosure = Base64UrlEncoder.Encode(json);
+        Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(disclosure));
+    }
+
+    [Theory]
+    [InlineData(/*lang=json,strict*/ "[\"\",\"email\",\"value\"]")]
+    [InlineData(/*lang=json,strict*/ "[\" \",\"email\",\"value\"]")]
+    [InlineData(/*lang=json,strict*/ "[\"salt\",\"\",\"value\"]")]
+    [InlineData(/*lang=json,strict*/ "[\"salt\",\" \",\"value\"]")]
+    public void Should_RejectEmptySaltOrObjectClaimName(string json)
+    {
+        var disclosure = Base64UrlEncoder.Encode(json);
+        Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(disclosure));
+    }
+
+    [Theory]
+    [InlineData("_sd")]
+    [InlineData("...")]
+    public void Should_RejectReservedObjectClaimNames(string claimName)
+    {
+        var disclosure = Base64UrlEncoder.Encode($@"[""salt"",""{claimName}"",""value""]");
+        Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(disclosure));
+    }
+
     #endregion
 
     #region GetClaimName Tests
