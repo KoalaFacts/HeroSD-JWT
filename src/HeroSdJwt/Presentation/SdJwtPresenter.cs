@@ -25,7 +25,7 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
     /// Creates a presentation with the specified selected claims.
     /// </summary>
     /// <param name="sdJwt">The SD-JWT to present.</param>
-    /// <param name="selectedClaimNames">The names of claims to disclose.</param>
+    /// <param name="selectedClaimNames">Claim paths to disclose. An unqualified short name must match exactly one path; ambiguous names require full paths.</param>
     /// <param name="keyBindingJwt">Optional key binding JWT to prove holder possession of private key.</param>
     /// <returns>The presentation containing only selected disclosures.</returns>
     public SdJwtPresentation CreatePresentation(
@@ -56,26 +56,30 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
 
                 if (!claimPathToIndex.TryGetValue(claimPath, out var disclosureIndex))
                 {
-                    // Check if this is a simple claim name (legacy support)
-                    // Manual loop to avoid LINQ allocation
-                    bool found = false;
+                    // Legacy unqualified claim names remain convenient only when unique.
+                    // Otherwise choosing the first dictionary entry could disclose
+                    // a different claim than the holder intended.
                     string? matchedKey = null;
                     foreach (var kvp in claimPathToIndex)
                     {
-                        if (kvp.Key == claimPath ||
-                            kvp.Key.EndsWith($".{claimPath}", StringComparison.Ordinal) ||
+                        if (kvp.Key.EndsWith($".{claimPath}", StringComparison.Ordinal) ||
                             kvp.Key.EndsWith($"[{claimPath}]", StringComparison.Ordinal))
                         {
-                            disclosureIndex = kvp.Value;
+                            if (matchedKey != null)
+                            {
+                                throw new ArgumentException(
+                                    $"Claim path '{claimPath}' is ambiguous. Specify the full claim path.",
+                                    nameof(selectedClaimNames));
+                            }
+
                             matchedKey = kvp.Key;
-                            found = true;
-                            break;
+                            disclosureIndex = kvp.Value;
                         }
                     }
 
-                    if (found)
+                    if (matchedKey != null)
                     {
-                        claimPath = matchedKey!; // Use the full matched path
+                        claimPath = matchedKey;
                     }
                     else
                     {
@@ -95,28 +99,25 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
                 // Add this disclosure
                 _ = selectedDisclosureIndices.Add(disclosureIndex);
 
-                // For nested paths, also add all parent disclosures
-                // E.g., for "address.geo.lat", also add "address.geo"
-                // Use ReadOnlySpan to avoid string allocations
-                ReadOnlySpan<char> pathSpan = claimPath.AsSpan();
-                int dotIndex = pathSpan.IndexOf('.');
-                while (dotIndex >= 0)
+                // Disclosures nested below another selectively disclosed value need
+                // every available ancestor for the verifier to reconstruct their path.
+                // Include object boundaries and array indices; the previous loop skipped
+                // the first parent (and all bracket-only boundaries).
+                for (int position = 1; position < claimPath.Length; position++)
                 {
-                    // Find next dot for parent path
-                    int nextDotIndex = pathSpan[(dotIndex + 1)..].IndexOf('.');
-                    if (nextDotIndex >= 0)
+                    if (claimPath[position] is '.' or '[')
                     {
-                        int parentLength = dotIndex + 1 + nextDotIndex;
-                        string parentPath = claimPath[..parentLength];
+                        var parentPath = claimPath[..position];
                         if (claimPathToIndex.TryGetValue(parentPath, out var parentIndex))
                         {
+                            if (parentIndex < 0 || parentIndex >= sdJwt.Disclosures.Count)
+                            {
+                                throw new InvalidOperationException(
+                                    $"Invalid disclosure index {parentIndex} for claim '{parentPath}'");
+                            }
+
                             _ = selectedDisclosureIndices.Add(parentIndex);
                         }
-                        dotIndex = parentLength;
-                    }
-                    else
-                    {
-                        break;
                     }
                 }
             }
