@@ -30,7 +30,10 @@ public class RepeatedDisclosureTests
         Assert.False(direct.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
 
-        static byte[]? ResolveKey(string kid) => kid == "repeat-key" ? _signingKey : null;
+        static byte[]? ResolveKey(string kid)
+        {
+            return kid == "repeat-key" ? _signingKey : null;
+        }
 
         var resolved = verifier.TryVerifyPresentation(presentation, ResolveKey);
         Assert.False(resolved.IsValid);
