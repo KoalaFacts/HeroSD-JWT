@@ -4,7 +4,7 @@ using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
 using HeroSdJwt.Primitives;
-using System.Security.Cryptography;
+using RandomNumberGenerator = System.Security.Cryptography.RandomNumberGenerator;
 
 namespace HeroSdJwt.Tests.Unit.Presentation;
 
