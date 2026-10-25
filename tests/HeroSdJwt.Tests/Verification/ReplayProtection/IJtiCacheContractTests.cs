@@ -39,18 +39,18 @@ public abstract class IJtiCacheContractTests : IAsyncLifetime
     {
         var cache = Cache!;
         var token = TestContext.Current.CancellationToken;
-        Func<Task> exists = () => cache.ExistsAsync(issuer!, jti!, token);
-        Func<Task> remove = () => cache.RemoveAsync(issuer!, jti!, token);
+        Task Exists() => cache.ExistsAsync(issuer!, jti!, token);
+        Task Remove() => cache.RemoveAsync(issuer!, jti!, token);
 
         if (isNull)
         {
-            _ = await Assert.ThrowsAsync<ArgumentNullException>(exists);
-            _ = await Assert.ThrowsAsync<ArgumentNullException>(remove);
+            _ = await Assert.ThrowsAsync<ArgumentNullException>(Exists);
+            _ = await Assert.ThrowsAsync<ArgumentNullException>(Remove);
         }
         else
         {
-            _ = await Assert.ThrowsAsync<ArgumentException>(exists);
-            _ = await Assert.ThrowsAsync<ArgumentException>(remove);
+            _ = await Assert.ThrowsAsync<ArgumentException>(Exists);
+            _ = await Assert.ThrowsAsync<ArgumentException>(Remove);
         }
     }
 
