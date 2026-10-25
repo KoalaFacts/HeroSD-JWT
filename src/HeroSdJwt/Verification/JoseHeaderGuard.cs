@@ -16,9 +16,12 @@ internal static class JoseHeaderGuard
         return header.ValueKind != JsonValueKind.Object ||
                header.TryGetProperty("crit", out _) ||
                header.TryGetProperty("b64", out _) ||
-               // RFC 7515 Section 4.1.4 requires kid to be a string when present.
-               // A malformed kid must never be mistaken for an absent one and
-               // silently select the resolver's fallback key.
-               (header.TryGetProperty("kid", out var kid) && kid.ValueKind != JsonValueKind.String);
+               // RFC 7515 requires registered alg, kid, typ and cty values to
+               // be strings when present. Never interpret a malformed header
+               // as a valid signed token or call a key resolver for it.
+               (header.TryGetProperty("alg", out var alg) && alg.ValueKind != JsonValueKind.String) ||
+               (header.TryGetProperty("kid", out var kid) && kid.ValueKind != JsonValueKind.String) ||
+               (header.TryGetProperty("typ", out var typ) && typ.ValueKind != JsonValueKind.String) ||
+               (header.TryGetProperty("cty", out var cty) && cty.ValueKind != JsonValueKind.String);
     }
 }

@@ -63,6 +63,32 @@ public class KeyBindingCriticalHeaderTests
             proof, holder.ExportSubjectPublicKeyInfo(), SD_HASH, AUDIENCE, NONCE));
     }
 
+    [Theory]
+    [InlineData("kid", "null")]
+    [InlineData("kid", "true")]
+    [InlineData("kid", "42")]
+    [InlineData("kid", "[]")]
+    [InlineData("kid", "{}")]
+    [InlineData("cty", "null")]
+    [InlineData("cty", "false")]
+    [InlineData("cty", "42")]
+    [InlineData("cty", "[]")]
+    [InlineData("cty", "{}")]
+    public void Should_RejectSignedProofWithMalformedStandardJoseHeader(string parameter, string json)
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var header = new Dictionary<string, object?>
+        {
+            ["alg"] = "ES256",
+            ["typ"] = "kb+jwt",
+            [parameter] = JsonSerializer.Deserialize<JsonElement>(json)
+        };
+
+        var proof = Sign(holder, header);
+        Assert.False(new KeyBindingValidator().ValidateKeyBinding(
+            proof, holder.ExportSubjectPublicKeyInfo(), SD_HASH, AUDIENCE, NONCE));
+    }
+
     [Fact]
     public void Should_AllowSignedNoncriticalExtensionAndStandardGeneratedProof()
     {
@@ -72,7 +98,9 @@ public class KeyBindingCriticalHeaderTests
         {
             ["alg"] = "ES256",
             ["typ"] = "kb+jwt",
-            ["optional-extension"] = true
+            ["optional-extension"] = true,
+            ["kid"] = "holder-key-1",
+            ["cty"] = "application/example+jwt"
         };
 
         Assert.True(new KeyBindingValidator().ValidateKeyBinding(
