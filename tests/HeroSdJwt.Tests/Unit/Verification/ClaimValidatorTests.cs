@@ -666,11 +666,11 @@ public class ClaimValidatorTests
     }
 
     [Theory]
-    [InlineData("{\"iss\": 123}")]
-    [InlineData("{\"iss\": true}")]
-    [InlineData("{\"iss\": []}")]
-    [InlineData("{\"iss\": {}}")]
-    [InlineData("{\"iss\": null}")]
+    [InlineData(/*lang=json,strict*/ "{\"iss\": 123}")]
+    [InlineData(/*lang=json,strict*/ "{\"iss\": true}")]
+    [InlineData(/*lang=json,strict*/ "{\"iss\": []}")]
+    [InlineData(/*lang=json,strict*/ "{\"iss\": {}}")]
+    [InlineData(/*lang=json,strict*/ "{\"iss\": null}")]
     public void ValidateIssuer_WithNonStringClaim_ReturnsFalse(string json)
     {
         using var document = JsonDocument.Parse(json);
@@ -730,8 +730,8 @@ public class ClaimValidatorTests
     }
 
     [Theory]
-    [InlineData("{\"exp\":1893456000,\"nbf\":-62135596800}")]
-    [InlineData("{\"exp\":1893456000,\"iat\":-62135596800}")]
+    [InlineData(/*lang=json,strict*/ "{\"exp\":1893456000,\"nbf\":-62135596800}")]
+    [InlineData(/*lang=json,strict*/ "{\"exp\":1893456000,\"iat\":-62135596800}")]
     public void ValidateTemporalClaims_WithEarliestSupportedOptionalDates_ReturnsTrue(string json)
     {
         // DateTimeOffset.MinValue's Unix seconds are valid, even with clock skew.
