@@ -106,8 +106,8 @@ public class SdJwtPresenterContractTests
         var formatted = presenter.FormatPresentation(presentation);
 
         // Assert
-        // Format should be: JWT~~  (JWT, no disclosures, empty key binding)
-        Assert.Equal($"{sdJwt.Jwt}~~", formatted);
+        // RFC 9901 section 4: without disclosures or KB-JWT, the format is JWT~.
+        Assert.Equal($"{sdJwt.Jwt}~", formatted);
     }
 
     [Fact]

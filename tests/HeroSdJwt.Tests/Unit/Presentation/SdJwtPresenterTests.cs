@@ -242,7 +242,7 @@ public class SdJwtPresenterTests
     }
 
     [Fact]
-    public void FormatPresentation_WithNoDisclosures_IncludesEmptySlot()
+    public void FormatPresentation_WithNoDisclosures_UsesSingleTrailingSeparator()
     {
         // Arrange
         var presentation = _presenter.CreatePresentation(_testSdJwt, []);
@@ -250,8 +250,49 @@ public class SdJwtPresenterTests
         // Act
         var formatted = _presenter.FormatPresentation(presentation);
 
+        // Assert - RFC 9901 section 4: an SD-JWT without disclosures is "JWT~".
+        Assert.Equal($"{_testSdJwt.Jwt}~", formatted);
+    }
+
+    [Fact]
+    public void FormatPresentation_WithNoDisclosuresAndKeyBinding_UsesSingleSeparator()
+    {
+        // Arrange - RFC 9901 section 4: "JWT~KB-JWT" has no empty disclosure slot.
+        const string keyBinding = "kb.header.signature";
+        var presentation = _presenter.CreatePresentation(_testSdJwt, [], keyBinding);
+
+        // Act
+        var formatted = _presenter.FormatPresentation(presentation);
+
         // Assert
-        Assert.Contains("~~", formatted); // Empty disclosure slot
+        Assert.Equal($"{_testSdJwt.Jwt}~{keyBinding}", formatted);
+    }
+
+    [Fact]
+    public void FormatPresentation_WithNoDisclosures_MatchesIssuerCombinedSerialization()
+    {
+        // Arrange
+        var sdJwt = new SdJwt(_testSdJwt.Jwt, [], HashAlgorithm.Sha256);
+        var presentation = _presenter.CreatePresentation(sdJwt, []);
+
+        // Act
+        var formatted = _presenter.FormatPresentation(presentation);
+
+        // Assert
+        Assert.Equal(sdJwt.ToCombinedFormat(), formatted);
+    }
+
+    [Fact]
+    public void FormatPresentation_WithDisclosuresAndKeyBinding_PreservesExactWireFormat()
+    {
+        // Arrange
+        var presentation = new SdJwtPresentation("issuer.payload.signature", ["d1", "d2"], "kb.payload.signature");
+
+        // Act
+        var formatted = _presenter.FormatPresentation(presentation);
+
+        // Assert
+        Assert.Equal("issuer.payload.signature~d1~d2~kb.payload.signature", formatted);
     }
 
     [Fact]
