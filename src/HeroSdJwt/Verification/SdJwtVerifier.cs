@@ -1093,10 +1093,13 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
 
                     foreach (var digestValue in property.Value.EnumerateArray())
                     {
-                        if (digestValue.ValueKind != JsonValueKind.String ||
-                            digestValue.GetString() is not { Length: > 0 } digest ||
-                            string.IsNullOrWhiteSpace(digest) ||
-                            !seenDigests.Add(digest))
+                        if (digestValue.ValueKind != JsonValueKind.String)
+                        {
+                            return false;
+                        }
+
+                        var digest = digestValue.GetString();
+                        if (string.IsNullOrWhiteSpace(digest) || !seenDigests.Add(digest))
                         {
                             return false;
                         }
