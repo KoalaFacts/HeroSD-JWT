@@ -157,16 +157,23 @@ public class ClaimValidator : IClaimValidator
         }
         else if (audElement.ValueKind == JsonValueKind.Array)
         {
+            // RFC 7519 Section 4.1.3 permits only strings in an audience array.
+            // Inspect all members so a match cannot mask a malformed later value.
+            var matched = false;
             foreach (var aud in audElement.EnumerateArray())
             {
-                if (aud.ValueKind == JsonValueKind.String &&
-                    aud.GetString() is string value &&
-                    expectedSet.Contains(value))
+                if (aud.ValueKind != JsonValueKind.String)
                 {
-                    return true;
+                    return false;
+                }
+
+                if (aud.GetString() is string value && expectedSet.Contains(value))
+                {
+                    matched = true;
                 }
             }
-            return false;
+
+            return matched;
         }
 
         return false;
