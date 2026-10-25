@@ -47,6 +47,13 @@ public class SignatureValidator : ISignatureValidator
         var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
         var header = JsonDocument.Parse(headerJson).RootElement;
 
+        if (JoseHeaderGuard.RequiresUnsupportedProcessing(header))
+        {
+            throw new SdJwtException(
+                "JWT protected header requires unsupported JOSE processing",
+                ErrorCode.InvalidInput);
+        }
+
         // Extract algorithm
         if (!header.TryGetProperty("alg", out var algElement))
         {
@@ -415,6 +422,13 @@ public class SignatureValidator : ISignatureValidator
         // Decode and parse header
         var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
         var header = JsonDocument.Parse(headerJson).RootElement;
+
+        if (JoseHeaderGuard.RequiresUnsupportedProcessing(header))
+        {
+            throw new SdJwtException(
+                "JWT protected header requires unsupported JOSE processing",
+                ErrorCode.InvalidInput);
+        }
 
         // Check if kid is present in header
         byte[] verificationKey;
