@@ -562,7 +562,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     // Avoid an additional allocation for zero or one Disclosure.
                     if (disclosures.Count > 0)
                     {
-                        seenDisclosures ??= new HashSet<string>(StringComparer.Ordinal) { disclosures[0] };
+                        seenDisclosures ??= new HashSet<string>([disclosures[0]], StringComparer.Ordinal);
                         if (!seenDisclosures.Add(parts[i]))
                         {
                             errors.Add(ErrorCode.InvalidInput);
