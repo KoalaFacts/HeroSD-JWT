@@ -22,6 +22,11 @@ public class ClaimValidator : IClaimValidator
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        if (payload.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
         var now = currentTime ?? DateTimeOffset.UtcNow;
         var clockSkew = options.ClockSkew;
 
@@ -37,7 +42,7 @@ public class ClaimValidator : IClaimValidator
         }
 
         // Token is expired if current time > exp + clock skew
-        if (now > exp.AddSeconds(clockSkew.TotalSeconds))
+        if (now - exp > clockSkew)
         {
             return false;
         }
@@ -51,7 +56,7 @@ public class ClaimValidator : IClaimValidator
             }
 
             // Token not yet valid if current time < nbf - clock skew
-            if (now < nbf.AddSeconds(-clockSkew.TotalSeconds))
+            if (nbf - now > clockSkew)
             {
                 return false;
             }
@@ -68,7 +73,7 @@ public class ClaimValidator : IClaimValidator
 
             // Reject if issued in the future (current time < iat - clock skew)
             // This prevents accepting tokens with suspicious future timestamps
-            if (now < iat.AddSeconds(-clockSkew.TotalSeconds))
+            if (iat - now > clockSkew)
             {
                 return false; // Token issued in the future
             }
@@ -90,9 +95,11 @@ public class ClaimValidator : IClaimValidator
             return true; // Issuer validation not required
         }
 
-        if (!payload.TryGetProperty("iss", out var issElement))
+        if (payload.ValueKind != JsonValueKind.Object ||
+            !payload.TryGetProperty("iss", out var issElement) ||
+            issElement.ValueKind != JsonValueKind.String)
         {
-            return false; // Expected issuer but claim missing
+            return false; // Expected issuer but claim missing or malformed
         }
 
         var actualIssuer = issElement.GetString();
@@ -136,9 +143,10 @@ public class ClaimValidator : IClaimValidator
             return true; // Effectively not configured after normalization
         }
 
-        if (!payload.TryGetProperty("aud", out var audElement))
+        if (payload.ValueKind != JsonValueKind.Object ||
+            !payload.TryGetProperty("aud", out var audElement))
         {
-            return false; // Expected audience but claim missing
+            return false; // Expected audience but claim missing or malformed
         }
 
         // Audience can be a string or array of strings
