@@ -236,9 +236,10 @@ public class SdJwtIssuer(
                         var disclosure = _disclosureGenerator.GenerateArrayElementDisclosure(elementValue);
                         disclosures.Add(disclosure);
 
-                        // Compute digest
+                        // The array placeholder is the sole signed reference to this
+                        // Disclosure (RFC 9901). Mirroring its digest into the
+                        // top-level _sd array would create a forbidden duplicate.
                         var digest = _digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
-                        digests.Add(digest);
 
                         // Replace element with placeholder
                         newArray.Add(new Dictionary<string, string>

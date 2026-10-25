@@ -73,9 +73,10 @@ public class ArrayElementIntegrationTests
         Assert.True(degreesArray[2].TryGetProperty("...", out var digest2));
         Assert.NotEmpty(digest2.GetString()!);
 
-        // Verify _sd array contains digests
-        Assert.True(payload.TryGetProperty("_sd", out var sdArray));
-        Assert.Equal(2, sdArray.GetArrayLength());
+        // RFC 9901 array elements bind through their own "..." placeholders.
+        // Issuing the same hashes in a top-level _sd array would be invalid.
+        Assert.NotEqual(digest1.GetString(), digest2.GetString());
+        Assert.False(payload.TryGetProperty("_sd", out _));
     }
 
     [Fact]
