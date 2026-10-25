@@ -13,7 +13,7 @@ namespace HeroSdJwt.Tests.Security;
 /// </summary>
 public class JwtCriticalHeaderTests
 {
-    private static readonly byte[] SigningKey = Enumerable.Range(1, 32).Select(i => (byte)i).ToArray();
+    private static readonly byte[] _signingKey = [.. Enumerable.Range(1, 32).Select(i => (byte)i)];
 
     [Theory]
     [InlineData("unknown-critical")]
@@ -54,7 +54,7 @@ public class JwtCriticalHeaderTests
 
         var jwt = Sign(header);
         var parts = jwt.Split('.');
-        using (var hmac = new HMACSHA256(SigningKey))
+        using (var hmac = new HMACSHA256(_signingKey))
         {
             var input = System.Text.Encoding.UTF8.GetBytes(parts[0] + "." + parts[1]);
             Assert.Equal(Base64UrlEncoder.Encode(hmac.ComputeHash(input)), parts[2]);
@@ -62,20 +62,23 @@ public class JwtCriticalHeaderTests
 
         var signatureValidator = new SignatureValidator();
         var directException = Assert.Throws<SdJwtException>(() =>
-            signatureValidator.VerifyJwtSignature(jwt, SigningKey));
+            signatureValidator.VerifyJwtSignature(jwt, _signingKey));
         Assert.Equal(ErrorCode.InvalidInput, directException.ErrorCode);
 
-        KeyResolver resolver = static kid => kid == "key-1" ? SigningKey : null;
+        static byte[]? Resolver(string kid)
+        {
+            return kid == "key-1" ? _signingKey : null;
+        }
         var resolverException = Assert.Throws<SdJwtException>(() =>
-            signatureValidator.VerifyJwtSignature(jwt, resolver));
+            signatureValidator.VerifyJwtSignature(jwt, Resolver));
         Assert.Equal(ErrorCode.InvalidInput, resolverException.ErrorCode);
 
         var verifier = CreateVerifier();
-        var direct = verifier.TryVerifyPresentation(jwt + "~", SigningKey);
+        var direct = verifier.TryVerifyPresentation(jwt + "~", _signingKey);
         Assert.False(direct.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
 
-        var resolved = verifier.TryVerifyPresentation(jwt + "~", resolver);
+        var resolved = verifier.TryVerifyPresentation(jwt + "~", Resolver);
         Assert.False(resolved.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
     }
@@ -88,16 +91,19 @@ public class JwtCriticalHeaderTests
         var jwt = Sign(header);
 
         var signatureValidator = new SignatureValidator();
-        Assert.True(signatureValidator.VerifyJwtSignature(jwt, SigningKey));
+        Assert.True(signatureValidator.VerifyJwtSignature(jwt, _signingKey));
 
-        KeyResolver resolver = static kid => kid == "key-1" ? SigningKey : null;
-        Assert.True(signatureValidator.VerifyJwtSignature(jwt, resolver));
+        static byte[]? Resolver(string kid)
+        {
+            return kid == "key-1" ? _signingKey : null;
+        }
+        Assert.True(signatureValidator.VerifyJwtSignature(jwt, Resolver));
 
         var verifier = CreateVerifier();
-        var direct = verifier.TryVerifyPresentation(jwt + "~", SigningKey);
+        var direct = verifier.TryVerifyPresentation(jwt + "~", _signingKey);
         Assert.True(direct.IsValid, string.Join(", ", direct.Errors));
 
-        var resolved = verifier.TryVerifyPresentation(jwt + "~", resolver);
+        var resolved = verifier.TryVerifyPresentation(jwt + "~", Resolver);
         Assert.True(resolved.IsValid, string.Join(", ", resolved.Errors));
     }
 
@@ -131,7 +137,7 @@ public class JwtCriticalHeaderTests
         };
         var signingInput = Base64UrlEncoder.Encode(JsonSerializer.Serialize(header)) + "." +
                            Base64UrlEncoder.Encode(JsonSerializer.Serialize(payload));
-        using var hmac = new HMACSHA256(SigningKey);
+        using var hmac = new HMACSHA256(_signingKey);
         return signingInput + "." + Base64UrlEncoder.Encode(hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(signingInput)));
     }
 }
