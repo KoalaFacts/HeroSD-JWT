@@ -4,7 +4,6 @@ using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
@@ -142,7 +141,10 @@ public class DisclosureDigestShapeTests
         Assert.False(direct.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
 
-        static byte[]? ResolveKey(string kid) => kid == "digest-test-key" ? _signingKey : null;
+        static byte[]? ResolveKey(string kid)
+        {
+            return kid == "digest-test-key" ? _signingKey : null;
+        }
 
         var resolved = verifier.TryVerifyPresentation(presentation, ResolveKey);
         Assert.False(resolved.IsValid);
@@ -172,7 +174,7 @@ public class DisclosureDigestShapeTests
     {
         const string headerJson = /*lang=json,strict*/ "{\"alg\":\"HS256\",\"kid\":\"digest-test-key\"}";
         var input = Base64UrlEncoder.Encode(headerJson) + "." + Base64UrlEncoder.Encode(payloadJson);
-        var signature = HMACSHA256.HashData(_signingKey, Encoding.UTF8.GetBytes(input));
+        var signature = HMACSHA256.HashData(_signingKey, System.Text.Encoding.UTF8.GetBytes(input));
         return input + "." + Base64UrlEncoder.Encode(signature);
     }
 }
