@@ -77,17 +77,15 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
                         }
                     }
 
-                    if (matchedKey != null)
-                    {
-                        claimPath = matchedKey;
-                    }
-                    else
+                    if (matchedKey == null)
                     {
                         throw new ArgumentException(
                             $"Claim path '{claimPath}' not found in SD-JWT. " +
                             $"Available paths: {string.Join(", ", claimPathToIndex.Keys)}",
                             nameof(selectedClaimNames));
                     }
+
+                    claimPath = matchedKey;
                 }
 
                 if (disclosureIndex < 0 || disclosureIndex >= sdJwt.Disclosures.Count)
