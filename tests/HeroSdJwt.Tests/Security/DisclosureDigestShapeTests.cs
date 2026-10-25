@@ -62,6 +62,34 @@ public class DisclosureDigestShapeTests
     }
 
     [Fact]
+    public async Task Should_RejectRepeatedDigestInsidePresentedNestedDisclosure()
+    {
+        var nestedDigest = DisclosureDigest("[\"nested-salt\",\"email\",\"alice@example.test\"]");
+        var nestedDigestJson = JsonSerializer.Serialize(nestedDigest);
+        var parentDisclosure = Base64UrlEncoder.Encode(
+            $"[\"parent-salt\",\"profile\",{{\"_sd\":[{nestedDigestJson}]}}]");
+        var parentDigest = new DigestCalculator().ComputeDigest(parentDisclosure, HashAlgorithm.Sha256);
+        var payload = JsonSerializer.Serialize(new
+        {
+            exp = 4102444800L,
+            _sd = new[] { parentDigest, nestedDigest }
+        });
+
+        await AssertRejectedAsync(payload, parentDisclosure);
+    }
+
+    [Fact]
+    public async Task Should_RejectMalformedDigestInPresentedNestedDisclosure()
+    {
+        var parentDisclosure = Base64UrlEncoder.Encode(
+            "[\"parent-salt\",\"profile\",{\"_sd\":[null]}]");
+        var parentDigest = new DigestCalculator().ComputeDigest(parentDisclosure, HashAlgorithm.Sha256);
+        var payload = JsonSerializer.Serialize(new { exp = 4102444800L, _sd = new[] { parentDigest } });
+
+        await AssertRejectedAsync(payload, parentDisclosure);
+    }
+
+    [Fact]
     public async Task Should_AcceptDistinctSignedDisclosureReferences()
     {
         const string firstJson = "[\"salt-c\",\"email\",\"alice@example.test\"]";
@@ -99,11 +127,15 @@ public class DisclosureDigestShapeTests
         Assert.True(result.IsValid, result.ErrorDetails);
     }
 
-    private static async Task AssertRejectedAsync(string payloadJson)
+    private static async Task AssertRejectedAsync(string payloadJson, params string[] disclosures)
     {
         // This JWT is correctly HMAC-signed. Rejection is due to the digest
         // structure, not a bad signature or an unrecognized verification key.
         var presentation = SignPayload(payloadJson) + "~";
+        if (disclosures.Length > 0)
+        {
+            presentation += string.Join("~", disclosures) + "~";
+        }
         var verifier = CreateVerifier();
 
         var direct = verifier.TryVerifyPresentation(presentation, _signingKey);
