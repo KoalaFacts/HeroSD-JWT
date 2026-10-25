@@ -708,6 +708,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             var arrayDigests = new List<Digest>();
             var seenDigests = new HashSet<string>(StringComparer.Ordinal);
             var nonArrayDisclosures = new List<string>();
+            var arrayDisclosures = new List<string>();
             if (!CollectAllSdDigests(payload, expectedDigests, arrayDigests, algorithm, seenDigests))
             {
                 errors.Add(ErrorCode.InvalidInput);
@@ -732,6 +733,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                         if (array.GetArrayLength() == 2)
                         {
                             nonArrayDisclosures.Remove(disclosure);
+                            arrayDisclosures.Add(disclosure);
                         }
                         if (!CollectAllSdDigests(value, expectedDigests, arrayDigests, algorithm, seenDigests))
                         {
@@ -751,6 +753,16 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             {
                 errors.Add(ErrorCode.InvalidInput);
                 return new VerificationResult(errors, "Array placeholders require two-element disclosures");
+            }
+
+            // A two-element Disclosure is valid only for an array placeholder.
+            // A matching object _sd digest cannot turn it into a claim value.
+            if (arrayDisclosures.Any(disclosure => expectedDigests.Any(digest =>
+                !arrayDigests.Any(arrayDigest => arrayDigest.Value == digest.Value) &&
+                _digestValidator.ValidateDigest(disclosure, digest, algorithm))))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                return new VerificationResult(errors, "Object disclosure digests require three-element disclosures");
             }
 
             if (disclosures.Count > 0)

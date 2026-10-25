@@ -89,6 +89,23 @@ public class DisclosureDigestShapeTests
         await AssertRejectedAsync(payload, parentDisclosure);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_RejectTwoElementDisclosureReferencedByObjectDigest(bool nested)
+    {
+        // A two-element Disclosure is an array value, never an object property.
+        // A matching digest alone must not make an object-level _sd reference valid.
+        const string disclosureJson = /*lang=json,strict*/ "[\"two-part-salt\",\"unexpected-value\"]";
+        var disclosure = Base64UrlEncoder.Encode(disclosureJson);
+        var digestJson = JsonSerializer.Serialize(DisclosureDigest(disclosureJson));
+        var payload = nested
+            ? $"{{\"exp\":4102444800,\"profile\":{{\"_sd\":[{digestJson}]}}}}"
+            : $"{{\"exp\":4102444800,\"_sd\":[{digestJson}]}}";
+
+        await AssertRejectedAsync(payload, disclosure);
+    }
+
     [Fact]
     public async Task Should_AcceptDistinctSignedDisclosureReferences()
     {
