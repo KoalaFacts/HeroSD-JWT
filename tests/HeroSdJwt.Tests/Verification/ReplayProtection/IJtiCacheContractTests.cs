@@ -27,6 +27,33 @@ public abstract class IJtiCacheContractTests : IAsyncLifetime
         return ValueTask.CompletedTask;
     }
 
+    [Theory]
+    [InlineData(null, "valid-jti", true)]
+    [InlineData("", "valid-jti", false)]
+    [InlineData(" \t ", "valid-jti", false)]
+    [InlineData("valid-issuer", null, true)]
+    [InlineData("valid-issuer", "", false)]
+    [InlineData("valid-issuer", " \t ", false)]
+    public async Task DiagnosticOperations_WithInvalidIdentity_RejectBeforeCacheAccess(
+        string? issuer, string? jti, bool isNull)
+    {
+        var cache = Cache!;
+        var token = TestContext.Current.CancellationToken;
+        Func<Task> exists = () => cache.ExistsAsync(issuer!, jti!, token);
+        Func<Task> remove = () => cache.RemoveAsync(issuer!, jti!, token);
+
+        if (isNull)
+        {
+            _ = await Assert.ThrowsAsync<ArgumentNullException>(exists);
+            _ = await Assert.ThrowsAsync<ArgumentNullException>(remove);
+        }
+        else
+        {
+            _ = await Assert.ThrowsAsync<ArgumentException>(exists);
+            _ = await Assert.ThrowsAsync<ArgumentException>(remove);
+        }
+    }
+
     [Fact]
     public async Task TryAddAsync_FirstAdd_ReturnsTrue()
     {

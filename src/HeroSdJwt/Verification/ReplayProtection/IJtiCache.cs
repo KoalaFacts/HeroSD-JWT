@@ -30,10 +30,12 @@ public interface IJtiCache
     /// Checks if a jti exists in the cache without modifying it.
     /// Used for testing, diagnostics, and auditing.
     /// </summary>
-    /// <param name="issuer">The token issuer (iss claim).</param>
-    /// <param name="jti">The JWT ID (jti claim).</param>
+    /// <param name="issuer">The token issuer (iss claim). Must not be null or whitespace.</param>
+    /// <param name="jti">The JWT ID (jti claim). Must not be null or whitespace.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns><c>true</c> if the jti exists in cache, otherwise <c>false</c>.</returns>
+    /// <exception cref="ArgumentNullException">If issuer or jti is null.</exception>
+    /// <exception cref="ArgumentException">If issuer or jti is empty or whitespace.</exception>
     Task<bool> ExistsAsync(
         string issuer,
         string jti,
@@ -43,10 +45,12 @@ public interface IJtiCache
     /// Removes a jti from the cache.
     /// Used for testing, administrative operations, and manual cache cleanup.
     /// </summary>
-    /// <param name="issuer">The token issuer (iss claim).</param>
-    /// <param name="jti">The JWT ID (jti claim).</param>
+    /// <param name="issuer">The token issuer (iss claim). Must not be null or whitespace.</param>
+    /// <param name="jti">The JWT ID (jti claim). Must not be null or whitespace.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Task representing the async operation.</returns>
+    /// <exception cref="ArgumentNullException">If issuer or jti is null.</exception>
+    /// <exception cref="ArgumentException">If issuer or jti is empty or whitespace.</exception>
     Task RemoveAsync(
         string issuer,
         string jti,

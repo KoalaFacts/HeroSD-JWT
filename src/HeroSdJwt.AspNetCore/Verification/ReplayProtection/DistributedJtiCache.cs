@@ -50,8 +50,7 @@ public sealed class DistributedJtiCache : IJtiCache
         string jti,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(issuer);
-        ArgumentNullException.ThrowIfNull(jti);
+        ValidateKeyParts(issuer, jti);
         cancellationToken.ThrowIfCancellationRequested();
 
         var key = BuildKey(issuer, jti);
@@ -65,8 +64,7 @@ public sealed class DistributedJtiCache : IJtiCache
         string jti,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(issuer);
-        ArgumentNullException.ThrowIfNull(jti);
+        ValidateKeyParts(issuer, jti);
         cancellationToken.ThrowIfCancellationRequested();
 
         var key = BuildKey(issuer, jti);
@@ -82,6 +80,16 @@ public sealed class DistributedJtiCache : IJtiCache
 
     private static void ValidateParameters(string issuer, string jti, TimeSpan ttl)
     {
+        ValidateKeyParts(issuer, jti);
+
+        if (ttl <= TimeSpan.Zero)
+        {
+            throw new ArgumentException("TTL must be greater than zero", nameof(ttl));
+        }
+    }
+
+    private static void ValidateKeyParts(string issuer, string jti)
+    {
         ArgumentNullException.ThrowIfNull(issuer);
         ArgumentNullException.ThrowIfNull(jti);
 
@@ -93,11 +101,6 @@ public sealed class DistributedJtiCache : IJtiCache
         if (string.IsNullOrWhiteSpace(jti))
         {
             throw new ArgumentException("JTI cannot be empty or whitespace", nameof(jti));
-        }
-
-        if (ttl <= TimeSpan.Zero)
-        {
-            throw new ArgumentException("TTL must be greater than zero", nameof(ttl));
         }
     }
 }

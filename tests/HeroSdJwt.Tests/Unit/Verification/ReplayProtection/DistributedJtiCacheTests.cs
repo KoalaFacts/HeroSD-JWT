@@ -6,6 +6,33 @@ public class DistributedJtiCacheTests
 {
     private readonly AtomicCacheFixture _cache = new();
 
+    [Theory]
+    [InlineData(null, "valid-jti", true)]
+    [InlineData("", "valid-jti", false)]
+    [InlineData(" \t ", "valid-jti", false)]
+    [InlineData("valid-issuer", null, true)]
+    [InlineData("valid-issuer", "", false)]
+    [InlineData("valid-issuer", " \t ", false)]
+    public async Task DiagnosticOperations_WithInvalidIdentity_RejectBeforeBackendAccess(
+        string? issuer, string? jti, bool isNull)
+    {
+        var cache = new DistributedJtiCache(_cache);
+        var token = TestContext.Current.CancellationToken;
+        Func<Task> exists = () => cache.ExistsAsync(issuer!, jti!, token);
+        Func<Task> remove = () => cache.RemoveAsync(issuer!, jti!, token);
+
+        if (isNull)
+        {
+            _ = await Assert.ThrowsAsync<ArgumentNullException>(exists);
+            _ = await Assert.ThrowsAsync<ArgumentNullException>(remove);
+        }
+        else
+        {
+            _ = await Assert.ThrowsAsync<ArgumentException>(exists);
+            _ = await Assert.ThrowsAsync<ArgumentException>(remove);
+        }
+    }
+
     [Fact]
     public async Task TryAddAsync_FirstCall_Succeeds()
     {

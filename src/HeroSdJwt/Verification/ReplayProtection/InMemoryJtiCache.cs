@@ -93,6 +93,7 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     /// </summary>
     public Task<bool> ExistsAsync(string issuer, string jti, CancellationToken cancellationToken = default)
     {
+        ValidateKeyParts(issuer, jti);
         cancellationToken.ThrowIfCancellationRequested();
         var cacheKey = new JtiCacheKey(issuer, jti);
         lock (_sync)
@@ -119,6 +120,7 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     /// </summary>
     public Task RemoveAsync(string issuer, string jti, CancellationToken cancellationToken = default)
     {
+        ValidateKeyParts(issuer, jti);
         cancellationToken.ThrowIfCancellationRequested();
         var cacheKey = new JtiCacheKey(issuer, jti);
         lock (_sync)
@@ -165,6 +167,16 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
 
     private static void ValidateParameters(string issuer, string jti, TimeSpan ttl)
     {
+        ValidateKeyParts(issuer, jti);
+
+        if (ttl <= TimeSpan.Zero)
+        {
+            throw new ArgumentException("TTL must be positive", nameof(ttl));
+        }
+    }
+
+    private static void ValidateKeyParts(string issuer, string jti)
+    {
         ArgumentNullException.ThrowIfNull(issuer);
         ArgumentNullException.ThrowIfNull(jti);
 
@@ -176,11 +188,6 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
         if (string.IsNullOrWhiteSpace(jti))
         {
             throw new ArgumentException("JTI cannot be empty or whitespace", nameof(jti));
-        }
-
-        if (ttl <= TimeSpan.Zero)
-        {
-            throw new ArgumentException("TTL must be positive", nameof(ttl));
         }
     }
 
