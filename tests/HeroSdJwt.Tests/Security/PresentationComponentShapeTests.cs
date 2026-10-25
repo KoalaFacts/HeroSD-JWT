@@ -18,10 +18,10 @@ public class PresentationComponentShapeTests
     [Theory]
     [InlineData("~~")]
     [InlineData("~ ")]
-    [InlineData("~\\t")]
+    [InlineData("~\t")]
     [InlineData("~ ~")]
-    [InlineData("~\\t~")]
-    [InlineData("~\\u2003~")]
+    [InlineData("~\t~")]
+    [InlineData("~\u2003~")]
     public async Task Should_RejectEmptyOrWhitespaceOnlyExtraComponents_BeforeResolvingKeys(string suffix)
     {
         var presentation = CreateSignedJwt() + suffix;

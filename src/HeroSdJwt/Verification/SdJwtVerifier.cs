@@ -413,6 +413,16 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             return new VerificationResult(errors, string.Join("; ", errorDetails));
         }
 
+        // RFC 9901: each intermediate component must be an actual Disclosure.
+        // A whitespace-only final component is not an absent Key Binding JWT.
+        // Reject malformed shapes before key resolution or signature work.
+        if (HasMalformedPresentationComponents(parts))
+        {
+            errors.Add(ErrorCode.InvalidInput);
+            errorDetails.Add("Invalid presentation format: empty Disclosure or whitespace-only component");
+            return new VerificationResult(errors, string.Join("; ", errorDetails));
+        }
+
         var jwt = parts[0];
 
         // Step 1: Extract kid from JWT header and resolve to verification key
@@ -508,6 +518,21 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             cancellationToken).ConfigureAwait(false);
     }
 
+    private static bool HasMalformedPresentationComponents(string[] parts)
+    {
+        // The final empty string denotes an SD-JWT without Key Binding.
+        // Extra empty slots or whitespace-only strings are not Disclosures.
+        for (int i = 1; i < parts.Length - 1; i++)
+        {
+            if (string.IsNullOrWhiteSpace(parts[i]))
+            {
+                return true;
+            }
+        }
+
+        return parts[^1].Length > 0 && string.IsNullOrWhiteSpace(parts[^1]);
+    }
+
     /// <summary>
     /// Internal verification logic shared by both throwing and non-throwing methods.
     /// </summary>
@@ -554,7 +579,17 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
-            var jwt = parts[0];
+            // RFC 9901: each intermediate component must be an actual Disclosure.
+        // A whitespace-only final component is not an absent Key Binding JWT.
+        // Reject malformed shapes before key resolution or signature work.
+        if (HasMalformedPresentationComponents(parts))
+        {
+            errors.Add(ErrorCode.InvalidInput);
+            errorDetails.Add("Invalid presentation format: empty Disclosure or whitespace-only component");
+            return new VerificationResult(errors, string.Join("; ", errorDetails));
+        }
+
+        var jwt = parts[0];
 
             // Validate JWT size
             if (jwt.Length > Constants.MAX_JWT_SIZE_BYTES / 2)
