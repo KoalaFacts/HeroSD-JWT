@@ -393,11 +393,23 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         }
 
         // Parse presentation into parts: JWT~disclosure1~disclosure2~...~keyBinding
-        var parts = presentation.Split('~');
+        var parts = presentation.Split('~', Constants.MAX_DISCLOSURES + 2);
         if (parts.Length < 2)
         {
             errors.Add(ErrorCode.InvalidInput);
             errorDetails.Add("Invalid presentation format: expected at least JWT and empty slots");
+            return new VerificationResult(errors, string.Join("; ", errorDetails));
+        }
+
+        // Split at most the existing maximum number of disclosure slots plus
+        // the issuer JWT and optional key-binding JWT. An excess separator
+        // remains in the final segment: reject it before further parsing.
+        // This also prevents empty disclosure components from bypassing the
+        // allocation bound on untrusted presentations.
+        if (parts[^1].Contains('~'))
+        {
+            errors.Add(ErrorCode.InvalidInput);
+            errorDetails.Add($"Presentation exceeds maximum of {Constants.MAX_DISCLOSURES} disclosure slots");
             return new VerificationResult(errors, string.Join("; ", errorDetails));
         }
 
@@ -522,11 +534,23 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             }
 
             // Parse presentation into parts: JWT~disclosure1~disclosure2~...~keyBinding
-            var parts = presentation.Split('~');
+            var parts = presentation.Split('~', Constants.MAX_DISCLOSURES + 2);
             if (parts.Length < 2)
             {
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add("Invalid presentation format: expected at least JWT and empty slots");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            // Split at most the existing maximum number of disclosure slots plus
+            // the issuer JWT and optional key-binding JWT. An excess separator
+            // remains in the final segment: reject it before further parsing.
+            // This also prevents empty disclosure components from bypassing the
+            // allocation bound on untrusted presentations.
+            if (parts[^1].Contains('~'))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add($"Presentation exceeds maximum of {Constants.MAX_DISCLOSURES} disclosure slots");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
