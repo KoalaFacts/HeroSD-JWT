@@ -58,7 +58,7 @@ public class DisclosureParser : IDisclosureParser
             throw new MalformedDisclosureException("Disclosure salt must be a string");
         }
 
-        var salt = saltElement.GetString()!;
+        var salt = saltElement.GetString();
         if (string.IsNullOrWhiteSpace(salt))
         {
             throw new MalformedDisclosureException("Disclosure salt cannot be empty or whitespace");
@@ -84,7 +84,7 @@ public class DisclosureParser : IDisclosureParser
                 throw new MalformedDisclosureException("Disclosure claim name must be a string");
             }
 
-            var claimName = claimNameElement.GetString()!;
+            var claimName = claimNameElement.GetString();
             if (string.IsNullOrWhiteSpace(claimName))
             {
                 throw new MalformedDisclosureException("Disclosure claim name cannot be empty or whitespace");
