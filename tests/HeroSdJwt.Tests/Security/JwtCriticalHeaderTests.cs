@@ -83,7 +83,6 @@ public class JwtCriticalHeaderTests
         Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
     }
 
-
     [Theory]
     [InlineData("null")]
     [InlineData("true")]
@@ -106,18 +105,18 @@ public class JwtCriticalHeaderTests
         Assert.Equal(Base64UrlEncoder.Encode(expectedSignature), jwtParts[2]);
 
         var resolverCalls = 0;
-        KeyResolver resolver = _ =>
+        byte[]? Resolver(string _)
         {
             resolverCalls++;
             return _signingKey;
-        };
+        }
 
         var signatureValidator = new SignatureValidator();
         var directException = Assert.Throws<SdJwtException>(() =>
             signatureValidator.VerifyJwtSignature(jwt, _signingKey));
         Assert.Equal(ErrorCode.InvalidInput, directException.ErrorCode);
         var resolvedException = Assert.Throws<SdJwtException>(() =>
-            signatureValidator.VerifyJwtSignature(jwt, resolver, _signingKey));
+            signatureValidator.VerifyJwtSignature(jwt, Resolver, _signingKey));
         Assert.Equal(ErrorCode.InvalidInput, resolvedException.ErrorCode);
 
         var verifier = CreateVerifier();
@@ -125,7 +124,7 @@ public class JwtCriticalHeaderTests
         Assert.False(direct.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
 
-        var resolved = verifier.TryVerifyPresentation(presentation, resolver, fallbackKey: _signingKey);
+        var resolved = verifier.TryVerifyPresentation(presentation, Resolver, fallbackKey: _signingKey);
         Assert.False(resolved.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
 
@@ -138,7 +137,7 @@ public class JwtCriticalHeaderTests
         Assert.Contains(ErrorCode.InvalidInput, asyncResolved.Errors);
 
         var verifyException = Assert.Throws<SdJwtException>(() =>
-            verifier.VerifyPresentation(presentation, resolver, fallbackKey: _signingKey));
+            verifier.VerifyPresentation(presentation, Resolver, fallbackKey: _signingKey));
         Assert.Equal(ErrorCode.InvalidInput, verifyException.ErrorCode);
         Assert.Equal(0, resolverCalls);
     }
@@ -150,17 +149,17 @@ public class JwtCriticalHeaderTests
         Assert.True(header.Remove("kid"));
         var jwt = Sign(header);
         var resolverCalls = 0;
-        KeyResolver resolver = _ =>
+        byte[]? Resolver(string _)
         {
             resolverCalls++;
             return null;
-        };
+        }
 
         var signatureValidator = new SignatureValidator();
-        Assert.True(signatureValidator.VerifyJwtSignature(jwt, resolver, _signingKey));
+        Assert.True(signatureValidator.VerifyJwtSignature(jwt, Resolver, _signingKey));
 
         var verifier = CreateVerifier();
-        var result = verifier.TryVerifyPresentation(jwt + "~", resolver, fallbackKey: _signingKey);
+        var result = verifier.TryVerifyPresentation(jwt + "~", Resolver, fallbackKey: _signingKey);
         Assert.True(result.IsValid, result.ErrorDetails);
         Assert.Equal(0, resolverCalls);
     }
