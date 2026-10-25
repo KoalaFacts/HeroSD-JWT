@@ -157,7 +157,7 @@ public class DistributedRevocationStoreTests : IDisposable
 #else
         private readonly object _sync = new();
 #endif
-        private readonly Dictionary<string, (byte[] Value, DateTimeOffset? Expires)> _entries = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, (byte[] Value, DateTimeOffset? Expires)> _entries = [];
         private DateTimeOffset _now = DateTimeOffset.UtcNow;
 
         public bool FailAtomicWrites { get; init; }
