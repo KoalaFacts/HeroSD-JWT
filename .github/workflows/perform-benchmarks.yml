@@ -43,6 +43,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Extract configuration
         id: config
@@ -64,6 +66,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Setup all .NET SDKs
       uses: ./.github/actions/setup-dotnet-sdks
@@ -100,10 +104,11 @@ jobs:
         python3 .github/scripts/collect_benchmark_reports.py \
           "$REPORT_DIR" "$FRAMEWORK" "$(git rev-parse HEAD)" "$(git rev-parse HEAD^{tree})"
 
-    # Historical acceptance is independent of current report completeness. Keep
-    # this a required failing step, but retain new diagnostics before it runs.
+    # Missing or unusable historical data makes comparison INCONCLUSIVE, not
+    # a product failure. Current build/measurement/evidence errors still fail.
     - name: Validate framework-specific benchmark baseline
       id: baseline
+      continue-on-error: true
       env:
         FRAMEWORK: ${{ matrix.framework }}
         CURRENT_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -113,8 +118,21 @@ jobs:
         python3 .github/scripts/validate_benchmark_baseline.py \
           "$RUNNER_TEMP/benchmark-baseline.js" "$FRAMEWORK" "$CURRENT_COMMIT" >> "$GITHUB_OUTPUT"
 
+    - name: Report unavailable historical comparison
+      if: always() && steps.baseline.outcome == 'failure'
+      env:
+        FRAMEWORK: ${{ matrix.framework }}
+      run: |
+        echo "::warning::Historical benchmark comparison for $FRAMEWORK is INCONCLUSIVE; see baseline diagnostics."
+        {
+          echo "### $FRAMEWORK historical comparison: INCONCLUSIVE"
+          echo "The historical baseline is unavailable or unusable. This is not a performance pass."
+          echo "Current measurement artifacts are retained; no comparison or historical publication is performed."
+        } >> "$GITHUB_STEP_SUMMARY"
+
     - name: Validate job identities and snapshot performance before storage
       id: comparison
+      if: success() && steps.baseline.outcome == 'success'
       env:
         FRAMEWORK: ${{ matrix.framework }}
         CURRENT_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -130,14 +148,15 @@ jobs:
     # Never let it push before those alerts or our exact-parent validation.
     - name: Prepare local benchmark result ${{ matrix.framework }}
       id: storebenchmark
+      if: success() && steps.comparison.outcome == 'success'
       uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
       with:
         name: ${{ steps.baseline.outputs.name }}
         tool: 'benchmarkdotnet'
         output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/comparison-report-${{ matrix.framework }}.json
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        # Pin metadata for workflow_dispatch, whose branch may move during the run.
-        ref: ${{ github.sha }}
+        # Match CURRENT_COMMIT: PR head, or the pinned event SHA for push/dispatch.
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
         comment-on-alert: true
         fail-on-alert: true
         alert-threshold: ${{ env.BENCHMARK_ALERT_THRESHOLD }}  # Fail if >5% slower
@@ -165,6 +184,7 @@ jobs:
 
     - name: Validate prepared benchmark commit
       id: publication
+      if: success() && steps.storebenchmark.outcome == 'success'
       env:
         FRAMEWORK: ${{ matrix.framework }}
         CURRENT_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -177,7 +197,7 @@ jobs:
 
     - name: Publish verified benchmark commit
       id: publishbenchmark
-      if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.publication.outcome == 'success'
       env:
         VERIFIED_COMMIT: ${{ steps.publication.outputs.commit }}
       run: |

@@ -1,3 +1,4 @@
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
 using System.Buffers;
 using System.Security.Cryptography;
@@ -72,12 +73,17 @@ public class KeyBindingGenerator : IKeyBindingGenerator
         {
             throw new ArgumentException("Invalid ECDSA private key format", nameof(holderPrivateKey), ex);
         }
+        catch (PlatformNotSupportedException ex)
+        {
+            // The platform may refuse secp256k1 before the named-curve guard runs.
+            throw new ArgumentException("Unsupported ECDSA private key curve", nameof(holderPrivateKey), ex);
+        }
 
         // Validate elliptic curve - only P-256 (ES256) is supported
-        if (ecdsa.KeySize != 256)
+        if (!EcCurveGuard.IsP256(ecdsa))
         {
             throw new ArgumentException(
-                $"Only P-256 (256-bit) elliptic curve is supported for ES256. Provided key is {ecdsa.KeySize}-bit.",
+                "Only the named NIST P-256 elliptic curve is supported for ES256.",
                 nameof(holderPrivateKey));
         }
 

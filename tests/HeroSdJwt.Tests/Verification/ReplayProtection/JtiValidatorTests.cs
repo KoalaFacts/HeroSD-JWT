@@ -152,7 +152,7 @@ public class JtiValidatorTests
     }
 
     [Fact]
-    public async Task ValidateAsync_WithoutExp_UsesDefaultTtl()
+    public async Task ValidateAsync_WithoutExp_RejectsBeforeCacheAdmission()
     {
         // Arrange
         var issuer = "https://issuer.example";
@@ -161,15 +161,14 @@ public class JtiValidatorTests
         {
             ["iss"] = JsonSerializer.SerializeToElement(issuer),
             ["jti"] = JsonSerializer.SerializeToElement(jti)
-            // No exp claim - should use DefaultTtl
+            // No exp claim: no finite replay marker lifetime can be justified.
         };
 
-        // Act
-        await _validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
+        var ex = await Assert.ThrowsAsync<SdJwtException>(() =>
+            _validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
 
-        // Assert - Entry should exist in _cache
-        var exists = await _cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken);
-        Assert.True(exists);
+        Assert.Contains("exp", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(await _cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -192,7 +191,7 @@ public class JtiValidatorTests
     }
 
     [Fact]
-    public async Task ValidateAsync_VeryLongExp_CapsTtlAtMaximum()
+    public async Task ValidateAsync_VeryLongExp_RejectsInsteadOfCappingTtl()
     {
         // Arrange
         var issuer = "https://issuer.example";
@@ -205,12 +204,12 @@ public class JtiValidatorTests
             ["exp"] = JsonSerializer.SerializeToElement(exp)
         };
 
-        // Act - Should cap TTL at MaximumTtl (24 hours)
-        await _validator.ValidateAsync(claims, TestContext.Current.CancellationToken);
+        // Reject before writing a marker that would expire while the token remains valid.
+        var ex = await Assert.ThrowsAsync<SdJwtException>(() =>
+            _validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
 
-        // Assert - Entry exists (capped TTL used)
-        var exists = await _cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken);
-        Assert.True(exists);
+        Assert.Contains("MaximumTtl", ex.Message, StringComparison.Ordinal);
+        Assert.False(await _cache.ExistsAsync(issuer, jti, TestContext.Current.CancellationToken));
     }
 
     [Fact]
