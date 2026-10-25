@@ -580,16 +580,16 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             }
 
             // RFC 9901: each intermediate component must be an actual Disclosure.
-        // A whitespace-only final component is not an absent Key Binding JWT.
-        // Reject malformed shapes before key resolution or signature work.
-        if (HasMalformedPresentationComponents(parts))
-        {
-            errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add("Invalid presentation format: empty Disclosure or whitespace-only component");
-            return new VerificationResult(errors, string.Join("; ", errorDetails));
-        }
+            // A whitespace-only final component is not an absent Key Binding JWT.
+            // Reject malformed shapes before key resolution or signature work.
+            if (HasMalformedPresentationComponents(parts))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("Invalid presentation format: empty Disclosure or whitespace-only component");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
 
-        var jwt = parts[0];
+            var jwt = parts[0];
 
             // Validate JWT size
             if (jwt.Length > Constants.MAX_JWT_SIZE_BYTES / 2)
