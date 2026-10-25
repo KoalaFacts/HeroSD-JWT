@@ -1,5 +1,7 @@
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -135,28 +137,16 @@ public class AlgorithmSecurityTests
     [Fact]
     public void VerifyPresentation_WithHashAlgorithmMismatch_Fails()
     {
-        // Arrange
-        var verifier = TestHelpers.CreateVerifier();
+        var key = KeyGenerator.Instance.GenerateHmacKey();
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric).Build();
+        var issued = TestHelpers.CreateIssuer().CreateSdJwt(
+            new Dictionary<string, object> { ["exp"] = 4102444800L, ["email"] = "user@example.com" },
+            ["email"], key, HashAlgorithm.Sha256);
+        var presentation = issued.ToCombinedFormat();
 
-        // Create a presentation where JWT claims sha-256 but disclosures use sha-512
-        // This should be detected and rejected
-
-        // Header: {"alg":"RS256","typ":"JWT"}
-        var header = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9";
-        // Payload claims sha-256
-        var payload = "eyJzdWIiOiJ1c2VyMTIzIiwiX3NkX2FsZyI6InNoYS0yNTYiLCJfc2QiOlsiZGlnZXN0MSJdfQ";
-        var signature = "c2lnbmF0dXJl";
-
-        var jwt = $"{header}.{payload}.{signature}";
-        var disclosure = "WyJzYWx0IiwgImVtYWlsIiwgInVzZXJAZXhhbXBsZS5jb20iXQ"; // Disclosure
-        var presentation = $"{jwt}~{disclosure}~";
-
-        var publicKey = new byte[32];
-
-        // Act - Verify with SHA-512 (mismatch)
-        var result = verifier.TryVerifyPresentation(presentation, publicKey, HashAlgorithm.Sha512);
-
-        // Assert
+        Assert.True(verifier.TryVerifyPresentation(presentation, key, HashAlgorithm.Sha256).IsValid);
+        var result = verifier.TryVerifyPresentation(presentation, key, HashAlgorithm.Sha512);
         Assert.False(result.IsValid);
         Assert.Contains(ErrorCode.HashAlgorithmMismatch, result.Errors);
     }

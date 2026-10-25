@@ -5,7 +5,7 @@ using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
+using TextEncoding = System.Text.Encoding;
 using System.Text.Json;
 
 namespace HeroSdJwt.Tests.Security;
@@ -89,7 +89,7 @@ public class InvalidSignatureShortCircuitTests
         const string header = /*lang=json,strict*/ "{\"alg\":\"HS256\",\"kid\":\"signature-gate\"}";
         const string payload = /*lang=json,strict*/ "{\"exp\":4102444800,\"iss\":\"issuer\"}";
         var signingInput = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payload);
-        var signature = HMACSHA256.HashData(_signingKey, Encoding.UTF8.GetBytes(signingInput));
+        var signature = HMACSHA256.HashData(_signingKey, TextEncoding.UTF8.GetBytes(signingInput));
         if (invalidSignature)
         {
             signature[0] ^= 1;
