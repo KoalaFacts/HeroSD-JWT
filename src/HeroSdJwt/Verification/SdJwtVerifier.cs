@@ -647,8 +647,15 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
 
             if (!signatureValid)
             {
-                errors.Add(ErrorCode.InvalidSignature);
-                errorDetails.Add("JWT signature is invalid");
+                if (errors.Count == 0)
+                {
+                    errors.Add(ErrorCode.InvalidSignature);
+                    errorDetails.Add("JWT signature is invalid");
+                }
+
+                // Do not process untrusted claims, Disclosures, or revocation state when
+                // the issuer's JWS signature has not been authenticated.
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
             // Step 2: Parse JWT payload

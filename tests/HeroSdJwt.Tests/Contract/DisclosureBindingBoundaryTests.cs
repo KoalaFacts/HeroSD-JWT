@@ -123,7 +123,11 @@ public class DisclosureBindingBoundaryTests
         Assert.Throws<SdJwtException>(() => verifier.VerifyPresentation(presentation, verificationKey));
         var result = await verifier.VerifyPresentationAsync(presentation, verificationKey, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(result.IsValid);
-        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.Contains(invalidSignature ? ErrorCode.InvalidSignature : ErrorCode.InvalidInput, result.Errors);
+        if (invalidSignature)
+        {
+            Assert.Single(result.Errors);
+        }
     }
 
     [Theory]

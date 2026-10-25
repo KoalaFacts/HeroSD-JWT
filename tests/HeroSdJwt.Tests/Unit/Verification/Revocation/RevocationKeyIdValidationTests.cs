@@ -17,7 +17,7 @@ public class RevocationKeyIdValidationTests
     {
         // Arrange
         var signingKey = _keyGen.GenerateHmacKey();
-        var presentation = CreatePresentationWithCustomKid("key-\u0001-invalid");
+        var presentation = CreatePresentationWithCustomKid("key-\u0001-invalid", signingKey);
 
         var trackingStore = new TrackingRevocationStore();
         var verifier = new SdJwtVerifier(
@@ -47,7 +47,7 @@ public class RevocationKeyIdValidationTests
     {
         // Arrange
         var signingKey = _keyGen.GenerateHmacKey();
-        var presentation = CreatePresentationWithCustomKid(new string('k', 300)); // too long
+        var presentation = CreatePresentationWithCustomKid(new string('k', 300), signingKey); // too long
 
         var trackingStore = new TrackingRevocationStore();
         var verifier = new SdJwtVerifier(
@@ -103,7 +103,7 @@ public class RevocationKeyIdValidationTests
         public Task UnrevokeUserAsync(string userId, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
-    private static string CreatePresentationWithCustomKid(string keyId)
+    private static string CreatePresentationWithCustomKid(string keyId, byte[] signingKey)
     {
         var headerJson = JsonSerializer.Serialize(new Dictionary<string, object>
         {
@@ -121,7 +121,8 @@ public class RevocationKeyIdValidationTests
 
         var header = Base64UrlEncoder.Encode(headerJson);
         var payload = Base64UrlEncoder.Encode(payloadJson);
-        var signature = Base64UrlEncoder.Encode("sig");
+        var signingInput = System.Text.Encoding.UTF8.GetBytes(header + "." + payload);
+        var signature = Base64UrlEncoder.Encode(System.Security.Cryptography.HMACSHA256.HashData(signingKey, signingInput));
 
         var jwt = $"{header}.{payload}.{signature}";
         return $"{jwt}~";
