@@ -130,7 +130,7 @@ public class JwtCriticalHeaderTests
 
         var asyncResolved = await verifier.TryVerifyPresentationAsync(
             presentation,
-            resolver,
+            Resolver,
             fallbackKey: _signingKey,
             cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(asyncResolved.IsValid);
