@@ -14,8 +14,8 @@ namespace HeroSdJwt.Tests.Security;
 /// </summary>
 public class KeyBindingConfirmationShapeTests
 {
-    private const string Audience = "https://verifier.example.test";
-    private const string Nonce = "verifier-challenge";
+    private const string AUDIENCE = "https://verifier.example.test";
+    private const string NONCE = "verifier-challenge";
     private static readonly byte[] _issuerKey = [.. Enumerable.Range(1, 32).Select(i => (byte)i)];
 
     [Theory]
@@ -34,8 +34,10 @@ public class KeyBindingConfirmationShapeTests
         Assert.False(direct.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
 
-        static byte[]? ResolveIssuerKey(string kid) =>
-            kid == "issuer-key" ? _issuerKey : null;
+        static byte[]? ResolveIssuerKey(string kid)
+        {
+            return kid == "issuer-key" ? _issuerKey : null;
+        }
 
         var resolved = verifier.TryVerifyPresentation(presentation, ResolveIssuerKey);
         Assert.False(resolved.IsValid);
@@ -86,15 +88,15 @@ public class KeyBindingConfirmationShapeTests
         TestHelpers.CreateVerifier(new SdJwtVerificationOptions
         {
             ExpectedKeyType = VerificationKeyType.Symmetric,
-            ExpectedAudience = Audience,
-            ExpectedNonce = Nonce,
+            ExpectedAudience = AUDIENCE,
+            ExpectedNonce = NONCE,
             RequireKeyBinding = true
         });
 
     private static string CreateSignedPresentation(string confirmationJson, ECDsa holder)
     {
         var expires = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
-        var payloadJson = $"{{\"exp\":{expires},\"aud\":\"{Audience}\",\"_sd\":[],\"cnf\":{confirmationJson}}}";
+        var payloadJson = $"{{\"exp\":{expires},\"aud\":\"{AUDIENCE}\",\"_sd\":[],\"cnf\":{confirmationJson}}}";
         const string headerJson = /*lang=json,strict*/ "{\"alg\":\"HS256\",\"kid\":\"issuer-key\"}";
         var signingInput = Base64UrlEncoder.Encode(headerJson) + "." + Base64UrlEncoder.Encode(payloadJson);
         var signature = HMACSHA256.HashData(_issuerKey, System.Text.Encoding.UTF8.GetBytes(signingInput));
@@ -103,7 +105,7 @@ public class KeyBindingConfirmationShapeTests
         var sdHash = Base64UrlEncoder.Encode(SHA256.HashData(
             System.Text.Encoding.UTF8.GetBytes(unsignedHolderPresentation)));
         var holderProof = new KeyBindingGenerator().CreateKeyBindingJwt(
-            holder.ExportECPrivateKey(), sdHash, Audience, Nonce);
+            holder.ExportECPrivateKey(), sdHash, AUDIENCE, NONCE);
 
         return unsignedHolderPresentation + holderProof;
     }
