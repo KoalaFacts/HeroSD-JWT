@@ -706,11 +706,12 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             // This supports nested selective disclosure per SD-JWT spec
             var expectedDigests = new List<Digest>();
             var arrayDigests = new List<Digest>();
+            var seenDigests = new HashSet<string>(StringComparer.Ordinal);
             var nonArrayDisclosures = new List<string>();
-            if (!CollectAllSdDigests(payload, expectedDigests, arrayDigests, algorithm))
+            if (!CollectAllSdDigests(payload, expectedDigests, arrayDigests, algorithm, seenDigests))
             {
                 errors.Add(ErrorCode.InvalidInput);
-                return new VerificationResult(errors, "Invalid array disclosure placeholder");
+                return new VerificationResult(errors, "Invalid or repeated SD-JWT disclosure digest reference");
             }
 
             // Also collect _sd digests from disclosure values (for nested structures)
@@ -732,10 +733,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                         {
                             nonArrayDisclosures.Remove(disclosure);
                         }
-                        if (!CollectAllSdDigests(value, expectedDigests, arrayDigests, algorithm))
+                        if (!CollectAllSdDigests(value, expectedDigests, arrayDigests, algorithm, seenDigests))
                         {
                             errors.Add(ErrorCode.InvalidInput);
-                            return new VerificationResult(errors, "Invalid array disclosure placeholder");
+                            return new VerificationResult(errors, "Invalid or repeated SD-JWT disclosure digest reference");
                         }
                     }
                 }
@@ -1062,7 +1063,13 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
     /// Recursively collects all _sd array digests from a JSON element.
     /// This supports nested selective disclosure structures per SD-JWT spec.
     /// </summary>
-    private static bool CollectAllSdDigests(JsonElement element, List<Digest> digests, List<Digest> arrayDigests, HashAlgorithm algorithm, int depth = 0)
+    private static bool CollectAllSdDigests(
+        JsonElement element,
+        List<Digest> digests,
+        List<Digest> arrayDigests,
+        HashAlgorithm algorithm,
+        HashSet<string> seenDigests,
+        int depth = 0)
     {
         // Security: Prevent stack overflow with deeply nested structures
         const int MAX_NESTING_DEPTH = 10;
@@ -1075,21 +1082,32 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         {
             foreach (var property in element.EnumerateObject())
             {
-                if (property.Name == "_sd" && property.Value.ValueKind == JsonValueKind.Array)
+                if (property.Name == "_sd")
                 {
-                    // Found an _sd array - collect all digests
+                    // RFC 9901: _sd must contain only string digests, each seen
+                    // at most once across the signed payload and its Disclosures.
+                    if (property.Value.ValueKind != JsonValueKind.Array)
+                    {
+                        return false;
+                    }
+
                     foreach (var digestValue in property.Value.EnumerateArray())
                     {
-                        if (digestValue.ValueKind == JsonValueKind.String)
+                        if (digestValue.ValueKind != JsonValueKind.String ||
+                            digestValue.GetString() is not { Length: > 0 } digest ||
+                            string.IsNullOrWhiteSpace(digest) ||
+                            !seenDigests.Add(digest))
                         {
-                            digests.Add(new Digest(digestValue.GetString()!, algorithm));
+                            return false;
                         }
+
+                        digests.Add(new Digest(digest, algorithm));
                     }
                 }
                 else if (property.Name != "_sd_alg")
                 {
                     // Recursively search nested objects and arrays (increment depth)
-                    if (!CollectAllSdDigests(property.Value, digests, arrayDigests, algorithm, depth + 1))
+                    if (!CollectAllSdDigests(property.Value, digests, arrayDigests, algorithm, seenDigests, depth + 1))
                     {
                         return false;
                     }
@@ -1110,12 +1128,18 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     {
                         return false;
                     }
-                    var digest = new Digest(arrayDigest.GetString()!, algorithm);
+                    var digestValue = arrayDigest.GetString()!;
+                    if (!seenDigests.Add(digestValue))
+                    {
+                        return false;
+                    }
+
+                    var digest = new Digest(digestValue, algorithm);
                     digests.Add(digest);
                     arrayDigests.Add(digest);
                 }
 
-                if (!CollectAllSdDigests(item, digests, arrayDigests, algorithm, depth + 1))
+                if (!CollectAllSdDigests(item, digests, arrayDigests, algorithm, seenDigests, depth + 1))
                 {
                     return false;
                 }
