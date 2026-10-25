@@ -1,4 +1,5 @@
 using HeroSdJwt.Encoding;
+using HeroSdJwt.Extensions;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
@@ -113,6 +114,33 @@ public class DisclosureDigestShapeTests
         var asyncResult = await verifier.TryVerifyPresentationAsync(
             presentation, _signingKey, cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(asyncResult.IsValid, asyncResult.ErrorDetails);
+    }
+
+    [Fact]
+    public async Task Should_IssueArrayDisclosureReferencedOnlyByItsPlaceholder()
+    {
+        var issued = SdJwtIssuerBuilder.Create()
+            .WithClaim("sub", "test")
+            .WithClaim("degrees", new[] { "BSc", "MSc" })
+            .MakeSelective("degrees[0]")
+            .SignWithHmac(_signingKey)
+            .Build();
+
+        var jwtParts = issued.Jwt.Split('.');
+        using var doc = JsonDocument.Parse(Base64UrlEncoder.DecodeString(jwtParts[1]));
+        var digest = doc.RootElement.GetProperty("degrees")[0].GetProperty("...").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(digest));
+        if (doc.RootElement.TryGetProperty("_sd", out var objectDigests))
+        {
+            Assert.DoesNotContain(objectDigests.EnumerateArray(), element => element.GetString() == digest);
+        }
+
+        var verifier = CreateVerifier();
+        var presentation = issued.ToPresentation("degrees[0]");
+        var result = await verifier.TryVerifyPresentationAsync(
+            presentation, _signingKey, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.True(result.IsValid, result.ErrorDetails);
+        Assert.Equal("BSc", result.DisclosedClaims["degrees[0]"].GetString());
     }
 
     [Fact]
