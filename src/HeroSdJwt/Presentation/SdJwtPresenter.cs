@@ -1,4 +1,7 @@
+using HeroSdJwt.Encoding;
+using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
+using System.Text.Json;
 
 namespace HeroSdJwt.Presentation;
 
@@ -97,24 +100,32 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
                 // Add this disclosure
                 _ = selectedDisclosureIndices.Add(disclosureIndex);
 
-                // Disclosures nested below another selectively disclosed value need
-                // every available ancestor for the verifier to reconstruct their path.
-                // Include object boundaries and array indices; the previous loop skipped
-                // the first parent (and all bracket-only boundaries).
-                for (int position = 1; position < claimPath.Length; position++)
+                // Only a digest reference inside a parent disclosure proves ancestry.
+                // Prefix text alone is unsafe: issuers may use literal names such as
+                // "profile.email", unrelated to a separately disclosed "profile".
+                int childIndex = disclosureIndex;
+                var digestCalculator = new DigestCalculator();
+                for (int position = claimPath.Length - 1; position >= 1; position--)
                 {
                     if (claimPath[position] is '.' or '[')
                     {
                         var parentPath = claimPath[..position];
-                        if (claimPathToIndex.TryGetValue(parentPath, out var parentIndex))
+                        if (!claimPathToIndex.TryGetValue(parentPath, out var parentIndex))
                         {
-                            if (parentIndex < 0 || parentIndex >= sdJwt.Disclosures.Count)
-                            {
-                                throw new InvalidOperationException(
-                                    $"Invalid disclosure index {parentIndex} for claim '{parentPath}'");
-                            }
+                            continue;
+                        }
 
+                        if (parentIndex < 0 || parentIndex >= sdJwt.Disclosures.Count)
+                        {
+                            throw new InvalidOperationException(
+                                $"Invalid disclosure index {parentIndex} for claim '{parentPath}'");
+                        }
+
+                        var childDigest = digestCalculator.ComputeDigest(sdJwt.Disclosures[childIndex], sdJwt.HashAlgorithm);
+                        if (ReferencesDigest(sdJwt.Disclosures[parentIndex], childDigest))
+                        {
                             _ = selectedDisclosureIndices.Add(parentIndex);
+                            childIndex = parentIndex;
                         }
                     }
                 }
@@ -207,5 +218,66 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
             state.keyBinding.AsSpan().CopyTo(span[pos..]);
         });
     }
+    // Check only structural SD-JWT digest references, never arbitrary claim text.
+    // The parsed document is disposed before returning; no JsonElement escapes.
+    private static bool ReferencesDigest(string parentDisclosure, string childDigest)
+    {
+        using var document = JsonDocument.Parse(Base64UrlEncoder.DecodeString(parentDisclosure));
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() is not 2 and not 3)
+        {
+            return false;
+        }
+
+        return ContainsDigestReference(root[root.GetArrayLength() - 1], childDigest);
+    }
+
+    private static bool ContainsDigestReference(JsonElement element, string digest)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            if (element.TryGetProperty("_sd", out var hashes) && hashes.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var value in hashes.EnumerateArray())
+                {
+                    if (value.ValueKind == JsonValueKind.String &&
+                        string.Equals(value.GetString(), digest, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            foreach (var property in element.EnumerateObject())
+            {
+                if (property.Name != "_sd" && ContainsDigestReference(property.Value, digest))
+                {
+                    return true;
+                }
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in element.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.Object &&
+                    item.TryGetProperty("...", out var placeholder) &&
+                    item.EnumerateObject().Count() == 1 &&
+                    placeholder.ValueKind == JsonValueKind.String &&
+                    string.Equals(placeholder.GetString(), digest, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+
+                if (ContainsDigestReference(item, digest))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
 }
 

@@ -1,3 +1,5 @@
+using HeroSdJwt.Encoding;
+using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
 using HeroSdJwt.Primitives;
@@ -12,8 +14,10 @@ public class SdJwtPresenterClaimSelectionTests
     [Fact]
     public void Should_IncludeImmediateParent_When_DisclosingNestedChild()
     {
+        var email = ObjectDisclosure("email", "\"public@example.com\"");
+        var profile = ObjectDisclosure("profile", NestedObject(Digest(email)));
         var credential = CreateCredential(
-            ["parent", "child"],
+            [profile, email],
             new Dictionary<string, int>
             {
                 ["profile"] = 0,
@@ -22,14 +26,17 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["profile.email"]);
 
-        Assert.Equal(new[] { "parent", "child" }, presentation.SelectedDisclosures);
+        Assert.Equal(new[] { profile, email }, presentation.SelectedDisclosures);
     }
 
     [Fact]
     public void Should_IncludeEveryAncestor_When_DisclosingDeepNestedChild()
     {
+        var email = ObjectDisclosure("email", "\"public@example.com\"");
+        var contact = ObjectDisclosure("contact", NestedObject(Digest(email)));
+        var profile = ObjectDisclosure("profile", NestedObject(Digest(contact)));
         var credential = CreateCredential(
-            ["parent", "middle", "child"],
+            [profile, contact, email],
             new Dictionary<string, int>
             {
                 ["profile"] = 0,
@@ -39,14 +46,18 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["profile.contact.email"]);
 
-        Assert.Equal(new[] { "parent", "middle", "child" }, presentation.SelectedDisclosures);
+        Assert.Equal(new[] { profile, contact, email }, presentation.SelectedDisclosures);
     }
 
     [Fact]
     public void Should_IncludeArrayAndObjectAncestors_When_DisclosingNestedArrayProperty()
     {
+        var email = ObjectDisclosure("email", "\"public@example.com\"");
+        var contact = ObjectDisclosure("contact", NestedObject(Digest(email)));
+        var element = ArrayDisclosure(NestedObject(Digest(contact)));
+        var records = ObjectDisclosure("records", $"[null,{ArrayPlaceholder(Digest(element))}]");
         var credential = CreateCredential(
-            ["array", "element", "contact", "email"],
+            [records, element, contact, email],
             new Dictionary<string, int>
             {
                 ["records"] = 0,
@@ -57,14 +68,18 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["records[1].contact.email"]);
 
-        Assert.Equal(new[] { "array", "element", "contact", "email" }, presentation.SelectedDisclosures);
+        Assert.Equal(new[] { records, element, contact, email }, presentation.SelectedDisclosures);
     }
 
     [Fact]
     public void Should_IncludeEachNestedArrayAncestor_When_DisclosingArrayChild()
     {
+        var name = ObjectDisclosure("name", "\"shown\"");
+        var inner = ArrayDisclosure(NestedObject(Digest(name)));
+        var outer = ArrayDisclosure($"[null,{ArrayPlaceholder(Digest(inner))}]");
+        var groups = ObjectDisclosure("groups", $"[null,null,{ArrayPlaceholder(Digest(outer))}]");
         var credential = CreateCredential(
-            ["array", "outer", "inner", "name"],
+            [groups, outer, inner, name],
             new Dictionary<string, int>
             {
                 ["groups"] = 0,
@@ -75,7 +90,47 @@ public class SdJwtPresenterClaimSelectionTests
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["groups[2][1].name"]);
 
-        Assert.Equal(new[] { "array", "outer", "inner", "name" }, presentation.SelectedDisclosures);
+        Assert.Equal(new[] { groups, outer, inner, name }, presentation.SelectedDisclosures);
+    }
+
+    [Theory]
+    [InlineData("profile", "profile.email")]
+    [InlineData("records", "records[1]")]
+    public void Should_NotDiscloseUnrelatedLiteralPrefix_When_NameContainsPathCharacters(string prefix, string literalName)
+    {
+        var unrelated = ObjectDisclosure(prefix, "\"private\"");
+        var selected = ObjectDisclosure(literalName, "\"public\"");
+        var credential = CreateCredential(
+            [unrelated, selected],
+            new Dictionary<string, int>
+            {
+                [prefix] = 0,
+                [literalName] = 1
+            });
+
+        var presentation = new SdJwtPresenter().CreatePresentation(credential, [literalName]);
+
+        Assert.Equal(new[] { selected }, presentation.SelectedDisclosures);
+    }
+
+    [Fact]
+    public void Should_NotDiscloseUnboundGrandparent_When_OnlyMiddleAndChildAreRelated()
+    {
+        var email = ObjectDisclosure("email", "\"shown\"");
+        var contact = ObjectDisclosure("contact", NestedObject(Digest(email)));
+        var unrelated = ObjectDisclosure("profile", "\"secret\"");
+        var credential = CreateCredential(
+            [unrelated, contact, email],
+            new Dictionary<string, int>
+            {
+                ["profile"] = 0,
+                ["profile.contact"] = 1,
+                ["profile.contact.email"] = 2
+            });
+
+        var presentation = new SdJwtPresenter().CreatePresentation(credential, ["profile.contact.email"]);
+
+        Assert.Equal(new[] { contact, email }, presentation.SelectedDisclosures);
     }
 
     [Fact]
@@ -151,5 +206,30 @@ public class SdJwtPresenterClaimSelectionTests
             disclosures,
             HashAlgorithm.Sha256,
             claimPathMapping: mapping);
+    }
+
+    private static string ObjectDisclosure(string name, string rawJsonValue)
+    {
+        return Base64UrlEncoder.Encode($"[\"salt\",\"{name}\",{rawJsonValue}]");
+    }
+
+    private static string ArrayDisclosure(string rawJsonValue)
+    {
+        return Base64UrlEncoder.Encode($"[\"salt\",{rawJsonValue}]");
+    }
+
+    private static string NestedObject(string digest)
+    {
+        return $"{{\"_sd\":[\"{digest}\"]}}";
+    }
+
+    private static string ArrayPlaceholder(string digest)
+    {
+        return $"{{\"...\":\"{digest}\"}}";
+    }
+
+    private static string Digest(string disclosure)
+    {
+        return new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
     }
 }
