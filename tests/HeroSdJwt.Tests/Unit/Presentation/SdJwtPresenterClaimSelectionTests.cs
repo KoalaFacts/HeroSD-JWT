@@ -255,6 +255,43 @@ public class SdJwtPresenterClaimSelectionTests
         Assert.Equal(expected, presentation.SelectedDisclosures);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Should_RejectCollidingImportedClaimPaths_When_LiteralNameMimicsNestedPath(bool isArray, bool literalFirst)
+    {
+        var child = isArray
+            ? ArrayDisclosure("\"public\"")
+            : ObjectDisclosure("email", "\"public\"");
+        var parent = isArray
+            ? ObjectDisclosure("records", $"[null,{ArrayPlaceholder(Digest(child))}]")
+            : ObjectDisclosure("profile", NestedObject(Digest(child)));
+        var literal = isArray
+            ? ObjectDisclosure("records[1]", "\"secret\"")
+            : ObjectDisclosure("profile.email", "\"secret\"");
+
+        string[] rootDigests = literalFirst
+            ? [Digest(literal), Digest(parent)]
+            : [Digest(parent), Digest(literal)];
+        var signedPayload = new Dictionary<string, object>
+        {
+            ["exp"] = 4102444800L,
+            ["_sd"] = rootDigests
+        };
+        var jwt = new JwtSigner().CreateJwt(signedPayload, RandomNumberGenerator.GetBytes(32), SignatureAlgorithm.HS256);
+        var imported = new SdJwt(jwt, [parent, child, literal], HashAlgorithm.Sha256);
+
+        // Imported credentials have no issuer-supplied claim-path mapping. A literal
+        // dotted/bracketed name can collide with a true nested object's path.
+        var requestedPath = isArray ? "records[1]" : "profile.email";
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new SdJwtPresenter().CreatePresentation(imported, [requestedPath]));
+
+        Assert.Contains("Ambiguous claim path", exception.Message, StringComparison.Ordinal);
+    }
+
     private static SdJwt CreateCredential(string[] disclosures, Dictionary<string, int> mapping)
     {
         return new SdJwt(
