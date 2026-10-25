@@ -2,6 +2,7 @@ using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -138,11 +139,9 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
                 return false;
             }
 
-            // No JOSE critical extensions (including RFC 7797's b64 override) are
-            // implemented. Never accept a valid signature while ignoring a required
-            // header interpretation; b64 also requires critical handling.
-            if (header.TryGetProperty("crit", out _) ||
-                header.TryGetProperty("b64", out _))
+            // Apply the same registered JOSE header type and critical-extension
+            // checks as issuer-token verification before accepting a holder proof.
+            if (JoseHeaderGuard.HasInvalidOrUnsupportedParameters(header))
             {
                 return false;
             }
