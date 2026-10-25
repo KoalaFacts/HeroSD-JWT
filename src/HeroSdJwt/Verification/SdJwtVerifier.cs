@@ -421,6 +421,13 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             var headerJson = Base64UrlEncoder.DecodeString(jwtParts[0]);
             var header = JsonDocument.Parse(headerJson).RootElement;
 
+            if (JoseHeaderGuard.RequiresUnsupportedProcessing(header))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("JWT protected header requires unsupported JOSE processing");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
             // Check if kid is present
             if (header.TryGetProperty("kid", out var kidElement) && kidElement.ValueKind == JsonValueKind.String)
             {
@@ -574,6 +581,13 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             {
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add($"Failed to parse JWT header: {ex.Message}");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            if (JoseHeaderGuard.RequiresUnsupportedProcessing(header))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("JWT protected header requires unsupported JOSE processing");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
