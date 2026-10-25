@@ -594,9 +594,26 @@ public class ClaimValidatorTests
         // Act
         var result = new ClaimValidator().ValidateAudience(payload, expectedAudience);
 
-        // Assert
-        // Should still find the matching string in the array
-        Assert.True(result, "Should match valid string in array even with non-string elements");
+        // Assert - RFC 7519 requires all members of an audience array to be strings.
+        Assert.False(result, "An audience array containing a number is malformed");
+    }
+
+    [Theory]
+    [InlineData(/*lang=json,strict*/ """{"aud":["https://api.example.com",123]}""")]
+    [InlineData(/*lang=json,strict*/ """{"aud":[false,"https://api.example.com"]}""")]
+    [InlineData(/*lang=json,strict*/ """{"aud":["https://api.example.com",null]}""")]
+    [InlineData(/*lang=json,strict*/ """{"aud":["https://api.example.com",{}]}""")]
+    [InlineData(/*lang=json,strict*/ """{"aud":[["https://api.example.com"],"https://api.example.com"]}""")]
+    [InlineData(/*lang=json,strict*/ """{"aud":["https://api.example.com","another",1]}""")]
+    public void ValidateAudience_WithMatchingStringAndMalformedMember_ReturnsFalse(string json)
+    {
+        // The matched audience must not hide a malformed element elsewhere in the array.
+        using var document = JsonDocument.Parse(json);
+        var validator = new ClaimValidator();
+
+        Assert.False(validator.ValidateAudience(document.RootElement, "https://api.example.com"));
+        Assert.False(validator.ValidateAudience(
+            document.RootElement, ["https://other.example.com", "https://api.example.com"]));
     }
 
     [Fact]
