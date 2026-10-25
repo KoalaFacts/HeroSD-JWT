@@ -18,8 +18,14 @@ public class DistributedJtiCacheTests
     {
         var cache = new DistributedJtiCache(_cache);
         var token = TestContext.Current.CancellationToken;
-        Task Exists() => cache.ExistsAsync(issuer!, jti!, token);
-        Task Remove() => cache.RemoveAsync(issuer!, jti!, token);
+        Task Exists()
+        {
+            return cache.ExistsAsync(issuer!, jti!, token);
+        }
+        Task Remove()
+        {
+            return cache.RemoveAsync(issuer!, jti!, token);
+        }
 
         if (isNull)
         {
