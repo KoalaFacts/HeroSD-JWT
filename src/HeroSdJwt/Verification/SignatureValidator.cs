@@ -47,10 +47,10 @@ public class SignatureValidator : ISignatureValidator
         var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
         var header = JsonDocument.Parse(headerJson).RootElement;
 
-        if (JoseHeaderGuard.RequiresUnsupportedProcessing(header))
+        if (JoseHeaderGuard.HasInvalidOrUnsupportedParameters(header))
         {
             throw new SdJwtException(
-                "JWT protected header requires unsupported JOSE processing",
+                "JWT protected header has invalid or unsupported parameters",
                 ErrorCode.InvalidInput);
         }
 
@@ -423,10 +423,10 @@ public class SignatureValidator : ISignatureValidator
         var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
         var header = JsonDocument.Parse(headerJson).RootElement;
 
-        if (JoseHeaderGuard.RequiresUnsupportedProcessing(header))
+        if (JoseHeaderGuard.HasInvalidOrUnsupportedParameters(header))
         {
             throw new SdJwtException(
-                "JWT protected header requires unsupported JOSE processing",
+                "JWT protected header has invalid or unsupported parameters",
                 ErrorCode.InvalidInput);
         }
 

@@ -421,10 +421,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             var headerJson = Base64UrlEncoder.DecodeString(jwtParts[0]);
             var header = JsonDocument.Parse(headerJson).RootElement;
 
-            if (JoseHeaderGuard.RequiresUnsupportedProcessing(header))
+            if (JoseHeaderGuard.HasInvalidOrUnsupportedParameters(header))
             {
                 errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add("JWT protected header requires unsupported JOSE processing");
+                errorDetails.Add("JWT protected header has invalid or unsupported parameters");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
@@ -598,10 +598,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
-            if (JoseHeaderGuard.RequiresUnsupportedProcessing(header))
+            if (JoseHeaderGuard.HasInvalidOrUnsupportedParameters(header))
             {
                 errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add("JWT protected header requires unsupported JOSE processing");
+                errorDetails.Add("JWT protected header has invalid or unsupported parameters");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
