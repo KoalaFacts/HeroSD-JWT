@@ -27,17 +27,17 @@ public class PresentationComponentShapeTests
         var presentation = CreateSignedJwt() + suffix;
         var verifier = CreateVerifier();
         var resolverCalls = 0;
-        KeyResolver resolver = keyId =>
+        byte[]? ResolveCountingKey(string keyId)
         {
             resolverCalls++;
             return keyId == "component-key" ? _signingKey : null;
-        };
+        }
 
         var direct = verifier.TryVerifyPresentation(presentation, _signingKey);
         Assert.False(direct.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
 
-        var resolved = verifier.TryVerifyPresentation(presentation, resolver);
+        var resolved = verifier.TryVerifyPresentation(presentation, ResolveCountingKey);
         Assert.False(resolved.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
         Assert.Equal(0, resolverCalls);
@@ -52,7 +52,7 @@ public class PresentationComponentShapeTests
         Assert.Contains(ErrorCode.InvalidInput, asyncDirect.Errors);
 
         var asyncResolved = await verifier.TryVerifyPresentationAsync(
-            presentation, resolver, cancellationToken: TestContext.Current.CancellationToken);
+            presentation, ResolveCountingKey, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(asyncResolved.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, asyncResolved.Errors);
         Assert.Equal(0, resolverCalls);
