@@ -5,7 +5,7 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/KoalaFacts/HeroSD-JWT/ci.yml?branch=main&style=flat-square&logo=github&label=Build)](https://github.com/KoalaFacts/HeroSD-JWT/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-512BD4?style=flat-square&logo=.net)](https://dotnet.microsoft.com/)
-[![AOT Compatible](https://img.shields.io/badge/AOT-Compatible-blue?style=flat-square)](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)
+[![Native AOT requires validation](https://img.shields.io/badge/Native%20AOT-verify%20per%20path-blue?style=flat-square)](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)
 
 A .NET library implementing SD-JWT (Selective Disclosure for JSON Web Tokens) according to the IETF [draft-ietf-oauth-selective-disclosure-jwt](https://datatracker.ietf.org/doc/draft-ietf-oauth-selective-disclosure-jwt/) specification.
 
@@ -48,7 +48,7 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
 - **Decoy digests** - Privacy protection against claim enumeration
 - Holder-controlled claim disclosure
 - Cryptographic verification of signatures and claim integrity
-- Zero third-party dependencies (uses only .NET BCL including `System.Security.Cryptography`, `System.Text.Json`, `System.Buffers.Text`)
+- Uses .NET BCL APIs plus `Microsoft.Bcl.Memory` on .NET 8; Ed25519 uses vendored source (see [Requirements](#requirements))
 - Constant-time comparison for security-critical operations
 - Algorithm confusion prevention (rejects "none" algorithm)
 - Multi-targeting .NET 8.0, .NET 9.0, and .NET 10.0
@@ -64,16 +64,18 @@ Or via NuGet Package Manager:
 Install-Package HeroSD-JWT
 ```
 
+**Release/version note:** The published `HeroSD-JWT` **1.1.7** verifier defaults to `ExpectedKeyType = Either`, while this repository's development source defaults to `Asymmetric`. Choose an explicit policy for your issuer: `Symmetric` for HS* secret keys or `Asymmetric` for RSA/ECDSA public keys. The examples and descriptions below follow development source, and may differ from the installed NuGet version.
+
 ## Quick Start
 
 ### Simple API (Recommended)
 
-The fluent builder provides an easy, discoverable API:
+The fluent builder provides an easy, discoverable API. Subsequent snippets reuse imports and variables from the preceding example unless marked as alternatives:
 
 ```csharp
 using HeroSdJwt.Issuance;
-using HeroSdJwt.Common;
-using HeroSdJwt.Core;
+using HeroSdJwt.Cryptography;
+using HeroSdJwt.Extensions;
 
 // Generate a signing key
 var keyGen = KeyGenerator.Instance;
@@ -100,6 +102,7 @@ Selectively disclose nested properties with full JSONPath-style syntax:
 ```csharp
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.KeyBinding;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 
 // Create SD-JWT with nested object claims
@@ -122,7 +125,7 @@ var presentation = sdJwt.ToPresentation("address.street", "address.geo.lat");
 
 // Verifier receives and verifies
 var verifier = new SdJwtVerifier(
-    new SdJwtVerificationOptions(),
+    new SdJwtVerificationOptions { ExpectedKeyType = VerificationKeyType.Symmetric },
     new EcPublicKeyConverter(),
     new SignatureValidator(),
     new DigestValidator(),
@@ -236,7 +239,7 @@ KeyResolver resolver = keyId => keys.GetValueOrDefault(keyId);
 
 // Verify presentation using key resolver
 var verifier = new SdJwtVerifier(
-    new SdJwtVerificationOptions(),
+    new SdJwtVerificationOptions { ExpectedKeyType = VerificationKeyType.Symmetric },
     new EcPublicKeyConverter(),
     new SignatureValidator(),
     new DigestValidator(),
@@ -317,6 +320,8 @@ For advanced scenarios, use the low-level API:
 ```csharp
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.Primitives;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 var issuer = new SdJwtIssuer(
     new DisclosureGenerator(),
@@ -329,7 +334,7 @@ var claims = new Dictionary<string, object>
     ["email"] = "alice@example.com"
 };
 
-var signingKey = new byte[32];
+var signingKey = KeyGenerator.Instance.GenerateHmacKey();
 var sdJwt = issuer.CreateSdJwt(
     claims,
     selectivelyDisclosableClaims: new[] { "email" },
@@ -339,7 +344,7 @@ var sdJwt = issuer.CreateSdJwt(
 ```
 
 - ECDSA signatures (ES256/ES384/ES512) follow the JWS spec and are emitted in JOSE raw `R||S` format (not ASN.1 DER); verifiers accept the JOSE form.
-- Verification defaults to `ExpectedKeyType = Asymmetric` to avoid alg/key confusion; set it to `Symmetric` for HS* secrets, and use `Either` only when both are truly expected.
+- **Development source** defaults to `ExpectedKeyType = Asymmetric`, while published **1.1.7** defaults to `Either`. Configure `Asymmetric` for RSA/ECDSA public keys or `Symmetric` for HS* secrets; use `Either` only when both are deliberately permitted.
 - `SdJwtVerifierBuilder` exposes `.WithExpectedKeyType(...)` so you can wire the key-type policy when constructing verifiers via DI.
 
 **Array Element Example**:
@@ -393,6 +398,8 @@ var sdJwt = issuer.CreateSdJwt(
 
 ### 2. Holder: Create Presentation
 
+Continue from the first Advanced API HMAC example (the `email` claim, `sdJwt`, and `signingKey`); the array and asymmetric examples above are separate alternatives.
+
 ```csharp
 using HeroSdJwt.Presentation;
 
@@ -401,11 +408,11 @@ var presenter = new SdJwtPresenter();
 
 var presentation = presenter.CreatePresentation(
     sdJwt,
-    claimsToDisclose: new[] { "birthdate" } // Only disclose birthdate
+    selectedClaimNames: new[] { "email" } // Disclose the issuer's email claim
 );
 
 // Format for transmission
-string presentationString = presentation.ToCombinedFormat();
+string presentationString = presenter.FormatPresentation(presentation);
 // Format: "eyJhbGc...jwt...~WyI2cU1R...disclosure..."
 ```
 
@@ -414,39 +421,35 @@ string presentationString = presentation.ToCombinedFormat();
 ```csharp
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.KeyBinding;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
-
-// Parse presentation string
-var parts = presentationString.Split('~');
-var jwt = parts[0];
-var disclosures = parts[1..^1]; // All parts between JWT and key binding
 
 // Verify presentation
 var verifier = new SdJwtVerifier(
-    new SdJwtVerificationOptions(),
+    new SdJwtVerificationOptions { ExpectedKeyType = VerificationKeyType.Symmetric },
     new EcPublicKeyConverter(),
     new SignatureValidator(),
     new DigestValidator(),
     new KeyBindingValidator(),
     new ClaimValidator());
-var verificationKey = new byte[32]; // Same key used for signing (HS256)
+var verificationKey = signingKey; // Reuse the actual HS256 signing key from the issuer example
 
 // Option 1: Throws exception on failure (recommended for most cases)
 var result = verifier.VerifyPresentation(presentationString, verificationKey);
-Console.WriteLine($"Birthdate: {result.DisclosedClaims["birthdate"]}");
+Console.WriteLine($"Email: {result.DisclosedClaims["email"]}");
 
 // Option 2: Returns result without throwing (Try* pattern)
-var result = verifier.TryVerifyPresentation(presentationString, verificationKey);
-if (result.IsValid)
+var tryResult = verifier.TryVerifyPresentation(presentationString, verificationKey);
+if (tryResult.IsValid)
 {
     Console.WriteLine("Verification succeeded!");
-    var birthdate = result.DisclosedClaims["birthdate"];
-    Console.WriteLine($"Birthdate: {birthdate}");
+    var email = tryResult.DisclosedClaims["email"];
+    Console.WriteLine($"Email: {email}");
 }
 else
 {
     Console.WriteLine("Verification failed!");
-    foreach (var error in result.Errors)
+    foreach (var error in tryResult.Errors)
     {
         Console.WriteLine($"Error: {error}");
     }
@@ -485,7 +488,7 @@ This library implements security best practices:
 - **Constant-time comparison**: Uses `CryptographicOperations.FixedTimeEquals` for digest validation to prevent timing attacks
 - **Algorithm confusion prevention**: Rejects "none" algorithm (both lowercase and uppercase)
 - **Cryptographically secure salts**: Uses `RandomNumberGenerator` for 128-bit salts
-- **No third-party dependencies**: Zero supply chain risk from third-party packages (uses only .NET BCL)
+- **Dependency transparency**: .NET 8 uses `Microsoft.Bcl.Memory`; Ed25519 includes vendored source. Review package and source provenance as part of security maintenance.
 - **Strict validation**: Treats warnings as errors, validates all inputs
 
 ### Supported Algorithms
@@ -504,54 +507,39 @@ For vulnerability reporting and security best practices, see:
 
 ## Requirements
 
-- **.NET 8.0** (LTS), **.NET 9.0**, or **.NET 10.0**
-- No third-party dependencies (uses only .NET BCL)
-  - Note: .NET 8.0 includes a polyfill dependency (`Microsoft.Bcl.Memory`) to backport .NET 9.0+'s native `Base64Url` APIs
+- **Package consumers**: supported target frameworks are `net8.0`, `net9.0`, and `net10.0`.
+- **Building this repository**: install exactly **.NET SDK 10.0.402** as pinned by [global.json](global.json), with SDK roll-forward disabled. Install the corresponding runtimes to run tests for all three target frameworks.
+- **Core package dependencies**: the .NET 8 target references `Microsoft.Bcl.Memory` to provide `Base64Url` APIs; .NET 9/10 use the native BCL APIs.
+- **Vendored cryptography**: Ed25519 includes source ported from Chaos.NaCl; see [third-party notices](src/HeroSdJwt/Internal/Ed25519/THIRD-PARTY-NOTICES.txt).
 
 ## Native AOT and Trimming Compatibility
 
-**AOT-Compatible with Standard JSON Types**: This library works with .NET Native AOT compilation when used with standard JSON-serializable types.
+Native AOT compatibility depends on the **exact library version, target platform and claim shapes used**. The core uses explicit JSON writing for several internal paths and avoids JWK serialize/deserialize round-trips, but some issuance and nested-claim paths still call `JsonSerializer` internally and carry IL2026/IL3050 suppressions. Do not interpret a successful regular .NET build, or a `JsonElement` input, as proof that every path works with Native AOT and trimming.
 
-**Implementation approach**:
-- Uses `Utf8JsonWriter` for all **internal** JSON serialization (disclosures, JWTs, key binding)
-- Direct dictionary parsing for JWK handling (no serialize-then-deserialize round-trips)
-- All cryptographic operations use standard BCL APIs
-- Minimal reflection usage - only at API boundary for user-provided claim values
+- HMAC, RSA and ECDSA use .NET cryptographic APIs; Ed25519 uses vendored source.
+- Basic values and pre-parsed JSON can reduce dependence on reflection at the **caller** boundary. Custom object serialization may require source-generated `JsonSerializerContext` and careful preservation of types.
+- Test the actual package version, issuing and verifying your application's real claim shapes in a separately published Native AOT consumer. Check trim/AOT warnings instead of relying on a blanket compatibility claim.
 
-**API Boundary Consideration**:
-The public API accepts `Dictionary<string, object>` for claim values to support any JSON-serializable type. This means:
-- **Primitive types work in AOT**: string, int, long, double, bool, arrays, dictionaries
-- **JsonElement works perfectly in AOT**: Pre-parsed JSON values
-- **Custom classes may require trimming annotations**: If you pass custom POCOs, ensure they're preserved
+For example, prepare a `JsonElement` without reflectively serializing an anonymous caller object:
 
-**Key technical details**:
-- SD-JWT disclosure arrays use `Utf8JsonWriter`: `[salt, claim_name, claim_value]`
-- Internal processing is fully AOT-compatible (no reflection beyond JSON serialization)
-- JWT headers and payloads serialized with explicit type handling
-
-**Recommendation for AOT applications**:
 ```csharp
-// Instead of custom classes:
-var claims = new Dictionary<string, object>
-{
-    ["sub"] = "user-123",
-    ["email"] = "alice@example.com",
-    ["age"] = 30
-};
+using System.Text.Json;
 
-// Or use JsonElement for pre-parsed JSON:
+using var document = JsonDocument.Parse("""{"name":"Alice","age":30}""");
 var claims = new Dictionary<string, object>
 {
     ["sub"] = "user-123",
-    ["profile"] = JsonSerializer.SerializeToElement(new { name = "Alice", age = 30 })
+    ["profile"] = document.RootElement.Clone()
 };
 ```
+
+This prepares the input only; **the subsequent issuance and verification paths still require application-specific AOT validation**.
 
 ## Development
 
 ### Building the Project
 
-The project uses the modern .slnx solution format:
+Source builds require the exact .NET SDK **10.0.402** pinned in `global.json`, independently of the package's .NET 8/9/10 consumption targets. The project uses the modern .slnx solution format:
 
 ```bash
 # Build the entire solution
@@ -585,18 +573,26 @@ dotnet test --filter "FullyQualifiedName~HeroSdJwt.Tests.Unit"
 dotnet test --filter "FullyQualifiedName~SdJwtVerifierTests"
 ```
 
+### Authentication Policy and Custom Verifiers
+
+`AddSdJwt` applies the complete `VerificationOptions` policy separately for each authentication scheme. The default verifier is request-scoped. Custom verifier implementations must implement `ISdJwtVerifierFactory`, and subclasses of `SdJwtVerifier` must override `CreateVerifier` to preserve their custom behavior when applying the scheme policy.
+
+See [authentication policy migration](docs/users/authentication-policy.md) for the factory contract, dependency lifetimes, and upgrade guidance.
+
 ### Distributed Replay Protection & Revocation
 
-For multi-node deployments, use the distributed adapters backed by `IDistributedCache` (e.g., Redis/SQL Server memory cache):
+For multi-node replay protection, the cache must support **atomic create-if-absent with TTL**. Ordinary `IDistributedCache` implementations are rejected when `DistributedJtiCache` is constructed; a get-then-set sequence cannot prevent concurrent replay.
 
 ```csharp
+// ApplicationAtomicCache must implement IAtomicDistributedCache using your backend.
+builder.Services.AddSingleton<IDistributedCache, ApplicationAtomicCache>();
 builder.Services
     .AddSdJwtServices()
-    .AddSdJwtDistributedReplayProtection() // IJtiCache via distributed cache
-    .AddSdJwtDistributedRevocation();      // IRevocationStore via distributed cache
+    .AddSdJwtDistributedReplayProtection() // Atomic IJtiCache + enabled JtiValidator
+    .AddSdJwtDistributedRevocation();      // Separate IRevocationStore adapter
 ```
 
-The same `SdJwtVerifier` instance implements both sync and async interfaces; the ASP.NET handler will prefer the async path when available.
+No atomic Redis/SQL provider is bundled. You can also register an application-provided `IJtiCache` directly. For distributed JTI **revocation**, the cache must additionally implement `IAtomicRevocationCache` so repeating a revocation can never shorten its expiry. Ordinary `IDistributedCache` remains supported for key/user revocation, but JTI revocation fails closed without that separate atomic capability. See [distributed replay and revocation requirements](docs/users/distributed-replay-protection.md) for both contracts, compatibility, and real-backend validation requirements.
 
 ### Continuous Integration
 

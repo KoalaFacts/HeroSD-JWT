@@ -1,3 +1,4 @@
+using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
@@ -75,6 +76,13 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
 
         ArgumentNullException.ThrowIfNull(expectedAudiences);
 
+        // Direct callers bypass the SD-JWT presentation size gate. Bound a
+        // compact KB-JWT before splitting or decoding untrusted input.
+        if (keyBindingJwt.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            return false;
+        }
+
         if (expectedAudiences.Count == 0)
         {
             return false; // Spec requires audience binding
@@ -114,20 +122,43 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
 
             // Decode and validate header
             var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
-            var header = JsonDocument.Parse(headerJson).RootElement;
+            using var headerDocument = JsonDocument.Parse(headerJson);
+            var header = headerDocument.RootElement;
 
-            if (!header.TryGetProperty("typ", out var typElement) ||
+            // Only ES256 key-binding JWTs are supported. Reject a missing or
+            // contradictory JOSE algorithm even if the bytes verify as ES256.
+            if (header.ValueKind != JsonValueKind.Object ||
+                !header.TryGetProperty("alg", out var algElement) ||
+                algElement.ValueKind != JsonValueKind.String ||
+                algElement.GetString() != "ES256" ||
+                !header.TryGetProperty("typ", out var typElement) ||
+                typElement.ValueKind != JsonValueKind.String ||
                 typElement.GetString() != "kb+jwt")
+            {
+                return false;
+            }
+
+            // No JOSE critical extensions (including RFC 7797's b64 override) are
+            // implemented. Never accept a valid signature while ignoring a required
+            // header interpretation; b64 also requires critical handling.
+            if (header.TryGetProperty("crit", out _) ||
+                header.TryGetProperty("b64", out _))
             {
                 return false;
             }
 
             // Decode and validate payload
             var payloadJson = Base64UrlEncoder.DecodeString(payloadBase64);
-            var payload = JsonDocument.Parse(payloadJson).RootElement;
+            using var payloadDocument = JsonDocument.Parse(payloadJson);
+            var payload = payloadDocument.RootElement;
+            if (payload.ValueKind != JsonValueKind.Object)
+            {
+                return false; // The KB-JWT payload must be a JSON object.
+            }
 
             // Validate sd_hash claim exists and matches expected value
-            if (!payload.TryGetProperty("sd_hash", out var sdHashElement))
+            if (!payload.TryGetProperty("sd_hash", out var sdHashElement) ||
+                sdHashElement.ValueKind != JsonValueKind.String)
             {
                 return false;
             }
@@ -138,46 +169,24 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
                 return false; // SD-JWT hash mismatch
             }
 
-            // Validate audience (required)
-            if (!payload.TryGetProperty("aud", out var audElement))
+            // RFC 9901 Section 4.3 requires exactly one string audience in a KB-JWT.
+            // The verifier may be configured with multiple acceptable audiences,
+            // but the holder proof itself must not contain an audience array.
+            if (!payload.TryGetProperty("aud", out var audElement) ||
+                audElement.ValueKind != JsonValueKind.String)
             {
                 return false;
             }
 
-            bool audienceMatches = false;
-            if (audElement.ValueKind == JsonValueKind.String)
-            {
-                if (audElement.GetString() is { Length: > 0 } audClaim &&
-                    expectedAudienceSet.Contains(audClaim))
-                {
-                    audienceMatches = true;
-                }
-            }
-            else if (audElement.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var item in audElement.EnumerateArray())
-                {
-                    if (item.ValueKind == JsonValueKind.String &&
-                        item.GetString() is { Length: > 0 } audClaim &&
-                        expectedAudienceSet.Contains(audClaim))
-                    {
-                        audienceMatches = true;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                return false; // Unsupported audience format
-            }
-
-            if (!audienceMatches)
+            var audience = audElement.GetString();
+            if (string.IsNullOrEmpty(audience) || !expectedAudienceSet.Contains(audience))
             {
                 return false; // Audience mismatch
             }
 
             // Validate nonce (required)
-            if (!payload.TryGetProperty("nonce", out var nonceElement))
+            if (!payload.TryGetProperty("nonce", out var nonceElement) ||
+                nonceElement.ValueKind != JsonValueKind.String)
             {
                 return false;
             }
@@ -192,17 +201,23 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             // Validate iat (issued at) claim for freshness - REQUIRED by spec section 4.3.3
             // "The Verifier MUST check that the creation time of the Key Binding JWT,
             // as determined by the iat claim, is within an acceptable window."
-            if (!payload.TryGetProperty("iat", out var iatElement))
-            {
-                return false; // iat claim is required
-            }
-
-            if (!iatElement.TryGetInt64(out var iatUnixSeconds))
+            if (!payload.TryGetProperty("iat", out var iatElement) ||
+                iatElement.ValueKind != JsonValueKind.Number ||
+                !iatElement.TryGetInt64(out var iatUnixSeconds))
             {
                 return false; // Invalid iat format
             }
 
-            var iat = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds);
+            DateTimeOffset iat;
+            try
+            {
+                iat = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return false; // Out-of-range numeric dates are invalid claims.
+            }
+
             var now = _timeProvider.GetUtcNow();
 
             // Reject if KB-JWT is too old (replay attack prevention)
@@ -235,7 +250,7 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             }
 
             // Validate elliptic curve - only P-256 (ES256) is supported
-            if (ecdsa.KeySize != 256)
+            if (!EcCurveGuard.IsP256(ecdsa))
             {
                 return false; // Only P-256 curve is supported for ES256
             }
@@ -249,6 +264,11 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
         catch (CryptographicException)
         {
             // Cryptographic operation failed
+            return false;
+        }
+        catch (PlatformNotSupportedException)
+        {
+            // Some platforms reject an unsupported curve while importing its SPKI.
             return false;
         }
         catch (FormatException)

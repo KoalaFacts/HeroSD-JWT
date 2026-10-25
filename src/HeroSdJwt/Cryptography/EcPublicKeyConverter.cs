@@ -30,12 +30,17 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
         {
             throw new ArgumentException("Invalid ECDSA public key format", nameof(publicKeyBytes), ex);
         }
+        catch (PlatformNotSupportedException ex)
+        {
+            // Unsupported curves must not bypass the ES256 key policy.
+            throw new ArgumentException("Unsupported ECDSA public key curve", nameof(publicKeyBytes), ex);
+        }
 
         // Only P-256 is supported for ES256
-        if (ecdsa.KeySize != 256)
+        if (!EcCurveGuard.IsP256(ecdsa))
         {
             throw new ArgumentException(
-                $"Only P-256 (256-bit) elliptic curve is supported. Provided key is {ecdsa.KeySize}-bit.",
+                $"Only P-256 (256-bit) elliptic curve is supported. Provided key is {ecdsa.KeySize}-bit; ES256 requires the named NIST P-256 curve.",
                 nameof(publicKeyBytes));
         }
 

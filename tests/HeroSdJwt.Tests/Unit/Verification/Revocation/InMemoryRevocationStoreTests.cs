@@ -58,6 +58,72 @@ public class InMemoryRevocationStoreTests
     }
 
     [Fact]
+    public async Task RevokeJtiAsync_ShorterSecondExpiration_DoesNotUnrevokeActiveToken()
+    {
+        using var store = new InMemoryRevocationStore();
+        const string jti = "monotonic-revocation";
+        var now = DateTimeOffset.UtcNow;
+
+        await store.RevokeJtiAsync(jti, now.AddHours(1), _ct);
+        await store.RevokeJtiAsync(jti, now.AddMinutes(-1), _ct);
+        await store.CleanupExpiredEntriesAsync(_ct);
+
+        Assert.True(await store.IsJtiRevokedAsync(jti, _ct));
+    }
+
+    [Fact]
+    public async Task ConcurrentEarlierRevocationsAndCleanup_CannotEraseLiveMarker()
+    {
+        using var store = new InMemoryRevocationStore();
+        const string jti = "concurrent-monotonic-revocation";
+        var now = DateTimeOffset.UtcNow;
+        await store.RevokeJtiAsync(jti, now.AddHours(1), _ct);
+
+        var operations = Enumerable.Range(0, 64)
+            .Select(index => Task.Run(async () =>
+            {
+                if (index % 2 == 0)
+                {
+                    await store.RevokeJtiAsync(jti, now.AddMinutes(-1), _ct);
+                }
+                else
+                {
+                    await store.CleanupExpiredEntriesAsync(_ct);
+                }
+            }, _ct));
+
+        await Task.WhenAll(operations);
+
+        Assert.True(await store.IsJtiRevokedAsync(jti, _ct));
+    }
+
+    [Fact]
+    public async Task IsJtiRevokedAsync_ExpiredMarker_ReturnsFalseBeforeBackgroundCleanup()
+    {
+        using var store = new InMemoryRevocationStore();
+        const string jti = "expired-without-cleanup";
+
+        await store.RevokeJtiAsync(jti, DateTimeOffset.UtcNow.AddMinutes(-1), _ct);
+
+        // A stored expired marker must not block verification until the periodic
+        // five-minute cleanup runs. The previous ContainsKey implementation did.
+        Assert.False(await store.IsJtiRevokedAsync(jti, _ct));
+    }
+
+    [Fact]
+    public async Task IsJtiRevokedAsync_ExtendedMarker_RemainsRevokedBeforeBackgroundCleanup()
+    {
+        using var store = new InMemoryRevocationStore();
+        const string jti = "extended-without-cleanup";
+        var now = DateTimeOffset.UtcNow;
+
+        await store.RevokeJtiAsync(jti, now.AddMinutes(-1), _ct);
+        await store.RevokeJtiAsync(jti, now.AddHours(1), _ct);
+
+        Assert.True(await store.IsJtiRevokedAsync(jti, _ct));
+    }
+
+    [Fact]
     public async Task IsJtiRevokedAsync_WithNonExistentJti_ReturnsFalse()
     {
         var store = new InMemoryRevocationStore();
@@ -147,6 +213,56 @@ public class InMemoryRevocationStoreTests
         Assert.False(revokedAfter);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task IsJtiRevokedAsync_WithBlankIdentifier_ThrowsArgumentException(string invalid)
+    {
+        using var store = new InMemoryRevocationStore();
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => store.IsJtiRevokedAsync(invalid, _ct));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task IsKeyRevokedAsync_WithBlankIdentifier_ThrowsArgumentException(string invalid)
+    {
+        using var store = new InMemoryRevocationStore();
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => store.IsKeyRevokedAsync(invalid, _ct));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task UnrevokeKeyAsync_WithBlankIdentifier_ThrowsArgumentException(string invalid)
+    {
+        using var store = new InMemoryRevocationStore();
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => store.UnrevokeKeyAsync(invalid, _ct));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task IsUserRevokedAsync_WithBlankIdentifier_ThrowsArgumentException(string invalid)
+    {
+        using var store = new InMemoryRevocationStore();
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => store.IsUserRevokedAsync(invalid, _ct));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task UnrevokeUserAsync_WithBlankIdentifier_ThrowsArgumentException(string invalid)
+    {
+        using var store = new InMemoryRevocationStore();
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => store.UnrevokeUserAsync(invalid, _ct));
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // Cleanup Tests
     // ═══════════════════════════════════════════════════════════════════════
@@ -184,6 +300,27 @@ public class InMemoryRevocationStoreTests
 
         var isRevoked = await store.IsKeyRevokedAsync(keyId, _ct);
         Assert.True(isRevoked);
+    }
+
+    [Fact]
+    public void Dispose_WhenCalledTwice_DoesNotThrow()
+    {
+        var store = new InMemoryRevocationStore();
+
+        store.Dispose();
+        store.Dispose();
+    }
+
+    [Fact]
+    public async Task Dispose_WhenCalledConcurrently_DoesNotThrow()
+    {
+        var store = new InMemoryRevocationStore();
+        var disposals = Enumerable.Range(0, 32)
+            .Select(_ => Task.Run(store.Dispose))
+            .ToArray();
+
+        await Task.WhenAll(disposals);
+        store.Dispose();
     }
 
     // ═══════════════════════════════════════════════════════════════════════

@@ -66,6 +66,7 @@ public interface IRevocationStore
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="jti"/> is null.
     /// </exception>
+    /// <exception cref="ArgumentException">Thrown if the identifier is empty or whitespace.</exception>
     /// <exception cref="OperationCanceledException">
     /// Thrown if cancellation is requested.
     /// </exception>
@@ -134,6 +135,7 @@ public interface IRevocationStore
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="keyId"/> is null.
     /// </exception>
+    /// <exception cref="ArgumentException">Thrown if the identifier is empty or whitespace.</exception>
     /// <exception cref="OperationCanceledException">
     /// Thrown if cancellation is requested.
     /// </exception>
@@ -158,6 +160,7 @@ public interface IRevocationStore
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="keyId"/> is null.
     /// </exception>
+    /// <exception cref="ArgumentException">Thrown if the identifier is empty or whitespace.</exception>
     /// <exception cref="OperationCanceledException">
     /// Thrown if cancellation is requested.
     /// </exception>
@@ -227,6 +230,7 @@ public interface IRevocationStore
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="userId"/> is null.
     /// </exception>
+    /// <exception cref="ArgumentException">Thrown if the identifier is empty or whitespace.</exception>
     /// <exception cref="OperationCanceledException">
     /// Thrown if cancellation is requested.
     /// </exception>
@@ -251,6 +255,7 @@ public interface IRevocationStore
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="userId"/> is null.
     /// </exception>
+    /// <exception cref="ArgumentException">Thrown if the identifier is empty or whitespace.</exception>
     /// <exception cref="OperationCanceledException">
     /// Thrown if cancellation is requested.
     /// </exception>
