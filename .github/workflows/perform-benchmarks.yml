@@ -43,6 +43,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Extract configuration
         id: config
@@ -64,6 +66,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Setup all .NET SDKs
       uses: ./.github/actions/setup-dotnet-sdks
@@ -151,8 +155,8 @@ jobs:
         tool: 'benchmarkdotnet'
         output-file-path: benchmarks/HeroSdJwt.Benchmarks/BenchmarkDotNet.Artifacts/results/comparison-report-${{ matrix.framework }}.json
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        # Pin metadata for workflow_dispatch, whose branch may move during the run.
-        ref: ${{ github.sha }}
+        # Match CURRENT_COMMIT: PR head, or the pinned event SHA for push/dispatch.
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
         comment-on-alert: true
         fail-on-alert: true
         alert-threshold: ${{ env.BENCHMARK_ALERT_THRESHOLD }}  # Fail if >5% slower
