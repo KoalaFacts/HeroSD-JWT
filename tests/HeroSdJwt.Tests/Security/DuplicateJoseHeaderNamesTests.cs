@@ -135,13 +135,22 @@ public class DuplicateJoseHeaderNamesTests
     [Fact]
     public void Should_AllowSignedUniqueNoncriticalExtensionOnBothJwtTypes()
     {
-        var jwt = SignIssuerJwt(
-            "{\"alg\":\"HS256\",\"typ\":\"JWT\",\"kid\":\"key-1\",\"extension\":\"safe\"}");
+        var jwt = SignIssuerJwt(JsonSerializer.Serialize(new
+        {
+            alg = "HS256",
+            typ = "JWT",
+            kid = "key-1",
+            extension = "safe"
+        }));
         Assert.True(new SignatureValidator().VerifyJwtSignature(jwt, _issuerKey));
 
         using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var proof = SignKeyBindingJwt(holder,
-            "{\"alg\":\"ES256\",\"typ\":\"kb+jwt\",\"extension\":\"safe\"}");
+        var proof = SignKeyBindingJwt(holder, JsonSerializer.Serialize(new
+        {
+            alg = "ES256",
+            typ = "kb+jwt",
+            extension = "safe"
+        }));
         Assert.True(new KeyBindingValidator().ValidateKeyBinding(
             proof, holder.ExportSubjectPublicKeyInfo(), "signed-hash", "audience", "nonce"));
     }
