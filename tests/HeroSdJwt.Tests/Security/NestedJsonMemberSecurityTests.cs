@@ -31,10 +31,10 @@ public class NestedJsonMemberSecurityTests
     }
 
     [Theory]
-    [InlineData("[\"salt\",\"profile\",{\"role\":\"reader\",\"role\":\"admin\"}]")]
-    [InlineData("[\"salt\",\"profile\",{\"role\":\"reader\",\"\\u0072ole\":\"admin\"}]")]
-    [InlineData("[\"salt\",\"profile\",{\"roles\":[{\"level\":1,\"level\":2}]}]")]
-    [InlineData("[\"salt\",\"profile\",{\"_sd\":[],\"_sd\":[]}]")]
+    [InlineData(/*lang=json*/ "[\"salt\",\"profile\",{\"role\":\"reader\",\"role\":\"admin\"}]")]
+    [InlineData(/*lang=json*/ "[\"salt\",\"profile\",{\"role\":\"reader\",\"\\u0072ole\":\"admin\"}]")]
+    [InlineData(/*lang=json*/ "[\"salt\",\"profile\",{\"roles\":[{\"level\":1,\"level\":2}]}]")]
+    [InlineData(/*lang=json*/ "[\"salt\",\"profile\",{\"_sd\":[],\"_sd\":[]}]")]
     public async Task Should_RejectAmbiguousNestedNamesInPresentedDisclosure(string disclosureJson)
     {
         var disclosure = Base64UrlEncoder.Encode(disclosureJson);
@@ -52,7 +52,7 @@ public class NestedJsonMemberSecurityTests
     [Fact]
     public async Task Should_AcceptUniqueNestedNamesInSignedPayloadAndDisclosure()
     {
-        const string disclosureJson = "[\"salt\",\"profile\",{\"address\":{\"city\":\"Sydney\",\"state\":\"NSW\"}}]";
+        const string disclosureJson = /*lang=json,strict*/ "[\"salt\",\"profile\",{\"address\":{\"city\":\"Sydney\",\"state\":\"NSW\"}}]";
         var disclosure = Base64UrlEncoder.Encode(disclosureJson);
         var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
         var payload = JsonSerializer.Serialize(new
