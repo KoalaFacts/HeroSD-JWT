@@ -1191,13 +1191,14 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             }
         }
 
-        // Unused low bits in the last base64url sextet must be zero.
-        // SHA-384 has no partial sextet (48 bytes = exactly 64 chars).
+        // SHA-256 (32 bytes) ends with 2 unused bits; SHA-512 (64 bytes)
+        // ends with 4 unused bits. SHA-384 (48 bytes) fills all sextets.
+        // Reject nonzero padding bits without decoding or allocating buffers.
         return algorithm switch
         {
-            HashAlgorithm.Sha256 => (lastSextet & 0x0F) == 0,
+            HashAlgorithm.Sha256 => (lastSextet & 0x03) == 0,
             HashAlgorithm.Sha384 => true,
-            HashAlgorithm.Sha512 => (lastSextet & 0x03) == 0,
+            HashAlgorithm.Sha512 => (lastSextet & 0x0F) == 0,
             _ => false
         };
     }

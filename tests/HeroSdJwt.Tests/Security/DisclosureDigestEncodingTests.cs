@@ -119,6 +119,45 @@ public class DisclosureDigestEncodingTests
         Assert.True(asyncResult.IsValid, asyncResult.ErrorDetails);
     }
 
+    [Theory]
+    [InlineData("sha-256", 'E')]
+    [InlineData("sha-512", 'Q')]
+    public async Task Should_AcceptValidNonzeroTerminalSextetsInUnpresentedDigests(
+        string hashName, char finalCharacter)
+    {
+        // SHA-256's final 2 padding bits are zero for 'E' (sextet 4).
+        // SHA-512's final 4 padding bits are zero for 'Q' (sextet 16).
+        // Both are canonical although the final digit is not 'A'.
+        var length = hashName == "sha-256" ? 43 : 86;
+        var digest = new string('A', length - 1) + finalCharacter;
+        var payloads = new[]
+        {
+            JsonSerializer.Serialize(new { exp = 4102444800L, _sd_alg = hashName, _sd = new[] { digest } }),
+            JsonSerializer.Serialize(new
+            {
+                exp = 4102444800L,
+                _sd_alg = hashName,
+                roles = new[] { new Dictionary<string, string> { ["..."] = digest } }
+            })
+        };
+
+        foreach (var payload in payloads)
+        {
+            var presentation = SignPayload(payload) + "~";
+            var verifier = CreateVerifier();
+
+            var direct = verifier.TryVerifyPresentation(presentation, _signingKey);
+            Assert.True(direct.IsValid, direct.ErrorDetails);
+
+            var resolved = verifier.TryVerifyPresentation(presentation, ResolveKey);
+            Assert.True(resolved.IsValid, resolved.ErrorDetails);
+
+            var asyncResult = await verifier.TryVerifyPresentationAsync(
+                presentation, _signingKey, cancellationToken: TestContext.Current.CancellationToken);
+            Assert.True(asyncResult.IsValid, asyncResult.ErrorDetails);
+        }
+    }
+
     private static async Task AssertRejectedAsync(
         string payloadJson, ErrorCode expectedError = ErrorCode.InvalidInput, params string[] disclosures)
     {
