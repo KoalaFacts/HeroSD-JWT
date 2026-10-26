@@ -773,11 +773,6 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 errorDetails.Add("Audience validation failed");
             }
 
-            // Step 3.5: Check token revocation (JTI, Key ID, User ID)
-            // Inserted after temporal/issuer/audience validation, before digest validation
-            // Per research.md: Early rejection saves CPU on expensive cryptographic operations
-            await CheckRevocationAsync(payload, header, errors, errorDetails, cancellationToken).ConfigureAwait(false);
-
             // Step 4: Validate disclosure digests
             HashAlgorithm algorithm;
             try
@@ -1002,6 +997,16 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             // Reconstruction must also succeed before the stateful replay admission.
             var disclosedClaims = ExtractDisclosedClaims(jwt, disclosures, algorithm);
             cancellationToken.ThrowIfCancellationRequested();
+
+            // Revocation can be a remote read. Do not contact the store for
+            // invalid temporal/issuer/audience/digest/key-binding/reconstruction
+            // results. Fully verified revoked tokens still fail before replay
+            // admission and before returning disclosed claims to the caller.
+            await CheckRevocationAsync(payload, header, errors, errorDetails, cancellationToken).ConfigureAwait(false);
+            if (errors.Count > 0)
+            {
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
 
             // Step 6: Admit the verified presentation's replay identifier, if configured.
             if (_jtiValidator != null)
@@ -1316,7 +1321,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
     }
     /// <summary>
     /// Checks if the token has been revoked via JTI, Key ID, or User ID.
-    /// Called after temporal claims validation, before digest validation.
+    /// Called after all read-only validation and reconstruction, before replay admission.
     /// Only runs if a revocation store was provided.
     /// </summary>
     private async Task CheckRevocationAsync(
