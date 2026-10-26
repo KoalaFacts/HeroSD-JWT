@@ -2,6 +2,7 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
+using HeroSdJwt.Verification;
 using System.Text.Json;
 
 namespace HeroSdJwt.Presentation;
@@ -35,17 +36,18 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
     /// <returns>Dictionary mapping claim paths to disclosure indices.</returns>
     public Dictionary<string, int> BuildClaimPathMapping(SdJwt sdJwt)
     {
+        ArgumentNullException.ThrowIfNull(sdJwt);
+
         var mapping = new Dictionary<string, int>();
 
-        // Parse JWT payload to understand structure
-        var jwtParts = sdJwt.Jwt.Split('.');
-        if (jwtParts.Length != 3)
-        {
-            throw new ArgumentException("Invalid JWT format");
-        }
+        // Avoid allocating a component per separator. Mapping also runs during
+        // issuance, so it must not impose the verifier's token-size policy.
+        var jwtParts = CompactJwtSplitter.Split(sdJwt.Jwt)
+            ?? throw new ArgumentException("Invalid JWT format", nameof(sdJwt));
 
         var payloadJson = Base64UrlEncoder.DecodeString(jwtParts[1]);
-        var payload = JsonDocument.Parse(payloadJson).RootElement;
+        using var payloadDocument = JsonDocument.Parse(payloadJson);
+        var payload = payloadDocument.RootElement;
 
         // Build digest-to-disclosure-index map
         var digestToIndex = new Dictionary<string, int>();
@@ -168,7 +170,8 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
         {
             if (item.ValueKind == JsonValueKind.Object &&
                 item.TryGetProperty("...", out var digestProp) &&
-                digestProp.ValueKind == JsonValueKind.String)
+                digestProp.ValueKind == JsonValueKind.String &&
+                item.EnumerateObject().Count() == 1)
             {
                 // This is an array element placeholder
                 var digest = digestProp.GetString()!;
@@ -180,6 +183,12 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
 
                     // Recursively process the array element value
                     var disclosure = _disclosureParser.Parse(disclosures[disclosureIndex]);
+                    if (disclosure.ClaimName is not null)
+                    {
+                        throw new MalformedDisclosureException(
+                            "An array digest must reference a two-element Disclosure.");
+                    }
+
                     ProcessElement(disclosure.ClaimValue, arrayPath, digestToIndex, disclosures, mapping);
                 }
             }
