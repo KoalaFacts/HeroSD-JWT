@@ -37,7 +37,7 @@ public class IssuerNumericDateContractTests
         var presenter = new SdJwtPresenter();
         var combined = presenter.FormatPresentation(presenter.CreatePresentationWithAllClaims(credential));
         var verified = TestHelpers.CreateVerifier().TryVerifyPresentation(combined, _signingKey);
-        Assert.True(verified.IsValid, verified.ErrorMessage);
+        Assert.True(verified.IsValid, verified.ErrorDetails);
     }
 
     [Theory]
