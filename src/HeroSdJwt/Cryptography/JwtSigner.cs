@@ -374,6 +374,24 @@ public class JwtSigner : IJwtSigner
                 }
                 writer.WriteEndObject();
                 break;
+            case System.Collections.IDictionary dictionary:
+                // Other string-keyed dictionaries (for example Dictionary<string, int>
+                // and Hashtable) are JSON objects, not arrays of Key/Value entries.
+                // Handle them before IEnumerable to preserve the caller's claim shape.
+                writer.WriteStartObject();
+                foreach (System.Collections.DictionaryEntry entry in dictionary)
+                {
+                    if (entry.Key is not string name)
+                    {
+                        throw new ArgumentException("JSON claim dictionary keys must be strings.", nameof(value));
+                    }
+
+                    writer.WritePropertyName(name);
+                    WriteValue(writer, entry.Value!);
+                }
+
+                writer.WriteEndObject();
+                break;
             case System.Collections.IEnumerable enumerable when value is not string:
                 writer.WriteStartArray();
                 foreach (var item in enumerable)
