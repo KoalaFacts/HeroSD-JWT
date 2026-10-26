@@ -44,15 +44,19 @@ public class HolderClaimPathMappingTests
     }
 
     [Fact]
-    public void Should_RejectOversizedImportedJwtBeforeDecoding()
+    public void Should_ContinueMappingLargeSignedPayloadForIssuerCompatibility()
     {
-        var jwt = "eyJhbGciOiJIUzI1NiJ9.e30." + new string('a', Constants.MAX_JWT_SIZE_BYTES);
-        var imported = new SdJwt(jwt, [], HashAlgorithm.Sha256);
+        var disclosure = Base64UrlEncoder.Encode(/*lang=json,strict*/ "[\"salt\",\"degree\"]");
+        var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
+        var padding = new string('x', Constants.MAX_JWT_SIZE_BYTES);
+        var imported = CreateSignedCredential(
+            $"[{{\"...\":\"{digest}\"}},{{\"permanent\":\"{padding}\"}}]",
+            disclosure);
+        Assert.True(imported.Jwt.Length > Constants.MAX_JWT_SIZE_BYTES);
 
-        var exception = Assert.Throws<ArgumentException>(() =>
-            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+        var mapping = new DisclosureClaimPathMapper().BuildClaimPathMapping(imported);
 
-        Assert.Contains("maximum allowed size", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(0, mapping["items[0]"]);
     }
 
     [Fact]

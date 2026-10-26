@@ -2,7 +2,6 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
-using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Text.Json;
 
@@ -41,13 +40,8 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
 
         var mapping = new Dictionary<string, int>();
 
-        // Imported credentials may be untrusted. Apply the verifier's compact
-        // JWT budget before parsing, without allocating an entry per separator.
-        if (sdJwt.Jwt.Length > Constants.MAX_JWT_SIZE_BYTES)
-        {
-            throw new ArgumentException("JWT exceeds the maximum allowed size", nameof(sdJwt));
-        }
-
+        // Avoid allocating a component per separator. Mapping also runs during
+        // issuance, so it must not impose the verifier's token-size policy.
         var jwtParts = CompactJwtSplitter.Split(sdJwt.Jwt)
             ?? throw new ArgumentException("Invalid JWT format", nameof(sdJwt));
 
