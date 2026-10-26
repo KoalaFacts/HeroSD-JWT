@@ -94,6 +94,44 @@ public class DuplicateJoseHeaderNamesTests
             proof, holder.ExportSubjectPublicKeyInfo(), "signed-hash", "audience", "nonce"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Should_RejectMalformedUnicodeMemberNameInIssuerHeaderWithoutEscapingException(
+        bool manyParameters)
+    {
+        var prefix = manyParameters
+            ? string.Join(",", Enumerable.Range(0, 9).Select(i => "\"extension-" + i + "\":true")) + ","
+            : string.Empty;
+        // The JSON parser accepts an escaped unpaired high surrogate, but
+        // decoding that property name must never escape a validation API.
+        var headerJson = "{\"alg\":\"HS256\",\"typ\":\"JWT\",\"kid\":\"key-1\"," +
+            prefix + "\"x\\uD800\":0}";
+        var jwt = SignIssuerJwt(headerJson);
+
+        var error = Assert.Throws<SdJwtException>(() =>
+            new SignatureValidator().VerifyJwtSignature(jwt, _issuerKey));
+        Assert.Equal(ErrorCode.InvalidInput, error.ErrorCode);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Should_RejectMalformedUnicodeMemberNameInKeyBindingWithoutThrowing(
+        bool manyParameters)
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var prefix = manyParameters
+            ? string.Join(",", Enumerable.Range(0, 9).Select(i => "\"extension-" + i + "\":true")) + ","
+            : string.Empty;
+        var headerJson = "{\"alg\":\"ES256\",\"typ\":\"kb+jwt\"," +
+            prefix + "\"x\\uD800\":0}";
+        var proof = SignKeyBindingJwt(holder, headerJson);
+
+        Assert.False(new KeyBindingValidator().ValidateKeyBinding(
+            proof, holder.ExportSubjectPublicKeyInfo(), "signed-hash", "audience", "nonce"));
+    }
+
     [Fact]
     public void Should_AllowSignedUniqueNoncriticalExtensionOnBothJwtTypes()
     {
