@@ -112,6 +112,16 @@ public class SdJwtIssuer(
             // disclosure processing can remove a reserved member from it.
             foreach (var claim in claims)
             {
+                // A caller must never choose disclosure digests for the issuer
+                // to sign. Otherwise they can later reveal arbitrary claims
+                // that the issuer never selected for disclosure.
+                if (claim.Key is Constants.SD_CLAIM_NAME or "...")
+                {
+                    throw new ArgumentException(
+                        $"The claim '{claim.Key}' is reserved for issuer-generated SD-JWT disclosure references.",
+                        nameof(claims));
+                }
+
                 if (claim.Key == Constants.SD_ALG_CLAIM_NAME)
                 {
                     throw new ArgumentException(
@@ -120,7 +130,7 @@ public class SdJwtIssuer(
                         nameof(claims));
                 }
 
-                ValidateNoNestedSdAlg(claim.Value, claim.Key);
+                ValidateNoUntrustedSdControlMembers(claim.Value, claim.Key);
             }
 
             // Step 1: Generate disclosures for selectively disclosable claims
@@ -341,12 +351,12 @@ public class SdJwtIssuer(
     }
 
     /// <summary>
-    /// Recursively validates that _sd_alg does not appear in nested objects.
-    /// Per SD-JWT spec section 4.2.3, _sd_alg MUST only appear at top level.
+    /// Rejects caller-supplied SD-JWT control members before the issuer
+    /// constructs its own disclosure digests and array placeholders.
     /// </summary>
     private const int MAX_CLAIM_VALIDATION_DEPTH = 64;
 
-    private static void ValidateNoNestedSdAlg(object? value, string claimPath, int depth = 0)
+    private static void ValidateNoUntrustedSdControlMembers(object? value, string claimPath, int depth = 0)
     {
         if (value is null)
         {
@@ -360,12 +370,23 @@ public class SdJwtIssuer(
             throw new ArgumentException("Claim nesting exceeds the supported JSON depth.", nameof(value));
         }
 
+        // JwtSigner.WriteValue serializes the public Digest model as an
+        // array-element disclosure placeholder {"...": digest.Value}.
+        // JsonSerializer.SerializeToElement(digest) instead exposes Value and
+        // Algorithm properties, so inspecting its JSON shape misses this case.
+        if (value is Digest)
+        {
+            throw new ArgumentException(
+                $"The claim at '{claimPath}' contains a caller-supplied Digest; only the issuer may generate disclosure placeholders.",
+                nameof(value));
+        }
+
         // Inspect the JSON representation, not only Dictionary<string, object>.
         // Callers can supply anonymous objects, JsonElement, records, dictionaries
         // with different value types, or arrays containing any of those.
         if (value is JsonElement jsonElement)
         {
-            ValidateNoNestedSdAlgElement(jsonElement, claimPath, depth);
+            ValidateNoUntrustedSdControlMembersElement(jsonElement, claimPath, depth);
             return;
         }
 
@@ -384,8 +405,8 @@ public class SdJwtIssuer(
             {
                 if (entry.Key is string propertyName)
                 {
-                    ValidateNestedSdAlgName(propertyName, claimPath);
-                    ValidateNoNestedSdAlg(entry.Value, $"{claimPath}.{propertyName}", depth + 1);
+                    ValidateReservedSdControlName(propertyName, claimPath);
+                    ValidateNoUntrustedSdControlMembers(entry.Value, $"{claimPath}.{propertyName}", depth + 1);
                 }
             }
 
@@ -399,7 +420,7 @@ public class SdJwtIssuer(
             var index = 0;
             foreach (var item in list)
             {
-                ValidateNoNestedSdAlg(item, $"{claimPath}[{index}]", depth + 1);
+                ValidateNoUntrustedSdControlMembers(item, $"{claimPath}[{index}]", depth + 1);
                 index++;
             }
 
@@ -414,7 +435,7 @@ public class SdJwtIssuer(
             var index = 0;
             foreach (var item in enumerable)
             {
-                ValidateNoNestedSdAlg(item, $"{claimPath}[{index}]", depth + 1);
+                ValidateNoUntrustedSdControlMembers(item, $"{claimPath}[{index}]", depth + 1);
                 index++;
             }
 
@@ -424,7 +445,7 @@ public class SdJwtIssuer(
 #pragma warning disable IL2026, IL3050 // Public API accepts arbitrary claim values
             var collectionJson = JsonSerializer.SerializeToElement(value);
 #pragma warning restore IL2026, IL3050
-            ValidateNoNestedSdAlgElement(collectionJson, claimPath, depth);
+            ValidateNoUntrustedSdControlMembersElement(collectionJson, claimPath, depth);
             return;
         }
 
@@ -434,10 +455,10 @@ public class SdJwtIssuer(
 #pragma warning disable IL2026, IL3050 // Public API accepts arbitrary claim values
         var serialized = JsonSerializer.SerializeToElement(value);
 #pragma warning restore IL2026, IL3050
-        ValidateNoNestedSdAlgElement(serialized, claimPath, depth);
+        ValidateNoUntrustedSdControlMembersElement(serialized, claimPath, depth);
     }
 
-    private static void ValidateNoNestedSdAlgElement(JsonElement value, string claimPath, int depth)
+    private static void ValidateNoUntrustedSdControlMembersElement(JsonElement value, string claimPath, int depth)
     {
         if (depth > MAX_CLAIM_VALIDATION_DEPTH)
         {
@@ -448,8 +469,8 @@ public class SdJwtIssuer(
         {
             foreach (var property in value.EnumerateObject())
             {
-                ValidateNestedSdAlgName(property.Name, claimPath);
-                ValidateNoNestedSdAlgElement(property.Value, $"{claimPath}.{property.Name}", depth + 1);
+                ValidateReservedSdControlName(property.Name, claimPath);
+                ValidateNoUntrustedSdControlMembersElement(property.Value, $"{claimPath}.{property.Name}", depth + 1);
             }
         }
         else if (value.ValueKind == JsonValueKind.Array)
@@ -457,14 +478,21 @@ public class SdJwtIssuer(
             var index = 0;
             foreach (var item in value.EnumerateArray())
             {
-                ValidateNoNestedSdAlgElement(item, $"{claimPath}[{index}]", depth + 1);
+                ValidateNoUntrustedSdControlMembersElement(item, $"{claimPath}[{index}]", depth + 1);
                 index++;
             }
         }
     }
 
-    private static void ValidateNestedSdAlgName(string propertyName, string claimPath)
+    private static void ValidateReservedSdControlName(string propertyName, string claimPath)
     {
+        if (propertyName is Constants.SD_CLAIM_NAME or "...")
+        {
+            throw new ArgumentException(
+                $"The claim '{propertyName}' at path '{claimPath}.{propertyName}' is reserved for issuer-generated SD-JWT disclosure references.",
+                nameof(propertyName));
+        }
+
         if (propertyName == Constants.SD_ALG_CLAIM_NAME)
         {
             throw new ArgumentException(
