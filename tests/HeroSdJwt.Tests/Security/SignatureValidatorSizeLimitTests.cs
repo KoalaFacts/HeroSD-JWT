@@ -3,7 +3,6 @@ using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 
 namespace HeroSdJwt.Tests.Security;
@@ -26,7 +25,7 @@ public class SignatureValidatorSizeLimitTests
         // than due to a malformed signature or unsupported algorithm.
         var segments = jwt.Split('.');
         Assert.Equal(3, segments.Length);
-        var signedInput = Encoding.UTF8.GetBytes(segments[0] + "." + segments[1]);
+        var signedInput = System.Text.Encoding.UTF8.GetBytes(segments[0] + "." + segments[1]);
         Assert.Equal(Base64UrlEncoder.Encode(HMACSHA256.HashData(_signingKey, signedInput)), segments[2]);
 
         var validator = new SignatureValidator();
@@ -81,7 +80,7 @@ public class SignatureValidatorSizeLimitTests
         const string header = /*lang=json,strict*/ "{\"alg\":\"HS256\",\"kid\":\"signature-size-test-key\"}";
         var payload = JsonSerializer.Serialize(new { data });
         var signingInput = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payload);
-        var signature = HMACSHA256.HashData(_signingKey, Encoding.UTF8.GetBytes(signingInput));
+        var signature = HMACSHA256.HashData(_signingKey, System.Text.Encoding.UTF8.GetBytes(signingInput));
         return signingInput + "." + Base64UrlEncoder.Encode(signature);
     }
 }
