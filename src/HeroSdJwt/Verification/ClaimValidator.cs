@@ -27,8 +27,8 @@ public class ClaimValidator : IClaimValidator
             return false;
         }
 
-        var now = currentTime ?? DateTimeOffset.UtcNow;
-        var clockSkew = options.ClockSkew;
+        var nowTicks = NumericDateParser.GetCurrentUnixTicks(currentTime ?? DateTimeOffset.UtcNow);
+        var clockSkewTicks = options.ClockSkew.Ticks;
 
         // Validate expiration time (exp) - REQUIRED for SD-JWT per spec
         if (!payload.TryGetProperty("exp", out var expElement))
@@ -36,13 +36,13 @@ public class ClaimValidator : IClaimValidator
             return false; // Missing required exp claim
         }
 
-        if (!TryGetUnixTimestamp(expElement, out var exp))
+        if (!NumericDateParser.TryParseUnixTicks(expElement, out var expTicks))
         {
             return false;
         }
 
         // Token is expired if current time > exp + clock skew
-        if (now - exp > clockSkew)
+        if (nowTicks - expTicks > clockSkewTicks)
         {
             return false;
         }
@@ -50,13 +50,13 @@ public class ClaimValidator : IClaimValidator
         // Validate not-before time (nbf) - OPTIONAL
         if (payload.TryGetProperty("nbf", out var nbfElement))
         {
-            if (!TryGetUnixTimestamp(nbfElement, out var nbf))
+            if (!NumericDateParser.TryParseUnixTicks(nbfElement, out var nbfTicks))
             {
                 return false;
             }
 
             // Token not yet valid if current time < nbf - clock skew
-            if (nbf - now > clockSkew)
+            if (nbfTicks - nowTicks > clockSkewTicks)
             {
                 return false;
             }
@@ -66,14 +66,14 @@ public class ClaimValidator : IClaimValidator
         // Reject tokens with iat in the future (with clock skew tolerance)
         if (payload.TryGetProperty("iat", out var iatElement))
         {
-            if (!TryGetUnixTimestamp(iatElement, out var iat))
+            if (!NumericDateParser.TryParseUnixTicks(iatElement, out var iatTicks))
             {
                 return false;
             }
 
             // Reject if issued in the future (current time < iat - clock skew)
             // This prevents accepting tokens with suspicious future timestamps
-            if (iat - now > clockSkew)
+            if (iatTicks - nowTicks > clockSkewTicks)
             {
                 return false; // Token issued in the future
             }
@@ -179,34 +179,4 @@ public class ClaimValidator : IClaimValidator
         return false;
     }
 
-    /// <summary>
-    /// Tries to parse a Unix timestamp from a JsonElement.
-    /// </summary>
-    /// <param name="element">The JSON element containing the timestamp.</param>
-    /// <param name="timestamp">The parsed timestamp as DateTimeOffset.</param>
-    /// <returns>True if parsing succeeded; otherwise, false.</returns>
-    private static bool TryGetUnixTimestamp(JsonElement element, out DateTimeOffset timestamp)
-    {
-        timestamp = DateTimeOffset.MinValue;
-
-        if (element.ValueKind != JsonValueKind.Number)
-        {
-            return false;
-        }
-
-        if (!element.TryGetInt64(out var unixSeconds))
-        {
-            return false;
-        }
-
-        try
-        {
-            timestamp = DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
 }

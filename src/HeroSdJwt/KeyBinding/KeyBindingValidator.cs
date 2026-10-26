@@ -201,34 +201,23 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             // "The Verifier MUST check that the creation time of the Key Binding JWT,
             // as determined by the iat claim, is within an acceptable window."
             if (!payload.TryGetProperty("iat", out var iatElement) ||
-                iatElement.ValueKind != JsonValueKind.Number ||
-                !iatElement.TryGetInt64(out var iatUnixSeconds))
+                !NumericDateParser.TryParseUnixTicks(iatElement, out var iatTicks))
             {
-                return false; // Invalid iat format
+                return false; // Invalid or out-of-range NumericDate.
             }
 
-            DateTimeOffset iat;
-            try
-            {
-                iat = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds);
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                return false; // Out-of-range numeric dates are invalid claims.
-            }
+            var nowTicks = NumericDateParser.GetCurrentUnixTicks(_timeProvider.GetUtcNow());
 
-            var now = _timeProvider.GetUtcNow();
-
-            // Reject if KB-JWT is too old (replay attack prevention)
-            var maxAge = TimeSpan.FromSeconds(Constants.MAX_KEY_BINDING_JWT_AGE_SECONDS);
-            if (now - iat > maxAge)
+            // Compare at the original precision, including sub-100ns fractions.
+            // Rounding iat first would widen either the age or future-skew limit.
+            var maxAgeTicks = Constants.MAX_KEY_BINDING_JWT_AGE_SECONDS * TimeSpan.TicksPerSecond;
+            if (nowTicks - iatTicks > maxAgeTicks)
             {
                 return false; // KB-JWT is too old
             }
 
-            // Reject if iat is in the future (with small tolerance for clock skew)
-            var clockSkewTolerance = TimeSpan.FromSeconds(60); // 1 minute tolerance
-            if (iat > now + clockSkewTolerance)
+            var clockSkewToleranceTicks = TimeSpan.FromSeconds(60).Ticks;
+            if (iatTicks - nowTicks > clockSkewToleranceTicks)
             {
                 return false; // KB-JWT issued in the future
             }
