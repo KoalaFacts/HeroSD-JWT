@@ -36,7 +36,7 @@ public class ClaimValidator : IClaimValidator
             return false; // Missing required exp claim
         }
 
-        if (!TryGetUnixTimestamp(expElement, out var exp))
+        if (!NumericDateParser.TryParse(expElement, out var exp))
         {
             return false;
         }
@@ -50,7 +50,7 @@ public class ClaimValidator : IClaimValidator
         // Validate not-before time (nbf) - OPTIONAL
         if (payload.TryGetProperty("nbf", out var nbfElement))
         {
-            if (!TryGetUnixTimestamp(nbfElement, out var nbf))
+            if (!NumericDateParser.TryParse(nbfElement, out var nbf))
             {
                 return false;
             }
@@ -66,7 +66,7 @@ public class ClaimValidator : IClaimValidator
         // Reject tokens with iat in the future (with clock skew tolerance)
         if (payload.TryGetProperty("iat", out var iatElement))
         {
-            if (!TryGetUnixTimestamp(iatElement, out var iat))
+            if (!NumericDateParser.TryParse(iatElement, out var iat))
             {
                 return false;
             }
@@ -179,34 +179,4 @@ public class ClaimValidator : IClaimValidator
         return false;
     }
 
-    /// <summary>
-    /// Tries to parse a Unix timestamp from a JsonElement.
-    /// </summary>
-    /// <param name="element">The JSON element containing the timestamp.</param>
-    /// <param name="timestamp">The parsed timestamp as DateTimeOffset.</param>
-    /// <returns>True if parsing succeeded; otherwise, false.</returns>
-    private static bool TryGetUnixTimestamp(JsonElement element, out DateTimeOffset timestamp)
-    {
-        timestamp = DateTimeOffset.MinValue;
-
-        if (element.ValueKind != JsonValueKind.Number)
-        {
-            return false;
-        }
-
-        if (!element.TryGetInt64(out var unixSeconds))
-        {
-            return false;
-        }
-
-        try
-        {
-            timestamp = DateTimeOffset.FromUnixTimeSeconds(unixSeconds);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
 }

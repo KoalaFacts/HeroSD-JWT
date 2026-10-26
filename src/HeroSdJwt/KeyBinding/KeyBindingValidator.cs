@@ -201,20 +201,9 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             // "The Verifier MUST check that the creation time of the Key Binding JWT,
             // as determined by the iat claim, is within an acceptable window."
             if (!payload.TryGetProperty("iat", out var iatElement) ||
-                iatElement.ValueKind != JsonValueKind.Number ||
-                !iatElement.TryGetInt64(out var iatUnixSeconds))
+                !NumericDateParser.TryParse(iatElement, out var iat))
             {
-                return false; // Invalid iat format
-            }
-
-            DateTimeOffset iat;
-            try
-            {
-                iat = DateTimeOffset.FromUnixTimeSeconds(iatUnixSeconds);
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                return false; // Out-of-range numeric dates are invalid claims.
+                return false; // Invalid or out-of-range NumericDate.
             }
 
             var now = _timeProvider.GetUtcNow();
