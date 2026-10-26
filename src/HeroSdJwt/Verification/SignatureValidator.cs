@@ -4,6 +4,7 @@ using HeroSdJwt.Internal.Ed25519;
 using System.Security.Cryptography;
 using System.Formats.Asn1;
 using System.Text.Json;
+using Constants = HeroSdJwt.Primitives.Constants;
 using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
 
 namespace HeroSdJwt.Verification;
@@ -30,8 +31,16 @@ public class SignatureValidator : ISignatureValidator
         ArgumentNullException.ThrowIfNull(jwt);
         ArgumentNullException.ThrowIfNull(publicKey);
 
-        // Parse JWT into header, payload, signature
-        var parts = jwt.Split('.');
+        // Standalone callers bypass the SD-JWT presentation size gate.
+        // Reject oversized inputs before Split, JSON decoding or crypto work.
+        if (jwt.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new SdJwtException("JWT exceeds the maximum allowed size", ErrorCode.InvalidInput);
+        }
+
+        // Cap the split at four so invalid dot-heavy inputs do not allocate
+        // one entry per separator.
+        var parts = jwt.Split('.', 4);
         if (parts.Length != 3)
         {
             throw new SdJwtException(
@@ -408,8 +417,15 @@ public class SignatureValidator : ISignatureValidator
     {
         ArgumentNullException.ThrowIfNull(jwt);
 
-        // Parse JWT to extract header
-        var parts = jwt.Split('.');
+        // Reject oversized JWTs before splitting, parsing or invoking an
+        // application key resolver (which may call an external service).
+        if (jwt.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new SdJwtException("JWT exceeds the maximum allowed size", ErrorCode.InvalidInput);
+        }
+
+        // Four parts means malformed input; never split every separator.
+        var parts = jwt.Split('.', 4);
         if (parts.Length != 3)
         {
             throw new SdJwtException(
