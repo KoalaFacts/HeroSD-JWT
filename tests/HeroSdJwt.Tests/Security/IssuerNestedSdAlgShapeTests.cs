@@ -62,6 +62,21 @@ public class IssuerNestedSdAlgShapeTests
     }
 
     [Fact]
+    public void Should_RejectNestedSdAlgEvenWhenItsPathIsSelectedForDisclosure()
+    {
+        var claims = new Dictionary<string, object>
+        {
+            ["profile"] = new { _sd_alg = "sha-512", display = "Alice" }
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            TestHelpers.CreateIssuer().CreateSdJwt(
+                claims, ["profile._sd_alg"], _signingKey, HashAlgorithm.Sha256));
+
+        Assert.Contains("_sd_alg", exception.Message);
+    }
+
+    [Fact]
     public void Should_AllowNormalAnonymousNestedObjectsAndArrays()
     {
         var claims = new Dictionary<string, object>
