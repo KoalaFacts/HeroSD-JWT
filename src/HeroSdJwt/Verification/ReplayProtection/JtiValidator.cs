@@ -97,6 +97,10 @@ public class JtiValidator
         // Try to add jti to cache (atomic operation)
         var wasAdded = await _cache.TryAddAsync(issuer, jti, ttl, cancellationToken).ConfigureAwait(false);
 
+        // Some cache adapters finish an atomic admission despite caller cancellation.
+        // Never report that canceled work successfully verified a credential.
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (!wasAdded)
         {
             // jti already exists in cache - replay detected

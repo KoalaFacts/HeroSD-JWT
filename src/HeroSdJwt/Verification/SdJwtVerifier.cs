@@ -1024,6 +1024,12 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     // Re-throw other SD-JWT exceptions (missing jti, missing iss, etc.)
                     throw;
                 }
+                catch (OperationCanceledException)
+                {
+                    // A canceled replay-cache admission must propagate to throwing
+                    // async callers, not be mistaken for a malformed presentation.
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     // Wrap unexpected exceptions
