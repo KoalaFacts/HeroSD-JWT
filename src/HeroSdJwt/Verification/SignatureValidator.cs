@@ -39,13 +39,10 @@ public class SignatureValidator : ISignatureValidator
         }
 
         // Reject malformed compact JWT shape without collecting all dot offsets.
-        var parts = CompactJwtSplitter.Split(jwt);
-        if (parts is null)
-        {
-            throw new SdJwtException(
+        var parts = CompactJwtSplitter.Split(jwt)
+            ?? throw new SdJwtException(
                 "Invalid JWT format: expected 3 parts separated by dots",
                 ErrorCode.InvalidInput);
-        }
 
         var headerBase64 = parts[0];
         var payloadBase64 = parts[1];
@@ -424,13 +421,10 @@ public class SignatureValidator : ISignatureValidator
         }
 
         // Reject malformed compact JWT shape without collecting all dot offsets.
-        var parts = CompactJwtSplitter.Split(jwt);
-        if (parts is null)
-        {
-            throw new SdJwtException(
+        var parts = CompactJwtSplitter.Split(jwt)
+            ?? throw new SdJwtException(
                 "Invalid JWT format: expected 3 parts separated by dots",
                 ErrorCode.InvalidInput);
-        }
 
         var headerBase64 = parts[0];
 
