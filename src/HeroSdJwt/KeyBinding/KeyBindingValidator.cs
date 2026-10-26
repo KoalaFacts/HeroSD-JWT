@@ -110,16 +110,26 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
 
         try
         {
-            // Parse JWT
-            var parts = keyBindingJwt.Split('.', 4);
-            if (parts.Length != 3)
+            // Discover exactly two JWT separators without Split. On .NET 8
+            // even a count-limited Split first collects every delimiter index,
+            // allowing a 64-KiB separator flood to allocate a large buffer.
+            var firstSeparator = keyBindingJwt.IndexOf('.');
+            if (firstSeparator <= 0)
             {
                 return false;
             }
 
-            var headerBase64 = parts[0];
-            var payloadBase64 = parts[1];
-            var signatureBase64 = parts[2];
+            var secondSeparator = keyBindingJwt.IndexOf('.', firstSeparator + 1);
+            if (secondSeparator <= firstSeparator + 1 ||
+                secondSeparator == keyBindingJwt.Length - 1 ||
+                keyBindingJwt.IndexOf('.', secondSeparator + 1) >= 0)
+            {
+                return false;
+            }
+
+            var headerBase64 = keyBindingJwt[..firstSeparator];
+            var payloadBase64 = keyBindingJwt[(firstSeparator + 1)..secondSeparator];
+            var signatureBase64 = keyBindingJwt[(secondSeparator + 1)..];
 
             // Decode and validate header
             var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
