@@ -101,9 +101,9 @@ public class RevocationAdmissionOrderTests
             ? "https://other-verifier.example.test" : AUDIENCE;
 
         var disclosure = Base64UrlEncoder.Encode(
-            /*lang=json,strict*/ "[\\"salt-presented\\",\\"email\\",\\"alice@example.test\\"]");
+            /*lang=json,strict*/ "[\"salt-presented\",\"email\",\"alice@example.test\"]");
         var otherDisclosure = Base64UrlEncoder.Encode(
-            /*lang=json,strict*/ "[\\"different-salt\\",\\"email\\",\\"alice@example.test\\"]");
+            /*lang=json,strict*/ "[\"different-salt\",\"email\",\"alice@example.test\"]");
         var payload = JsonSerializer.Serialize(new
         {
             exp,
@@ -115,7 +115,7 @@ public class RevocationAdmissionOrderTests
                 : Array.Empty<string>()
         });
 
-        const string header = /*lang=json,strict*/ "{\\"alg\\":\\"HS256\\",\\"kid\\":\\"revocation-admission-key\\"}";
+        const string header = /*lang=json,strict*/ "{\"alg\":\"HS256\",\"kid\":\"revocation-admission-key\"}";
         var signedInput = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payload);
         var signature = HMACSHA256.HashData(_signingKey, System.Text.Encoding.UTF8.GetBytes(signedInput));
         var jwt = signedInput + "." + Base64UrlEncoder.Encode(signature);
