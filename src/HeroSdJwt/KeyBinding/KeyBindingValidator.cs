@@ -110,16 +110,26 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
 
         try
         {
-            // Parse JWT
-            var parts = keyBindingJwt.Split('.');
-            if (parts.Length != 3)
+            // Discover exactly two JWT separators without Split. On .NET 8
+            // even a count-limited Split first collects every delimiter index,
+            // allowing a 64-KiB separator flood to allocate a large buffer.
+            var firstSeparator = keyBindingJwt.IndexOf('.');
+            if (firstSeparator <= 0)
             {
                 return false;
             }
 
-            var headerBase64 = parts[0];
-            var payloadBase64 = parts[1];
-            var signatureBase64 = parts[2];
+            var secondSeparator = keyBindingJwt.IndexOf('.', firstSeparator + 1);
+            if (secondSeparator <= firstSeparator + 1 ||
+                secondSeparator == keyBindingJwt.Length - 1 ||
+                keyBindingJwt.IndexOf('.', secondSeparator + 1) >= 0)
+            {
+                return false;
+            }
+
+            var headerBase64 = keyBindingJwt[..firstSeparator];
+            var payloadBase64 = keyBindingJwt[(firstSeparator + 1)..secondSeparator];
+            var signatureBase64 = keyBindingJwt[(secondSeparator + 1)..];
 
             // Decode and validate header
             var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
@@ -142,6 +152,35 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             // Apply the same registered JOSE header type and critical-extension
             // checks as issuer-token verification before accepting a holder proof.
             if (JoseHeaderGuard.HasInvalidOrUnsupportedParameters(header))
+            {
+                return false;
+            }
+
+            // Authenticate the holder proof before parsing claims or consulting
+            // the clock. An invalid signature must not consume application
+            // services or cause errors from untrusted payload data.
+            var signingInput = $"{headerBase64}.{payloadBase64}";
+            var signature = Base64UrlEncoder.DecodeBytes(signatureBase64);
+
+            using var ecdsa = ECDsa.Create();
+            try
+            {
+                ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
+            }
+            catch (CryptographicException)
+            {
+                return false; // Invalid key format
+            }
+
+            if (!EcCurveGuard.IsP256(ecdsa))
+            {
+                return false; // Only P-256 (ES256) is supported
+            }
+
+            if (!ecdsa.VerifyData(
+                System.Text.Encoding.UTF8.GetBytes(signingInput),
+                signature,
+                HashAlgorithmName.SHA256))
             {
                 return false;
             }
@@ -224,32 +263,7 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
                 return false; // KB-JWT issued in the future
             }
 
-            // Verify signature
-            var signingInput = $"{headerBase64}.{payloadBase64}";
-            var signature = Base64UrlEncoder.DecodeBytes(signatureBase64);
-
-            using var ecdsa = ECDsa.Create();
-            try
-            {
-                ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
-            }
-            catch (CryptographicException)
-            {
-                // Invalid key format
-                return false;
-            }
-
-            // Validate elliptic curve - only P-256 (ES256) is supported
-            if (!EcCurveGuard.IsP256(ecdsa))
-            {
-                return false; // Only P-256 curve is supported for ES256
-            }
-
-            return ecdsa.VerifyData(
-                System.Text.Encoding.UTF8.GetBytes(signingInput),
-                signature,
-                HashAlgorithmName.SHA256
-            );
+            return true;
         }
         catch (CryptographicException)
         {
