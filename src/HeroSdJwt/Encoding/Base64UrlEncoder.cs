@@ -17,6 +17,9 @@ public static class Base64UrlEncoder
     /// </summary>
     private const int MAX_INPUT_LENGTH = 10 * 1024 * 1024; // 10MB
 
+    // Reject non-UTF-8 JSON rather than silently replacing invalid bytes with U+FFFD.
+    private static readonly System.Text.UTF8Encoding _strictUtf8 = new(false, true);
+
     /// <summary>
     /// Converts a byte array to a base64url-encoded string.
     /// Base64url encoding uses URL-safe characters: no +, /, or = padding.
@@ -102,6 +105,16 @@ public static class Base64UrlEncoder
         ArgumentNullException.ThrowIfNull(base64Url);
 
         byte[] bytes = DecodeBytes(base64Url);
-        return System.Text.Encoding.UTF8.GetString(bytes);
+        try
+        {
+            return _strictUtf8.GetString(bytes);
+        }
+        catch (System.Text.DecoderFallbackException ex)
+        {
+            throw new SdJwtException(
+                "Invalid UTF-8 text in base64url input",
+                ErrorCode.InvalidInput,
+                ex);
+        }
     }
 }
