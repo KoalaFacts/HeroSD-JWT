@@ -77,6 +77,43 @@ public class IssuerNestedSdAlgShapeTests
     }
 
     [Fact]
+    public void Should_RejectNestedSdAlgInNonListEnumerableRuntimeValue()
+    {
+        var nestedDictionary = new Dictionary<string, object>
+        {
+            ["_sd_alg"] = "sha-256"
+        };
+        var collection = new HashSet<System.Collections.IEnumerable>
+        {
+            nestedDictionary
+        };
+        var claims = new Dictionary<string, object>
+        {
+            ["profile"] = collection
+        };
+
+        AssertRejected(claims);
+    }
+
+    [Fact]
+    public void Should_RejectCyclicSelectiveClaimWithoutStackOverflow()
+    {
+        var profile = new Dictionary<string, object>();
+        profile["self"] = profile;
+
+        var claims = new Dictionary<string, object>
+        {
+            ["profile"] = profile
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            TestHelpers.CreateIssuer().CreateSdJwt(
+                claims, ["profile"], _signingKey, HashAlgorithm.Sha256));
+
+        Assert.Contains("nesting", exception.Message);
+    }
+
+    [Fact]
     public void Should_AllowNormalAnonymousNestedObjectsAndArrays()
     {
         var claims = new Dictionary<string, object>
