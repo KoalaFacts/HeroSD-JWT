@@ -55,7 +55,7 @@ public class IssuerReservedDisclosureMembersTests
     [Fact]
     public void Should_RejectCallerProvidedSdDigestInJsonElement()
     {
-        using var document = JsonDocument.Parse(\"{\\\"profile\\\":{\\\"_sd\\\":[]}}\");
+        using var document = JsonDocument.Parse("""{"profile":{"_sd":[]}}""");
         var claims = new Dictionary<string, object>
         {
             ["payload"] = document.RootElement.Clone()
@@ -81,7 +81,7 @@ public class IssuerReservedDisclosureMembersTests
     [Fact]
     public void Should_RejectCallerProvidedPlaceholderInNestedJsonArray()
     {
-        using var document = JsonDocument.Parse(\"{\\\"items\\\":[{\\\"...\\\":\\\"injected\\\"}]}\");
+        using var document = JsonDocument.Parse("""{"items":[{"...":"injected"}]}""");
         var claims = new Dictionary<string, object>
         {
             ["payload"] = document.RootElement.Clone()
