@@ -1231,6 +1231,16 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
 
         if (element.ValueKind == JsonValueKind.Object)
         {
+            // The issuer's root claim names have already been checked. Nested
+            // objects, including values inside Disclosures, must also be
+            // unambiguous: duplicate JSON member names can be interpreted
+            // differently by downstream claim consumers.
+            if ((!allowTopLevelSdAlg || depth > 0) &&
+                JsonObjectMemberGuard.HasInvalidOrDuplicateNames(element))
+            {
+                return false;
+            }
+
             foreach (var property in element.EnumerateObject())
             {
                 if (property.Name == "_sd")
