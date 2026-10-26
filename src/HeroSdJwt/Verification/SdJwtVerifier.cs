@@ -740,6 +740,15 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
+            // RFC 7519 requires unique top-level claim names. The JSON DOM's
+            // last-wins lookup is ambiguous even when the JWS signature is valid.
+            if (JsonObjectMemberGuard.HasInvalidOrDuplicateNames(payload))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("JWT payload contains duplicate or invalid claim names");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
             var payloadAudiences = ExtractAudiences(payload);
 
             // Step 3: Validate temporal claims (exp, nbf, iat)
