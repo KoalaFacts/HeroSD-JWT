@@ -128,6 +128,47 @@ public class IssuerNestedSdAlgShapeTests
         Assert.Empty(result.Disclosures);
     }
 
+    [Fact]
+    public void Should_AllowNonSelectiveMultidimensionalArray()
+    {
+        var claims = new Dictionary<string, object>
+        {
+            ["matrix"] = new int[,] { { 1, 2 }, { 3, 4 } }
+        };
+
+        var result = TestHelpers.CreateIssuer().CreateSdJwt(
+            claims, [], _signingKey, HashAlgorithm.Sha256);
+
+        Assert.NotEmpty(result.Jwt);
+        Assert.Empty(result.Disclosures);
+    }
+
+    [Fact]
+    public void Should_RejectNestedSdAlgInMultidimensionalObjectArray()
+    {
+        var claims = new Dictionary<string, object>
+        {
+            ["matrix"] = new object[,] { { new Dictionary<string, object> { ["_sd_alg"] = "sha-256" } } }
+        };
+
+        AssertRejected(claims);
+    }
+
+    [Fact]
+    public void Should_AllowLargeNonSelectiveStringClaim()
+    {
+        var claims = new Dictionary<string, object>
+        {
+            ["description"] = new string('a', 64 * 1024)
+        };
+
+        var result = TestHelpers.CreateIssuer().CreateSdJwt(
+            claims, [], _signingKey, HashAlgorithm.Sha256);
+
+        Assert.NotEmpty(result.Jwt);
+        Assert.Empty(result.Disclosures);
+    }
+
     private static void AssertRejected(Dictionary<string, object> claims)
     {
         var exception = Assert.Throws<ArgumentException>(() =>
