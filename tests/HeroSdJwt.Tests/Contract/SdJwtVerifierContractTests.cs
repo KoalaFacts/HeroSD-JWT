@@ -374,7 +374,7 @@ public class SdJwtVerifierContractTests
         // Create a JWT with "none" algorithm (algorithm confusion attack)
         var header = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"alg\":\"none\",\"typ\":\"JWT\"}"));
         var payload = Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"sub\":\"user123\"}"));
-        var presentation = $"{header}.{payload}.~~";
+        var presentation = $"{header}.{payload}.~";
 
         // Act
         var result = verifier.TryVerifyPresentation(presentation, signingKey);
@@ -582,7 +582,7 @@ public class SdJwtVerifierContractTests
         using var hmac = new HMACSHA256(signingKey);
         var dataToSign = $"{header}.{payload}";
         var signature = Base64UrlEncoder.Encode(hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(dataToSign)));
-        var presentation = $"{header}.{payload}.{signature}~~";
+        var presentation = $"{header}.{payload}.{signature}~";
 
         // Act
         var result = verifier.TryVerifyPresentation(presentation, signingKey);

@@ -21,7 +21,8 @@ public class VerificationAdmissionSecurityTests
 
     [Theory]
     [InlineData("issuer-signature", ErrorCode.InvalidSignature)]
-    [InlineData("issuer-signature-blank-disclosure", ErrorCode.InvalidSignature)]
+    // The malformed blank Disclosure must be rejected before signature verification.
+    [InlineData("issuer-signature-blank-disclosure", ErrorCode.InvalidInput)]
     [InlineData("issuer", ErrorCode.InvalidInput)]
     [InlineData("audience", ErrorCode.InvalidInput)]
     [InlineData("not-before", ErrorCode.TokenExpired)]
