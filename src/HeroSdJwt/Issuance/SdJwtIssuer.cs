@@ -1,6 +1,7 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
+using HeroSdJwt.Verification;
 using System.Text.Json;
 using Constants = HeroSdJwt.Primitives.Constants;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
@@ -68,10 +69,10 @@ public class SdJwtIssuer(
 #pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement at API boundary
             var expElement = JsonSerializer.SerializeToElement(expClaim);
 #pragma warning restore IL2026, IL3050
-            if (expElement.ValueKind != JsonValueKind.Number || !expElement.TryGetInt64(out _))
+            if (!NumericDateParser.TryParseUnixTicks(expElement, out _))
             {
                 throw new ArgumentException(
-                    "The 'exp' claim must be a numeric Unix timestamp (seconds since epoch).",
+                    "The 'exp' claim must be a representable numeric Unix timestamp (seconds since epoch).",
                     nameof(claims));
             }
         }
