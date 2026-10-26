@@ -8,8 +8,8 @@ namespace HeroSdJwt.Verification;
 /// </summary>
 internal static class NumericDateParser
 {
-    private const decimal MinUnixSeconds = -62_135_596_800M;
-    private const decimal MaxUnixSecondsExclusive = 253_402_300_800M;
+    private const decimal MIN_UNIX_SECONDS = -62_135_596_800M;
+    private const decimal MAX_UNIX_SECONDS_EXCLUSIVE = 253_402_300_800M;
 
     internal static bool TryParse(JsonElement element, out DateTimeOffset timestamp)
     {
@@ -37,8 +37,8 @@ internal static class NumericDateParser
         // NumericDate is a JSON number, not necessarily an integer. Decimal
         // avoids floating point imprecision at tight temporal boundaries.
         if (!element.TryGetDecimal(out var seconds) ||
-            seconds < MinUnixSeconds ||
-            seconds >= MaxUnixSecondsExclusive)
+            seconds < MIN_UNIX_SECONDS ||
+            seconds >= MAX_UNIX_SECONDS_EXCLUSIVE)
         {
             return false;
         }
