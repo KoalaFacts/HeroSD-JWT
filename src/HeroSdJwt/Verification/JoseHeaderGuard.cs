@@ -8,6 +8,8 @@ namespace HeroSdJwt.Verification;
 /// </summary>
 internal static class JoseHeaderGuard
 {
+    private const int MAX_SMALL_HEADER_PARAMETERS = 8;
+
     internal static bool HasInvalidOrUnsupportedParameters(JsonElement header)
     {
         // RFC 7515 requires processing every critical extension. RFC 7797's
@@ -22,6 +24,53 @@ internal static class JoseHeaderGuard
                (header.TryGetProperty("alg", out var alg) && alg.ValueKind != JsonValueKind.String) ||
                (header.TryGetProperty("kid", out var kid) && kid.ValueKind != JsonValueKind.String) ||
                (header.TryGetProperty("typ", out var typ) && typ.ValueKind != JsonValueKind.String) ||
-               (header.TryGetProperty("cty", out var cty) && cty.ValueKind != JsonValueKind.String);
+               (header.TryGetProperty("cty", out var cty) && cty.ValueKind != JsonValueKind.String) ||
+               // JsonElement.TryGetProperty picks the last duplicate. Reject
+               // ambiguity instead, including unknown extension names and
+               // names escaped with JSON unicode sequences.
+               HasDuplicateParameterNames(header);
+    }
+
+    private static bool HasDuplicateParameterNames(JsonElement header)
+    {
+        var count = 0;
+        foreach (var _ in header.EnumerateObject())
+        {
+            if (++count > MAX_SMALL_HEADER_PARAMETERS)
+            {
+                // Keep adversarial, many-property headers linear-time rather
+                // than applying the small-header scan quadratically.
+                var names = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var property in header.EnumerateObject())
+                {
+                    if (!names.Add(property.Name))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        // Ordinary JOSE headers have only a handful of members. Comparing
+        // pairs avoids allocating a HashSet on every token verification.
+        var index = 0;
+        foreach (var property in header.EnumerateObject())
+        {
+            var name = property.Name;
+            var candidateIndex = 0;
+            foreach (var candidate in header.EnumerateObject())
+            {
+                if (candidateIndex++ > index && candidate.NameEquals(name))
+                {
+                    return true;
+                }
+            }
+
+            index++;
+        }
+
+        return false;
     }
 }
