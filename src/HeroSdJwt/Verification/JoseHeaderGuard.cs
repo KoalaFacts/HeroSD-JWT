@@ -8,8 +8,6 @@ namespace HeroSdJwt.Verification;
 /// </summary>
 internal static class JoseHeaderGuard
 {
-    private const int MAX_SMALL_HEADER_PARAMETERS = 8;
-
     internal static bool HasInvalidOrUnsupportedParameters(JsonElement header)
     {
         try
@@ -27,60 +25,13 @@ internal static class JoseHeaderGuard
                    (header.TryGetProperty("kid", out var kid) && kid.ValueKind != JsonValueKind.String) ||
                    (header.TryGetProperty("typ", out var typ) && typ.ValueKind != JsonValueKind.String) ||
                    (header.TryGetProperty("cty", out var cty) && cty.ValueKind != JsonValueKind.String) ||
-                   // JsonElement.TryGetProperty picks the last duplicate. Reject
-                   // ambiguity instead, including unknown extension names and
-                   // names escaped with JSON unicode sequences.
-                   HasDuplicateParameterNames(header);
+                   // Use the same unambiguous-name policy for JOSE headers and
+                   // JWT claim sets, including escaped JSON member names.
+                   JsonObjectMemberGuard.HasInvalidOrDuplicateNames(header);
         }
         catch (InvalidOperationException)
         {
-            // JsonProperty.Name can throw while unescaping an invalid Unicode
-            // surrogate. Fail closed instead of leaking an exception from
-            // public boolean JWT verification APIs.
-            return true;
+            return true; // Fail closed on invalid escaped JSON property names.
         }
-    }
-
-    private static bool HasDuplicateParameterNames(JsonElement header)
-    {
-        var count = 0;
-        foreach (var _ in header.EnumerateObject())
-        {
-            if (++count > MAX_SMALL_HEADER_PARAMETERS)
-            {
-                // Keep adversarial, many-property headers linear-time rather
-                // than applying the small-header scan quadratically.
-                var names = new HashSet<string>(StringComparer.Ordinal);
-                foreach (var property in header.EnumerateObject())
-                {
-                    if (!names.Add(property.Name))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-        }
-
-        // Ordinary JOSE headers have only a handful of members. Comparing
-        // pairs avoids allocating a HashSet on every token verification.
-        var index = 0;
-        foreach (var property in header.EnumerateObject())
-        {
-            var name = property.Name;
-            var candidateIndex = 0;
-            foreach (var candidate in header.EnumerateObject())
-            {
-                if (candidateIndex++ > index && candidate.NameEquals(name))
-                {
-                    return true;
-                }
-            }
-
-            index++;
-        }
-
-        return false;
     }
 }
