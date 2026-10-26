@@ -12,7 +12,7 @@ namespace HeroSdJwt.Tests.Security;
 /// </summary>
 public class IssuerReservedDisclosureMembersTests
 {
-    private static readonly byte[] SigningKey = new byte[32];
+    private static readonly byte[] _signingKey = new byte[32];
 
     [Fact]
     public void Should_RejectCallerProvidedTopLevelSdDigest()
@@ -111,7 +111,7 @@ public class IssuerReservedDisclosureMembersTests
         };
 
         var sdJwt = TestHelpers.CreateIssuer().CreateSdJwt(
-            claims, ["profile.city", "roles[0]"], SigningKey, HashAlgorithm.Sha256);
+            claims, ["profile.city", "roles[0]"], _signingKey, HashAlgorithm.Sha256);
 
         Assert.Equal(2, sdJwt.Disclosures.Count);
 
@@ -124,7 +124,7 @@ public class IssuerReservedDisclosureMembersTests
     private static void AssertRejected(Dictionary<string, object> claims, string reservedName)
     {
         var exception = Assert.Throws<ArgumentException>(() =>
-            TestHelpers.CreateIssuer().CreateSdJwt(claims, [], SigningKey, HashAlgorithm.Sha256));
+            TestHelpers.CreateIssuer().CreateSdJwt(claims, [], _signingKey, HashAlgorithm.Sha256));
 
         Assert.Contains(reservedName, exception.Message);
     }
