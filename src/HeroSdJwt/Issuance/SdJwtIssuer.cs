@@ -337,32 +337,92 @@ public class SdJwtIssuer(
     /// Recursively validates that _sd_alg does not appear in nested objects.
     /// Per SD-JWT spec section 4.2.3, _sd_alg MUST only appear at top level.
     /// </summary>
-    private static void ValidateNoNestedSdAlg(object value, string claimPath)
+    private static void ValidateNoNestedSdAlg(object? value, string claimPath)
     {
-        if (value is Dictionary<string, object> dict)
+        if (value is null)
         {
-            foreach (var kvp in dict)
-            {
-                if (kvp.Key == Constants.SD_ALG_CLAIM_NAME)
-                {
-                    throw new ArgumentException(
-                        $"The claim '{Constants.SD_ALG_CLAIM_NAME}' was found in nested object at path '{claimPath}.{kvp.Key}'. " +
-                        "Per SD-JWT specification section 4.2.3, _sd_alg MUST appear at the top level of the SD-JWT payload " +
-                        "and MUST NOT be used in any object nested within the payload.",
-                        nameof(value));
-                }
+            return;
+        }
 
-                ValidateNoNestedSdAlg(kvp.Value, $"{claimPath}.{kvp.Key}");
+        // Inspect the JSON representation, not only Dictionary<string, object>.
+        // Callers can supply anonymous objects, JsonElement, records, dictionaries
+        // with different value types, or arrays containing any of those.
+        if (value is JsonElement jsonElement)
+        {
+            ValidateNoNestedSdAlgElement(jsonElement, claimPath);
+            return;
+        }
+
+        // Keep common dictionaries and arrays on the no-serialization path.
+        // Non-generic IDictionary also covers Dictionary<string, string>.
+        if (value is System.Collections.IDictionary dictionary)
+        {
+            foreach (System.Collections.DictionaryEntry entry in dictionary)
+            {
+                if (entry.Key is string propertyName)
+                {
+                    ValidateNestedSdAlgName(propertyName, claimPath);
+                    ValidateNoNestedSdAlg(entry.Value, $"{claimPath}.{propertyName}");
+                }
+            }
+
+            return;
+        }
+
+        if (value is System.Collections.IList list)
+        {
+            for (int index = 0; index < list.Count; index++)
+            {
+                ValidateNoNestedSdAlg(list[index], $"{claimPath}[{index}]");
+            }
+
+            return;
+        }
+
+        if (value is string || value is decimal || value.GetType().IsPrimitive || value.GetType().IsEnum)
+        {
+            return;
+        }
+
+        // For arbitrary serializable objects (including anonymous types and
+        // immutable dictionaries), inspect the same JSON property names that
+        // would appear in the signed JWT rather than reflecting CLR fields.
+#pragma warning disable IL2026, IL3050 // Public API accepts arbitrary claim values
+        var serialized = JsonSerializer.SerializeToElement(value);
+#pragma warning restore IL2026, IL3050
+        ValidateNoNestedSdAlgElement(serialized, claimPath);
+    }
+
+    private static void ValidateNoNestedSdAlgElement(JsonElement value, string claimPath)
+    {
+        if (value.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in value.EnumerateObject())
+            {
+                ValidateNestedSdAlgName(property.Name, claimPath);
+                ValidateNoNestedSdAlgElement(property.Value, $"{claimPath}.{property.Name}");
             }
         }
-        else if (value is System.Collections.IEnumerable enumerable and not string)
+        else if (value.ValueKind == JsonValueKind.Array)
         {
             var index = 0;
-            foreach (var item in enumerable)
+            foreach (var item in value.EnumerateArray())
             {
-                ValidateNoNestedSdAlg(item, $"{claimPath}[{index}]");
+                ValidateNoNestedSdAlgElement(item, $"{claimPath}[{index}]");
                 index++;
             }
+        }
+    }
+
+    private static void ValidateNestedSdAlgName(string propertyName, string claimPath)
+    {
+        if (propertyName == Constants.SD_ALG_CLAIM_NAME)
+        {
+            throw new ArgumentException(
+                $"The claim '{Constants.SD_ALG_CLAIM_NAME}' was found in nested object at path '{claimPath}.{propertyName}'. " +
+                "Per SD-JWT specification section 4.2.3, _sd_alg MUST appear at the top level of the SD-JWT payload " +
+                "and MUST NOT be used in any object nested within the payload.",
+                "value");
         }
     }
 }
