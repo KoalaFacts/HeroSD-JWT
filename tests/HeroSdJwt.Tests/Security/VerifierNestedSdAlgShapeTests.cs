@@ -18,18 +18,18 @@ public class VerifierNestedSdAlgShapeTests
     private static readonly byte[] _signingKey = [.. Enumerable.Range(1, 32).Select(i => (byte)i)];
 
     [Theory]
-    [InlineData("{\"exp\":4102444800,\"profile\":{\"_sd_alg\":\"sha-512\"}}")]
-    [InlineData("{\"exp\":4102444800,\"profile\":{\"address\":{\"_sd_alg\":\"sha-256\"}}}")]
-    [InlineData("{\"exp\":4102444800,\"roles\":[{\"_sd_alg\":null}]}")]
+    [InlineData(/*lang=json,strict*/ "{\"exp\":4102444800,\"profile\":{\"_sd_alg\":\"sha-512\"}}")]
+    [InlineData(/*lang=json,strict*/ "{\"exp\":4102444800,\"profile\":{\"address\":{\"_sd_alg\":\"sha-256\"}}}")]
+    [InlineData(/*lang=json,strict*/ "{\"exp\":4102444800,\"roles\":[{\"_sd_alg\":null}]}")]
     public async Task Should_RejectNestedSdAlgInSignedPayload(string payloadJson)
     {
         await AssertRejectedAsync(payloadJson);
     }
 
     [Theory]
-    [InlineData("[\"salt-parent\",\"profile\",{\"_sd_alg\":\"sha-256\",\"display\":\"Alice\"}]")]
-    [InlineData("[\"salt-parent\",\"profile\",{\"address\":{\"_sd_alg\":\"sha-512\"}}]")]
-    [InlineData("[\"salt-parent\",\"profile\",[{\"_sd_alg\":null}]]")]
+    [InlineData(/*lang=json,strict*/ "[\"salt-parent\",\"profile\",{\"_sd_alg\":\"sha-256\",\"display\":\"Alice\"}]")]
+    [InlineData(/*lang=json,strict*/ "[\"salt-parent\",\"profile\",{\"address\":{\"_sd_alg\":\"sha-512\"}}]")]
+    [InlineData(/*lang=json,strict*/ "[\"salt-parent\",\"profile\",[{\"_sd_alg\":null}]]")]
     public async Task Should_RejectNestedSdAlgInPresentedDisclosure(string disclosureJson)
     {
         var disclosure = Base64UrlEncoder.Encode(disclosureJson);
@@ -42,7 +42,7 @@ public class VerifierNestedSdAlgShapeTests
     [Fact]
     public async Task Should_AcceptTopLevelSdAlgAndOrdinaryNestedClaims()
     {
-        const string payload = "{\"exp\":4102444800,\"_sd_alg\":\"sha-256\",\"profile\":{\"name\":\"Alice\",\"roles\":[\"member\"]}}";
+        const string payload = /*lang=json,strict*/ "{\"exp\":4102444800,\"_sd_alg\":\"sha-256\",\"profile\":{\"name\":\"Alice\",\"roles\":[\"member\"]}}";
         var presentation = SignPayload(payload) + "~";
         var verifier = CreateVerifier();
 
@@ -60,7 +60,7 @@ public class VerifierNestedSdAlgShapeTests
     [Fact]
     public async Task Should_AcceptOrdinaryNestedDisclosedObject()
     {
-        const string disclosureJson = "[\"salt-parent\",\"profile\",{\"address\":{\"city\":\"Sydney\"}}]";
+        const string disclosureJson = /*lang=json,strict*/ "[\"salt-parent\",\"profile\",{\"address\":{\"city\":\"Sydney\"}}]";
         var disclosure = Base64UrlEncoder.Encode(disclosureJson);
         var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
         var payload = JsonSerializer.Serialize(new { exp = 4102444800L, _sd_alg = "sha-256", _sd = new[] { digest } });
@@ -117,7 +117,7 @@ public class VerifierNestedSdAlgShapeTests
 
     private static string SignPayload(string payloadJson)
     {
-        const string header = "{\"alg\":\"HS256\",\"kid\":\"nested-sd-alg-key\"}";
+        const string header = /*lang=json,strict*/ "{\"alg\":\"HS256\",\"kid\":\"nested-sd-alg-key\"}";
         var input = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payloadJson);
         var signature = HMACSHA256.HashData(_signingKey, System.Text.Encoding.UTF8.GetBytes(input));
         return input + "." + Base64UrlEncoder.Encode(signature);
