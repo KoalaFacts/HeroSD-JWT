@@ -789,7 +789,8 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             var seenDigests = new HashSet<string>(StringComparer.Ordinal);
             var nonArrayDisclosures = new List<string>();
             var arrayDisclosures = new List<string>();
-            if (!CollectAllSdDigests(payload, expectedDigests, arrayDigests, algorithm, seenDigests))
+            if (!CollectAllSdDigests(
+                payload, expectedDigests, arrayDigests, algorithm, seenDigests, allowTopLevelSdAlg: true))
             {
                 errors.Add(ErrorCode.InvalidInput);
                 return new VerificationResult(errors, "Invalid or repeated SD-JWT disclosure digest reference");
@@ -1161,7 +1162,8 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         List<Digest> arrayDigests,
         HashAlgorithm algorithm,
         HashSet<string> seenDigests,
-        int depth = 0)
+        int depth = 0,
+        bool allowTopLevelSdAlg = false)
     {
         // Security: Prevent stack overflow with deeply nested structures
         const int MAX_NESTING_DEPTH = 10;
@@ -1199,7 +1201,17 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                         digests.Add(new Digest(digest, algorithm));
                     }
                 }
-                else if (property.Name != "_sd_alg")
+                else if (property.Name == "_sd_alg")
+                {
+                    // RFC 9901 allows _sd_alg only at the issuer JWT root.
+                    // A Disclosure value is nested, even when parsed as an
+                    // independent JSON subtree with depth zero.
+                    if (!allowTopLevelSdAlg)
+                    {
+                        return false;
+                    }
+                }
+                else
                 {
                     // Recursively search nested objects and arrays (increment depth)
                     if (!CollectAllSdDigests(property.Value, digests, arrayDigests, algorithm, seenDigests, depth + 1))
