@@ -1,5 +1,6 @@
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.Models;
 using System.Text.Json;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
@@ -99,6 +100,49 @@ public class IssuerReservedDisclosureMembersTests
         };
 
         AssertRejected(claims, "...");
+    }
+
+    [Fact]
+    public void Should_RejectCallerProvidedDigestModelInArray()
+    {
+        // The signer serializes Digest as {"...": digest.Value}, even though
+        // JsonSerializer would represent this same CLR value differently.
+        using var valueDocument = JsonDocument.Parse("true");
+        var disclosure = new DisclosureGenerator().GenerateArrayElementDisclosure(valueDocument.RootElement);
+        var digestValue = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
+
+        var claims = new Dictionary<string, object>
+        {
+            ["roles"] = new object[] { new Digest(digestValue, HashAlgorithm.Sha256) }
+        };
+
+        AssertRejected(claims, "Digest");
+    }
+
+    [Fact]
+    public void Should_RejectCallerProvidedDigestModelInNestedArray()
+    {
+        Digest[] forgedReferences = [new Digest(CreateForgedDigest(), HashAlgorithm.Sha256)];
+        var claims = new Dictionary<string, object>
+        {
+            ["profile"] = new Dictionary<string, object>
+            {
+                ["roles"] = forgedReferences
+            }
+        };
+
+        AssertRejected(claims, "Digest");
+    }
+
+    [Fact]
+    public void Should_RejectCallerProvidedDigestModelAsClaim()
+    {
+        var claims = new Dictionary<string, object>
+        {
+            ["access"] = new Digest(CreateForgedDigest(), HashAlgorithm.Sha256)
+        };
+
+        AssertRejected(claims, "Digest");
     }
 
     [Fact]
