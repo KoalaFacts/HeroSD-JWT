@@ -94,8 +94,10 @@ public class SdJwtIssuer(
             // Validate that security-critical claims are not selectively disclosable
             // Per SD-JWT spec section 5.3: "An Issuer MUST NOT allow any content to be
             // selectively disclosable that is critical for evaluating the SD-JWT's authenticity or validity"
+            // Even one disclosed array element would conceal part of a
+            // security-critical claim such as an RFC 7519 audience array.
             var reservedClaimsInList = parsedClaims
-                .Where(p => !p.IsArrayElement && Constants.ReservedClaims.Contains(p.BaseName))
+                .Where(p => Constants.ReservedClaims.Contains(p.BaseName))
                 .Select(p => p.BaseName)
                 .ToList();
 
