@@ -2,6 +2,8 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
+using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
 using System.Text.Json;
 
 namespace HeroSdJwt.Presentation;
@@ -35,17 +37,24 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
     /// <returns>Dictionary mapping claim paths to disclosure indices.</returns>
     public Dictionary<string, int> BuildClaimPathMapping(SdJwt sdJwt)
     {
-        var mapping = new Dictionary<string, int>();
+        ArgumentNullException.ThrowIfNull(sdJwt);
 
-        // Parse JWT payload to understand structure
-        var jwtParts = sdJwt.Jwt.Split('.');
-        if (jwtParts.Length != 3)
+        // Imported credentials may be untrusted. Apply the verifier's compact
+        // JWT budget before parsing, without allocating an entry per separator.
+        if (sdJwt.Jwt.Length > Constants.MAX_JWT_SIZE_BYTES)
         {
-            throw new ArgumentException("Invalid JWT format");
+            throw new ArgumentException("JWT exceeds the maximum allowed size", nameof(sdJwt));
+        }
+
+        var jwtParts = CompactJwtSplitter.Split(sdJwt.Jwt);
+        if (jwtParts is null)
+        {
+            throw new ArgumentException("Invalid JWT format", nameof(sdJwt));
         }
 
         var payloadJson = Base64UrlEncoder.DecodeString(jwtParts[1]);
-        var payload = JsonDocument.Parse(payloadJson).RootElement;
+        using var payloadDocument = JsonDocument.Parse(payloadJson);
+        var payload = payloadDocument.RootElement;
 
         // Build digest-to-disclosure-index map
         var digestToIndex = new Dictionary<string, int>();
@@ -168,7 +177,8 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
         {
             if (item.ValueKind == JsonValueKind.Object &&
                 item.TryGetProperty("...", out var digestProp) &&
-                digestProp.ValueKind == JsonValueKind.String)
+                digestProp.ValueKind == JsonValueKind.String &&
+                item.EnumerateObject().Count() == 1)
             {
                 // This is an array element placeholder
                 var digest = digestProp.GetString()!;
@@ -180,6 +190,12 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
 
                     // Recursively process the array element value
                     var disclosure = _disclosureParser.Parse(disclosures[disclosureIndex]);
+                    if (disclosure.ClaimName is not null)
+                    {
+                        throw new MalformedDisclosureException(
+                            "An array digest must reference a two-element Disclosure.");
+                    }
+
                     ProcessElement(disclosure.ClaimValue, arrayPath, digestToIndex, disclosures, mapping);
                 }
             }
