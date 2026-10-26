@@ -111,7 +111,7 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
         try
         {
             // Parse JWT
-            var parts = keyBindingJwt.Split('.');
+            var parts = keyBindingJwt.Split('.', 4);
             if (parts.Length != 3)
             {
                 return false;
@@ -142,6 +142,35 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             // Apply the same registered JOSE header type and critical-extension
             // checks as issuer-token verification before accepting a holder proof.
             if (JoseHeaderGuard.HasInvalidOrUnsupportedParameters(header))
+            {
+                return false;
+            }
+
+            // Authenticate the holder proof before parsing claims or consulting
+            // the clock. An invalid signature must not consume application
+            // services or cause errors from untrusted payload data.
+            var signingInput = $"{headerBase64}.{payloadBase64}";
+            var signature = Base64UrlEncoder.DecodeBytes(signatureBase64);
+
+            using var ecdsa = ECDsa.Create();
+            try
+            {
+                ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
+            }
+            catch (CryptographicException)
+            {
+                return false; // Invalid key format
+            }
+
+            if (!EcCurveGuard.IsP256(ecdsa))
+            {
+                return false; // Only P-256 (ES256) is supported
+            }
+
+            if (!ecdsa.VerifyData(
+                System.Text.Encoding.UTF8.GetBytes(signingInput),
+                signature,
+                HashAlgorithmName.SHA256))
             {
                 return false;
             }
@@ -224,32 +253,7 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
                 return false; // KB-JWT issued in the future
             }
 
-            // Verify signature
-            var signingInput = $"{headerBase64}.{payloadBase64}";
-            var signature = Base64UrlEncoder.DecodeBytes(signatureBase64);
-
-            using var ecdsa = ECDsa.Create();
-            try
-            {
-                ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
-            }
-            catch (CryptographicException)
-            {
-                // Invalid key format
-                return false;
-            }
-
-            // Validate elliptic curve - only P-256 (ES256) is supported
-            if (!EcCurveGuard.IsP256(ecdsa))
-            {
-                return false; // Only P-256 curve is supported for ES256
-            }
-
-            return ecdsa.VerifyData(
-                System.Text.Encoding.UTF8.GetBytes(signingInput),
-                signature,
-                HashAlgorithmName.SHA256
-            );
+            return true;
         }
         catch (CryptographicException)
         {
