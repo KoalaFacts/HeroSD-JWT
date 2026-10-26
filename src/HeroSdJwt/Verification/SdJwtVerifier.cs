@@ -1052,7 +1052,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             }
 
             var algString = sdAlgElement.GetString();
-            algorithm = algString?.ToLowerInvariant() switch
+            algorithm = algString switch
             {
                 "sha-256" => HashAlgorithm.Sha256,
                 "sha-384" => HashAlgorithm.Sha384,
@@ -1153,6 +1153,56 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
     }
 
     /// <summary>
+    /// Checks the unpadded, canonical base64url representation of a digest.
+    /// Unpresented digest references (including decoys) must have the same
+    /// encoded width and alphabet as a real digest for the selected hash.
+    /// </summary>
+    private static bool HasCanonicalDigestEncoding(string? digest, HashAlgorithm algorithm)
+    {
+        var expectedLength = algorithm switch
+        {
+            HashAlgorithm.Sha256 => 43,
+            HashAlgorithm.Sha384 => 64,
+            HashAlgorithm.Sha512 => 86,
+            _ => 0
+        };
+
+        if (digest == null || digest.Length != expectedLength)
+        {
+            return false;
+        }
+
+        var lastSextet = 0;
+        foreach (var character in digest)
+        {
+            lastSextet = character switch
+            {
+                >= 'A' and <= 'Z' => character - 'A',
+                >= 'a' and <= 'z' => character - 'a' + 26,
+                >= '0' and <= '9' => character - '0' + 52,
+                '-' => 62,
+                '_' => 63,
+                _ => -1
+            };
+
+            if (lastSextet < 0)
+            {
+                return false;
+            }
+        }
+
+        // Unused low bits in the last base64url sextet must be zero.
+        // SHA-384 has no partial sextet (48 bytes = exactly 64 chars).
+        return algorithm switch
+        {
+            HashAlgorithm.Sha256 => (lastSextet & 0x0F) == 0,
+            HashAlgorithm.Sha384 => true,
+            HashAlgorithm.Sha512 => (lastSextet & 0x03) == 0,
+            _ => false
+        };
+    }
+
+    /// <summary>
     /// Recursively collects all _sd array digests from a JSON element.
     /// This supports nested selective disclosure structures per SD-JWT spec.
     /// </summary>
@@ -1193,7 +1243,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                         }
 
                         var digest = digestValue.GetString();
-                        if (string.IsNullOrWhiteSpace(digest) || !seenDigests.Add(digest))
+                        if (digest == null || !HasCanonicalDigestEncoding(digest, algorithm) || !seenDigests.Add(digest))
                         {
                             return false;
                         }
@@ -1231,7 +1281,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 {
                     if (item.EnumerateObject().Count() != 1 ||
                         arrayDigest.ValueKind != JsonValueKind.String ||
-                        string.IsNullOrWhiteSpace(arrayDigest.GetString()))
+                        !HasCanonicalDigestEncoding(arrayDigest.GetString(), algorithm))
                     {
                         return false;
                     }
