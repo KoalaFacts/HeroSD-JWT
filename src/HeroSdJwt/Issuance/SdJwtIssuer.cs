@@ -370,6 +370,17 @@ public class SdJwtIssuer(
             throw new ArgumentException("Claim nesting exceeds the supported JSON depth.", nameof(value));
         }
 
+        // JwtSigner.WriteValue serializes the public Digest model as an
+        // array-element disclosure placeholder {"...": digest.Value}.
+        // JsonSerializer.SerializeToElement(digest) instead exposes Value and
+        // Algorithm properties, so inspecting its JSON shape misses this case.
+        if (value is Digest)
+        {
+            throw new ArgumentException(
+                $"The claim at '{claimPath}' contains a caller-supplied Digest; only the issuer may generate disclosure placeholders.",
+                nameof(value));
+        }
+
         // Inspect the JSON representation, not only Dictionary<string, object>.
         // Callers can supply anonymous objects, JsonElement, records, dictionaries
         // with different value types, or arrays containing any of those.
