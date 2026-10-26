@@ -55,12 +55,12 @@ public class SdJwtIssuer(
         ArgumentNullException.ThrowIfNull(claims);
         ArgumentNullException.ThrowIfNull(signingKey);
 
-        // SD-JWT spec requires an expiration claim. Add a default if missing and enforce numeric form.
-        if (!claims.TryGetValue("exp", out var expClaim))
+        // SD-JWT spec requires an expiration claim. Generate the default without
+        // modifying the caller's dictionary, even when later validation fails.
+        var hasExplicitExpiration = claims.TryGetValue("exp", out var expClaim);
+        if (!hasExplicitExpiration)
         {
-            var defaultExpiration = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
-            claims["exp"] = defaultExpiration;
-            expClaim = defaultExpiration;
+            expClaim = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
         }
 
         try
@@ -187,8 +187,13 @@ public class SdJwtIssuer(
                 digests = _decoyGenerator.InterleaveDecoys(digests, decoyDigests);
             }
 
-            // Step 1.5: Process nested claims and build objects with _sd arrays
+            // Step 1.5: Process nested claims and build objects with _sd arrays.
+            // The generated default belongs to the issued payload only.
             var modifiedClaims = new Dictionary<string, object>(claims);
+            if (!hasExplicitExpiration)
+            {
+                modifiedClaims["exp"] = expClaim!;
+            }
 
             if (nestedClaims.Count > 0)
             {
