@@ -1386,6 +1386,12 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             // Surface key-id validation failures directly (do not treat as revocation IO failure)
             throw;
         }
+        catch (OperationCanceledException)
+        {
+            // Cancellation (including a revoked request or backend timeout) is
+            // not a revocation-store outage to be admitted by fail-open policy.
+            throw;
+        }
         catch (Exception ex) when (_options.Revocation.FailureMode == RevocationFailureMode.FailOpen)
         {
             // Fail-open: Log error but allow token (availability over security)
