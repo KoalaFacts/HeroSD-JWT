@@ -62,6 +62,44 @@ public class ReplayCacheCancellationTests
         Assert.Equal(1, cache.AdmissionAttempts);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Should_NotAcceptReplayAdmission_WhenCacheIgnoresCallerCancellation(
+        bool resolveKey, bool tryApi)
+    {
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        // Simulate an atomic backend that commits admission and returns true
+        // even though the caller canceled while the operation was in flight.
+        var cache = new CancelingCache(cancellation, acknowledgeAdmission: true);
+        var verifier = CreateVerifier(cache);
+        var presentation = CreatePresentation();
+
+        if (tryApi)
+        {
+            var result = resolveKey
+                ? await verifier.TryVerifyPresentationAsync(
+                    presentation, ResolveKey, cancellationToken: cancellation.Token)
+                : await verifier.TryVerifyPresentationAsync(
+                    presentation, _signingKey, cancellationToken: cancellation.Token);
+
+            Assert.False(result.IsValid, "Canceled verification must never return a valid credential.");
+            Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        }
+        else
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => resolveKey
+                ? verifier.VerifyPresentationAsync(
+                    presentation, ResolveKey, cancellationToken: cancellation.Token)
+                : verifier.VerifyPresentationAsync(
+                    presentation, _signingKey, cancellationToken: cancellation.Token));
+        }
+
+        Assert.Equal(1, cache.AdmissionAttempts);
+    }
+
     private static SdJwtVerifier CreateVerifier(IJtiCache cache)
     {
         var replayOptions = new ReplayProtectionOptions { Enabled = true };
@@ -84,7 +122,7 @@ public class ReplayCacheCancellationTests
             .Build()
             .ToPresentation();
 
-    private sealed class CancelingCache(CancellationTokenSource? cancelCaller) : IJtiCache
+    private sealed class CancelingCache(CancellationTokenSource? cancelCaller, bool acknowledgeAdmission = false) : IJtiCache
     {
         public int AdmissionAttempts { get; private set; }
 
@@ -96,7 +134,9 @@ public class ReplayCacheCancellationTests
             if (cancelCaller != null)
             {
                 cancelCaller.Cancel();
-                return Task.FromCanceled<bool>(cancellationToken);
+                return acknowledgeAdmission
+                    ? Task.FromResult(true)
+                    : Task.FromCanceled<bool>(cancellationToken);
             }
 
             // A cache backend may cancel a read independently of the caller's
