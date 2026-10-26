@@ -11,8 +11,8 @@ namespace HeroSdJwt.Tests.Verification.ReplayProtection;
 /// </summary>
 public class JtiFractionalExpirationTests
 {
-    private const string Issuer = "https://issuer.example";
-    private const string Jti = "fractional-jti";
+    private const string ISSUER = "https://issuer.example";
+    private const string JTI = "fractional-jti";
     private static readonly DateTimeOffset _start = DateTimeOffset.FromUnixTimeSeconds(1_700_000_000);
 
     [Theory]
@@ -31,10 +31,10 @@ public class JtiFractionalExpirationTests
             validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
 
         clock.UtcNow = _start.AddSeconds(1).AddTicks(2_499_999);
-        Assert.True(await cache.ExistsAsync(Issuer, Jti, TestContext.Current.CancellationToken));
+        Assert.True(await cache.ExistsAsync(ISSUER, JTI, TestContext.Current.CancellationToken));
 
         clock.UtcNow = _start.AddSeconds(1).AddTicks(2_500_000);
-        Assert.False(await cache.ExistsAsync(Issuer, Jti, TestContext.Current.CancellationToken));
+        Assert.False(await cache.ExistsAsync(ISSUER, JTI, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -51,10 +51,10 @@ public class JtiFractionalExpirationTests
         // One hundredth of a microsecond is a tenth of a DateTime tick.
         // Rounding down would release the marker while the credential is valid.
         clock.UtcNow = _start.AddSeconds(1);
-        Assert.True(await cache.ExistsAsync(Issuer, Jti, TestContext.Current.CancellationToken));
+        Assert.True(await cache.ExistsAsync(ISSUER, JTI, TestContext.Current.CancellationToken));
 
         clock.UtcNow = _start.AddSeconds(1).AddTicks(1);
-        Assert.False(await cache.ExistsAsync(Issuer, Jti, TestContext.Current.CancellationToken));
+        Assert.False(await cache.ExistsAsync(ISSUER, JTI, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class JtiFractionalExpirationTests
             validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
 
         Assert.Contains("MaximumTtl", exception.Message, StringComparison.Ordinal);
-        Assert.False(await cache.ExistsAsync(Issuer, Jti, TestContext.Current.CancellationToken));
+        Assert.False(await cache.ExistsAsync(ISSUER, JTI, TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -92,7 +92,7 @@ public class JtiFractionalExpirationTests
         _ = await Assert.ThrowsAsync<SdJwtException>(() =>
             validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
 
-        Assert.False(await cache.ExistsAsync(Issuer, Jti, TestContext.Current.CancellationToken));
+        Assert.False(await cache.ExistsAsync(ISSUER, JTI, TestContext.Current.CancellationToken));
     }
 
     private static ReplayProtectionOptions CreateOptions() => new()
@@ -109,8 +109,8 @@ public class JtiFractionalExpirationTests
         using var document = JsonDocument.Parse(numericDate);
         return new Dictionary<string, JsonElement>
         {
-            ["iss"] = JsonSerializer.SerializeToElement(Issuer),
-            ["jti"] = JsonSerializer.SerializeToElement(Jti),
+            ["iss"] = JsonSerializer.SerializeToElement(ISSUER),
+            ["jti"] = JsonSerializer.SerializeToElement(JTI),
             ["exp"] = document.RootElement.Clone()
         };
     }
