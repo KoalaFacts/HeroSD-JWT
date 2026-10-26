@@ -38,15 +38,11 @@ public class SignatureValidator : ISignatureValidator
             throw new SdJwtException("JWT exceeds the maximum allowed size", ErrorCode.InvalidInput);
         }
 
-        // Cap the split at four so invalid dot-heavy inputs do not allocate
-        // one entry per separator.
-        var parts = jwt.Split('.', 4);
-        if (parts.Length != 3)
-        {
-            throw new SdJwtException(
+        // Reject malformed compact JWT shape without collecting all dot offsets.
+        var parts = CompactJwtSplitter.Split(jwt)
+            ?? throw new SdJwtException(
                 "Invalid JWT format: expected 3 parts separated by dots",
                 ErrorCode.InvalidInput);
-        }
 
         var headerBase64 = parts[0];
         var payloadBase64 = parts[1];
@@ -424,14 +420,11 @@ public class SignatureValidator : ISignatureValidator
             throw new SdJwtException("JWT exceeds the maximum allowed size", ErrorCode.InvalidInput);
         }
 
-        // Four parts means malformed input; never split every separator.
-        var parts = jwt.Split('.', 4);
-        if (parts.Length != 3)
-        {
-            throw new SdJwtException(
+        // Reject malformed compact JWT shape without collecting all dot offsets.
+        var parts = CompactJwtSplitter.Split(jwt)
+            ?? throw new SdJwtException(
                 "Invalid JWT format: expected 3 parts separated by dots",
                 ErrorCode.InvalidInput);
-        }
 
         var headerBase64 = parts[0];
 

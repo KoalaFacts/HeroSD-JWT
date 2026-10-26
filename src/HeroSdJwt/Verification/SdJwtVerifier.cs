@@ -393,7 +393,14 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         }
 
         // Parse presentation into parts: JWT~disclosure1~disclosure2~...~keyBinding
-        var parts = presentation.Split('~', Constants.MAX_DISCLOSURES + 2);
+        var parts = SplitPresentationComponents(presentation);
+        if (parts is null)
+        {
+            errors.Add(ErrorCode.InvalidInput);
+            errorDetails.Add($"Presentation exceeds maximum of {Constants.MAX_DISCLOSURES} disclosure slots");
+            return new VerificationResult(errors, string.Join("; ", errorDetails));
+        }
+
         if (parts.Length < 2)
         {
             errors.Add(ErrorCode.InvalidInput);
@@ -401,18 +408,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             return new VerificationResult(errors, string.Join("; ", errorDetails));
         }
 
-        // Split at most the existing maximum number of disclosure slots plus
-        // the issuer JWT and optional key-binding JWT. An excess separator
-        // remains in the final segment: reject it before further parsing.
-        // This also prevents empty disclosure components from bypassing the
-        // allocation bound on untrusted presentations.
-        if (parts[^1].Contains('~'))
-        {
-            errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add($"Presentation exceeds maximum of {Constants.MAX_DISCLOSURES} disclosure slots");
-            return new VerificationResult(errors, string.Join("; ", errorDetails));
-        }
-
+        // Reject excess separators before allocating any component strings.
         // RFC 9901: each intermediate component must be an actual Disclosure.
         // A whitespace-only final component is not an absent Key Binding JWT.
         // Reject malformed shapes before key resolution or signature work.
@@ -432,8 +428,8 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             cancellationToken.ThrowIfCancellationRequested();
 
             // Parse JWT header to check for kid
-            var jwtParts = jwt.Split('.');
-            if (jwtParts.Length != 3)
+            var jwtParts = CompactJwtSplitter.Split(jwt);
+            if (jwtParts is null)
             {
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add("Invalid JWT format");
@@ -559,7 +555,14 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             }
 
             // Parse presentation into parts: JWT~disclosure1~disclosure2~...~keyBinding
-            var parts = presentation.Split('~', Constants.MAX_DISCLOSURES + 2);
+            var parts = SplitPresentationComponents(presentation);
+            if (parts is null)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add($"Presentation exceeds maximum of {Constants.MAX_DISCLOSURES} disclosure slots");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
             if (parts.Length < 2)
             {
                 errors.Add(ErrorCode.InvalidInput);
@@ -567,18 +570,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
-            // Split at most the existing maximum number of disclosure slots plus
-            // the issuer JWT and optional key-binding JWT. An excess separator
-            // remains in the final segment: reject it before further parsing.
-            // This also prevents empty disclosure components from bypassing the
-            // allocation bound on untrusted presentations.
-            if (parts[^1].Contains('~'))
-            {
-                errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add($"Presentation exceeds maximum of {Constants.MAX_DISCLOSURES} disclosure slots");
-                return new VerificationResult(errors, string.Join("; ", errorDetails));
-            }
-
+            // Reject excess separators before allocating any component strings.
             // RFC 9901: each intermediate component must be an actual Disclosure.
             // A whitespace-only final component is not an absent Key Binding JWT.
             // Reject malformed shapes before key resolution or signature work.
@@ -635,8 +627,8 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             }
 
             // Parse JWT structure up front
-            var jwtParts = jwt.Split('.');
-            if (jwtParts.Length != 3)
+            var jwtParts = CompactJwtSplitter.Split(jwt);
+            if (jwtParts is null)
             {
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add("Invalid JWT format");
@@ -1462,6 +1454,46 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         }
 
         return matches;
+    }
+
+    /// <summary>
+    /// Scan at most the permitted number of presentation separators before
+    /// allocating any component strings. Count-limited string.Split still
+    /// collects every separator offset on .NET 8, even for malformed floods.
+    /// </summary>
+    private static string[]? SplitPresentationComponents(string presentation)
+    {
+        Span<int> positions = stackalloc int[Constants.MAX_DISCLOSURES + 1];
+        var separatorCount = 0;
+        var cursor = 0;
+
+        while (true)
+        {
+            var separator = presentation.IndexOf('~', cursor);
+            if (separator < 0)
+            {
+                break;
+            }
+
+            if (separatorCount == positions.Length)
+            {
+                return null;
+            }
+
+            positions[separatorCount++] = separator;
+            cursor = separator + 1;
+        }
+
+        var parts = new string[separatorCount + 1];
+        var start = 0;
+        for (var i = 0; i < separatorCount; i++)
+        {
+            parts[i] = presentation[start..positions[i]];
+            start = positions[i] + 1;
+        }
+
+        parts[separatorCount] = presentation[start..];
+        return parts;
     }
 
     /// <summary>
