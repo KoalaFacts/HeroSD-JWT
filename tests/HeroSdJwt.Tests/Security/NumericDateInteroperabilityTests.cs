@@ -12,7 +12,7 @@ namespace HeroSdJwt.Tests.Security;
 /// </summary>
 public class NumericDateInteroperabilityTests
 {
-    private static readonly DateTimeOffset FixedNow =
+    private static readonly DateTimeOffset _fixedNow =
         DateTimeOffset.FromUnixTimeSeconds(1_700_000_000).AddMilliseconds(500);
 
     [Theory]
@@ -33,7 +33,7 @@ public class NumericDateInteroperabilityTests
         using var payload = JsonDocument.Parse(payloadJson);
         var options = new SdJwtVerificationOptions { ClockSkew = TimeSpan.Zero };
 
-        var valid = new ClaimValidator().ValidateTemporalClaims(payload.RootElement, options, FixedNow);
+        var valid = new ClaimValidator().ValidateTemporalClaims(payload.RootElement, options, _fixedNow);
 
         Assert.Equal(expected, valid);
     }
@@ -75,7 +75,7 @@ public class NumericDateInteroperabilityTests
         Assert.True(holder.VerifyData(signingBytes, signature, HashAlgorithmName.SHA256));
         var proof = $"{signingInput}.{Base64UrlEncoder.Encode(signature)}";
 
-        Assert.Equal(expected, new KeyBindingValidator(new FixedTimeProvider(FixedNow))
+        Assert.Equal(expected, new KeyBindingValidator(new FixedTimeProvider(_fixedNow))
             .ValidateKeyBinding(proof, holder.ExportSubjectPublicKeyInfo(), "hash", "aud", "nonce"));
     }
 
