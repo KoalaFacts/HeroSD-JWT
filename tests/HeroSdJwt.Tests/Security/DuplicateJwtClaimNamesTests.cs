@@ -27,11 +27,25 @@ public class DuplicateJwtClaimNamesTests
     {
         var expires = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
         var memberName = claimName == "escaped-exp" ? "\\u0065xp" : claimName;
-        var memberValue = claimName is "exp" or "escaped-exp"
-            ? expires.ToString(CultureInfo.InvariantCulture)
-            : JsonSerializer.Serialize("safe");
+        var memberValue = claimName switch
+        {
+            "exp" or "escaped-exp" => expires.ToString(CultureInfo.InvariantCulture),
+            "_sd_alg" => JsonSerializer.Serialize("sha-256"),
+            _ => JsonSerializer.Serialize("safe")
+        };
         var payloadJson = $"{{\"exp\":{expires},\"_sd\":[],\"_sd_alg\":\"sha-256\"," +
             $"\"{memberName}\":{memberValue},\"{memberName}\":{memberValue}}}";
+
+        await AssertIssuerRejectedAsync(payloadJson);
+    }
+
+    [Fact]
+    public async Task Should_RejectDuplicateIssuerClaimWithManyOtherClaims()
+    {
+        var expires = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
+        var extraMembers = string.Join(",", Enumerable.Range(0, 9).Select(i => $"\"ext-{i}\":true"));
+        var payloadJson = $"{{\"exp\":{expires},\"_sd\":[],\"_sd_alg\":\"sha-256\"," +
+            extraMembers + ",\"repeated\":\"one\",\"repeated\":\"two\"}";
 
         await AssertIssuerRejectedAsync(payloadJson);
     }
@@ -74,6 +88,21 @@ public class DuplicateJwtClaimNamesTests
         var payloadJson = $"{{\"sd_hash\":\"signed-hash\",\"aud\":\"audience\"," +
             $"\"nonce\":\"nonce\",\"iat\":{issuedAt}," +
             $"\"{memberName}\":{memberValue},\"{memberName}\":{memberValue}}}";
+        var proof = SignKeyBindingJwt(holder, payloadJson);
+
+        Assert.False(new KeyBindingValidator().ValidateKeyBinding(
+            proof, holder.ExportSubjectPublicKeyInfo(), "signed-hash", "audience", "nonce"));
+    }
+
+    [Fact]
+    public void Should_RejectDuplicateKeyBindingClaimWithManyOtherClaims()
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var issuedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var extraMembers = string.Join(",", Enumerable.Range(0, 9).Select(i => $"\"ext-{i}\":true"));
+        var payloadJson = $"{{\"sd_hash\":\"signed-hash\",\"aud\":\"audience\"," +
+            $"\"nonce\":\"nonce\",\"iat\":{issuedAt}," +
+            extraMembers + ",\"repeated\":\"one\",\"repeated\":\"two\"}";
         var proof = SignKeyBindingJwt(holder, payloadJson);
 
         Assert.False(new KeyBindingValidator().ValidateKeyBinding(
