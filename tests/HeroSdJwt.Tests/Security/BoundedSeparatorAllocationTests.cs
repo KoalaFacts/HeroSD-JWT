@@ -57,8 +57,11 @@ public class BoundedSeparatorAllocationTests
         Assert.Equal(0, resolverCalls);
         Assert.True(directAllocations < 1_000_000, $"Standalone direct verification allocated {directAllocations} bytes");
         Assert.True(resolvedAllocations < 1_000_000, $"Standalone resolved verification allocated {resolvedAllocations} bytes");
-        Assert.True(presentationAllocations < 1_000_000, $"Presentation verification allocated {presentationAllocations} bytes");
-        Assert.True(resolvedPresentationAllocations < 1_000_000, $"Resolved presentation verification allocated {resolvedPresentationAllocations} bytes");
+        // The combined-format parser copies the 55K-char JWT component once
+        // (~110 KiB per call); budget for that bounded copy, not for an
+        // additional separator-proportional temporary position buffer.
+        Assert.True(presentationAllocations < 2_500_000, $"Presentation verification allocated {presentationAllocations} bytes");
+        Assert.True(resolvedPresentationAllocations < 2_500_000, $"Resolved presentation verification allocated {resolvedPresentationAllocations} bytes");
     }
 
     [Fact]
