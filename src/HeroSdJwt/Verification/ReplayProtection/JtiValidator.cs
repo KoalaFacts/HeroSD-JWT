@@ -117,32 +117,24 @@ public class JtiValidator
                 Primitives.ErrorCode.MissingRequiredClaim);
         }
 
-        if (expElement.ValueKind != JsonValueKind.Number || !expElement.TryGetInt64(out var expUnixSeconds))
+        // Keep replay protection compatible with the issuer and claim validator:
+        // RFC 7519 NumericDate permits fractional seconds and exponent notation.
+        // Retain decimal 100-ns precision so sub-tick expiry cannot be rounded
+        // down before a replay marker's retention window is determined.
+        if (!NumericDateParser.TryParseUnixTicks(expElement, out var expUnixTicks))
         {
             throw new SdJwtException(
-                "Expiration claim (exp) must be a valid integer Unix timestamp",
+                "Expiration claim (exp) must be a valid RFC 7519 NumericDate",
                 Primitives.ErrorCode.InvalidInput);
         }
 
-        DateTimeOffset exp;
-        try
-        {
-            exp = DateTimeOffset.FromUnixTimeSeconds(expUnixSeconds);
-        }
-        catch (ArgumentOutOfRangeException ex)
-        {
-            throw new SdJwtException(
-                "Expiration claim (exp) is outside the supported Unix timestamp range",
-                Primitives.ErrorCode.InvalidInput,
-                ex);
-        }
-
         var now = _timeProvider.GetUtcNow();
+        var nowUnixTicks = NumericDateParser.GetCurrentUnixTicks(now);
 
-        if (exp <= now)
+        if (expUnixTicks <= nowUnixTicks)
         {
             throw new SdJwtException(
-                $"Token has expired. Expiration: {exp:O}, Current time: {now:O}",
+                $"Token has expired. Expiration: {expElement.GetRawText()}, Current time: {now:O}",
                 Primitives.ErrorCode.TokenExpired);
         }
 
@@ -153,17 +145,20 @@ public class JtiValidator
                 Primitives.ErrorCode.InvalidInput);
         }
 
-        var ttl = exp - now + _options.ClockSkewTolerance;
+        var ttlTicks = expUnixTicks - nowUnixTicks + _options.ClockSkewTolerance.Ticks;
 
         // Capping TTL would allow a still-valid credential to be admitted again
         // after its marker expires. Reject instead of silently weakening replay protection.
-        if (ttl > _options.MaximumTtl)
+        if (ttlTicks > _options.MaximumTtl.Ticks)
         {
             throw new SdJwtException(
                 "Credential expiration exceeds replay marker MaximumTtl; increase MaximumTtl or issue shorter-lived credentials",
                 Primitives.ErrorCode.InvalidInput);
         }
 
-        return ttl < TimeSpan.FromSeconds(1) ? TimeSpan.FromSeconds(1) : ttl;
+        // Cache implementations retain TimeSpan ticks. Always round UP here:
+        // truncating a sub-tick NumericDate would expire the marker too early.
+        var roundedTtlTicks = (long)decimal.Ceiling(ttlTicks);
+        return TimeSpan.FromTicks(Math.Max(TimeSpan.TicksPerSecond, roundedTtlTicks));
     }
 }
