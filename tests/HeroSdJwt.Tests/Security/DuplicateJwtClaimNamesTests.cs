@@ -173,7 +173,10 @@ public class DuplicateJwtClaimNamesTests
         Assert.False(direct.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
 
-        static byte[]? Resolver(string id) => id == "key-1" ? _issuerKey : null;
+        static byte[]? Resolver(string id)
+        {
+            return id == "key-1" ? _issuerKey : null;
+        }
 
         var resolved = verifier.TryVerifyPresentation(presentation, Resolver);
         Assert.False(resolved.IsValid);
