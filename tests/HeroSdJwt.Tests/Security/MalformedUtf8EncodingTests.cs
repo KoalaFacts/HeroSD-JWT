@@ -4,7 +4,6 @@ using HeroSdJwt.Presentation;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -57,13 +56,13 @@ public class MalformedUtf8EncodingTests
         var expiration = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
         byte[] header = malformedHeader
             ? InsertInvalidUtf8("{\"alg\":\"HS256\",\"kid\":\"utf8-key\",\"note\":\"", "\"}")
-            : Encoding.UTF8.GetBytes("{\"alg\":\"HS256\",\"kid\":\"utf8-key\"}");
+            : System.Text.Encoding.UTF8.GetBytes("{\"alg\":\"HS256\",\"kid\":\"utf8-key\"}");
         byte[] payload = malformedHeader
-            ? Encoding.UTF8.GetBytes($"{{\"exp\":{expiration},\"sub\":\"valid\"}}")
+            ? System.Text.Encoding.UTF8.GetBytes($"{{\"exp\":{expiration},\"sub\":\"valid\"}}")
             : InsertInvalidUtf8($"{{\"exp\":{expiration},\"sub\":\"", "\"}");
 
         var input = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payload);
-        var signature = HMACSHA256.HashData(_signingKey, Encoding.ASCII.GetBytes(input));
+        var signature = HMACSHA256.HashData(_signingKey, System.Text.Encoding.ASCII.GetBytes(input));
         var presentation = input + "." + Base64UrlEncoder.Encode(signature) + "~";
         var verifier = TestHelpers.CreateVerifier(new SdJwtVerificationOptions
         {
@@ -74,13 +73,19 @@ public class MalformedUtf8EncodingTests
         Assert.False(direct.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
 
-        static byte[]? Resolver(string keyId) => keyId == "utf8-key" ? _signingKey : null;
+        static byte[]? Resolver(string keyId)
+        {
+            return keyId == "utf8-key" ? _signingKey : null;
+        }
 
         var resolved = verifier.TryVerifyPresentation(presentation, Resolver);
         Assert.False(resolved.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
 
-        var thrown = Assert.Throws<SdJwtException>(() => verifier.VerifyPresentation(presentation, _signingKey));
+        var thrown = Assert.Throws<SdJwtException>(() =>
+        {
+            _ = verifier.VerifyPresentation(presentation, _signingKey);
+        });
         Assert.Equal(ErrorCode.InvalidInput, thrown.ErrorCode);
 
         var asyncDirect = await verifier.TryVerifyPresentationAsync(
@@ -95,5 +100,5 @@ public class MalformedUtf8EncodingTests
     }
 
     private static byte[] InsertInvalidUtf8(string before, string after) =>
-        [.. Encoding.UTF8.GetBytes(before), 0xff, .. Encoding.UTF8.GetBytes(after)];
+        [.. System.Text.Encoding.UTF8.GetBytes(before), 0xff, .. System.Text.Encoding.UTF8.GetBytes(after)];
 }
