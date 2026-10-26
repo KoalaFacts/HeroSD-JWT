@@ -41,7 +41,7 @@ public class MalformedUtf8EncodingTests
     [Fact]
     public void Should_RejectMalformedUtf8InObjectDisclosure()
     {
-        var malformedJson = InsertInvalidUtf8("[\"salt\",\"name\",\"", "\"]");
+        var malformedJson = InsertInvalidUtf8(/*lang=json,strict*/ "[\"salt\",\"name\",\"!\"]");
         var encoded = Base64UrlEncoder.Encode(malformedJson);
 
         var exception = Assert.Throws<SdJwtException>(() => new DisclosureParser().Parse(encoded));
@@ -55,11 +55,11 @@ public class MalformedUtf8EncodingTests
     {
         var expiration = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
         byte[] header = malformedHeader
-            ? InsertInvalidUtf8("{\"alg\":\"HS256\",\"kid\":\"utf8-key\",\"note\":\"", "\"}")
-            : System.Text.Encoding.UTF8.GetBytes("{\"alg\":\"HS256\",\"kid\":\"utf8-key\"}");
+            ? InsertInvalidUtf8(/*lang=json,strict*/ "{\"alg\":\"HS256\",\"kid\":\"utf8-key\",\"note\":\"!\"}")
+            : System.Text.Encoding.UTF8.GetBytes(/*lang=json,strict*/ "{\"alg\":\"HS256\",\"kid\":\"utf8-key\"}");
         byte[] payload = malformedHeader
             ? System.Text.Encoding.UTF8.GetBytes($"{{\"exp\":{expiration},\"sub\":\"valid\"}}")
-            : InsertInvalidUtf8($"{{\"exp\":{expiration},\"sub\":\"", "\"}");
+            : InsertInvalidUtf8($"{{\"exp\":{expiration},\"sub\":\"!\"}}");
 
         var input = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payload);
         var signature = HMACSHA256.HashData(_signingKey, System.Text.Encoding.ASCII.GetBytes(input));
@@ -99,6 +99,13 @@ public class MalformedUtf8EncodingTests
         Assert.Contains(ErrorCode.InvalidInput, asyncResolved.Errors);
     }
 
-    private static byte[] InsertInvalidUtf8(string before, string after) =>
-        [.. System.Text.Encoding.UTF8.GetBytes(before), 0xff, .. System.Text.Encoding.UTF8.GetBytes(after)];
+    private static byte[] InsertInvalidUtf8(string jsonWithSentinel)
+    {
+        // Work from valid, analyzable JSON and corrupt one byte on the wire.
+        var bytes = System.Text.Encoding.UTF8.GetBytes(jsonWithSentinel);
+        var sentinelIndex = Array.IndexOf(bytes, (byte)'!');
+        Assert.True(sentinelIndex >= 0);
+        bytes[sentinelIndex] = 0xff;
+        return bytes;
+    }
 }
