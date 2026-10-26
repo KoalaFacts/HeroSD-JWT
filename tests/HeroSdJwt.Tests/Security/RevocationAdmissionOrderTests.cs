@@ -104,15 +104,16 @@ public class RevocationAdmissionOrderTests
             /*lang=json,strict*/ "[\"salt-presented\",\"email\",\"alice@example.test\"]");
         var otherDisclosure = Base64UrlEncoder.Encode(
             /*lang=json,strict*/ "[\"different-salt\",\"email\",\"alice@example.test\"]");
+        string[] digests = failure == "invalid-digest"
+            ? [new DigestCalculator().ComputeDigest(otherDisclosure, HashAlgorithm.Sha256)]
+            : [];
         var payload = JsonSerializer.Serialize(new
         {
             exp,
             aud = actualAudience,
             jti = REVOKED_JTI,
             sub = "alice",
-            _sd = failure == "invalid-digest"
-                ? new[] { new DigestCalculator().ComputeDigest(otherDisclosure, HashAlgorithm.Sha256) }
-                : Array.Empty<string>()
+            _sd = digests
         });
 
         const string header = /*lang=json,strict*/ "{\"alg\":\"HS256\",\"kid\":\"revocation-admission-key\"}";
