@@ -2,7 +2,6 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Primitives;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -40,7 +39,7 @@ public class KeyBindingSignatureAdmissionTests
         var verificationKey = wrongKey
             ? anotherHolder.ExportSubjectPublicKeyInfo()
             : holder.ExportSubjectPublicKeyInfo();
-        var signingInput = Encoding.UTF8.GetBytes(parts[0] + "." + parts[1]);
+        var signingInput = System.Text.Encoding.UTF8.GetBytes(parts[0] + "." + parts[1]);
         using var actualKey = ECDsa.Create();
         actualKey.ImportSubjectPublicKeyInfo(verificationKey, out _);
         Assert.False(actualKey.VerifyData(signingInput, signature, HashAlgorithmName.SHA256));
