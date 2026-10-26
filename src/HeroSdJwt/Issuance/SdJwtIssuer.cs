@@ -338,7 +338,7 @@ public class SdJwtIssuer(
     /// Recursively validates that _sd_alg does not appear in nested objects.
     /// Per SD-JWT spec section 4.2.3, _sd_alg MUST only appear at top level.
     /// </summary>
-    private const int MaxClaimValidationDepth = 64;
+    private const int MAX_CLAIM_VALIDATION_DEPTH = 64;
 
     private static void ValidateNoNestedSdAlg(object? value, string claimPath, int depth = 0)
     {
@@ -349,7 +349,7 @@ public class SdJwtIssuer(
 
         // Bound runtime graph traversal to the serializer's default JSON depth.
         // Cyclic dictionaries/lists must cause a catchable error, not stack overflow.
-        if (depth > MaxClaimValidationDepth)
+        if (depth > MAX_CLAIM_VALIDATION_DEPTH)
         {
             throw new ArgumentException("Claim nesting exceeds the supported JSON depth.", nameof(value));
         }
@@ -360,6 +360,13 @@ public class SdJwtIssuer(
         if (value is JsonElement jsonElement)
         {
             ValidateNoNestedSdAlgElement(jsonElement, claimPath, depth);
+            return;
+        }
+
+        // A string is IEnumerable<char>, but is a JSON scalar. Skip
+        // per-character traversal, allocations and redundant serialization.
+        if (value is string || value is decimal || value.GetType().IsPrimitive || value.GetType().IsEnum)
+        {
             return;
         }
 
@@ -381,9 +388,13 @@ public class SdJwtIssuer(
 
         if (value is System.Collections.IList list)
         {
-            for (int index = 0; index < list.Count; index++)
+            // Multidimensional arrays implement IList but their single-index
+            // indexer throws. Foreach preserves JwtSigner's array traversal.
+            var index = 0;
+            foreach (var item in list)
             {
-                ValidateNoNestedSdAlg(list[index], $"{claimPath}[{index}]", depth + 1);
+                ValidateNoNestedSdAlg(item, $"{claimPath}[{index}]", depth + 1);
+                index++;
             }
 
             return;
@@ -411,11 +422,6 @@ public class SdJwtIssuer(
             return;
         }
 
-        if (value is string || value is decimal || value.GetType().IsPrimitive || value.GetType().IsEnum)
-        {
-            return;
-        }
-
         // For arbitrary serializable objects (including anonymous types and
         // immutable dictionaries), inspect the same JSON property names that
         // would appear in the signed JWT rather than reflecting CLR fields.
@@ -427,7 +433,7 @@ public class SdJwtIssuer(
 
     private static void ValidateNoNestedSdAlgElement(JsonElement value, string claimPath, int depth)
     {
-        if (depth > MaxClaimValidationDepth)
+        if (depth > MAX_CLAIM_VALIDATION_DEPTH)
         {
             throw new ArgumentException("Claim nesting exceeds the supported JSON depth.", nameof(value));
         }
