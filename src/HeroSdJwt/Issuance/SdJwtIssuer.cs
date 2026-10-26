@@ -107,6 +107,21 @@ public class SdJwtIssuer(
                     nameof(selectivelyDisclosableClaims));
             }
 
+            // Validate the caller's original claim tree before selective
+            // disclosure processing can remove a reserved member from it.
+            foreach (var claim in claims)
+            {
+                if (claim.Key == Constants.SD_ALG_CLAIM_NAME)
+                {
+                    throw new ArgumentException(
+                        $"The claim '{Constants.SD_ALG_CLAIM_NAME}' is reserved for internal use and cannot be explicitly set. " +
+                        "The hash algorithm is specified via the hashAlgorithm parameter.",
+                        nameof(claims));
+                }
+
+                ValidateNoNestedSdAlg(claim.Value, claim.Key);
+            }
+
             // Step 1: Generate disclosures for selectively disclosable claims
             var disclosures = new List<string>();
             var digests = new List<string>();
@@ -274,20 +289,6 @@ public class SdJwtIssuer(
             {
                 if (!fullySelectiveClaimNames.Contains(claim.Key))
                 {
-                    // Validate _sd_alg placement - MUST only appear at top level
-                    // Per SD-JWT spec section 4.2.3: "_sd_alg MUST appear at the top level
-                    // of the SD-JWT payload and MUST NOT be used in any object nested within the payload"
-                    if (claim.Key == Constants.SD_ALG_CLAIM_NAME)
-                    {
-                        throw new ArgumentException(
-                            $"The claim '{Constants.SD_ALG_CLAIM_NAME}' is reserved for internal use and cannot be explicitly set. " +
-                            "The hash algorithm is specified via the hashAlgorithm parameter.",
-                            nameof(claims));
-                    }
-
-                    // Check for nested _sd_alg in object values
-                    ValidateNoNestedSdAlg(claim.Value, claim.Key);
-
                     payload[claim.Key] = claim.Value;
                 }
             }
@@ -422,7 +423,7 @@ public class SdJwtIssuer(
                 $"The claim '{Constants.SD_ALG_CLAIM_NAME}' was found in nested object at path '{claimPath}.{propertyName}'. " +
                 "Per SD-JWT specification section 4.2.3, _sd_alg MUST appear at the top level of the SD-JWT payload " +
                 "and MUST NOT be used in any object nested within the payload.",
-                "value");
+                nameof(propertyName));
         }
     }
 }
