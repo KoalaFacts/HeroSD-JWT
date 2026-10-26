@@ -1,6 +1,7 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
 using System.Collections;
 using System.Text.Json;
 
