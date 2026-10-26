@@ -39,6 +39,8 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
     {
         ArgumentNullException.ThrowIfNull(sdJwt);
 
+        var mapping = new Dictionary<string, int>();
+
         // Imported credentials may be untrusted. Apply the verifier's compact
         // JWT budget before parsing, without allocating an entry per separator.
         if (sdJwt.Jwt.Length > Constants.MAX_JWT_SIZE_BYTES)
@@ -46,11 +48,8 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
             throw new ArgumentException("JWT exceeds the maximum allowed size", nameof(sdJwt));
         }
 
-        var jwtParts = CompactJwtSplitter.Split(sdJwt.Jwt);
-        if (jwtParts is null)
-        {
-            throw new ArgumentException("Invalid JWT format", nameof(sdJwt));
-        }
+        var jwtParts = CompactJwtSplitter.Split(sdJwt.Jwt)
+            ?? throw new ArgumentException("Invalid JWT format", nameof(sdJwt));
 
         var payloadJson = Base64UrlEncoder.DecodeString(jwtParts[1]);
         using var payloadDocument = JsonDocument.Parse(payloadJson);
