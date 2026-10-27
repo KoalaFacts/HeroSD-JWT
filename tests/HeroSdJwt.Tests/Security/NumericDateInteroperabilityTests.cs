@@ -56,7 +56,7 @@ public class NumericDateInteroperabilityTests
         // RFC 7519 Section 4.1.4: the current time MUST be *before* exp.
         // A configured skew extends that deadline, but cannot make the
         // exact expiry boundary inclusive.
-        using var payload = JsonDocument.Parse("{\\"exp\\":" + expiration + "}");
+        using var payload = JsonDocument.Parse("{\"exp\":" + expiration + "}");
         var options = new SdJwtVerificationOptions
         {
             ClockSkew = TimeSpan.FromTicks(clockSkewTicks)
