@@ -123,7 +123,15 @@ public class JwtSigner : IJwtSigner
         try
         {
             using var rsa = RSA.Create();
-            rsa.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+            rsa.ImportPkcs8PrivateKey(privateKeyBytes, out var bytesRead);
+            // PKCS#8 imports accept a valid ASN.1 prefix. Never sign with a
+            // key blob containing unparsed trailing data.
+            if (bytesRead != privateKeyBytes.Length)
+            {
+                throw new ArgumentException(
+                    "RSA private key must contain exactly one PKCS#8 object without trailing data.",
+                    nameof(privateKeyBytes));
+            }
 
             // Validate minimum key size (2048 bits per NIST recommendations)
             const int MinimumRsaKeySize = 2048;
@@ -149,7 +157,15 @@ public class JwtSigner : IJwtSigner
         try
         {
             using var ecdsa = ECDsa.Create();
-            ecdsa.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+            ecdsa.ImportPkcs8PrivateKey(privateKeyBytes, out var bytesRead);
+            // PKCS#8 imports accept a valid ASN.1 prefix. Never sign with a
+            // key blob containing unparsed trailing data.
+            if (bytesRead != privateKeyBytes.Length)
+            {
+                throw new ArgumentException(
+                    "ECDSA private key must contain exactly one PKCS#8 object without trailing data.",
+                    nameof(privateKeyBytes));
+            }
 
             // Validate curve is P-256 (secp256r1) as required for ES256
             var parameters = ecdsa.ExportParameters(false);
@@ -216,7 +232,15 @@ public class JwtSigner : IJwtSigner
         try
         {
             using var rsa = RSA.Create();
-            rsa.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+            rsa.ImportPkcs8PrivateKey(privateKeyBytes, out var bytesRead);
+            // PKCS#8 imports accept a valid ASN.1 prefix. Never sign with a
+            // key blob containing unparsed trailing data.
+            if (bytesRead != privateKeyBytes.Length)
+            {
+                throw new ArgumentException(
+                    "RSA private key must contain exactly one PKCS#8 object without trailing data.",
+                    nameof(privateKeyBytes));
+            }
 
             // Validate minimum key size (2048 bits per NIST recommendations)
             const int MinimumRsaKeySize = 2048;
@@ -242,7 +266,15 @@ public class JwtSigner : IJwtSigner
         try
         {
             using var ecdsa = ECDsa.Create();
-            ecdsa.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+            ecdsa.ImportPkcs8PrivateKey(privateKeyBytes, out var bytesRead);
+            // PKCS#8 imports accept a valid ASN.1 prefix. Never sign with a
+            // key blob containing unparsed trailing data.
+            if (bytesRead != privateKeyBytes.Length)
+            {
+                throw new ArgumentException(
+                    "ECDSA private key must contain exactly one PKCS#8 object without trailing data.",
+                    nameof(privateKeyBytes));
+            }
 
             // Validate curve is P-384 (secp384r1) as required for ES384
             var parameters = ecdsa.ExportParameters(false);
@@ -274,7 +306,15 @@ public class JwtSigner : IJwtSigner
         try
         {
             using var ecdsa = ECDsa.Create();
-            ecdsa.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+            ecdsa.ImportPkcs8PrivateKey(privateKeyBytes, out var bytesRead);
+            // PKCS#8 imports accept a valid ASN.1 prefix. Never sign with a
+            // key blob containing unparsed trailing data.
+            if (bytesRead != privateKeyBytes.Length)
+            {
+                throw new ArgumentException(
+                    "ECDSA private key must contain exactly one PKCS#8 object without trailing data.",
+                    nameof(privateKeyBytes));
+            }
 
             // Validate curve is P-521 (secp521r1) as required for ES512
             var parameters = ecdsa.ExportParameters(false);
