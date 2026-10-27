@@ -183,7 +183,7 @@ public class ClaimValidator : IClaimValidator
                     return false;
                 }
 
-                if (aud.GetString() is string value && expectedSet.Contains(value))
+                if (aud.GetString() is string value && expectedSet?.Contains(value) == true)
                 {
                     matched = true;
                 }
