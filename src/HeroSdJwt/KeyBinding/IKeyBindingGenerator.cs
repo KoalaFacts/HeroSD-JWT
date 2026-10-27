@@ -8,7 +8,7 @@ public interface IKeyBindingGenerator
     /// <summary>
     /// Creates a key binding JWT signed with the holder's private key.
     /// </summary>
-    /// <param name="holderPrivateKey">The holder's ECDSA private key (P-256).</param>
+    /// <param name="holderPrivateKey">The holder's P-256 ECDSA private key in SEC1 or PKCS#8 format.</param>
     /// <param name="sdJwtHash">The hash of the SD-JWT being presented.</param>
     /// <param name="audience">The intended audience (verifier).</param>
     /// <param name="nonce">A nonce for replay protection.</param>
