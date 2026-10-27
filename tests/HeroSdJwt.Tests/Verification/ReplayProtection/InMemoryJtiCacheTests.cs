@@ -202,6 +202,40 @@ public class InMemoryJtiCacheTests : IJtiCacheContractTests
         // Assert
         Assert.True(canAddAgain);
     }
+
+    [Fact]
+    public async Task Should_ReclaimExpiredMarkers_WithoutAllocatingProportionallyToExpiredCount()
+    {
+        // A full cache must reclaim expired entries under the admission lock.
+        // A temporary array of 10,000 expired keys would allocate at least 80 KiB
+        // on a 64-bit runner, amplifying memory pressure at capacity.
+        const int capacity = 20_000;
+        var clock = new ManualTimeProvider(new DateTimeOffset(2026, 10, 27, 0, 0, 0, TimeSpan.Zero));
+        using var cache = new InMemoryJtiCache(new ReplayProtectionOptions { MaxCacheEntries = capacity }, clock);
+        var token = TestContext.Current.CancellationToken;
+
+        for (var i = 0; i < capacity; i++)
+        {
+            var ttl = i % 2 == 0 ? TimeSpan.FromMinutes(1) : TimeSpan.FromHours(1);
+            Assert.True(await cache.TryAddAsync("issuer", $"marker-{i}", ttl, token));
+        }
+
+        clock.Advance(TimeSpan.FromMinutes(2));
+
+        // Capture only the synchronous cleanup/admission path, not test setup
+        // or asynchronous continuations; the cache returns a completed Task.
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var admission = cache.TryAddAsync("issuer", "replacement", TimeSpan.FromHours(1), token);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(await admission);
+        Assert.True(allocatedBytes < 32 * 1024,
+            $"Cleanup allocated {allocatedBytes} bytes for expired markers.");
+        Assert.True(await cache.ExistsAsync("issuer", "marker-1", token));
+        Assert.False(await cache.ExistsAsync("issuer", "marker-0", token));
+        Assert.True(await cache.ExistsAsync("issuer", "replacement", token));
+    }
+
     private sealed class ManualTimeProvider(DateTimeOffset initialUtc) : TimeProvider
     {
         private DateTimeOffset _utcNow = initialUtc;
