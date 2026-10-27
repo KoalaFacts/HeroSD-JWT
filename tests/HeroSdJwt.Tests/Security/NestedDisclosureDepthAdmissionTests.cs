@@ -56,8 +56,7 @@ public class NestedDisclosureDepthAdmissionTests
 
         if (shouldAccept)
         {
-            Assert.Equal(System.Text.Json.JsonValueKind.Undefined == direct.DisclosedClaims["profile"].ValueKind,
-                false);
+            Assert.NotEqual(System.Text.Json.JsonValueKind.Undefined, direct.DisclosedClaims["profile"].ValueKind);
         }
         else
         {
