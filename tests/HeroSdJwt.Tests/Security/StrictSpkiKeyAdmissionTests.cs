@@ -22,8 +22,8 @@ public class StrictSpkiKeyAdmissionTests
     {
         byte[] publicKey;
         byte[] signature;
-        var encodedHeader = Base64UrlEncoder.Encode("{\"alg\":\"" + algorithm + "\",\"typ\":\"JWT\"}");
-        var encodedPayload = Base64UrlEncoder.Encode("{\"sub\":\"subject\"}");
+        var encodedHeader = Base64UrlEncoder.Encode(System.Text.Json.JsonSerializer.Serialize(new { alg = algorithm, typ = "JWT" }));
+        var encodedPayload = Base64UrlEncoder.Encode(System.Text.Json.JsonSerializer.Serialize(new { sub = "subject" }));
         var signingInput = encodedHeader + "." + encodedPayload;
         var data = System.Text.Encoding.UTF8.GetBytes(signingInput);
 
