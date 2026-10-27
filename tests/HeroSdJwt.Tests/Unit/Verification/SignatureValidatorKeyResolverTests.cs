@@ -143,7 +143,10 @@ public class SignatureValidatorKeyResolverTests
             ? new TaskCanceledException("Key backend canceled")
             : new OperationCanceledException("Key backend canceled", cancellation.Token);
 
-        byte[]? resolver(string _) => throw expected;
+        byte[]? resolver(string _)
+        {
+            throw expected;
+        }
 
         var actual = Assert.ThrowsAny<OperationCanceledException>(() =>
             _validator.VerifyJwtSignature(jwt, resolver));
