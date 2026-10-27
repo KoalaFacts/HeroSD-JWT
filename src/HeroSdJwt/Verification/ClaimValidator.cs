@@ -88,7 +88,7 @@ public class ClaimValidator : IClaimValidator
     /// </summary>
     /// <param name="payload">The decoded JWT payload.</param>
     /// <param name="expectedIssuer">The expected issuer value.</param>
-    /// <returns>True if issuer matches or expectedIssuer is null; otherwise, false.</returns>
+    /// <returns>True if the present issuer is a string and matches the configured issuer, or no matching policy is configured; otherwise, false.</returns>
     public bool ValidateIssuer(JsonElement payload, string? expectedIssuer)
     {
         if (payload.ValueKind != JsonValueKind.Object)
@@ -118,7 +118,7 @@ public class ClaimValidator : IClaimValidator
     /// </summary>
     /// <param name="payload">The decoded JWT payload.</param>
     /// <param name="expectedAudience">The expected audience value.</param>
-    /// <returns>True if audience matches or expectedAudience is null; otherwise, false.</returns>
+    /// <returns>True if any present audience is well-formed and matches the configured audience, or no matching policy is configured; otherwise, false.</returns>
     public bool ValidateAudience(JsonElement payload, string? expectedAudience)
     {
         var audiences = string.IsNullOrWhiteSpace(expectedAudience)
@@ -133,7 +133,7 @@ public class ClaimValidator : IClaimValidator
     /// </summary>
     /// <param name="payload">The decoded JWT payload.</param>
     /// <param name="expectedAudiences">The expected audience values.</param>
-    /// <returns>True if audience matches or expectedAudiences are empty; otherwise, false.</returns>
+    /// <returns>True if any present audience is well-formed and matches a configured audience, or no matching policy is configured; otherwise, false.</returns>
     public bool ValidateAudience(JsonElement payload, IReadOnlyCollection<string>? expectedAudiences)
     {
         if (payload.ValueKind != JsonValueKind.Object)
