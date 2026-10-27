@@ -1354,6 +1354,9 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             {
                 var jti = jtiElement.GetString()!;
                 var isRevoked = await _revocationStore.IsJtiRevokedAsync(jti, cancellationToken).ConfigureAwait(false);
+                // Some stores return false even when cancellation arrives during the read.
+                // Never admit the credential or consult subsequent backends after cancellation.
+                cancellationToken.ThrowIfCancellationRequested();
                 if (isRevoked)
                 {
                     errors.Add(ErrorCode.TokenRevoked);
@@ -1368,6 +1371,9 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 var keyId = kidElement.GetString()!;
                 KeyIdGuard.EnsureValid(keyId);
                 var isRevoked = await _revocationStore.IsKeyRevokedAsync(keyId, cancellationToken).ConfigureAwait(false);
+                // Some stores return false even when cancellation arrives during the read.
+                // Never admit the credential or consult subsequent backends after cancellation.
+                cancellationToken.ThrowIfCancellationRequested();
                 if (isRevoked)
                 {
                     errors.Add(ErrorCode.TokenRevokedByKey);
@@ -1381,6 +1387,9 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             {
                 var userId = subElement.GetString()!;
                 var isRevoked = await _revocationStore.IsUserRevokedAsync(userId, cancellationToken).ConfigureAwait(false);
+                // Some stores return false even when cancellation arrives during the read.
+                // Never admit the credential or consult subsequent backends after cancellation.
+                cancellationToken.ThrowIfCancellationRequested();
                 if (isRevoked)
                 {
                     errors.Add(ErrorCode.TokenRevokedByUser);
