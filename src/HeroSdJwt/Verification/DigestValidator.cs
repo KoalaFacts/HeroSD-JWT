@@ -59,20 +59,31 @@ public class DigestValidator(IDigestCalculator digestCalculator) : IDigestValida
         ArgumentNullException.ThrowIfNull(disclosures);
         ArgumentNullException.ThrowIfNull(expectedDigests);
 
-        // Compute digests for all disclosures
-        var computedDigests = new List<Digest>();
+        // RFC 9901 forbids repeating the same Disclosure. Enforce this also
+        // for callers using the digest validator directly, rather than only
+        // when the full presentation verifier is used.
+        HashSet<string>? seenDisclosures = null;
 
-        foreach (var disclosure in disclosures)
+        for (var i = 0; i < disclosures.Count; i++)
         {
-            var digestValue = _digestCalculator.ComputeDigest(disclosure, algorithm);
-            computedDigests.Add(new Digest(digestValue, algorithm));
-        }
+            var disclosure = disclosures[i];
+            if (i > 0)
+            {
+                // Avoid a set for the common zero/single-disclosure path.
+                seenDisclosures ??= new HashSet<string>([disclosures[0]], StringComparer.Ordinal);
+                if (!seenDisclosures.Add(disclosure))
+                {
+                    return false;
+                }
+            }
 
-        // Check that every computed digest exists in the expected digests
-        // This ensures all disclosures are valid without revealing which specific disclosure failed
-        foreach (var computedDigest in computedDigests)
-        {
-            bool found = false;
+            // Validate each digest immediately. No need to retain a second
+            // list of computed hashes for the duration of verification.
+            var computedDigest = new Digest(
+                _digestCalculator.ComputeDigest(disclosure, algorithm),
+                algorithm);
+
+            var found = false;
             foreach (var expectedDigest in expectedDigests)
             {
                 if (computedDigest.Equals(expectedDigest))
