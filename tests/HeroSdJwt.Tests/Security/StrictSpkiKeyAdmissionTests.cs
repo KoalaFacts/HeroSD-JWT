@@ -2,7 +2,6 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -26,7 +25,7 @@ public class StrictSpkiKeyAdmissionTests
         var encodedHeader = Base64UrlEncoder.Encode("{\"alg\":\"" + algorithm + "\",\"typ\":\"JWT\"}");
         var encodedPayload = Base64UrlEncoder.Encode("{\"sub\":\"subject\"}");
         var signingInput = encodedHeader + "." + encodedPayload;
-        var data = Encoding.UTF8.GetBytes(signingInput);
+        var data = System.Text.Encoding.UTF8.GetBytes(signingInput);
 
         if (algorithm is "RS256" or "PS256")
         {
