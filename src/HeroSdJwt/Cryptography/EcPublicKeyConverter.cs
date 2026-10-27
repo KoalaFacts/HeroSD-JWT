@@ -23,9 +23,10 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
         ArgumentNullException.ThrowIfNull(publicKeyBytes);
 
         using var ecdsa = ECDsa.Create();
+        int bytesRead;
         try
         {
-            ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out var bytesRead);
+            ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out bytesRead);
         }
         catch (CryptographicException ex)
         {
