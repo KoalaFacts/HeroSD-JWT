@@ -408,7 +408,8 @@ public class SignatureValidator : ISignatureValidator
     /// <param name="keyResolver">Delegate to resolve key IDs to verification keys. Called only if JWT contains 'kid'.</param>
     /// <param name="fallbackKey">Optional fallback key to use when JWT has no 'kid' parameter (backward compatibility).</param>
     /// <returns>True if signature is valid; otherwise, false.</returns>
-    /// <exception cref="SdJwtException">Thrown when JWT contains kid but resolver returns null (KeyIdNotFound), or when kid is present but no resolver/fallback provided (KeyResolverMissing), or when resolver throws an exception (KeyResolverFailed).</exception>
+    /// <exception cref="SdJwtException">Thrown when JWT contains kid but resolver returns null (KeyIdNotFound), or when kid is present but no resolver/fallback provided (KeyResolverMissing), or when resolver throws an exception other than cancellation (KeyResolverFailed).</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the key resolver cancels or times out.</exception>
     public bool VerifyJwtSignature(string jwt, Primitives.KeyResolver? keyResolver, byte[]? fallbackKey = null)
     {
         ArgumentNullException.ThrowIfNull(jwt);
@@ -467,6 +468,12 @@ public class SignatureValidator : ISignatureValidator
             catch (SdJwtException)
             {
                 throw; // Re-throw our exceptions
+            }
+            catch (OperationCanceledException)
+            {
+                // A canceled or timed-out key lookup is not a key-resolution failure.
+                // Preserve the original cancellation for callers and retry policies.
+                throw;
             }
             catch (Exception ex)
             {
