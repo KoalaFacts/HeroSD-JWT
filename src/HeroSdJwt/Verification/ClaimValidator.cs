@@ -41,8 +41,9 @@ public class ClaimValidator : IClaimValidator
             return false;
         }
 
-        // Token is expired if current time > exp + clock skew
-        if (nowTicks - expTicks > clockSkewTicks)
+        // RFC 7519 Section 4.1.4 requires now to be strictly before exp.
+        // Clock skew extends the deadline, not its inclusivity.
+        if (nowTicks - expTicks >= clockSkewTicks)
         {
             return false;
         }
