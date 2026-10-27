@@ -17,7 +17,7 @@ public class NumericDateInteroperabilityTests
 
     [Theory]
     [InlineData("1700000000.75", ",\"nbf\":1700000000.25,\"iat\":1700000000.25", true)]
-    [InlineData("1700000000.5", ",\"nbf\":1700000000.5,\"iat\":1700000000.5", true)]
+    [InlineData("1700000000.5", ",\"nbf\":1700000000.5,\"iat\":1700000000.5", false)]
     [InlineData("1700000000.50000001", "", true)]
     [InlineData("1700000000.49999999", "", false)]
     [InlineData("1700000001", ",\"nbf\":1700000000.50000001", false)]
@@ -40,6 +40,30 @@ public class NumericDateInteroperabilityTests
         var valid = new ClaimValidator().ValidateTemporalClaims(payload.RootElement, options, _fixedNow);
 
         Assert.Equal(expected, valid);
+    }
+
+    [Theory]
+    [InlineData("1700000000", 0, false)]
+    [InlineData("1700000000.5", 0, false)]
+    [InlineData("1700000000.50000001", 0, true)]
+    [InlineData("1700000000.49999999", 0, false)]
+    [InlineData("1699999999.5", 10_000_000, false)]
+    [InlineData("1699999999.50000001", 10_000_000, true)]
+    [InlineData("1699999999.49999999", 10_000_000, false)]
+    public void Should_RejectJwtAtExpirationIncludingExactClockSkewBoundary(
+        string expiration, long clockSkewTicks, bool expected)
+    {
+        // RFC 7519 Section 4.1.4: the current time MUST be *before* exp.
+        // A configured skew extends that deadline, but cannot make the
+        // exact expiry boundary inclusive.
+        using var payload = JsonDocument.Parse("{\"exp\":" + expiration + "}");
+        var options = new SdJwtVerificationOptions
+        {
+            ClockSkew = TimeSpan.FromTicks(clockSkewTicks)
+        };
+
+        Assert.Equal(expected, new ClaimValidator().ValidateTemporalClaims(
+            payload.RootElement, options, _fixedNow));
     }
 
     [Fact]
