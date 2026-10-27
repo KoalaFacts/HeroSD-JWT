@@ -136,9 +136,9 @@ public class DigestValidatorTests
         var digest = new Digest(
             new DigestCalculator().ComputeDigest(disclosure, algorithm),
             algorithm);
-        var expectedDigests = duplicateExpectedDigest
-            ? new[] { digest, digest }
-            : new[] { digest };
+        Digest[] expectedDigests = duplicateExpectedDigest
+            ? [digest, digest]
+            : [digest];
 
         var result = new DigestValidator().ValidateAllDigests(
             [disclosure, disclosure],
