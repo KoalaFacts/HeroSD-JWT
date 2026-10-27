@@ -120,6 +120,37 @@ public class SignatureValidatorKeyResolverTests
         Assert.Contains("resolver", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void VerifyJwtSignature_ResolverCancellation_PropagatesOriginalException(
+        bool callerCanceled, bool taskCanceled)
+    {
+        var signingKey = _keyGen.GenerateHmacKey();
+        var jwt = _signer.CreateJwt(
+            new Dictionary<string, object> { ["sub"] = "user-123" },
+            signingKey, SignatureAlgorithm.HS256, "cancellation-key");
+
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        if (callerCanceled)
+        {
+            cancellation.Cancel();
+        }
+
+        OperationCanceledException expected = taskCanceled
+            ? new TaskCanceledException("Key backend canceled")
+            : new OperationCanceledException("Key backend canceled", cancellation.Token);
+
+        byte[]? resolver(string _) => throw expected;
+
+        var actual = Assert.ThrowsAny<OperationCanceledException>(() =>
+            _validator.VerifyJwtSignature(jwt, resolver));
+
+        Assert.Same(expected, actual);
+    }
+
     [Fact]
     public void VerifyJwtSignature_ResolverReturnsWrongKey_ReturnsFalse()
     {
