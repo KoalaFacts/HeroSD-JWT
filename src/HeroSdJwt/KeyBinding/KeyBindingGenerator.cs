@@ -34,7 +34,7 @@ public class KeyBindingGenerator : IKeyBindingGenerator
     /// <summary>
     /// Creates a key binding JWT signed with the holder's private key.
     /// </summary>
-    /// <param name="holderPrivateKey">The holder's ECDSA private key (P-256).</param>
+    /// <param name="holderPrivateKey">The holder's P-256 private key in SEC1 or PKCS#8 format.</param>
     /// <param name="sdJwtHash">The hash of the SD-JWT being presented.</param>
     /// <param name="audience">The intended audience (verifier).</param>
     /// <param name="nonce">A nonce for replay protection.</param>
@@ -67,7 +67,27 @@ public class KeyBindingGenerator : IKeyBindingGenerator
         using var ecdsa = ECDsa.Create();
         try
         {
-            ecdsa.ImportECPrivateKey(holderPrivateKey, out _);
+            int bytesRead;
+            try
+            {
+                // Existing callers provide SEC1 ECPrivateKey data.
+                ecdsa.ImportECPrivateKey(holderPrivateKey, out bytesRead);
+            }
+            catch (CryptographicException)
+            {
+                // KeyGenerator.GenerateEcdsaKeyPair exports PKCS#8, not SEC1.
+                // Both are standard private-key containers for P-256.
+                ecdsa.ImportPkcs8PrivateKey(holderPrivateKey, out bytesRead);
+            }
+
+            // Import methods accept a valid ASN.1 prefix. Do not sign using
+            // a private key with unconsumed attacker-controlled suffix bytes.
+            if (bytesRead != holderPrivateKey.Length)
+            {
+                throw new ArgumentException(
+                    "ECDSA private key must contain exactly one ASN.1 key.",
+                    nameof(holderPrivateKey));
+            }
         }
         catch (CryptographicException ex)
         {
