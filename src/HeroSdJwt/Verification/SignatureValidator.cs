@@ -59,40 +59,8 @@ public class SignatureValidator : ISignatureValidator
                 ErrorCode.InvalidInput);
         }
 
-        // Extract algorithm
-        if (!header.TryGetProperty("alg", out var algElement))
-        {
-            throw new SdJwtException(
-                "JWT header missing required 'alg' claim",
-                ErrorCode.InvalidInput);
-        }
-
-        var algorithm = algElement.GetString();
-        if (string.IsNullOrWhiteSpace(algorithm))
-        {
-            throw new SdJwtException(
-                "JWT 'alg' claim cannot be empty",
-                ErrorCode.InvalidInput);
-        }
-
-        // Check for "none" algorithm (case-insensitive) - algorithm confusion attack
-        if (algorithm.Equals("none", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new AlgorithmConfusionException(
-                "The 'none' algorithm is not allowed for security reasons");
-        }
-
-        // Verify algorithm is supported
-        if (!IsSupportedAlgorithm(algorithm))
-        {
-#if NET10_0_OR_GREATER
-            throw new AlgorithmNotSupportedException(
-                $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, HS384, HS512, RS256, PS256, ES256, ES384, ES512, EdDSA");
-#else
-            throw new AlgorithmNotSupportedException(
-                $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, HS384, HS512, RS256, PS256, ES256, ES384, ES512, EdDSA");
-#endif
-        }
+        // Reject unsupported or unsafe algorithms before signature work.
+        var algorithm = ValidateSupportedAlgorithm(header);
 
         // Construct the signing input (header.payload)
         var signingInput = $"{headerBase64}.{payloadBase64}";
@@ -470,6 +438,10 @@ public class SignatureValidator : ISignatureValidator
                 ErrorCode.InvalidInput);
         }
 
+        // The resolver may be backed by an external service. Reject an
+        // unsafe/malformed algorithm before it is allowed to run.
+        _ = ValidateSupportedAlgorithm(header);
+
         // Check if kid is present in header
         byte[] verificationKey;
         if (header.TryGetProperty("kid", out var kidElement) && kidElement.ValueKind == JsonValueKind.String)
@@ -562,6 +534,42 @@ public class SignatureValidator : ISignatureValidator
             // Any other error - fail safely
             return false;
         }
+    }
+
+    /// <summary>
+    /// Validates the signed JOSE algorithm selection before cryptographic work
+    /// or invocation of an application-provided key resolver.
+    /// </summary>
+    internal static string ValidateSupportedAlgorithm(JsonElement header)
+    {
+        if (!header.TryGetProperty("alg", out var algElement))
+        {
+            throw new SdJwtException(
+                "JWT header missing required 'alg' claim",
+                ErrorCode.InvalidInput);
+        }
+
+        var algorithm = algElement.GetString();
+        if (string.IsNullOrWhiteSpace(algorithm))
+        {
+            throw new SdJwtException(
+                "JWT 'alg' claim cannot be empty",
+                ErrorCode.InvalidInput);
+        }
+
+        if (algorithm.Equals("none", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new AlgorithmConfusionException(
+                "The 'none' algorithm is not allowed for security reasons");
+        }
+
+        if (!IsSupportedAlgorithm(algorithm))
+        {
+            throw new AlgorithmNotSupportedException(
+                $"Algorithm '{algorithm}' is not supported. Supported algorithms: HS256, HS384, HS512, RS256, PS256, ES256, ES384, ES512, EdDSA");
+        }
+
+        return algorithm;
     }
 
     /// <summary>

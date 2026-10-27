@@ -446,6 +446,42 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
+            // Refuse JOSE algorithm confusion before invoking an application
+            // resolver: a bad algorithm must not trigger remote key lookups.
+            if (!header.TryGetProperty("alg", out var algElement) ||
+                algElement.ValueKind != JsonValueKind.String)
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("JWT header missing required 'alg' claim");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
+            var algorithm = algElement.GetString() ?? string.Empty;
+            if (algorithm.Equals("none", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new AlgorithmConfusionException(
+                    "The 'none' algorithm is not allowed for security reasons");
+            }
+
+            // The built-in signature validator knows exactly which JOSE algorithms
+            // it can verify. Do not consult external key stores for any other
+            // algorithm. Custom validators may support additional algorithms.
+            if (_signatureValidator.GetType() == typeof(SignatureValidator))
+            {
+                _ = SignatureValidator.ValidateSupportedAlgorithm(header);
+            }
+
+            try
+            {
+                ValidateAlgorithmAgainstKeyType(algorithm, _options.ExpectedKeyType);
+            }
+            catch (SdJwtException ex)
+            {
+                errors.Add(ex.ErrorCode);
+                errorDetails.Add(ex.Message);
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
             // Check if kid is present
             if (header.TryGetProperty("kid", out var kidElement) && kidElement.ValueKind == JsonValueKind.String)
             {
