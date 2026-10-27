@@ -88,23 +88,29 @@ public class ClaimValidator : IClaimValidator
     /// </summary>
     /// <param name="payload">The decoded JWT payload.</param>
     /// <param name="expectedIssuer">The expected issuer value.</param>
-    /// <returns>True if issuer matches or expectedIssuer is null; otherwise, false.</returns>
+    /// <returns>True if the present issuer is a string and matches the configured issuer, or no matching policy is configured; otherwise, false.</returns>
     public bool ValidateIssuer(JsonElement payload, string? expectedIssuer)
     {
-        if (string.IsNullOrWhiteSpace(expectedIssuer))
+        if (payload.ValueKind != JsonValueKind.Object)
         {
-            return true; // Issuer validation not required
+            return false;
         }
 
-        if (payload.ValueKind != JsonValueKind.Object ||
-            !payload.TryGetProperty("iss", out var issElement) ||
-            issElement.ValueKind != JsonValueKind.String)
+        var requiresIssuer = !string.IsNullOrWhiteSpace(expectedIssuer);
+        if (!payload.TryGetProperty("iss", out var issElement))
         {
-            return false; // Expected issuer but claim missing or malformed
+            return !requiresIssuer;
         }
 
-        var actualIssuer = issElement.GetString();
-        return string.Equals(actualIssuer, expectedIssuer, StringComparison.Ordinal);
+        // RFC 7519 requires a StringOrURI issuer when the claim is present,
+        // regardless of whether the caller configured an issuer policy.
+        if (issElement.ValueKind != JsonValueKind.String)
+        {
+            return false;
+        }
+
+        return !requiresIssuer ||
+               string.Equals(issElement.GetString(), expectedIssuer, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -112,7 +118,7 @@ public class ClaimValidator : IClaimValidator
     /// </summary>
     /// <param name="payload">The decoded JWT payload.</param>
     /// <param name="expectedAudience">The expected audience value.</param>
-    /// <returns>True if audience matches or expectedAudience is null; otherwise, false.</returns>
+    /// <returns>True if any present audience is well-formed and matches the configured audience, or no matching policy is configured; otherwise, false.</returns>
     public bool ValidateAudience(JsonElement payload, string? expectedAudience)
     {
         var audiences = string.IsNullOrWhiteSpace(expectedAudience)
@@ -127,39 +133,48 @@ public class ClaimValidator : IClaimValidator
     /// </summary>
     /// <param name="payload">The decoded JWT payload.</param>
     /// <param name="expectedAudiences">The expected audience values.</param>
-    /// <returns>True if audience matches or expectedAudiences are empty; otherwise, false.</returns>
+    /// <returns>True if any present audience is well-formed and matches a configured audience, or no matching policy is configured; otherwise, false.</returns>
     public bool ValidateAudience(JsonElement payload, IReadOnlyCollection<string>? expectedAudiences)
     {
-        if (expectedAudiences == null || expectedAudiences.Count == 0)
+        if (payload.ValueKind != JsonValueKind.Object)
         {
-            return true; // Audience validation not required
+            return false;
         }
 
-        var expectedSet = new HashSet<string>(
-            expectedAudiences.Where(aud => !string.IsNullOrWhiteSpace(aud)),
-            StringComparer.Ordinal);
-
-        if (expectedSet.Count == 0)
+        // The common no-audience-policy path should not allocate a set.
+        // Create one only when at least one non-empty expected audience exists.
+        HashSet<string>? expectedSet = null;
+        if (expectedAudiences != null)
         {
-            return true; // Effectively not configured after normalization
+            foreach (var expectedAudience in expectedAudiences)
+            {
+                if (!string.IsNullOrWhiteSpace(expectedAudience))
+                {
+                    expectedSet ??= new HashSet<string>(StringComparer.Ordinal);
+                    _ = expectedSet.Add(expectedAudience);
+                }
+            }
         }
 
-        if (payload.ValueKind != JsonValueKind.Object ||
-            !payload.TryGetProperty("aud", out var audElement))
+        if (!payload.TryGetProperty("aud", out var audElement))
         {
-            return false; // Expected audience but claim missing or malformed
+            return expectedSet is null;
         }
 
-        // Audience can be a string or array of strings
+        // RFC 7519 requires an audience string or an array containing only
+        // strings whenever the claim is present. Skipping audience matching
+        // must not skip validating the signed claim's representation.
         if (audElement.ValueKind == JsonValueKind.String)
         {
             var actualAudience = audElement.GetString();
-            return actualAudience != null && expectedSet.Contains(actualAudience);
+            return expectedSet is null ||
+                   (actualAudience != null && expectedSet.Contains(actualAudience));
         }
-        else if (audElement.ValueKind == JsonValueKind.Array)
+
+        if (audElement.ValueKind == JsonValueKind.Array)
         {
-            // RFC 7519 Section 4.1.3 permits only strings in an audience array.
-            // Inspect all members so a match cannot mask a malformed later value.
+            // Check every entry even after a match, so a malicious non-string
+            // member cannot be hidden elsewhere in the array.
             var matched = false;
             foreach (var aud in audElement.EnumerateArray())
             {
@@ -168,13 +183,13 @@ public class ClaimValidator : IClaimValidator
                     return false;
                 }
 
-                if (aud.GetString() is string value && expectedSet.Contains(value))
+                if (aud.GetString() is string value && expectedSet?.Contains(value) == true)
                 {
                     matched = true;
                 }
             }
 
-            return matched;
+            return expectedSet is null || matched;
         }
 
         return false;
