@@ -1,5 +1,6 @@
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
+using HeroSdJwt.Verification;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -22,9 +23,10 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
         ArgumentNullException.ThrowIfNull(publicKeyBytes);
 
         using var ecdsa = ECDsa.Create();
+        int bytesRead;
         try
         {
-            ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+            ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out bytesRead);
         }
         catch (CryptographicException ex)
         {
@@ -34,6 +36,13 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
         {
             // Unsupported curves must not bypass the ES256 key policy.
             throw new ArgumentException("Unsupported ECDSA public key curve", nameof(publicKeyBytes), ex);
+        }
+
+        // ImportSubjectPublicKeyInfo reads only the first ASN.1 value. Do not
+        // silently normalize a key blob carrying additional, untrusted data.
+        if (bytesRead != publicKeyBytes.Length)
+        {
+            throw new ArgumentException("ECDSA public key must contain exactly one SPKI value without trailing bytes", nameof(publicKeyBytes));
         }
 
         // Only P-256 is supported for ES256
@@ -69,8 +78,15 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
     /// <exception cref="ArgumentException">If the JWK is invalid or not P-256.</exception>
     public byte[] FromJwk(JsonElement jwk)
     {
+        // JSON member lookup is last-wins. Reject repeated names (including
+        // escaped aliases) instead of converting an ambiguous holder key.
+        if (JsonObjectMemberGuard.HasInvalidOrDuplicateNames(jwk))
+        {
+            throw new ArgumentException("JWK must be an object with unique, valid member names", nameof(jwk));
+        }
+
         // Validate required fields
-        if (!jwk.TryGetProperty("kty", out var ktyElement))
+        if (!jwk.TryGetProperty("kty", out var ktyElement) || ktyElement.ValueKind != JsonValueKind.String)
         {
             throw new ArgumentException("JWK must have kty=EC for Elliptic Curve keys");
         }
@@ -80,7 +96,7 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
             throw new ArgumentException("JWK must have kty=EC for Elliptic Curve keys");
         }
 
-        if (!jwk.TryGetProperty("crv", out var crvElement))
+        if (!jwk.TryGetProperty("crv", out var crvElement) || crvElement.ValueKind != JsonValueKind.String)
         {
             throw new ArgumentException("Only P-256 curve is supported");
         }
