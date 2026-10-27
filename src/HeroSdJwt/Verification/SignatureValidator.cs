@@ -167,7 +167,13 @@ public class SignatureValidator : ISignatureValidator
         try
         {
             using var rsa = RSA.Create();
-            rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+            rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out var bytesRead);
+            // ImportSubjectPublicKeyInfo accepts an ASN.1 prefix. The trusted
+            // verification key must be exactly one SPKI object, no suffix.
+            if (bytesRead != publicKeyBytes.Length)
+            {
+                return false;
+            }
 
             // Validate minimum key size (2048 bits per NIST recommendations)
             const int MinimumRsaKeySize = 2048;
@@ -207,7 +213,13 @@ public class SignatureValidator : ISignatureValidator
         try
         {
             using var rsa = RSA.Create();
-            rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+            rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out var bytesRead);
+            // ImportSubjectPublicKeyInfo accepts an ASN.1 prefix. The trusted
+            // verification key must be exactly one SPKI object, no suffix.
+            if (bytesRead != publicKeyBytes.Length)
+            {
+                return false;
+            }
 
             // Validate minimum key size (2048 bits per NIST recommendations)
             const int MinimumRsaKeySize = 2048;
@@ -247,7 +259,13 @@ public class SignatureValidator : ISignatureValidator
         try
         {
             using var ecdsa = ECDsa.Create();
-            ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+            ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out var bytesRead);
+            // ImportSubjectPublicKeyInfo accepts an ASN.1 prefix. The trusted
+            // verification key must be exactly one SPKI object, no suffix.
+            if (bytesRead != publicKeyBytes.Length)
+            {
+                return false;
+            }
 
             // Validate curve parameters for ES256 (must be P-256/secp256r1)
             var parameters = ecdsa.ExportParameters(false);
@@ -301,7 +319,13 @@ public class SignatureValidator : ISignatureValidator
         try
         {
             using var ecdsa = ECDsa.Create();
-            ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+            ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out var bytesRead);
+            // ImportSubjectPublicKeyInfo accepts an ASN.1 prefix. The trusted
+            // verification key must be exactly one SPKI object, no suffix.
+            if (bytesRead != publicKeyBytes.Length)
+            {
+                return false;
+            }
 
             // Validate curve parameters for ES384 (must be P-384/secp384r1)
             var parameters = ecdsa.ExportParameters(false);
@@ -355,7 +379,13 @@ public class SignatureValidator : ISignatureValidator
         try
         {
             using var ecdsa = ECDsa.Create();
-            ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+            ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out var bytesRead);
+            // ImportSubjectPublicKeyInfo accepts an ASN.1 prefix. The trusted
+            // verification key must be exactly one SPKI object, no suffix.
+            if (bytesRead != publicKeyBytes.Length)
+            {
+                return false;
+            }
 
             // Validate curve parameters for ES512 (must be P-521/secp521r1)
             var parameters = ecdsa.ExportParameters(false);
