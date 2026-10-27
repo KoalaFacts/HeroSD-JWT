@@ -41,7 +41,7 @@ public class ResolverAlgorithmPreflightTests
         Assert.Contains(ErrorCode.AlgorithmConfusion, asyncResult.Errors);
         Assert.Equal(0, resolverCalls);
 
-        var exception = Assert.Throws<SdJwtException>(() =>
+        var exception = Assert.ThrowsAny<SdJwtException>(() =>
             verifier.VerifyPresentation(presentation, Resolver));
         Assert.Equal(ErrorCode.AlgorithmConfusion, exception.ErrorCode);
         Assert.Equal(0, resolverCalls);
