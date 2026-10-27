@@ -92,6 +92,34 @@ public class ResolverAlgorithmPreflightTests
         Assert.Equal(0, resolverCalls);
     }
 
+    [Theory]
+    [InlineData("unsupported-alg", ErrorCode.UnsupportedAlgorithm)]
+    [InlineData("", ErrorCode.InvalidInput)]
+    public async Task Should_RejectUnsupportedAlgorithmBeforeHighLevelKeyResolution(
+        string algorithm,
+        ErrorCode expectedError)
+    {
+        var presentation = SignJwt(algorithm) + "~";
+        var resolverCalls = 0;
+        byte[]? Resolver(string _)
+        {
+            resolverCalls++;
+            return _signingKey;
+        }
+
+        var verifier = CreateVerifier();
+        var result = verifier.TryVerifyPresentation(presentation, Resolver);
+        Assert.False(result.IsValid);
+        Assert.Contains(expectedError, result.Errors);
+        Assert.Equal(0, resolverCalls);
+
+        var asyncResult = await verifier.TryVerifyPresentationAsync(
+            presentation, Resolver, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.False(asyncResult.IsValid);
+        Assert.Contains(expectedError, asyncResult.Errors);
+        Assert.Equal(0, resolverCalls);
+    }
+
     [Fact]
     public async Task Should_StillResolveSupportedSignedJwt()
     {
