@@ -468,6 +468,12 @@ public class SignatureValidator : ISignatureValidator
             {
                 throw; // Re-throw our exceptions
             }
+            catch (OperationCanceledException)
+            {
+                // A canceled or timed-out key lookup is not a key-resolution failure.
+                // Preserve the original cancellation for callers and retry policies.
+                throw;
+            }
             catch (Exception ex)
             {
                 throw new SdJwtException(
