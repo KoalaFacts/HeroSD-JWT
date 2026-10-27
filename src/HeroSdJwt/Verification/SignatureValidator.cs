@@ -540,7 +540,7 @@ public class SignatureValidator : ISignatureValidator
     /// Validates the signed JOSE algorithm selection before cryptographic work
     /// or invocation of an application-provided key resolver.
     /// </summary>
-    private static string ValidateSupportedAlgorithm(JsonElement header)
+    internal static string ValidateSupportedAlgorithm(JsonElement header)
     {
         if (!header.TryGetProperty("alg", out var algElement))
         {
