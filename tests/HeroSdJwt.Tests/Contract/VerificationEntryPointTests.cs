@@ -31,11 +31,11 @@ public class VerificationEntryPointTests
         var syncResult = useResolver ? sync.Verify(presentation, Resolve) : sync.Verify(presentation, key);
         var syncTryResult = useResolver ? sync.TryVerify(presentation, Resolve) : sync.TryVerify(presentation, key);
         var asyncResult = useResolver
-            ? await asyncVerifier.VerifyAsync(presentation, Resolve)
-            : await asyncVerifier.VerifyAsync(presentation, key);
+            ? await asyncVerifier.VerifyAsync(presentation, Resolve, cancellationToken: TestContext.Current.CancellationToken)
+            : await asyncVerifier.VerifyAsync(presentation, key, cancellationToken: TestContext.Current.CancellationToken);
         var asyncTryResult = useResolver
-            ? await asyncVerifier.TryVerifyAsync(presentation, Resolve)
-            : await asyncVerifier.TryVerifyAsync(presentation, key);
+            ? await asyncVerifier.TryVerifyAsync(presentation, Resolve, cancellationToken: TestContext.Current.CancellationToken)
+            : await asyncVerifier.TryVerifyAsync(presentation, key, cancellationToken: TestContext.Current.CancellationToken);
 
         VerificationResult[] results = [syncResult, syncTryResult, asyncResult, asyncTryResult];
         foreach (var result in results)
@@ -65,15 +65,17 @@ public class VerificationEntryPointTests
         }
         Task<VerificationResult> VerifyAsync()
         {
-            return useResolver ? verifier.VerifyAsync(presentation, Resolve) : verifier.VerifyAsync(presentation, wrongKey);
+            return useResolver
+                ? verifier.VerifyAsync(presentation, Resolve, cancellationToken: TestContext.Current.CancellationToken)
+                : verifier.VerifyAsync(presentation, wrongKey, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         var syncError = Assert.Throws<SdJwtException>(VerifySync);
         var asyncError = await Assert.ThrowsAsync<SdJwtException>(VerifyAsync);
         var syncResult = useResolver ? verifier.TryVerify(presentation, Resolve) : verifier.TryVerify(presentation, wrongKey);
         var asyncResult = useResolver
-            ? await verifier.TryVerifyAsync(presentation, Resolve)
-            : await verifier.TryVerifyAsync(presentation, wrongKey);
+            ? await verifier.TryVerifyAsync(presentation, Resolve, cancellationToken: TestContext.Current.CancellationToken)
+            : await verifier.TryVerifyAsync(presentation, wrongKey, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(syncResult.IsValid);
         Assert.False(asyncResult.IsValid);
@@ -88,18 +90,18 @@ public class VerificationEntryPointTests
         var key = KeyGenerator.Instance.GenerateHmacKey();
         var verifier = CreateVerifier();
         var presentation = CreatePresentation(key, false);
-        Assert.True((await verifier.VerifyAsync(presentation, (KeyResolver?)null, fallbackKey: key)).IsValid);
-        Assert.False((await verifier.TryVerifyAsync(presentation, key, HashAlgorithm.Sha384)).IsValid);
+        Assert.True((await verifier.VerifyAsync(presentation, null, fallbackKey: key, cancellationToken: TestContext.Current.CancellationToken)).IsValid);
+        Assert.False((await verifier.TryVerifyAsync(presentation, key, HashAlgorithm.Sha384, cancellationToken: TestContext.Current.CancellationToken)).IsValid);
         Assert.False(verifier.TryVerify(presentation, key, HashAlgorithm.Sha384).IsValid);
 
-        byte[]? UnknownKey(string _)
+        static byte[]? UnknownKey(string _)
         {
             return null;
         }
-        var unknown = await verifier.TryVerifyAsync(CreatePresentation(key, true), UnknownKey, fallbackKey: key);
+        var unknown = await verifier.TryVerifyAsync(CreatePresentation(key, true), UnknownKey, fallbackKey: key, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(unknown.IsValid);
         Assert.Contains(ErrorCode.KeyIdNotFound, unknown.Errors);
-        var missing = await verifier.TryVerifyAsync(presentation, (KeyResolver?)null);
+        var missing = await verifier.TryVerifyAsync(presentation, (KeyResolver?)null, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Contains(ErrorCode.KeyResolverMissing, missing.Errors);
     }
 
@@ -176,7 +178,7 @@ public class VerificationEntryPointTests
     public async Task Should_PreserveDomainErrorCode_When_CustomVerifierThrows(bool useResolver)
     {
         var verifier = new RecordingVerifier { Failure = new SdJwtException("sensitive backend detail", ErrorCode.KeyIdNotFound) };
-        var result = await InvokeAsync(verifier, useResolver, true, default);
+        var result = await InvokeAsync(verifier, useResolver, true, TestContext.Current.CancellationToken);
         Assert.False(result.IsValid);
         Assert.Contains(ErrorCode.KeyIdNotFound, result.Errors);
         Assert.DoesNotContain("sensitive backend detail", result.ErrorDetails ?? string.Empty);
@@ -198,7 +200,7 @@ public class VerificationEntryPointTests
         var error = await Assert.ThrowsAsync<SdJwtException>(Invoke);
         Assert.Equal(ErrorCode.InvalidSignature, error.ErrorCode);
         Assert.DoesNotContain("sensitive token detail", error.Message);
-        Assert.Same(result, await InvokeAsync(verifier, useResolver, true, default));
+        Assert.Same(result, await InvokeAsync(verifier, useResolver, true, TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -268,8 +270,8 @@ public class VerificationEntryPointTests
         if (useResolver)
         {
             return tryApi
-                ? verifier.TryVerifyAsync("invalid input", (KeyResolver?)null, fallbackKey: [], cancellationToken: token)
-                : verifier.VerifyAsync("invalid input", (KeyResolver?)null, fallbackKey: [], cancellationToken: token);
+                ? verifier.TryVerifyAsync("invalid input", null, fallbackKey: [], cancellationToken: token)
+                : verifier.VerifyAsync("invalid input", null, fallbackKey: [], cancellationToken: token);
         }
 
         return tryApi
