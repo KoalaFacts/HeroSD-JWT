@@ -119,6 +119,58 @@ public class DigestValidatorTests
         Assert.False(result, "Validation should fail when one digest doesn't match");
     }
 
+    [Theory]
+    [InlineData(HashAlgorithm.Sha256, false)]
+    [InlineData(HashAlgorithm.Sha256, true)]
+    [InlineData(HashAlgorithm.Sha384, false)]
+    [InlineData(HashAlgorithm.Sha384, true)]
+    [InlineData(HashAlgorithm.Sha512, false)]
+    [InlineData(HashAlgorithm.Sha512, true)]
+    public void ValidateAllDigests_WithRepeatedDisclosure_ReturnsFalse(
+        HashAlgorithm algorithm,
+        bool duplicateExpectedDigest)
+    {
+        // A single signed digest must not authorize multiple occurrences
+        // of the same Disclosure, even if the digest list is also repeated.
+        var disclosure = CreateTestDisclosure("email", "user@example.com");
+        var digest = new Digest(
+            new DigestCalculator().ComputeDigest(disclosure, algorithm),
+            algorithm);
+        var expectedDigests = duplicateExpectedDigest
+            ? new[] { digest, digest }
+            : new[] { digest };
+
+        var result = new DigestValidator().ValidateAllDigests(
+            [disclosure, disclosure],
+            expectedDigests,
+            algorithm);
+
+        Assert.False(result);
+    }
+
+    [Theory]
+    [InlineData(HashAlgorithm.Sha256)]
+    [InlineData(HashAlgorithm.Sha384)]
+    [InlineData(HashAlgorithm.Sha512)]
+    public void ValidateAllDigests_WithDistinctDisclosures_ReturnsTrue(HashAlgorithm algorithm)
+    {
+        var first = CreateTestDisclosure("email", "user@example.com");
+        var second = CreateTestDisclosure("age", "30");
+        var calculator = new DigestCalculator();
+        var expectedDigests = new[]
+        {
+            new Digest(calculator.ComputeDigest(second, algorithm), algorithm),
+            new Digest(calculator.ComputeDigest(first, algorithm), algorithm)
+        };
+
+        var result = new DigestValidator().ValidateAllDigests(
+            [first, second],
+            expectedDigests,
+            algorithm);
+
+        Assert.True(result);
+    }
+
     [Fact]
     public void ValidateAllDigests_WithEmptyLists_ReturnsTrue()
     {
