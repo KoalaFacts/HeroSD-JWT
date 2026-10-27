@@ -202,6 +202,19 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
                 return false;
             }
 
+            // RFC 9901 defines a KB-JWT as a JWT. RFC 7519 requires
+            // registered iss, sub and jti claims to be strings when present.
+            // Their shape is mandatory even without a separate matching policy.
+            if ((payload.TryGetProperty("iss", out var issuer) &&
+                 issuer.ValueKind != JsonValueKind.String) ||
+                (payload.TryGetProperty("sub", out var subject) &&
+                 subject.ValueKind != JsonValueKind.String) ||
+                (payload.TryGetProperty("jti", out var jwtId) &&
+                 jwtId.ValueKind != JsonValueKind.String))
+            {
+                return false;
+            }
+
             // Validate sd_hash claim exists and matches expected value
             if (!payload.TryGetProperty("sd_hash", out var sdHashElement) ||
                 sdHashElement.ValueKind != JsonValueKind.String)
