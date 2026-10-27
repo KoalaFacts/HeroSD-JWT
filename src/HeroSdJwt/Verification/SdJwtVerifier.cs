@@ -473,6 +473,11 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 {
                     throw;
                 }
+                catch (OperationCanceledException)
+                {
+                    // A resolver timeout or caller cancellation is not a failed key lookup.
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     throw new SdJwtException(
@@ -496,6 +501,11 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         }
         catch (SdJwtException)
         {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            // Preserve cancellation from the request token and key resolver.
             throw;
         }
         catch (Exception ex)
