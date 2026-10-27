@@ -141,15 +141,24 @@ public class ClaimValidator : IClaimValidator
             return false;
         }
 
-        var expectedSet = expectedAudiences == null
-            ? new HashSet<string>(StringComparer.Ordinal)
-            : new HashSet<string>(
-                expectedAudiences.Where(aud => !string.IsNullOrWhiteSpace(aud)),
-                StringComparer.Ordinal);
+        // The common no-audience-policy path should not allocate a set.
+        // Create one only when at least one non-empty expected audience exists.
+        HashSet<string>? expectedSet = null;
+        if (expectedAudiences != null)
+        {
+            foreach (var expectedAudience in expectedAudiences)
+            {
+                if (!string.IsNullOrWhiteSpace(expectedAudience))
+                {
+                    expectedSet ??= new HashSet<string>(StringComparer.Ordinal);
+                    _ = expectedSet.Add(expectedAudience);
+                }
+            }
+        }
 
         if (!payload.TryGetProperty("aud", out var audElement))
         {
-            return expectedSet.Count == 0;
+            return expectedSet is null;
         }
 
         // RFC 7519 requires an audience string or an array containing only
@@ -158,7 +167,7 @@ public class ClaimValidator : IClaimValidator
         if (audElement.ValueKind == JsonValueKind.String)
         {
             var actualAudience = audElement.GetString();
-            return expectedSet.Count == 0 ||
+            return expectedSet is null ||
                    (actualAudience != null && expectedSet.Contains(actualAudience));
         }
 
@@ -180,7 +189,7 @@ public class ClaimValidator : IClaimValidator
                 }
             }
 
-            return expectedSet.Count == 0 || matched;
+            return expectedSet is null || matched;
         }
 
         return false;
