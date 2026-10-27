@@ -91,20 +91,26 @@ public class ClaimValidator : IClaimValidator
     /// <returns>True if issuer matches or expectedIssuer is null; otherwise, false.</returns>
     public bool ValidateIssuer(JsonElement payload, string? expectedIssuer)
     {
-        if (string.IsNullOrWhiteSpace(expectedIssuer))
+        if (payload.ValueKind != JsonValueKind.Object)
         {
-            return true; // Issuer validation not required
+            return false;
         }
 
-        if (payload.ValueKind != JsonValueKind.Object ||
-            !payload.TryGetProperty("iss", out var issElement) ||
-            issElement.ValueKind != JsonValueKind.String)
+        var requiresIssuer = !string.IsNullOrWhiteSpace(expectedIssuer);
+        if (!payload.TryGetProperty("iss", out var issElement))
         {
-            return false; // Expected issuer but claim missing or malformed
+            return !requiresIssuer;
         }
 
-        var actualIssuer = issElement.GetString();
-        return string.Equals(actualIssuer, expectedIssuer, StringComparison.Ordinal);
+        // RFC 7519 requires a StringOrURI issuer when the claim is present,
+        // regardless of whether the caller configured an issuer policy.
+        if (issElement.ValueKind != JsonValueKind.String)
+        {
+            return false;
+        }
+
+        return !requiresIssuer ||
+               string.Equals(issElement.GetString(), expectedIssuer, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -130,36 +136,36 @@ public class ClaimValidator : IClaimValidator
     /// <returns>True if audience matches or expectedAudiences are empty; otherwise, false.</returns>
     public bool ValidateAudience(JsonElement payload, IReadOnlyCollection<string>? expectedAudiences)
     {
-        if (expectedAudiences == null || expectedAudiences.Count == 0)
+        if (payload.ValueKind != JsonValueKind.Object)
         {
-            return true; // Audience validation not required
+            return false;
         }
 
-        var expectedSet = new HashSet<string>(
-            expectedAudiences.Where(aud => !string.IsNullOrWhiteSpace(aud)),
-            StringComparer.Ordinal);
+        var expectedSet = expectedAudiences == null
+            ? new HashSet<string>(StringComparer.Ordinal)
+            : new HashSet<string>(
+                expectedAudiences.Where(aud => !string.IsNullOrWhiteSpace(aud)),
+                StringComparer.Ordinal);
 
-        if (expectedSet.Count == 0)
+        if (!payload.TryGetProperty("aud", out var audElement))
         {
-            return true; // Effectively not configured after normalization
+            return expectedSet.Count == 0;
         }
 
-        if (payload.ValueKind != JsonValueKind.Object ||
-            !payload.TryGetProperty("aud", out var audElement))
-        {
-            return false; // Expected audience but claim missing or malformed
-        }
-
-        // Audience can be a string or array of strings
+        // RFC 7519 requires an audience string or an array containing only
+        // strings whenever the claim is present. Skipping audience matching
+        // must not skip validating the signed claim's representation.
         if (audElement.ValueKind == JsonValueKind.String)
         {
             var actualAudience = audElement.GetString();
-            return actualAudience != null && expectedSet.Contains(actualAudience);
+            return expectedSet.Count == 0 ||
+                   (actualAudience != null && expectedSet.Contains(actualAudience));
         }
-        else if (audElement.ValueKind == JsonValueKind.Array)
+
+        if (audElement.ValueKind == JsonValueKind.Array)
         {
-            // RFC 7519 Section 4.1.3 permits only strings in an audience array.
-            // Inspect all members so a match cannot mask a malformed later value.
+            // Check every entry even after a match, so a malicious non-string
+            // member cannot be hidden elsewhere in the array.
             var matched = false;
             foreach (var aud in audElement.EnumerateArray())
             {
@@ -174,7 +180,7 @@ public class ClaimValidator : IClaimValidator
                 }
             }
 
-            return matched;
+            return expectedSet.Count == 0 || matched;
         }
 
         return false;
