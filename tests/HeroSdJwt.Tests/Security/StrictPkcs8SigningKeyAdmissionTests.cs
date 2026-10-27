@@ -50,7 +50,8 @@ public class StrictPkcs8SigningKeyAdmissionTests
         var validJwt = signer.CreateJwt(claims, privateKey, algorithm);
         Assert.True(new SignatureValidator().VerifyJwtSignature(validJwt, publicKey));
 
-        foreach (var trailingByte in new byte[] { 0x00, 0x30, 0xFF })
+        byte[] trailingBytes = [0x00, 0x30, 0xFF];
+        foreach (var trailingByte in trailingBytes)
         {
             byte[] malformed = [.. privateKey, trailingByte];
             Assert.Throws<ArgumentException>(() =>
