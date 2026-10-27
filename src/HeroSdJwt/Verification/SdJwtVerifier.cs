@@ -463,6 +463,14 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     "The 'none' algorithm is not allowed for security reasons");
             }
 
+            // The built-in signature validator knows exactly which JOSE algorithms
+            // it can verify. Do not consult external key stores for any other
+            // algorithm. Custom validators may support additional algorithms.
+            if (_signatureValidator.GetType() == typeof(SignatureValidator))
+            {
+                _ = SignatureValidator.ValidateSupportedAlgorithm(header);
+            }
+
             try
             {
                 ValidateAlgorithmAgainstKeyType(algorithm, _options.ExpectedKeyType);
