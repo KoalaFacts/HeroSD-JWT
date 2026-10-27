@@ -146,14 +146,15 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
     // Called only while holding _sync.
     private void RemoveExpiredEntries(DateTimeOffset now)
     {
-        var expiredKeys = _cache
-            .Where(pair => pair.Value <= now)
-            .Select(pair => pair.Key)
-            .ToArray();
-
-        foreach (var key in expiredKeys)
+        // .NET 8+ Dictionary.Remove does not invalidate active enumerators.
+        // Avoid allocating a temporary key array proportional to the number
+        // of expired markers when the cache is full or during timer cleanup.
+        foreach (var entry in _cache)
         {
-            _ = _cache.Remove(key);
+            if (entry.Value <= now)
+            {
+                _ = _cache.Remove(entry.Key);
+            }
         }
     }
 
