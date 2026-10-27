@@ -186,18 +186,17 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
 
         var now = DateTimeOffset.UtcNow;
 
-        // Find all expired JTI entries
-        var expiredJtis = _revokedJtis
-            .Where(kvp => kvp.Value <= now)
-            .ToList();
-
-        // A revocation may be renewed after the snapshot is taken. Remove only
-        // when the key AND its observed expiry still match, so cleanup cannot
-        // discard a replacement revocation from another request.
+        // ConcurrentDictionary supports removal while it is being enumerated.
+        // Avoid snapshotting every expired marker into an O(N) temporary list.
+        // Remove the exact observed pair: a concurrently extended revocation
+        // must not be erased by cleanup of its stale expiry.
         var conditionalRemover = (ICollection<KeyValuePair<string, DateTimeOffset>>)_revokedJtis;
-        foreach (var expired in expiredJtis)
+        foreach (var entry in _revokedJtis)
         {
-            _ = conditionalRemover.Remove(expired);
+            if (entry.Value <= now)
+            {
+                _ = conditionalRemover.Remove(entry);
+            }
         }
 
         return Task.CompletedTask;
