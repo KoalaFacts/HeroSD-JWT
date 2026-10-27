@@ -876,16 +876,20 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                         }
                     }
                 }
-                catch (Exception ex) when (ex is SdJwtException or JsonException or ArgumentException)
+                catch (ArgumentException)
                 {
-                    // A malformed Disclosure (including one exceeding the
-                    // nested digest depth limit) must not bypass validation.
-                    // Ignoring collection errors would allow a signed parent
-                    // digest to authenticate a structure the verifier did
-                    // not actually inspect.
+                    // Exceeding the nested digest traversal limit is a
+                    // validation failure, even for a correctly authenticated
+                    // Disclosure. Never admit a structure we did not inspect.
                     errors.Add(ErrorCode.InvalidInput);
-                    errorDetails.Add("Malformed Disclosure or nested digest depth limit exceeded");
+                    errorDetails.Add("Disclosure nested digest depth limit exceeded");
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
+                catch (Exception ex) when (ex is SdJwtException or JsonException or FormatException)
+                {
+                    // An invalidly encoded or malformed Disclosure still has
+                    // to match a signed digest. Defer to ValidateAllDigests so
+                    // tampered disclosures retain the DigestMismatch contract.
                 }
             }
 
