@@ -269,6 +269,24 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
                 return false; // KB-JWT issued in the future
             }
 
+            // RFC 9901 defines KB-JWT as a JWT. Although exp and nbf are
+            // optional here, RFC 7519 requires enforcing their validity
+            // whenever the holder includes them. A fresh iat cannot override
+            // an already expired or not-yet-valid signed holder proof.
+            if (payload.TryGetProperty("exp", out var expElement) &&
+                (!NumericDateParser.TryParseUnixTicks(expElement, out var expTicks) ||
+                 nowTicks >= expTicks))
+            {
+                return false;
+            }
+
+            if (payload.TryGetProperty("nbf", out var nbfElement) &&
+                (!NumericDateParser.TryParseUnixTicks(nbfElement, out var nbfTicks) ||
+                 nowTicks < nbfTicks))
+            {
+                return false;
+            }
+
             return true;
         }
         catch (CryptographicException)
