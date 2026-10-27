@@ -751,6 +751,17 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
+            // RFC 7519 Sections 4.1.2 and 4.1.7 require sub and jti to
+            // be strings when present, regardless of optional policy. Reject
+            // malformed signed values before string-only revocation lookups.
+            if ((payload.TryGetProperty("sub", out var subject) && subject.ValueKind != JsonValueKind.String) ||
+                (payload.TryGetProperty("jti", out var jwtId) && jwtId.ValueKind != JsonValueKind.String))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("JWT subject (sub) and ID (jti) must be strings when present");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
             var payloadAudiences = ExtractAudiences(payload);
 
             // Step 3: Validate temporal claims (exp, nbf, iat)

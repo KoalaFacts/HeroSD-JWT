@@ -9,6 +9,7 @@ namespace HeroSdJwt.Tests.Security;
 /// <summary>
 /// RFC 7519 registered claim types must remain well-formed even when the
 /// verifier has not configured an issuer or audience matching policy.
+/// In particular, malformed sub/jti must not bypass string-only revocation lookups.
 /// </summary>
 public class UnconfiguredRegisteredClaimShapeTests
 {
@@ -27,6 +28,16 @@ public class UnconfiguredRegisteredClaimShapeTests
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"aud":["service-a",17]}""")]
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"aud":[null,"service-a"]}""")]
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"aud":[["service-a"]]}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"sub":42}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"sub":null}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"sub":false}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"sub":[]}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"sub":{}}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"jti":42}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"jti":null}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"jti":true}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"jti":[]}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"jti":{}}""")]
     public async Task Should_RejectMalformedRegisteredClaim_WhenNoIssuerOrAudienceConfigured(string payloadJson)
     {
         var presentation = SignPayload(payloadJson) + "~";
@@ -65,6 +76,9 @@ public class UnconfiguredRegisteredClaimShapeTests
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"aud":"service-a"}""")]
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"aud":["service-a","service-b"]}""")]
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"iss":"https://issuer.example.test","aud":["service-a"]}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"sub":"subject-a"}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"jti":"token-123"}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"sub":"https://example.test/subject","jti":"token-456"}""")]
     public async Task Should_KeepAcceptingWellFormedOptionalClaims_WithoutMatchingPolicy(string payloadJson)
     {
         var presentation = SignPayload(payloadJson) + "~";
