@@ -21,11 +21,11 @@ public class KeyResolverCancellationTests
         cancellation.Cancel();
 
         var calls = 0;
-        KeyResolver resolver = _ =>
+        byte[]? resolver(string _)
         {
             calls++;
             return _signingKey;
-        };
+        }
         var verifier = CreateVerifier();
         var presentation = CreatePresentation();
 
@@ -50,7 +50,7 @@ public class KeyResolverCancellationTests
     {
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         var calls = 0;
-        KeyResolver resolver = _ =>
+        byte[]? resolver(string _)
         {
             calls++;
             if (cancelCaller)
@@ -60,7 +60,7 @@ public class KeyResolverCancellationTests
 
             // Key stores may independently time out even without caller cancellation.
             throw new OperationCanceledException("Key lookup canceled");
-        };
+        }
 
         var verifier = CreateVerifier();
         var presentation = CreatePresentation();
