@@ -290,6 +290,39 @@ public class InMemoryRevocationStoreTests
     }
 
     [Fact]
+    public async Task Should_ReclaimThousandsOfExpiredRevocations_WithoutProportionalTemporaryAllocations()
+    {
+        // A cleanup with 10,000 expired entries must not copy them into an
+        // intermediate list. KeyValuePair<string, DateTimeOffset> alone would
+        // consume about 24 bytes per entry before List capacity overhead.
+        using var store = new InMemoryRevocationStore();
+        var token = TestContext.Current.CancellationToken;
+        var now = DateTimeOffset.UtcNow;
+
+        // Warm up the cleanup path before measuring (without seeded entries).
+        await store.CleanupExpiredEntriesAsync(token);
+
+        for (var i = 0; i < 20_000; i++)
+        {
+            var expiration = i % 2 == 0 ? now.AddMinutes(-1) : now.AddHours(1);
+            await store.RevokeJtiAsync($"cleanup-{i}", expiration, token);
+        }
+
+        // The method synchronously returns a completed task. Measure only its
+        // enumeration/removal work, excluding setup and assertion allocations.
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var cleanup = store.CleanupExpiredEntriesAsync(token);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+        await cleanup;
+
+        Assert.True(allocatedBytes < 32 * 1024,
+            $"Revocation cleanup allocated {allocatedBytes} bytes for expired entries.");
+        Assert.False(await store.IsJtiRevokedAsync("cleanup-0", token));
+        Assert.True(await store.IsJtiRevokedAsync("cleanup-1", token));
+        Assert.True(await store.IsJtiRevokedAsync("cleanup-19999", token));
+    }
+
+    [Fact]
     public async Task CleanupExpiredEntriesAsync_DoesNotRemoveKeyRevocations()
     {
         var store = new InMemoryRevocationStore();
