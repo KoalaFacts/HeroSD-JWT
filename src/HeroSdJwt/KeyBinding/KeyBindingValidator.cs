@@ -165,7 +165,13 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             using var ecdsa = ECDsa.Create();
             try
             {
-                ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
+                ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out var bytesRead);
+                // The holder key must be exactly one SPKI object. Ignore no
+                // trailing data, even when the SPKI prefix is otherwise valid.
+                if (bytesRead != holderPublicKey.Length)
+                {
+                    return false;
+                }
             }
             catch (CryptographicException)
             {
