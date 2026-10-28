@@ -173,7 +173,7 @@ Manual emergency Publish to NuGet deliberately lacks the automatic exact-run pro
 
 | Environment | Purpose | Protection Rules |
 |-------------|---------|------------------|
-| `production` | NuGet package publishing | Required reviewers, Deployment branches: main only |
+| `production` | NuGet package publishing | Configure reviewers and allowed branches as appropriate; confirm actual rules in repository settings |
 
 ### Setting up Trusted Publishing
 
@@ -192,7 +192,7 @@ Manual emergency Publish to NuGet deliberately lacks the automatic exact-run pro
      - Name: `production`
      - Add protection rules (reviewers, branch restrictions)
 
-See [PUBLISHING.md](../../PUBLISHING.md) for detailed setup instructions.
+See the [maintainer publishing guide](../../docs/maintainers/publishing-guide.md) for the actual release procedure.
 
 ---
 
@@ -239,7 +239,7 @@ All workflows use multi-layer caching:
 
 1. **Use semantic versioning**:
    - `X.Y.Z` for stable releases
-   - `X.Y.Z-alpha.1` for pre-releases
+   - Currently only a single alphanumeric prerelease suffix, e.g. `X.Y.Z-rc` (not `rc.1`)
 
 2. **Release process starts with authorized manual dispatch**:
    - Verify current main plus its checked checks and changelog/upgrade guide
@@ -293,7 +293,7 @@ All workflows use multi-layer caching:
 
 **Problem**: Version already exists on NuGet.org
 - NuGet doesn't allow overwriting versions
-- Bump version and create new release
+- Inspect the already-published version and its source; issue a new version for a corrected release
 
 **Problem**: Cannot download packages from release
 - Ensure create-release workflow completed successfully
@@ -301,8 +301,8 @@ All workflows use multi-layer caching:
 
 **Problem**: SBOM generation fails
 - Check workflow logs for specific framework error
-- SBOMs are generated inline, failure will stop the release
-- Fix the issue and re-run the workflow
+- SBOMs are generated inline; failure stops release creation
+- Fix via a reviewed PR, then verify a Release/tag was not created before redispatch
 
 ### Security Scan Failures
 
@@ -318,23 +318,9 @@ All workflows use multi-layer caching:
 
 ---
 
-## Performance Optimizations
+## Workflow reliability notes
 
-Current optimizations:
-
-1. **Parallel matrix builds**: 9 configurations run simultaneously in CI
-2. **Dependency caching**: Approximately 45 second savings per run
-3. **Conditional jobs**: Jobs only run when needed
-4. **Artifact retention**: 1-90 days based on importance
-5. **Inline SBOM generation**: Fast sequential generation (~30 seconds total)
-6. **Pre-built packages**: publish-nuget downloads from release instead of rebuilding
-7. **Automated CHANGELOG**: No manual editing, auto-committed with [skip ci]
-
-**Average workflow times**:
-- CI: ~3-5 minutes (with cache)
-- Create Release: ~5-10 minutes (includes SBOM generation)
-- Publish: ~3-4 minutes
-- Security: ~8-12 minutes
+The build matrix uses `fail-fast: false` so one platform failure does not hide other results. The release workflow packs and smoke-tests packages before creating the Release, and its automatic NuGet publishing path verifies both downloaded artifact digests. These checks do not override an actual failing build/test/security result. Runner availability and duration vary; do not rely on fixed completion-time claims.
 
 ---
 
@@ -364,7 +350,7 @@ Current optimizations:
 - [Semantic Versioning](https://semver.org/)
 - [SPDX Specification](https://spdx.dev/specifications/)
 - [Microsoft SBOM Tool](https://github.com/microsoft/sbom-tool)
-- [Publishing Guide](../../PUBLISHING.md)
+- [Publishing Guide](../../docs/maintainers/publishing-guide.md)
 
 ---
 
