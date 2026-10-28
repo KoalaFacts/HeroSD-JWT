@@ -4,7 +4,6 @@ using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
@@ -101,7 +100,7 @@ public class ReservedArrayPlaceholderPlacementTests
     {
         const string header = /*lang=json,strict*/ "{\"alg\":\"HS256\",\"kid\":\"reserved-array-placeholder\"}";
         var input = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payloadJson);
-        var signature = HMACSHA256.HashData(_signingKey, Encoding.UTF8.GetBytes(input));
+        var signature = HMACSHA256.HashData(_signingKey, System.Text.Encoding.UTF8.GetBytes(input));
         return input + "." + Base64UrlEncoder.Encode(signature);
     }
 }
