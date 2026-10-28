@@ -85,4 +85,52 @@ public class EcJwkKeyAdmissionTests
 
         Assert.Throws<ArgumentException>(() => converter.FromJwk(document.RootElement));
     }
+
+    [Theory]
+    [InlineData("use", "enc")]
+    [InlineData("alg", "ES384")]
+    [InlineData("k", "c2VjcmV0")]
+    public void FromJwk_ShouldRejectConflictingUsageOrSymmetricSecretInBothInputForms(string member, string value)
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var converter = new EcPublicKeyConverter();
+        var jwk = converter.ToJwk(holder.ExportSubjectPublicKeyInfo());
+        jwk[member] = value;
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(jwk));
+
+        Assert.Throws<ArgumentException>(() => converter.FromJwk(document.RootElement));
+        Assert.Throws<ArgumentException>(() => converter.FromJwkObject(jwk));
+    }
+
+    [Theory]
+    [InlineData("encrypt")]
+    [InlineData("sign")]
+    public void FromJwk_ShouldRejectKeyOperationsNotPermittedForPublicHolderVerification(string operation)
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var converter = new EcPublicKeyConverter();
+        var jwk = converter.ToJwk(holder.ExportSubjectPublicKeyInfo());
+        jwk["key_ops"] = new[] { operation };
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(jwk));
+
+        Assert.Throws<ArgumentException>(() => converter.FromJwk(document.RootElement));
+        Assert.Throws<ArgumentException>(() => converter.FromJwkObject(jwk));
+    }
+
+    [Fact]
+    public void FromJwk_ShouldAcceptConsistentSignatureMetadataInBothInputForms()
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var converter = new EcPublicKeyConverter();
+        var jwk = converter.ToJwk(holder.ExportSubjectPublicKeyInfo());
+        jwk["kid"] = "holder-1";
+        jwk["use"] = "sig";
+        jwk["alg"] = "ES256";
+        jwk["key_ops"] = new[] { "verify" };
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(jwk));
+
+        Assert.NotEmpty(converter.FromJwk(document.RootElement));
+        Assert.NotEmpty(converter.FromJwkObject(jwk));
+    }
+
 }
