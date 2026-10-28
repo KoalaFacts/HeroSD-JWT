@@ -13,6 +13,10 @@ on:
         description: 'Package version (e.g., 1.0.0)'
         required: false
         type: string
+      release_run_id:
+        description: 'Successful Create Release workflow run ID for integrity-verified retry'
+        required: false
+        type: string
 
 # Prevent concurrent publishes
 concurrency:
@@ -43,11 +47,11 @@ jobs:
       snupkg_sha256: ${{ steps.version.outputs.SNUPKG_SHA256 }}
     steps:
       - name: Download identity from the successful triggering workflow
-        if: github.event_name == 'workflow_run'
+        if: ${{ github.event_name == 'workflow_run' || inputs.release_run_id != '' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-identity
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || inputs.release_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: ./release-identity
 
@@ -56,6 +60,7 @@ jobs:
         shell: bash
         env:
           MANUAL_VERSION: ${{ inputs.version }}
+          MANUAL_RUN_ID: ${{ inputs.release_run_id }}
           TRIGGER_SHA: ${{ github.event.workflow_run.head_sha }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -63,7 +68,7 @@ jobs:
           SOURCE_SHA=""
           NUPKG_SHA256=""
           SNUPKG_SHA256=""
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" || -n "$MANUAL_RUN_ID" ]]; then
             VERSION="$(cat release-identity/release-version.txt)"
             SOURCE_SHA="$(cat release-identity/release-source-sha.txt)"
             NUPKG_SHA256="$(cat release-identity/release-nupkg-sha256.txt)"
@@ -71,8 +76,22 @@ jobs:
             if [[ ! "$NUPKG_SHA256" =~ ^[0-9a-f]{64}$ || ! "$SNUPKG_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
               echo "Release identity artifact has invalid package SHA-256 digests"; exit 1
             fi
-            if [[ "$SOURCE_SHA" != "$TRIGGER_SHA" ]]; then
-              echo "Release source SHA differs from trigger"; exit 1
+            if [[ ! "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              echo "Invalid source SHA in release identity"; exit 1
+            fi
+            if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
+              if [[ "$SOURCE_SHA" != "$TRIGGER_SHA" ]]; then
+                echo "Release source SHA differs from trigger"; exit 1
+              fi
+            else
+              if [[ "$VERSION" != "$MANUAL_VERSION" ]]; then
+                echo "Requested version differs from source run identity"; exit 1
+              fi
+              RUN_PROOF="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$MANUAL_RUN_ID" --jq '[.status,.conclusion,.head_sha,.head_branch,.path] | @tsv')"
+              IFS=$'\t' read -r RUN_STATUS RUN_CONCLUSION RUN_SHA RUN_BRANCH RUN_PATH <<< "$RUN_PROOF"
+              if [[ "$RUN_STATUS" != "completed" || "$RUN_CONCLUSION" != "success" || "$RUN_SHA" != "$SOURCE_SHA" || "$RUN_BRANCH" != "main" || "$RUN_PATH" != ".github/workflows/create-release.yml" ]]; then
+                echo "Source run is not the successful, matching main Create Release workflow"; exit 1
+              fi
             fi
           else
             VERSION="$MANUAL_VERSION"
@@ -129,7 +148,7 @@ jobs:
           echo "Version format validated: $VERSION"
 
       - name: Verify release tag matches the triggering source commit
-        if: github.event_name == 'workflow_run'
+        if: ${{ needs.get-version.outputs.source_sha != '' }}
         shell: bash
         env:
           TAG: ${{ needs.get-version.outputs.tag }}
@@ -197,7 +216,7 @@ jobs:
           done
 
       - name: Verify downloaded release asset hashes before attestation and publish
-        if: github.event_name == 'workflow_run'
+        if: ${{ needs.get-version.outputs.source_sha != '' }}
         shell: bash
         env:
           RELEASE_VERSION: ${{ needs.get-version.outputs.version }}
