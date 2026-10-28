@@ -85,13 +85,14 @@ public class SdJwtAuthenticationOptions : AuthenticationSchemeOptions
 
         if (VerificationOptions?.RequireKeyBinding == true)
         {
-            var hasAudience = !string.IsNullOrWhiteSpace(VerificationOptions.ExpectedAudience) ||
+            var hasAudience = !string.IsNullOrWhiteSpace(VerificationOptions.ExpectedKeyBindingAudience) ||
+                !string.IsNullOrWhiteSpace(VerificationOptions.ExpectedAudience) ||
                 (VerificationOptions.ExpectedAudiences?.Any(aud => !string.IsNullOrWhiteSpace(aud)) == true);
 
             if (!hasAudience)
             {
                 throw new InvalidOperationException(
-                    "ExpectedAudience/ExpectedAudiences must be configured when key binding is required to prevent token replay across audiences.");
+                    "ExpectedKeyBindingAudience or ExpectedAudience/ExpectedAudiences must be configured when key binding is required to prevent token replay across audiences.");
             }
         }
 
