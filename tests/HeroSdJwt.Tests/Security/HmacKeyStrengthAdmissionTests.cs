@@ -69,7 +69,10 @@ public class HmacKeyStrengthAdmissionTests
         Assert.False(direct.IsValid);
         Assert.Contains(ErrorCode.InvalidSignature, direct.Errors);
 
-        byte[]? Resolve(string kid) => kid == "short-hmac-key" ? key : null;
+        byte[]? Resolve(string kid)
+        {
+            return kid == "short-hmac-key" ? key : null;
+        }
         var resolved = verifier.TryVerifyPresentation(presentation, Resolve);
         Assert.False(resolved.IsValid);
         Assert.Contains(ErrorCode.InvalidSignature, resolved.Errors);
