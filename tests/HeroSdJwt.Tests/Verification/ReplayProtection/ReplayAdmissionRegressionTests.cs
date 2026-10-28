@@ -8,7 +8,6 @@ namespace HeroSdJwt.Tests.Verification.ReplayProtection;
 
 public class ReplayAdmissionRegressionTests
 {
-
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -48,6 +47,7 @@ public class ReplayAdmissionRegressionTests
         Assert.False(second.IsValid);
         Assert.Contains(ErrorCode.ReplayAttack, second.Errors);
     }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
