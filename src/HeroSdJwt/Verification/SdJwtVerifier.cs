@@ -201,11 +201,11 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         ArgumentNullException.ThrowIfNull(presentation);
         ArgumentNullException.ThrowIfNull(publicKey);
 
-        return VerifyPresentationInternalAsync(
+        return RequireValidAsync(VerifyPresentationInternalAsync(
             presentation,
             publicKey,
             expectedHashAlgorithm,
-            cancellationToken);
+            cancellationToken));
     }
 
     /// <summary>
@@ -334,12 +334,12 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
     {
         ArgumentNullException.ThrowIfNull(presentation);
 
-        return VerifyPresentationInternalWithResolverAsync(
+        return RequireValidAsync(VerifyPresentationInternalWithResolverAsync(
             presentation,
             keyResolver,
             fallbackKey,
             expectedHashAlgorithm,
-            cancellationToken);
+            cancellationToken));
     }
 
     /// <summary>
@@ -369,6 +369,19 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         catch (AlgorithmNotSupportedException ex) { return new VerificationResult(ErrorCode.UnsupportedAlgorithm, ex.Message); }
         catch (SdJwtException ex) { return new VerificationResult(ex.ErrorCode, $"Verification failed: {ex.Message}"); }
         catch (Exception ex) { return new VerificationResult(ErrorCode.InvalidInput, $"Verification failed: {ex.Message}"); }
+    }
+
+    // The async VerifyPresentation contract is throwing, unlike TryVerifyPresentation.
+    // Keep cancellation and upstream exceptions intact while rejecting failed results.
+    private static async Task<VerificationResult> RequireValidAsync(Task<VerificationResult> verification)
+    {
+        var result = await verification.ConfigureAwait(false);
+        if (!result.IsValid)
+        {
+            throw new SdJwtException("SD-JWT verification failed", result.Errors.FirstOrDefault());
+        }
+
+        return result;
     }
 
     /// <summary>

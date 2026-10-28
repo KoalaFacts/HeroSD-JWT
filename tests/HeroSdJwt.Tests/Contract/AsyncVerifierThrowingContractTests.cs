@@ -14,8 +14,8 @@ namespace HeroSdJwt.Tests.Contract;
 /// </summary>
 public class AsyncVerifierThrowingContractTests
 {
-    private static readonly byte[] _signingKey = Enumerable.Repeat((byte)0x41, 32).ToArray();
-    private static readonly byte[] _wrongKey = Enumerable.Repeat((byte)0x42, 32).ToArray();
+    private static readonly byte[] _signingKey = [.. Enumerable.Repeat((byte)0x41, 32)];
+    private static readonly byte[] _wrongKey = [.. Enumerable.Repeat((byte)0x42, 32)];
 
     [Theory]
     [InlineData(false)]
@@ -32,15 +32,18 @@ public class AsyncVerifierThrowingContractTests
             .WithExpectedKeyType(VerificationKeyType.Symmetric)
             .Build();
 
-        Task<VerificationResult> Verify() => useResolver
-            ? verifier.VerifyPresentationAsync(
-                presentation,
-                (KeyResolver)(_ => _wrongKey),
-                cancellationToken: TestContext.Current.CancellationToken)
-            : verifier.VerifyPresentationAsync(
-                presentation,
-                _wrongKey,
-                cancellationToken: TestContext.Current.CancellationToken);
+        Task<VerificationResult> Verify()
+        {
+            return useResolver
+                ? verifier.VerifyPresentationAsync(
+                    presentation,
+                    _ => _wrongKey,
+                    cancellationToken: TestContext.Current.CancellationToken)
+                : verifier.VerifyPresentationAsync(
+                    presentation,
+                    _wrongKey,
+                    cancellationToken: TestContext.Current.CancellationToken);
+        }
 
         var error = await Assert.ThrowsAsync<SdJwtException>(Verify);
         Assert.Equal(ErrorCode.InvalidSignature, error.ErrorCode);
