@@ -20,6 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: read  # Read the release-identity artifact from the exact triggering workflow run
   id-token: write  # Required for OIDC authentication with NuGet.org
   contents: read
   attestations: write  # For package provenance
