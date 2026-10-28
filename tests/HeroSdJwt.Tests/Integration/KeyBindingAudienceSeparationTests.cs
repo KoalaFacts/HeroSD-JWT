@@ -4,7 +4,6 @@ using HeroSdJwt.Presentation;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Integration;
@@ -15,14 +14,14 @@ namespace HeroSdJwt.Tests.Integration;
 /// </summary>
 public class KeyBindingAudienceSeparationTests
 {
-    private const string VerifierAudience = "https://verifier.example.test";
-    private const string IssuerAudience = "https://issuer-service.example.test";
-    private const string Nonce = "verifier-challenge";
+    private const string VERIFIER_AUDIENCE = "https://verifier.example.test";
+    private const string ISSUER_AUDIENCE = "https://issuer-service.example.test";
+    private const string NONCE = "verifier-challenge";
 
     [Theory]
-    [InlineData(null, null, VerifierAudience, true)]
-    [InlineData(IssuerAudience, IssuerAudience, VerifierAudience, true)]
-    [InlineData(IssuerAudience, "https://wrong-issuer-service.example.test", VerifierAudience, false)]
+    [InlineData(null, null, VERIFIER_AUDIENCE, true)]
+    [InlineData(ISSUER_AUDIENCE, ISSUER_AUDIENCE, VERIFIER_AUDIENCE, true)]
+    [InlineData(ISSUER_AUDIENCE, "https://wrong-issuer-service.example.test", VERIFIER_AUDIENCE, false)]
     [InlineData(null, null, "https://other-verifier.example.test", false)]
     public void Should_ValidateIssuerAndKeyBindingAudiencesIndependently(
         string? issuerAudience,
@@ -35,8 +34,8 @@ public class KeyBindingAudienceSeparationTests
         {
             RequireKeyBinding = true,
             ExpectedAudience = expectedIssuerAudience,
-            ExpectedKeyBindingAudience = VerifierAudience,
-            ExpectedNonce = Nonce,
+            ExpectedKeyBindingAudience = VERIFIER_AUDIENCE,
+            ExpectedNonce = NONCE,
             ExpectedKeyType = VerificationKeyType.Symmetric
         };
 
@@ -49,11 +48,11 @@ public class KeyBindingAudienceSeparationTests
     [Fact]
     public void Should_ApplySeparateKeyBindingAudienceThroughFluentBuilder()
     {
-        var (presentation, issuerKey) = CreatePresentation(null, VerifierAudience);
+        var (presentation, issuerKey) = CreatePresentation(null, VERIFIER_AUDIENCE);
         var verifier = SdJwtVerifierBuilder.Create()
             .RequireKeyBinding()
-            .WithExpectedKeyBindingAudience(VerifierAudience)
-            .WithExpectedNonce(Nonce)
+            .WithExpectedKeyBindingAudience(VERIFIER_AUDIENCE)
+            .WithExpectedNonce(NONCE)
             .WithExpectedKeyType(VerificationKeyType.Symmetric)
             .Build();
 
@@ -66,21 +65,21 @@ public class KeyBindingAudienceSeparationTests
         var valid = new SdJwtVerificationOptions
         {
             RequireKeyBinding = true,
-            ExpectedKeyBindingAudience = VerifierAudience,
-            ExpectedNonce = Nonce
+            ExpectedKeyBindingAudience = VERIFIER_AUDIENCE,
+            ExpectedNonce = NONCE
         };
         valid.Validate();
 
         Assert.Throws<ArgumentException>(() => new SdJwtVerificationOptions
         {
             RequireKeyBinding = true,
-            ExpectedKeyBindingAudience = VerifierAudience
+            ExpectedKeyBindingAudience = VERIFIER_AUDIENCE
         }.Validate());
 
         Assert.Throws<ArgumentException>(() => new SdJwtVerificationOptions
         {
             RequireKeyBinding = true,
-            ExpectedNonce = Nonce
+            ExpectedNonce = NONCE
         }.Validate());
     }
 
@@ -110,12 +109,12 @@ public class KeyBindingAudienceSeparationTests
             presenter.CreatePresentationWithAllClaims(issued));
 
         var digest = Base64UrlEncoder.Encode(
-            SHA256.HashData(Encoding.UTF8.GetBytes(unsignedPresentation)));
+            SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(unsignedPresentation)));
         var proof = new KeyBindingGenerator().CreateKeyBindingJwt(
             holder.ExportECPrivateKey(),
             digest,
             holderAudience,
-            Nonce);
+            NONCE);
 
         return (presenter.FormatPresentation(
             presenter.CreatePresentationWithAllClaims(issued, proof)), issuerKey);
