@@ -135,13 +135,6 @@ public class JtiValidator
         var now = _timeProvider.GetUtcNow();
         var nowUnixTicks = NumericDateParser.GetCurrentUnixTicks(now);
 
-        if (expUnixTicks <= nowUnixTicks)
-        {
-            throw new SdJwtException(
-                $"Token has expired. Expiration: {expElement.GetRawText()}, Current time: {now:O}",
-                Primitives.ErrorCode.TokenExpired);
-        }
-
         if (_options.ClockSkewTolerance < TimeSpan.Zero || _options.MaximumTtl <= TimeSpan.Zero)
         {
             throw new SdJwtException(
@@ -149,7 +142,16 @@ public class JtiValidator
                 Primitives.ErrorCode.InvalidInput);
         }
 
+        // Match the claim verifier's strict exp + skew deadline. A credential
+        // accepted shortly after exp still needs replay protection until that
+        // same deadline; rejecting at raw exp makes the two policies disagree.
         var ttlTicks = expUnixTicks - nowUnixTicks + _options.ClockSkewTolerance.Ticks;
+        if (ttlTicks <= 0)
+        {
+            throw new SdJwtException(
+                $"Token has expired. Expiration: {expElement.GetRawText()}, Current time: {now:O}",
+                Primitives.ErrorCode.TokenExpired);
+        }
 
         // Capping TTL would allow a still-valid credential to be admitted again
         // after its marker expires. Reject instead of silently weakening replay protection.
