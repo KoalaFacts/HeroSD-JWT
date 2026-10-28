@@ -174,11 +174,11 @@ public class ReplayProtectionScenarioTests : IDisposable
     #region T017 - TTL Expiration Tests
 
     /// <summary>
-    /// T017 Scenario 1: Verify token after TTL expiration allows reuse.
-    /// Expected: Second verification succeeds after TTL expired (_cache entry gone).
+    /// T017 Scenario 1: Raw expiration does not clear replay protection during clock skew.
+    /// Expected: A second verification remains a replay while the token is still valid.
     /// </summary>
     [Fact]
-    public async Task VerifyAfterTtlExpiration_AllowsReuse()
+    public async Task VerifyAfterRawExpirationWithinClockSkew_PreventsReuse()
     {
         // Arrange - Create token with very short exp (3 seconds from now)
         var now = DateTimeOffset.UtcNow;
@@ -211,20 +211,19 @@ public class ReplayProtectionScenarioTests : IDisposable
         var result1 = await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         Assert.True(result1.IsValid, "First verification should succeed");
 
-        // Wait for TTL to expire (3 seconds + clock skew tolerance + buffer)
+        // The raw exp has elapsed, but the configured 30-second replay
+        // tolerance (and the claim verifier's 5-minute skew) keep it live.
         await Task.Delay(TimeSpan.FromSeconds(4), TestContext.Current.CancellationToken);
 
-        // Act - Second verification after TTL expiration
-        // Note: This will fail because the token's exp claim has expired (TokenExpired error)
-        // The _cache entry would be gone, but token expiration validation happens first
-        var exception = await Assert.ThrowsAsync<SdJwtException>(async () =>
+        Assert.True(await _cache.ExistsAsync(
+            "https://issuer.example.com", jti, TestContext.Current.CancellationToken));
+
+        var exception = await Assert.ThrowsAsync<ReplayAttackException>(async () =>
         {
             _ = await VerifyPresentationAsync(verifier, presentationString, _signingKey, TestContext.Current.CancellationToken);
         });
 
-        // Assert - Should fail with TokenExpired (not ReplayAttack)
-        // This validates that _cache entry was cleaned up, but token expiration takes precedence
-        Assert.Equal(ErrorCode.TokenExpired, exception.ErrorCode);
+        Assert.Equal(ErrorCode.ReplayAttack, exception.ErrorCode);
     }
 
     /// <summary>
