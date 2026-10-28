@@ -176,7 +176,6 @@ public class KeyBindingConfirmationShapeTests
         Assert.True(result.IsValid, result.ErrorDetails);
     }
 
-
     [Theory]
     [InlineData("\"use\":\"enc\"")]
     [InlineData("\"alg\":\"ES384\"")]
