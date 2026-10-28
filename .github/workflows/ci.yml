@@ -62,8 +62,8 @@ jobs:
       with:
         dotnet-version: ${{ needs.setup.outputs.versions }}
 
-    - name: Restore dependencies (migration lock refresh; revert after lock commit)
-      run: dotnet restore --force-evaluate -p:RestoreLockedMode=false
+    - name: Restore dependencies
+      run: dotnet restore
 
     - name: Build
       run: dotnet build --configuration Release --no-restore --framework ${{ matrix.framework }}
@@ -144,29 +144,8 @@ jobs:
       with:
         dotnet-version: ${{ needs.setup.outputs.versions }}
 
-    - name: Restore dependencies (migration lock refresh; revert after lock commit)
-      run: dotnet restore --force-evaluate -p:RestoreLockedMode=false
-
-    # Temporary bootstrap: read NuGet-generated locks from this job's output, commit them,
-    # and remove this step + restore override before the final locked-mode CI.
-    - name: Capture regenerated test locks and resolved framework (migration bootstrap)
-      shell: bash
-      run: |
-        dotnet list tests/HeroSdJwt.Tests/HeroSdJwt.Tests.csproj package --include-transitive
-        dotnet list tests/HeroSdJwt.AspNetCore.Tests/HeroSdJwt.AspNetCore.Tests.csproj package --include-transitive
-        python3 - <<'PY'
-        import base64
-        from pathlib import Path
-        for name in (
-          'tests/HeroSdJwt.Tests/packages.lock.json',
-          'tests/HeroSdJwt.AspNetCore.Tests/packages.lock.json',
-        ):
-          data = base64.b64encode(Path(name).read_bytes()).decode('ascii')
-          print('LOCK_START:' + name)
-          for offset in range(0, len(data), 1000):
-            print('LOCK_DATA:' + data[offset:offset + 1000])
-          print('LOCK_END:' + name)
-        PY
+    - name: Restore dependencies
+      run: dotnet restore
 
     - name: Build (with warnings as errors)
       run: dotnet build --configuration Release --no-restore /p:TreatWarningsAsErrors=true
