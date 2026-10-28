@@ -127,7 +127,7 @@ public class ReservedSdAlgDisclosureNameTests
 
     private static string SignPayload(string payloadJson)
     {
-        const string header = """{"alg":"HS256","kid":"sd-alg-guard"}""";
+        const string header = /*lang=json,strict*/ """{"alg":"HS256","kid":"sd-alg-guard"}""";
         var input = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payloadJson);
         var signature = HMACSHA256.HashData(_signingKey, System.Text.Encoding.UTF8.GetBytes(input));
         return input + "." + Base64UrlEncoder.Encode(signature);
