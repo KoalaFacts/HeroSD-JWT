@@ -1,0 +1,40 @@
+name: Publish approved 2.0.0
+
+# One-time entry point for the owner's explicit 2.0.0 publication request.
+# Only merging this file to main starts the existing, validated release pipeline.
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-approved-2.0.0.yml']
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: publish-approved-2.0.0
+  cancel-in-progress: false
+
+jobs:
+  publish-approved:
+    if: github.repository == 'KoalaFacts/HeroSD-JWT' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start existing Create Release workflow for approved version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          CURRENT_MAIN="$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq .object.sha)"
+          if [[ "$CURRENT_MAIN" != "$EXPECTED_SHA" ]]; then
+            echo "Main moved; do not release an unreviewed source commit." >&2
+            exit 1
+          fi
+          # The existing workflow rebuilds, tests, smoke-tests installed packages,
+          # checks source identity, records hashes, and refuses an existing tag.
+          # Its successful completion triggers the existing NuGet OIDC publisher.
+          gh workflow run create-release.yml --repo "$GH_REPO" --ref main -f version=2.0.0
+          echo "Create Release v2.0.0 dispatched; this is not a publication-success claim."
