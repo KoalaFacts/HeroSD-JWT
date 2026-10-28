@@ -174,3 +174,25 @@ jobs:
         # For PRs, these are automatically detected
         base-ref: ${{ github.event_name == 'push' && github.event.before || '' }}
         head-ref: ${{ github.event_name == 'push' && github.sha || '' }}
+
+  package-smoke:
+    name: NuGet consumer smoke (${{ matrix.framework }})
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        framework: ${{ fromJSON(needs.setup.outputs.frameworks) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup .NET SDKs
+        uses: ./.github/actions/setup-dotnet-sdks
+        with:
+          dotnet-version: ${{ needs.setup.outputs.versions }}
+      - name: Restore locked dependencies
+        run: dotnet restore
+      - name: Pack locally, without publishing
+        run: dotnet pack src/HeroSdJwt/HeroSdJwt.csproj --configuration Release --no-restore -p:PackageVersion=2.0.0-ci -p:Version=2.0.0-ci
+      - name: Install and exercise public API from packed NuGet
+        run: bash .github/scripts/smoke_nuget_package.sh 2.0.0-ci ${{ matrix.framework }}
