@@ -1368,6 +1368,12 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                         return false;
                     }
                 }
+                else if (property.Name == "...")
+                {
+                    // RFC 9901 reserves "..." solely for array-element
+                    // digest placeholders, never ordinary object members.
+                    return false;
+                }
                 else
                 {
                     // Recursively search nested objects and arrays (increment depth)
@@ -1401,6 +1407,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     var digest = new Digest(digestValue, algorithm);
                     digests.Add(digest);
                     arrayDigests.Add(digest);
+                    // A valid array placeholder is already fully processed;
+                    // revisiting it as an ordinary object would reject its
+                    // reserved member name.
+                    continue;
                 }
 
                 if (!CollectAllSdDigests(item, digests, arrayDigests, algorithm, seenDigests, depth + 1))
