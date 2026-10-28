@@ -148,6 +148,8 @@ test(security): add timing attack resistance tests
 
 ### Running Tests
 
+Tests use xUnit **4.0.2**, via the official `xunit.v3.mtp-off` NuGet package, with `xunit.runner.visualstudio` **4.0.1** for VSTest discovery. The NuGet package name retains `v3`, but its resolved framework version is 4.0.2; this repository intentionally uses the VSTest integration to preserve its TRX and Coverlet workflows on .NET 8/9/10. Update the two test-project lock files when upgrading the framework or adapter (`dotnet restore --force-evaluate -p:RestoreLockedMode=false`), then restore normally in locked mode and run all test targets.
+
 ```bash
 # Run all tests
 dotnet test

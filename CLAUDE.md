@@ -73,7 +73,7 @@ Everything is built around **constructor-injected interfaces**. Built-in statele
 
 ## Tests
 
-- xUnit **v3** (`xunit.v3`). Property-based tests use **CsCheck**, fake data uses **Bogus**, manual load tests use a **bounded BCL-only runner** (see `docs/development/manual-load-runner.md`).
+- xUnit **v4.0.2** (`xunit.v3.mtp-off` package; package name retains `v3` but the resolved core framework is **4.0.2**) with the official VSTest adapter `xunit.runner.visualstudio` **4.0.1**. Keeping VSTest preserves existing `dotnet test --logger trx --collect` CI semantics across .NET 8/9/10; do not add a nonexistent `xunit.v4` package. Property-based tests use **CsCheck**, fake data uses **Bogus**, manual load tests use a **bounded BCL-only runner** (see `docs/development/manual-load-runner.md`).
 - Two test projects: `tests/HeroSdJwt.Tests` (core) and `tests/HeroSdJwt.AspNetCore.Tests`. Internals are exposed via `InternalsVisibleTo("HeroSdJwt.Tests")`.
 - Tests are organized **by folder/namespace**, not xUnit traits: `Unit/`, `Integration/`, `Contract/`, `Scenarios/`, `Security/`, `Fuzz/`, `Load/`, plus `Verification/ReplayProtection/`. The README's `--filter "Category=Integration"` examples do not match any traits in this repo — filter by `FullyQualifiedName~<Namespace-or-ClassName>` instead.
 - Test naming convention: `Should_ExpectedBehavior_When_Condition`.
