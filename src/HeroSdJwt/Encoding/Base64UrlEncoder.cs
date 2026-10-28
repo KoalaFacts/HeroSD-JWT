@@ -68,23 +68,10 @@ public static class Base64UrlEncoder
 
         try
         {
-            // Convert string to UTF-8 bytes for Base64Url.DecodeFromUtf8
-            byte[] utf8Bytes = System.Text.Encoding.UTF8.GetBytes(base64Url);
-
-            // Calculate maximum possible decoded size
-            int maxDecodedLength = Base64Url.GetMaxDecodedLength(utf8Bytes.Length);
-            byte[] buffer = new byte[maxDecodedLength];
-
-            // Decode from UTF-8 base64url to bytes
-            System.Buffers.OperationStatus status = Base64Url.DecodeFromUtf8(utf8Bytes, buffer, out _, out int bytesWritten);
-
-            if (status != System.Buffers.OperationStatus.Done)
-            {
-                throw new FormatException("Invalid base64url encoding");
-            }
-
-            // Return only the written portion
-            return buffer[..bytesWritten];
+            // Decode the existing UTF-16 input directly. Encoding it into a
+            // temporary UTF-8 array and copying the output doubled allocation
+            // pressure across every JWT and Disclosure decode.
+            return Base64Url.DecodeFromChars(base64Url.AsSpan());
         }
         catch (FormatException ex)
         {
