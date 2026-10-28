@@ -84,6 +84,98 @@ public class KeyBindingConfirmationShapeTests
         Assert.True(result.IsValid, result.ErrorDetails);
     }
 
+    [Theory]
+    [InlineData("\"jwe\":\"encrypted-other-key\"")]
+    [InlineData("\"jku\":\"https://keys.example.test/jwks\"")]
+    public async Task Should_RejectConfirmationWithMultipleHolderKeyMethods(string extraMethod)
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var point = holder.ExportParameters(false).Q;
+        var jwk = JsonSerializer.Serialize(new
+        {
+            kty = "EC",
+            crv = "P-256",
+            x = Base64UrlEncoder.Encode(point.X!),
+            y = Base64UrlEncoder.Encode(point.Y!)
+        });
+        var presentation = CreateSignedPresentation($"{{\"jwk\":{jwk},{extraMethod}}}", holder);
+        var verifier = CreateVerifier();
+
+        // RFC 7800 permits only one proof-of-possession confirmation method.
+        // A correctly signed issuer JWT and holder proof must not override that rule.
+        var direct = verifier.TryVerifyPresentation(presentation, _issuerKey);
+        Assert.False(direct.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
+
+        var resolved = verifier.TryVerifyPresentation(
+            presentation, kid => kid == "issuer-key" ? _issuerKey : null);
+        Assert.False(resolved.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
+
+        var asyncDirect = await verifier.TryVerifyPresentationAsync(
+            presentation, _issuerKey, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.False(asyncDirect.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, asyncDirect.Errors);
+    }
+
+    [Fact]
+    public async Task Should_RejectConfirmationJwkContainingHolderPrivateKey()
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var parameters = holder.ExportParameters(true);
+        var confirmationJson = JsonSerializer.Serialize(new
+        {
+            jwk = new
+            {
+                kty = "EC",
+                crv = "P-256",
+                x = Base64UrlEncoder.Encode(parameters.Q.X!),
+                y = Base64UrlEncoder.Encode(parameters.Q.Y!),
+                d = Base64UrlEncoder.Encode(parameters.D!)
+            }
+        });
+        var presentation = CreateSignedPresentation(confirmationJson, holder);
+        var verifier = CreateVerifier();
+
+        // The cnf JWK is public holder-key material, not a place to expose d.
+        var direct = verifier.TryVerifyPresentation(presentation, _issuerKey);
+        Assert.False(direct.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
+
+        var resolved = verifier.TryVerifyPresentation(
+            presentation, kid => kid == "issuer-key" ? _issuerKey : null);
+        Assert.False(resolved.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
+
+        var asyncDirect = await verifier.TryVerifyPresentationAsync(
+            presentation, _issuerKey, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.False(asyncDirect.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, asyncDirect.Errors);
+    }
+
+    [Fact]
+    public void Should_AllowPublicHolderJwkWithOptionalKeyMetadata()
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var point = holder.ExportParameters(false).Q;
+        var confirmationJson = JsonSerializer.Serialize(new
+        {
+            jwk = new
+            {
+                kty = "EC",
+                crv = "P-256",
+                x = Base64UrlEncoder.Encode(point.X!),
+                y = Base64UrlEncoder.Encode(point.Y!),
+                kid = "holder-key-1",
+                use = "sig"
+            }
+        });
+        var presentation = CreateSignedPresentation(confirmationJson, holder);
+
+        var result = CreateVerifier().TryVerifyPresentation(presentation, _issuerKey);
+        Assert.True(result.IsValid, result.ErrorDetails);
+    }
+
     private static SdJwtVerifier CreateVerifier() =>
         TestHelpers.CreateVerifier(new SdJwtVerificationOptions
         {
