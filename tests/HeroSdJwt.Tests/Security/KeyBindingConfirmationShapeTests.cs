@@ -176,6 +176,69 @@ public class KeyBindingConfirmationShapeTests
         Assert.True(result.IsValid, result.ErrorDetails);
     }
 
+    [Theory]
+    [InlineData("\"use\":\"enc\"")]
+    [InlineData("\"alg\":\"ES384\"")]
+    [InlineData("\"key_ops\":[\"encrypt\"]")]
+    [InlineData("\"key_ops\":[\"verify\",\"encrypt\"]")]
+    [InlineData("\"k\":\"c2VjcmV0\"")]
+    public async Task Should_RejectHolderJwkWithConflictingUsageOrEmbeddedSymmetricSecret(string extraMember)
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var point = holder.ExportParameters(false).Q;
+        var publicJwk = JsonSerializer.Serialize(new
+        {
+            kty = "EC",
+            crv = "P-256",
+            x = Base64UrlEncoder.Encode(point.X!),
+            y = Base64UrlEncoder.Encode(point.Y!)
+        });
+        var jwkWithMetadata = publicJwk[..^1] + "," + extraMember + "}";
+        var presentation = CreateSignedPresentation("{\"jwk\":" + jwkWithMetadata + "}", holder);
+        var verifier = CreateVerifier();
+
+        // Both the issuer JWT and holder proof have valid signatures. JWK
+        // metadata must still authorize ES256 signature verification.
+        var direct = verifier.TryVerifyPresentation(presentation, _issuerKey);
+        Assert.False(direct.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
+
+        var resolved = verifier.TryVerifyPresentation(
+            presentation, kid => kid == "issuer-key" ? _issuerKey : null);
+        Assert.False(resolved.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
+
+        var asyncDirect = await verifier.TryVerifyPresentationAsync(
+            presentation, _issuerKey, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.False(asyncDirect.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, asyncDirect.Errors);
+    }
+
+    [Fact]
+    public void Should_AcceptEs256SignatureOnlyHolderJwkMetadata()
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var point = holder.ExportParameters(false).Q;
+        var confirmation = JsonSerializer.Serialize(new
+        {
+            jwk = new
+            {
+                kty = "EC",
+                crv = "P-256",
+                x = Base64UrlEncoder.Encode(point.X!),
+                y = Base64UrlEncoder.Encode(point.Y!),
+                use = "sig",
+                alg = "ES256",
+                key_ops = new[] { "verify" }
+            }
+        });
+
+        var presentation = CreateSignedPresentation(confirmation, holder);
+        var result = CreateVerifier().TryVerifyPresentation(presentation, _issuerKey);
+
+        Assert.True(result.IsValid, result.ErrorDetails);
+    }
+
     private static SdJwtVerifier CreateVerifier() =>
         TestHelpers.CreateVerifier(new SdJwtVerificationOptions
         {
