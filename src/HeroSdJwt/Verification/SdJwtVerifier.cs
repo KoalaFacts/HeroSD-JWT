@@ -940,6 +940,17 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
 
+                // RFC 7800 Section 3.1: cnf may identify only one holder
+                // proof-of-possession key. Do not silently prefer jwk over
+                // conflicting jwe/jku confirmation methods in a signed token.
+                if (cnfElement.TryGetProperty("jwe", out _) ||
+                    cnfElement.TryGetProperty("jku", out _))
+                {
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add("cnf must contain only one holder key confirmation method");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
+
                 byte[] holderPublicKey;
                 try
                 {

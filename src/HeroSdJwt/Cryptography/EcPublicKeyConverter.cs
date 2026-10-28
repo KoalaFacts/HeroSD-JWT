@@ -85,6 +85,13 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
             throw new ArgumentException("JWK must be an object with unique, valid member names", nameof(jwk));
         }
 
+        // RFC 7800's asymmetric holder confirmation uses the public JWK.
+        // Never accept embedded EC private key material in the JWT's cnf.
+        if (jwk.TryGetProperty("d", out _))
+        {
+            throw new ArgumentException("Holder confirmation JWK must not contain private key material", nameof(jwk));
+        }
+
         // Validate required fields
         if (!jwk.TryGetProperty("kty", out var ktyElement) || ktyElement.ValueKind != JsonValueKind.String)
         {
@@ -184,6 +191,12 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
     /// </summary>
     private byte[] FromJwkDictionary(Dictionary<string, object> dict)
     {
+        // Apply the same public-only rule to dictionary-based JWK inputs.
+        if (dict.ContainsKey("d"))
+        {
+            throw new ArgumentException("Holder confirmation JWK must not contain private key material", nameof(dict));
+        }
+
         // Validate required fields
         if (!dict.TryGetValue("kty", out var ktyObj))
         {

@@ -299,7 +299,30 @@ public class EcPublicKeyConverterTests
 
     #endregion
 
+    [Fact]
+    public void FromJwk_WithPrivateD_RejectsSecretKeyMaterial()
+    {
+        var jwkWithPrivateKey = new Dictionary<string, object>(_validJwkDict)
+        {
+            ["d"] = Base64UrlEncoder.Encode(new byte[32])
+        };
+
+        var jwk = JsonSerializer.SerializeToElement(jwkWithPrivateKey);
+        Assert.Throws<ArgumentException>(() => _converter.FromJwk(jwk));
+    }
+
     #region FromJwkObject Tests
+
+    [Fact]
+    public void FromJwkObject_WithDictionaryPrivateD_RejectsSecretKeyMaterial()
+    {
+        var jwkWithPrivateKey = new Dictionary<string, object>(_validJwkDict)
+        {
+            ["d"] = Base64UrlEncoder.Encode(new byte[32])
+        };
+
+        Assert.Throws<ArgumentException>(() => _converter.FromJwkObject(jwkWithPrivateKey));
+    }
 
     [Fact]
     public void FromJwkObject_WithJsonElement_CallsFromJwk()
