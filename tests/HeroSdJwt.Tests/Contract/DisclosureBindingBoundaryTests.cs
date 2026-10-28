@@ -121,7 +121,7 @@ public class DisclosureBindingBoundaryTests
         var verificationKey = invalidSignature ? RandomNumberGenerator.GetBytes(32) : key;
         var verifier = SdJwtVerifierBuilder.Create().WithExpectedKeyType(VerificationKeyType.Symmetric).Build();
         Assert.Throws<SdJwtException>(() => verifier.VerifyPresentation(presentation, verificationKey));
-        var result = await verifier.VerifyPresentationAsync(presentation, verificationKey, cancellationToken: TestContext.Current.CancellationToken);
+        var result = await verifier.TryVerifyPresentationAsync(presentation, verificationKey, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(result.IsValid);
         Assert.Contains(invalidSignature ? ErrorCode.InvalidSignature : ErrorCode.InvalidInput, result.Errors);
         if (invalidSignature)
