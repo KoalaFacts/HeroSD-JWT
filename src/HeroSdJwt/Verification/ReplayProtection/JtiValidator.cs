@@ -39,7 +39,18 @@ public class JtiValidator
     /// <param name="cancellationToken">Cancellation token for async operations.</param>
     /// <exception cref="SdJwtException">If jti/exp is missing when required or validation fails.</exception>
     /// <exception cref="ReplayAttackException">If jti has already been used.</exception>
-    public async Task ValidateAsync(Dictionary<string, JsonElement> claims, CancellationToken cancellationToken = default)
+    public Task ValidateAsync(Dictionary<string, JsonElement> claims, CancellationToken cancellationToken = default)
+    {
+        return ValidateAsync(claims, _options.ClockSkewTolerance, cancellationToken);
+    }
+
+    // The signed-claim verifier may accept a presentation beyond raw exp
+    // because its clock-skew policy differs from replay cache configuration.
+    // Retain the marker until at least the verifier's acceptance deadline.
+    internal async Task ValidateAsync(
+        Dictionary<string, JsonElement> claims,
+        TimeSpan verifierClockSkew,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(claims);
 
@@ -92,7 +103,7 @@ public class JtiValidator
 
         // The replay marker must cover the entire accepted expiration window.
         // Never shorten a live token's marker to a default or maximum TTL.
-        var ttl = CalculateTtl(claims);
+        var ttl = CalculateTtl(claims, verifierClockSkew);
 
         // Try to add jti to cache (atomic operation)
         var wasAdded = await _cache.TryAddAsync(issuer, jti, ttl, cancellationToken).ConfigureAwait(false);
@@ -112,7 +123,7 @@ public class JtiValidator
     /// Calculates a marker lifetime covering the entire remaining token validity.
     /// Rejects credentials that cannot be protected within the configured retention limit.
     /// </summary>
-    private TimeSpan CalculateTtl(Dictionary<string, JsonElement> claims)
+    private TimeSpan CalculateTtl(Dictionary<string, JsonElement> claims, TimeSpan verifierClockSkew)
     {
         if (!claims.TryGetValue("exp", out var expElement))
         {
@@ -135,17 +146,19 @@ public class JtiValidator
         var now = _timeProvider.GetUtcNow();
         var nowUnixTicks = NumericDateParser.GetCurrentUnixTicks(now);
 
-        if (_options.ClockSkewTolerance < TimeSpan.Zero || _options.MaximumTtl <= TimeSpan.Zero)
+        if (_options.ClockSkewTolerance < TimeSpan.Zero || verifierClockSkew < TimeSpan.Zero || _options.MaximumTtl <= TimeSpan.Zero)
         {
             throw new SdJwtException(
                 "Invalid replay marker retention configuration",
                 Primitives.ErrorCode.InvalidInput);
         }
 
-        // Match the claim verifier's strict exp + skew deadline. A credential
-        // accepted shortly after exp still needs replay protection until that
-        // same deadline; rejecting at raw exp makes the two policies disagree.
-        var ttlTicks = expUnixTicks - nowUnixTicks + _options.ClockSkewTolerance.Ticks;
+        // The replay marker must remain live throughout the entire period in
+        // which the claim verifier accepts exp. The standalone replay tolerance
+        // may be shorter or longer; use the longer window for both safety and
+        // interoperability.
+        var effectiveSkewTicks = Math.Max(_options.ClockSkewTolerance.Ticks, verifierClockSkew.Ticks);
+        var ttlTicks = expUnixTicks - nowUnixTicks + effectiveSkewTicks;
         if (ttlTicks <= 0)
         {
             throw new SdJwtException(

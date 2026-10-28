@@ -39,7 +39,9 @@ public class ReplayProtectionOptions
     public TimeSpan MaximumTtl { get; set; } = TimeSpan.FromHours(24);
 
     /// <summary>
-    /// Gets or sets the clock skew tolerance added to TTL calculation.
+    /// Gets or sets the clock skew tolerance for standalone replay validation.
+    /// Integrated SD-JWT verification retains markers through the larger of this
+    /// tolerance and the verifier's claim-validation clock skew.
     /// Default: 30 seconds (per security best practices).
     /// </summary>
     public TimeSpan ClockSkewTolerance { get; set; } = TimeSpan.FromSeconds(30);
