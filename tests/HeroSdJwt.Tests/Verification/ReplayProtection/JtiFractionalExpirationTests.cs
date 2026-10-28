@@ -15,6 +15,50 @@ public class JtiFractionalExpirationTests
     private const string JTI = "fractional-jti";
     private static readonly DateTimeOffset _start = DateTimeOffset.FromUnixTimeSeconds(1_700_000_000);
 
+    [Fact]
+    public async Task Should_AdmitRecentlyExpiredNumericDateWithinClockSkewAndRetainReplayMarker()
+    {
+        var options = CreateOptions();
+        options.ClockSkewTolerance = TimeSpan.FromSeconds(30);
+        var clock = new ManualTimeProvider(_start);
+        using var cache = new InMemoryJtiCache(options, clock);
+        var validator = new JtiValidator(cache, options, clock);
+        var claims = CreateClaims("1699999990"); // 10 seconds before now, 20 seconds before skew deadline
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await validator.ValidateAsync(claims, cancellationToken);
+        Assert.True(await cache.ExistsAsync(ISSUER, JTI, cancellationToken));
+        _ = await Assert.ThrowsAsync<ReplayAttackException>(() =>
+            validator.ValidateAsync(claims, cancellationToken));
+
+        clock.UtcNow = _start.AddSeconds(19).AddTicks(9_999_999);
+        Assert.True(await cache.ExistsAsync(ISSUER, JTI, cancellationToken));
+
+        // Exactly at the effective expiration boundary, neither the credential
+        // nor its replay marker should remain valid.
+        clock.UtcNow = _start.AddSeconds(20);
+        Assert.False(await cache.ExistsAsync(ISSUER, JTI, cancellationToken));
+        _ = await Assert.ThrowsAsync<SdJwtException>(() =>
+            validator.ValidateAsync(claims, cancellationToken));
+    }
+
+    [Theory]
+    [InlineData("1699999970")]
+    [InlineData("1699999969.9999999")]
+    public async Task Should_RejectNumericDateAtOrPastSkewDeadline(string numericDate)
+    {
+        var options = CreateOptions();
+        options.ClockSkewTolerance = TimeSpan.FromSeconds(30);
+        var clock = new ManualTimeProvider(_start);
+        using var cache = new InMemoryJtiCache(options, clock);
+        var validator = new JtiValidator(cache, options, clock);
+        var claims = CreateClaims(numericDate);
+
+        _ = await Assert.ThrowsAsync<SdJwtException>(() =>
+            validator.ValidateAsync(claims, TestContext.Current.CancellationToken));
+        Assert.False(await cache.ExistsAsync(ISSUER, JTI, TestContext.Current.CancellationToken));
+    }
+
     [Theory]
     [InlineData("1700000001.25")]
     [InlineData("1.70000000125e9")]
