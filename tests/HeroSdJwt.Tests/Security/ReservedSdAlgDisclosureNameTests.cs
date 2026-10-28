@@ -36,17 +36,17 @@ public class ReservedSdAlgDisclosureNameTests
         var disclosure = Base64UrlEncoder.Encode("""["salt-leaf","_sd_alg","sha-512"]""");
         var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
 
-        var (payload, disclosures) = placement switch
+        (string payload, string[] disclosures) = placement switch
         {
             "root" => (
                 JsonSerializer.Serialize(new { exp = 4102444800L, _sd = new[] { digest } }),
-                new[] { disclosure }),
+                [disclosure]),
             "nested" => (
                 JsonSerializer.Serialize(new { exp = 4102444800L, profile = new { _sd = new[] { digest } } }),
-                new[] { disclosure }),
+                [disclosure]),
             "array" => (
                 JsonSerializer.Serialize(new { exp = 4102444800L, records = new[] { new { _sd = new[] { digest } } } }),
-                new[] { disclosure }),
+                [disclosure]),
             "disclosed-parent" => CreateNestedDisclosures(disclosure, digest),
             _ => throw new ArgumentOutOfRangeException(nameof(placement))
         };

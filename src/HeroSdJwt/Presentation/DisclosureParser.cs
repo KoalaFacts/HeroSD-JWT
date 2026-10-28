@@ -90,8 +90,9 @@ public class DisclosureParser : IDisclosureParser
                 throw new MalformedDisclosureException("Disclosure claim name cannot be empty or whitespace");
             }
 
-            // RFC 9901 Sections 4.2.1 and 7.1 reserve these SD-JWT control names.
-            if (claimName is "_sd" or "...")
+            // RFC 9901 Sections 4.1.1 and 4.2.1: _sd_alg is an issuer JWT
+            // top-level control, while _sd and ... are digest control members.
+            if (claimName is "_sd" or "..." or "_sd_alg")
             {
                 throw new MalformedDisclosureException("Disclosure claim name is reserved");
             }
