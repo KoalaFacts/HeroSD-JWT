@@ -167,40 +167,7 @@ public class SdJwtIssuer(
                 }
             }
 
-            // Process simple top-level claims
-            foreach (var claimPath in simpleTopLevelClaims)
-            {
-                if (claims.TryGetValue(claimPath.BaseName, out var claimValue))
-                {
-                    // Convert claim value to JsonElement
-                    // Suppression: This is at the public API boundary where users provide arbitrary claim values.
-                    // The library's internal processing is fully AOT-compatible (uses Utf8JsonWriter).
-#pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement at API boundary
-                    var jsonElement = JsonSerializer.SerializeToElement(claimValue);
-#pragma warning restore IL2026, IL3050
-
-                    // Generate disclosure
-                    var disclosure = _disclosureGenerator.GenerateDisclosure(claimPath.BaseName, jsonElement);
-                    disclosures.Add(disclosure);
-
-                    // Compute digest
-                    var digest = _digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
-                    digests.Add(digest);
-                }
-            }
-
-            // Add decoy digests for privacy protection if requested
-            // Per SD-JWT spec section 4.2.5: "The use of decoy digests is RECOMMENDED when the
-            // number of claims (or the existence of particular claims) can be a side-channel
-            // disclosing information about the End-User."
-            if (decoyDigestCount > 0)
-            {
-                var _decoyGenerator = new DecoyDigestGenerator(_digestCalculator);
-                var decoyDigests = _decoyGenerator.GenerateDecoyDigests(decoyDigestCount, hashAlgorithm);
-                digests = _decoyGenerator.InterleaveDecoys(digests, decoyDigests);
-            }
-
-            // Step 1.5: Process nested claims and build objects with _sd arrays.
+            // Redact nested claims and build objects with _sd arrays before wrapping parents.
             // The generated default belongs to the issued payload only.
             var modifiedClaims = new Dictionary<string, object>(claims);
             if (!hasExplicitExpiration)
@@ -291,6 +258,39 @@ public class SdJwtIssuer(
 
                 // Replace the original array with the modified one
                 modifiedClaims[arrayClaimName] = newArray;
+            }
+
+            // Wrap fully selective parent claims only after redacting their nested children
+            foreach (var claimPath in simpleTopLevelClaims)
+            {
+                if (modifiedClaims.TryGetValue(claimPath.BaseName, out var claimValue))
+                {
+                    // Convert claim value to JsonElement
+                    // Suppression: This is at the public API boundary where users provide arbitrary claim values.
+                    // The library's internal processing is fully AOT-compatible (uses Utf8JsonWriter).
+#pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement at API boundary
+                    var jsonElement = JsonSerializer.SerializeToElement(claimValue);
+#pragma warning restore IL2026, IL3050
+
+                    // Generate disclosure
+                    var disclosure = _disclosureGenerator.GenerateDisclosure(claimPath.BaseName, jsonElement);
+                    disclosures.Add(disclosure);
+
+                    // Compute digest
+                    var digest = _digestCalculator.ComputeDigest(disclosure, hashAlgorithm);
+                    digests.Add(digest);
+                }
+            }
+
+            // Add decoy digests for privacy protection if requested
+            // Per SD-JWT spec section 4.2.5: "The use of decoy digests is RECOMMENDED when the
+            // number of claims (or the existence of particular claims) can be a side-channel
+            // disclosing information about the End-User."
+            if (decoyDigestCount > 0)
+            {
+                var _decoyGenerator = new DecoyDigestGenerator(_digestCalculator);
+                var decoyDigests = _decoyGenerator.GenerateDecoyDigests(decoyDigestCount, hashAlgorithm);
+                digests = _decoyGenerator.InterleaveDecoys(digests, decoyDigests);
             }
 
             // Step 3: Build JWT payload
