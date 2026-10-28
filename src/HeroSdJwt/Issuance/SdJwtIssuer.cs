@@ -568,6 +568,17 @@ public class SdJwtIssuer(
 
         if (value.ValueKind == JsonValueKind.Object)
         {
+            // JsonElement preserves repeated names, including escaped equivalents.
+            // Refuse ambiguous objects before the issuer authenticates their bytes:
+            // the verifier already rejects them and consumers may disagree on the
+            // first/last value. Check each nested object, including array entries.
+            if (JsonObjectMemberGuard.HasInvalidOrDuplicateNames(value))
+            {
+                throw new ArgumentException(
+                    $"The JSON object at '{claimPath}' contains duplicate or invalid member names.",
+                    nameof(value));
+            }
+
             foreach (var property in value.EnumerateObject())
             {
                 ValidateReservedSdControlName(property.Name, claimPath);
