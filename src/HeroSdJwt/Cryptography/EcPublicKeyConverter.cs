@@ -210,7 +210,7 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
             throw new ArgumentException("JWK must have kty=EC for Elliptic Curve keys");
         }
 
-        if ((ktyObj as string) != "EC")
+        if (GetJwkString(ktyObj) != "EC")
         {
             throw new ArgumentException("JWK must have kty=EC for Elliptic Curve keys");
         }
@@ -220,17 +220,17 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
             throw new ArgumentException("Only P-256 curve is supported");
         }
 
-        if ((crvObj as string) != "P-256")
+        if (GetJwkString(crvObj) != "P-256")
         {
             throw new ArgumentException("Only P-256 curve is supported");
         }
 
-        if (!dict.TryGetValue("x", out var xObj) || xObj is not string xStr)
+        if (!dict.TryGetValue("x", out var xObj) || GetJwkString(xObj) is not string xStr)
         {
             throw new ArgumentException("JWK must contain 'x' coordinate as a string");
         }
 
-        if (!dict.TryGetValue("y", out var yObj) || yObj is not string yStr)
+        if (!dict.TryGetValue("y", out var yObj) || GetJwkString(yObj) is not string yStr)
         {
             throw new ArgumentException("JWK must contain 'y' coordinate as a string");
         }
@@ -309,12 +309,12 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
             throw new ArgumentException("An EC public JWK must not contain symmetric key material", nameof(jwk));
         }
 
-        if (jwk.TryGetValue("use", out var use) && use is not "sig")
+        if (jwk.TryGetValue("use", out var use) && GetJwkString(use) != "sig")
         {
             throw new ArgumentException("Holder JWK use must be sig when present", nameof(jwk));
         }
 
-        if (jwk.TryGetValue("alg", out var alg) && alg is not "ES256")
+        if (jwk.TryGetValue("alg", out var alg) && GetJwkString(alg) != "ES256")
         {
             throw new ArgumentException("Holder JWK alg must be ES256 when present", nameof(jwk));
         }
@@ -325,6 +325,16 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
             throw new ArgumentException("Holder public JWK key_ops must contain only verify", nameof(jwk));
         }
     }
+
+    // System.Text.Json's Dictionary<string, object> deserializer retains scalar
+    // values as JsonElement. Honor the same string-only JWK policy for either
+    // representation without enabling arbitrary ToString() coercions.
+    private static string? GetJwkString(object? value) => value switch
+    {
+        string text => text,
+        JsonElement { ValueKind: JsonValueKind.String } element => element.GetString(),
+        _ => null
+    };
 
     private static bool HasOnlyVerifyOperation(JsonElement operations) =>
         operations.ValueKind == JsonValueKind.Array &&
