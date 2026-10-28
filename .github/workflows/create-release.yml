@@ -20,11 +20,13 @@ jobs:
   create-release:
     name: Create Release v${{ inputs.version }}
     runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
 
     steps:
       - name: Validate version format
         run: |
-          VERSION="${{ inputs.version }}"
+          VERSION="$RELEASE_VERSION"
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
             echo "Error: Invalid version format: $VERSION"
             echo "Expected format: X.Y.Z or X.Y.Z-prerelease"
@@ -56,47 +58,62 @@ jobs:
       - name: Run tests
         run: dotnet test --configuration Release --no-build --verbosity normal
 
-      - name: Update CHANGELOG.md
+      - name: Verify release source is current main
+        shell: bash
         run: |
-          VERSION="${{ inputs.version }}"
-          DATE=$(date +%Y-%m-%d)
-
-          # Insert new version entry after "# Changelog" title
-          sed -i "/# Changelog/a\\\\n## [$VERSION] - $DATE\\n\\nSee [GitHub Release](https://github.com/KoalaFacts/HeroSD-JWT/releases/tag/v$VERSION) for details.\\n" CHANGELOG.md
-
-          echo "Updated CHANGELOG.md with version $VERSION"
-
-          # Commit the CHANGELOG update
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git commit -m "chore: release v$VERSION [skip ci]"
-
-          # Pull any new changes before pushing
-          git pull --rebase origin main
-          git push
-
-          echo "CHANGELOG.md committed and pushed"
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Dispatch release from main"; exit 1
+          fi
+          REMOTE_MAIN="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [[ "$GITHUB_SHA" != "$REMOTE_MAIN" || "$(git rev-parse HEAD)" != "$REMOTE_MAIN" ]]; then
+            echo "Main moved since dispatch; use current main"; exit 1
+          fi
+          if git show-ref --verify --quiet "refs/tags/v$RELEASE_VERSION"; then
+            echo "Release tag exists"; exit 1
+          fi
 
       - name: Pack NuGet packages
         run: |
           dotnet pack src/HeroSdJwt/HeroSdJwt.csproj \
             --configuration Release \
-            -p:PackageVersion=${{ inputs.version }} \
-            -p:Version=${{ inputs.version }}
+            -p:PackageVersion="$RELEASE_VERSION" \
+            -p:Version="$RELEASE_VERSION"
 
       - name: Verify packages were created
         run: |
-          if [ ! -f "src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg" ]; then
+          if [ ! -f "src/HeroSdJwt/bin/Release/HeroSD-JWT.$RELEASE_VERSION.nupkg" ]; then
             echo "Error: Main package not found"
             exit 1
           fi
-          if [ ! -f "src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg" ]; then
+          if [ ! -f "src/HeroSdJwt/bin/Release/HeroSD-JWT.$RELEASE_VERSION.snupkg" ]; then
             echo "Error: Symbol package not found"
             exit 1
           fi
           echo "Packages verified:"
-          ls -lh src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.*
+          ls -lh src/HeroSdJwt/bin/Release/HeroSD-JWT.$RELEASE_VERSION.*
+
+      - name: Smoke-test installed package on each target framework
+        shell: bash
+        run: |
+          for framework in net8.0 net9.0 net10.0; do
+            bash .github/scripts/smoke_nuget_package.sh "$RELEASE_VERSION" "$framework"
+          done
+
+      - name: Record exact release identity
+        shell: bash
+        run: |
+          printf '%s\n' "$RELEASE_VERSION" > release-version.txt
+          printf '%s\n' "$GITHUB_SHA" > release-source-sha.txt
+
+      - name: Upload release identity for downstream NuGet publishing
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-identity
+          path: |
+            release-version.txt
+            release-source-sha.txt
+          retention-days: 30
 
       - name: Install Microsoft SBOM tool
         run: dotnet tool install --global Microsoft.Sbom.DotNetTool
@@ -116,7 +133,7 @@ jobs:
                 -b src/HeroSdJwt/bin/Release/$framework \
                 -bc src/HeroSdJwt \
                 -pn HeroSD-JWT \
-                -pv ${{ inputs.version }} \
+                -pv $RELEASE_VERSION \
                 -ps KoalaFacts \
                 -nsb https://github.com/KoalaFacts/HeroSD-JWT \
                 -mi SPDX:$spdx_version \
@@ -126,8 +143,8 @@ jobs:
               # Find and copy SBOM file
               SBOM_FILE=$(find sbom-output-$framework-$spdx_version -type f -name "*.spdx.json" | head -n 1)
               if [ -n "$SBOM_FILE" ]; then
-                cp "$SBOM_FILE" release-sboms/HeroSD-JWT.${{ inputs.version }}.$framework.spdx-$spdx_version.json
-                echo "Created: HeroSD-JWT.${{ inputs.version }}.$framework.spdx-$spdx_version.json"
+                cp "$SBOM_FILE" release-sboms/HeroSD-JWT.$RELEASE_VERSION.$framework.spdx-$spdx_version.json
+                echo "Created: HeroSD-JWT.$RELEASE_VERSION.$framework.spdx-$spdx_version.json"
               else
                 echo "Error: No SBOM file found for $framework SPDX $spdx_version"
                 exit 1
@@ -141,20 +158,20 @@ jobs:
       - name: Create release description footer
         id: release-notes
         run: |
-          VERSION="${{ inputs.version }}"
+          VERSION="$RELEASE_VERSION"
 
           # Create footer with installation and package info
-          cat > release-footer.md <<EOF
+          cat > release-footer.md <<'EOF'
 
           ---
 
           ### Installation
           ```bash
-          dotnet add package HeroSD-JWT --version ${VERSION}
+          dotnet add package HeroSD-JWT --version __VERSION__
           ```
 
           ### Package Details
-          - **NuGet**: [HeroSD-JWT v${VERSION}](https://www.nuget.org/packages/HeroSD-JWT/${VERSION})
+          - **NuGet**: [HeroSD-JWT v__VERSION__](https://www.nuget.org/packages/HeroSD-JWT/__VERSION__)
           - **Frameworks**: net8.0, net9.0, net10.0
           - **Dependencies**: Microsoft.Bcl.Memory (net8.0 only)
 
@@ -167,11 +184,12 @@ jobs:
           - [README](https://github.com/KoalaFacts/HeroSD-JWT/blob/main/README.md)
           - [Full Changelog](https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG.md)
           EOF
+          sed -i "s/__VERSION__/$VERSION/g" release-footer.md
           echo "Release footer created with installation and package details"
 
       - name: Generate release notes (auto + footer)
         run: |
-          VERSION="${{ inputs.version }}"
+          VERSION="$RELEASE_VERSION"
           TAG="v${VERSION}"
 
           # Generate GitHub release notes body
@@ -187,13 +205,14 @@ jobs:
 
       - name: Create GitHub Release
         run: |
-          echo "Creating release v${{ inputs.version }}..."
+          echo "Creating release v$RELEASE_VERSION..."
 
-          gh release create v${{ inputs.version }} \
-            --title "Release v${{ inputs.version }}" \
+          gh release create "v$RELEASE_VERSION" \
+            --target "$GITHUB_SHA" \
+            --title "Release v$RELEASE_VERSION" \
             --notes-file release-notes.md \
-            src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.nupkg \
-            src/HeroSdJwt/bin/Release/HeroSD-JWT.${{ inputs.version }}.snupkg \
+            src/HeroSdJwt/bin/Release/HeroSD-JWT.$RELEASE_VERSION.nupkg \
+            src/HeroSdJwt/bin/Release/HeroSD-JWT.$RELEASE_VERSION.snupkg \
             release-sboms/*.json
 
           echo "Release created with auto-generated notes and published!"
@@ -202,8 +221,8 @@ jobs:
 
       - name: Verify release was created
         run: |
-          echo "Verifying release v${{ inputs.version }}..."
-          gh release view v${{ inputs.version }} --json assets --jq '.assets[].name'
+          echo "Verifying release v$RELEASE_VERSION..."
+          gh release view v$RELEASE_VERSION --json assets --jq '.assets[].name'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -211,13 +230,13 @@ jobs:
         run: |
           echo "## Release Created Successfully!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version**: v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Release URL**: https://github.com/${{ github.repository }}/releases/tag/v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: v$RELEASE_VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "**Release URL**: https://github.com/${{ github.repository }}/releases/tag/v$RELEASE_VERSION" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Artifacts Published" >> $GITHUB_STEP_SUMMARY
           echo "**NuGet Packages:**" >> $GITHUB_STEP_SUMMARY
-          echo "- HeroSD-JWT.${{ inputs.version }}.nupkg" >> $GITHUB_STEP_SUMMARY
-          echo "- HeroSD-JWT.${{ inputs.version }}.snupkg (symbols)" >> $GITHUB_STEP_SUMMARY
+          echo "- HeroSD-JWT.$RELEASE_VERSION.nupkg" >> $GITHUB_STEP_SUMMARY
+          echo "- HeroSD-JWT.$RELEASE_VERSION.snupkg (symbols)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**SBOMs (Software Bill of Materials):**" >> $GITHUB_STEP_SUMMARY
           echo "- 6 SBOMs total (3 frameworks × 2 SPDX formats)" >> $GITHUB_STEP_SUMMARY

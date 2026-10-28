@@ -20,6 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: read  # Read the release-identity artifact from the exact triggering workflow run
   id-token: write  # Required for OIDC authentication with NuGet.org
   contents: read
   attestations: write  # For package provenance
@@ -37,38 +38,46 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.VERSION }}
       tag: ${{ steps.version.outputs.TAG }}
+      source_sha: ${{ steps.version.outputs.SOURCE_SHA }}
     steps:
-      - name: Determine version from release
+      - name: Download identity from the successful triggering workflow
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-identity
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ./release-identity
+
+      - name: Resolve version from the exact source run
         id: version
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_run" ]; then
-            # Get the latest release (most recently created)
-            # This works because create-release creates the release as its last step
-            echo "Finding latest release from create-release workflow..."
-
-            TAG=$(gh api repos/${GITHUB_REPOSITORY}/releases \
-              --jq ".[0].tag_name" | head -n 1)
-
-            if [ -z "${TAG}" ]; then
-              echo "Error: Could not find any releases"
-              exit 1
-            fi
-
-            VERSION="${TAG#v}"
-            echo "Using latest release: ${TAG}"
-          elif [ -n "${{ inputs.version }}" ]; then
-            VERSION="${{ inputs.version }}"
-            TAG="v${VERSION}"
-          else
-            echo "Error: No version specified and not triggered by workflow_run"
-            exit 1
-          fi
-
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "TAG=$TAG" >> $GITHUB_OUTPUT
-          echo "Publishing version: $VERSION (tag: $TAG)"
+        shell: bash
         env:
+          MANUAL_VERSION: ${{ inputs.version }}
+          TRIGGER_SHA: ${{ github.event.workflow_run.head_sha }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SOURCE_SHA=""
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
+            VERSION="$(cat release-identity/release-version.txt)"
+            SOURCE_SHA="$(cat release-identity/release-source-sha.txt)"
+            if [[ "$SOURCE_SHA" != "$TRIGGER_SHA" ]]; then
+              echo "Release source SHA differs from trigger"; exit 1
+            fi
+          else
+            VERSION="$MANUAL_VERSION"
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "Invalid release version: $VERSION"; exit 1
+          fi
+          TAG="v$VERSION"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName > /dev/null
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
+          echo "SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "Pinned $TAG to triggering Create Release run"
+
 
   publish:
     runs-on: ubuntu-latest
@@ -107,6 +116,20 @@ jobs:
             exit 1
           fi
           echo "Version format validated: $VERSION"
+
+      - name: Verify release tag matches the triggering source commit
+        if: github.event_name == 'workflow_run'
+        shell: bash
+        env:
+          TAG: ${{ needs.get-version.outputs.tag }}
+          EXPECTED_SHA: ${{ needs.get-version.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "refs/tags/$TAG:refs/tags/$TAG"
+          ACTUAL_SHA="$(git rev-parse "$TAG^{commit}")"
+          if [[ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]]; then
+            echo "Release tag commit $ACTUAL_SHA does not match $EXPECTED_SHA"; exit 1
+          fi
 
       - name: Download packages from GitHub Release
         run: |
