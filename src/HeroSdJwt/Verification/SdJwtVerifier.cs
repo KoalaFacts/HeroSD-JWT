@@ -925,7 +925,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             // a separate verifier audience has not been configured.
             IReadOnlyList<string> keyBindingAudiences = string.IsNullOrWhiteSpace(_options.ExpectedKeyBindingAudience)
                 ? GetMatchingAudiences(expectedAudiences, payloadAudiences)
-                : [_options.ExpectedKeyBindingAudience!];
+                : [_options.ExpectedKeyBindingAudience];
 
             // Step 5: Validate key binding if present or required
             if (!string.IsNullOrWhiteSpace(keyBindingJwt))
