@@ -135,6 +135,26 @@ public class SdJwtIssuer(
                 ValidateNoUntrustedSdControlMembers(claim.Value, claim.Key);
             }
 
+            // Normalize to case-sensitive JSON names even if the caller supplied
+            // a dictionary with a case-insensitive comparer. Otherwise a
+            // case-mismatched selector could pass validation while leaving
+            // the original claim permanently disclosed in the signed token.
+            var modifiedClaims = new Dictionary<string, object>(claims, StringComparer.Ordinal);
+
+            // A requested top-level disclosure policy must be applied in full.
+            // Missing simple claims and array bases were previously ignored,
+            // allowing the issuer to sign a credential without the requested
+            // redaction. Nested paths have their own structural validation.
+            foreach (var claimPath in parsedClaims)
+            {
+                if (!claimPath.IsNested && !modifiedClaims.ContainsKey(claimPath.BaseName))
+                {
+                    throw new ArgumentException(
+                        $"Cannot selectively disclose '{claimPath.OriginalSpec}': claim '{claimPath.BaseName}' does not exist.",
+                        nameof(selectivelyDisclosableClaims));
+                }
+            }
+
             // Step 1: Generate disclosures for selectively disclosable claims
             var disclosures = new List<string>();
             var digests = new List<string>();
@@ -169,7 +189,6 @@ public class SdJwtIssuer(
 
             // Redact nested claims and build objects with _sd arrays before wrapping parents.
             // The generated default belongs to the issued payload only.
-            var modifiedClaims = new Dictionary<string, object>(claims);
             if (!hasExplicitExpiration)
             {
                 modifiedClaims["exp"] = expClaim!;
@@ -190,10 +209,8 @@ public class SdJwtIssuer(
 
             foreach (var (arrayClaimName, indicesToDisclose) in arrayElementsToDisclose)
             {
-                if (!claims.TryGetValue(arrayClaimName, out var arrayValue))
-                {
-                    continue; // Array claim doesn't exist in claims
-                }
+                // Validated above: the selected array base must exist.
+                var arrayValue = claims[arrayClaimName];
 
                 // Convert to JsonElement to work with array
                 // Suppression: This is at the public API boundary where users provide arbitrary claim values.
