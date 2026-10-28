@@ -72,7 +72,7 @@ jobs:
             echo "Invalid release version: $VERSION"; exit 1
           fi
           TAG="v$VERSION"
-          gh release view "$TAG" --json tagName --jq .tagName > /dev/null
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName > /dev/null
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
           echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
           echo "SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
