@@ -58,6 +58,42 @@ public class IssuerRegisteredClaimAdmissionTests
     }
 
     [Fact]
+    public void Should_AcceptMultidimensionalAudienceThatSignerSerializesAsFlatStringArray()
+    {
+        // JwtSigner writes IEnumerable values as a flat JSON array, including
+        // multidimensional CLR arrays which System.Text.Json cannot serialize.
+        var claims = new Dictionary<string, object>
+        {
+            ["sub"] = "holder-1",
+            ["aud"] = new string[,] { { "https://verifier-a.example", "https://verifier-b.example" } }
+        };
+
+        var sdJwt = TestHelpers.CreateIssuer().CreateSdJwt(
+            claims, [], _signingKey, HashAlgorithm.Sha256);
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .Build();
+
+        var result = verifier.TryVerifyPresentation(sdJwt.Jwt + "~", _signingKey);
+        Assert.True(result.IsValid, result.ErrorDetails);
+    }
+
+    [Fact]
+    public void Should_RejectNonStringMemberInSignerFlattenedAudience()
+    {
+        var claims = new Dictionary<string, object>
+        {
+            ["sub"] = "holder-1",
+            ["aud"] = new object[,] { { "https://verifier-a.example", false } }
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            TestHelpers.CreateIssuer().CreateSdJwt(claims, [], _signingKey, HashAlgorithm.Sha256));
+
+        Assert.Contains("aud", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Should_AcceptWellFormedRegisteredClaimsAndIssueVerifiableToken()
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
