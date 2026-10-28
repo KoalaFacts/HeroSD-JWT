@@ -483,6 +483,8 @@ The library follows the three-party SD-JWT model:
 
 ## Security
 
+**Key Binding audience policy:** The holder-signed KB-JWT `aud` identifies the verifier, which can differ from (or be absent in) the issuer-signed JWT's `aud`. For a holder-bound presentation, configure `RequireKeyBinding = true`, `ExpectedKeyBindingAudience = "https://verifier.example"`, and `ExpectedNonce`. Use `ExpectedAudience` or `ExpectedAudiences` separately if the issuer JWT needs an audience policy. The fluent builder exposes `WithExpectedKeyBindingAudience(...)`. When the new setting is omitted, the previous coupled-audience behavior is preserved for compatibility.
+
 This library implements security best practices:
 
 - **Constant-time comparison**: Uses `CryptographicOperations.FixedTimeEquals` for digest validation to prevent timing attacks

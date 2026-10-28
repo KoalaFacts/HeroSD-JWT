@@ -46,6 +46,13 @@ public class SdJwtVerificationOptions
     public IReadOnlyList<string>? ExpectedAudiences { get; init; }
 
     /// <summary>
+    /// Gets the expected verifier audience for the holder-signed Key Binding JWT.
+    /// When set, this audience is checked independently of the issuer JWT's aud claim.
+    /// When omitted, key binding retains the previous audience matching policy.
+    /// </summary>
+    public string? ExpectedKeyBindingAudience { get; init; }
+
+    /// <summary>
     /// Gets the expected hash algorithm for disclosure digests.
     /// When set, presentations using different hash algorithm will fail verification.
     /// Default is null (any standard algorithm accepted).
@@ -93,7 +100,7 @@ public class SdJwtVerificationOptions
 
         if (RequireKeyBinding)
         {
-            if (audiences.Count == 0)
+            if (audiences.Count == 0 && string.IsNullOrWhiteSpace(ExpectedKeyBindingAudience))
             {
                 throw new ArgumentException(
                     "Key binding requires an expected audience value.",

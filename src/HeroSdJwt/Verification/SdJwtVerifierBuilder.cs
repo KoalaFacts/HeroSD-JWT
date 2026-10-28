@@ -39,6 +39,7 @@ public class SdJwtVerifierBuilder
     private bool _requireKeyBinding = false;
     private string? _expectedIssuer;
     private IReadOnlyCollection<string>? _expectedAudiences;
+    private string? _expectedKeyBindingAudience;
     private HashAlgorithm? _expectedHashAlgorithm;
     private string? _expectedNonce;
     private VerificationKeyType _expectedKeyType = VerificationKeyType.Asymmetric;
@@ -132,6 +133,18 @@ public class SdJwtVerifierBuilder
         }
 
         _expectedAudiences = audienceList;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the verifier audience for the holder-signed Key Binding JWT independently
+    /// of any issuer-signed JWT audience policy.
+    /// </summary>
+    /// <param name="audience">Expected verifier identifier in the KB-JWT aud claim.</param>
+    public SdJwtVerifierBuilder WithExpectedKeyBindingAudience(string audience)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(audience);
+        _expectedKeyBindingAudience = audience;
         return this;
     }
 
@@ -280,6 +293,7 @@ public class SdJwtVerifierBuilder
             ExpectedIssuer = _expectedIssuer,
             ExpectedAudience = primaryAudience,
             ExpectedAudiences = expectedAudiences,
+            ExpectedKeyBindingAudience = _expectedKeyBindingAudience,
             ExpectedHashAlgorithm = _expectedHashAlgorithm,
             ExpectedNonce = _expectedNonce,
             ExpectedKeyType = _expectedKeyType,

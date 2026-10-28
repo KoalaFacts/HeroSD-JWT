@@ -920,7 +920,12 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 }
             }
 
-            var keyBindingAudiences = GetMatchingAudiences(expectedAudiences, payloadAudiences);
+            // The KB-JWT audience identifies the verifier and is independent of
+            // any issuer-JWT audience. Preserve the legacy coupled policy when
+            // a separate verifier audience has not been configured.
+            IReadOnlyList<string> keyBindingAudiences = string.IsNullOrWhiteSpace(_options.ExpectedKeyBindingAudience)
+                ? GetMatchingAudiences(expectedAudiences, payloadAudiences)
+                : [_options.ExpectedKeyBindingAudience!];
 
             // Step 5: Validate key binding if present or required
             if (!string.IsNullOrWhiteSpace(keyBindingJwt))
