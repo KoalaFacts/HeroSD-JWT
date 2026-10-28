@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- [Upgrade guidance for the forthcoming 2.0 release](docs/users/upgrading-to-2.0.md) (not yet published).
+- [Upgrade guidance for the forthcoming 2.0 release](docs/users/upgrading-to-2.0.md).
 
 - Align ECDSA handling with JWS spec: ES256/384/512 signatures are emitted as JOSE raw R||S and verifiers accept JOSE format.
 - Signature verification hardening: Algorithm/key-type guardrails with default `ExpectedKeyType` tightened to `Asymmetric` (set to `Symmetric` for HS*).

@@ -1,6 +1,6 @@
 # Upgrade guide: 1.1.7 to 2.0 (forthcoming)
 
-**Status: the 2.0 package has not been published.** This document describes the current development implementation, not a shipped NuGet release.
+**Release preparation (29 October 2026):** the 2.0 package had not been published when this guide was written. Verify the exact tagged version and availability on NuGet before upgrading.
 
 ## Key-type verification
 
