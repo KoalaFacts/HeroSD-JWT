@@ -15,11 +15,11 @@ public class IssuerNestedJsonMemberAdmissionTests
     private static readonly byte[] _signingKey = [.. Enumerable.Range(1, 32).Select(i => (byte)i)];
 
     [Theory]
-    [InlineData("""{"role":"reader","role":"admin"}""")]
-    [InlineData("""{"role":"reader","\u0072ole":"admin"}""")]
-    [InlineData("""{"settings":{"active":false,"active":true}}""")]
-    [InlineData("""[{"permission":"read","permission":"write"}]""")]
-    [InlineData("""{"roles":[{"level":1,"level":2}]}""")]
+    [InlineData(/*lang=json*/ """{"role":"reader","role":"admin"}""")]
+    [InlineData(/*lang=json*/ """{"role":"reader","\u0072ole":"admin"}""")]
+    [InlineData(/*lang=json*/ """{"settings":{"active":false,"active":true}}""")]
+    [InlineData(/*lang=json*/ """[{"permission":"read","permission":"write"}]""")]
+    [InlineData(/*lang=json*/ """{"roles":[{"level":1,"level":2}]}""")]
     public void Should_RejectDuplicateNestedJsonNamesBeforeSigning(string nestedJson)
     {
         using var document = JsonDocument.Parse(nestedJson);
