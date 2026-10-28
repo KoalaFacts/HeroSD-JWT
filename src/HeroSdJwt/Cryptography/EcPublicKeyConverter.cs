@@ -92,6 +92,11 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
             throw new ArgumentException("Holder confirmation JWK must not contain private key material", nameof(jwk));
         }
 
+        // Holder confirmation uses a public ES256 verification key. Do not
+        // accept hidden symmetric material or JWK metadata authorizing a
+        // different algorithm or operation.
+        ValidatePublicVerificationMetadata(jwk);
+
         // Validate required fields
         if (!jwk.TryGetProperty("kty", out var ktyElement) || ktyElement.ValueKind != JsonValueKind.String)
         {
@@ -197,6 +202,8 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
             throw new ArgumentException("Holder confirmation JWK must not contain private key material", nameof(dict));
         }
 
+        ValidatePublicVerificationMetadata(dict);
+
         // Validate required fields
         if (!dict.TryGetValue("kty", out var ktyObj))
         {
@@ -268,4 +275,91 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
             throw new ArgumentException("Invalid EC public key parameters", ex);
         }
     }
+
+    private static void ValidatePublicVerificationMetadata(JsonElement jwk)
+    {
+        if (jwk.TryGetProperty("k", out _))
+        {
+            throw new ArgumentException("An EC public JWK must not contain symmetric key material", nameof(jwk));
+        }
+
+        if (jwk.TryGetProperty("use", out var use) &&
+            (use.ValueKind != JsonValueKind.String || use.GetString() != "sig"))
+        {
+            throw new ArgumentException("Holder JWK use must be sig when present", nameof(jwk));
+        }
+
+        if (jwk.TryGetProperty("alg", out var alg) &&
+            (alg.ValueKind != JsonValueKind.String || alg.GetString() != "ES256"))
+        {
+            throw new ArgumentException("Holder JWK alg must be ES256 when present", nameof(jwk));
+        }
+
+        if (jwk.TryGetProperty("key_ops", out var operations) &&
+            !HasOnlyVerifyOperation(operations))
+        {
+            throw new ArgumentException("Holder public JWK key_ops must contain only verify", nameof(jwk));
+        }
+    }
+
+    private static void ValidatePublicVerificationMetadata(Dictionary<string, object> jwk)
+    {
+        if (jwk.ContainsKey("k"))
+        {
+            throw new ArgumentException("An EC public JWK must not contain symmetric key material", nameof(jwk));
+        }
+
+        if (jwk.TryGetValue("use", out var use) && use is not "sig")
+        {
+            throw new ArgumentException("Holder JWK use must be sig when present", nameof(jwk));
+        }
+
+        if (jwk.TryGetValue("alg", out var alg) && alg is not "ES256")
+        {
+            throw new ArgumentException("Holder JWK alg must be ES256 when present", nameof(jwk));
+        }
+
+        if (jwk.TryGetValue("key_ops", out var operations) &&
+            !HasOnlyVerifyOperation(operations))
+        {
+            throw new ArgumentException("Holder public JWK key_ops must contain only verify", nameof(jwk));
+        }
+    }
+
+    private static bool HasOnlyVerifyOperation(JsonElement operations) =>
+        operations.ValueKind == JsonValueKind.Array &&
+        operations.GetArrayLength() == 1 &&
+        operations[0].ValueKind == JsonValueKind.String &&
+        operations[0].GetString() == "verify";
+
+    private static bool HasOnlyVerifyOperation(object? operations)
+    {
+        if (operations is JsonElement json)
+        {
+            return HasOnlyVerifyOperation(json);
+        }
+
+        if (operations is not System.Collections.IEnumerable enumerable)
+        {
+            return false;
+        }
+
+        var found = false;
+        foreach (var item in enumerable)
+        {
+            if (found ||
+                (item is not "verify" &&
+                 (item is not JsonElement element ||
+                  element.ValueKind != JsonValueKind.String ||
+                  element.GetString() != "verify")))
+            {
+                return false;
+            }
+
+            found = true;
+        }
+
+        return found;
+    }
+
 }
