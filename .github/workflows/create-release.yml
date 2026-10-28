@@ -100,11 +100,15 @@ jobs:
             bash .github/scripts/smoke_nuget_package.sh "$RELEASE_VERSION" "$framework"
           done
 
-      - name: Record exact release identity
+      - name: Record exact release identity and packed artifact digests
         shell: bash
         run: |
+          set -euo pipefail
           printf '%s\n' "$RELEASE_VERSION" > release-version.txt
           printf '%s\n' "$GITHUB_SHA" > release-source-sha.txt
+          PACKAGE_DIR="src/HeroSdJwt/bin/Release"
+          sha256sum "$PACKAGE_DIR/HeroSD-JWT.$RELEASE_VERSION.nupkg" | cut -d' ' -f1 > release-nupkg-sha256.txt
+          sha256sum "$PACKAGE_DIR/HeroSD-JWT.$RELEASE_VERSION.snupkg" | cut -d' ' -f1 > release-snupkg-sha256.txt
 
       - name: Upload release identity for downstream NuGet publishing
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -113,6 +117,8 @@ jobs:
           path: |
             release-version.txt
             release-source-sha.txt
+            release-nupkg-sha256.txt
+            release-snupkg-sha256.txt
           retention-days: 30
 
       - name: Install Microsoft SBOM tool

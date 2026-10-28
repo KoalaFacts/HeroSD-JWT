@@ -153,6 +153,10 @@ jobs:
     - name: Check formatting
       run: dotnet format --verify-no-changes --verbosity diagnostic
 
+    - name: Reject swapped or missing release assets
+      shell: bash
+      run: bash .github/scripts/tests/test_release_asset_integrity.sh
+
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
