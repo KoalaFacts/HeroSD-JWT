@@ -382,11 +382,33 @@ public class SdJwtIssuer(
             return;
         }
 
-        // This public API accepts arbitrary CLR claim values. Validate their
-        // serialized JSON representation rather than their CLR types.
-#pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement at API boundary
-        var element = JsonSerializer.SerializeToElement(claimValue);
-#pragma warning restore IL2026, IL3050
+        // Common primitive claims already have their exact wire representation,
+        // so avoid an extra JSON serialization in the issuance hot path.
+        if (claimValue is string && (claimName is "iss" or "sub" or "jti" or "aud"))
+        {
+            return;
+        }
+
+        if (claimName is "nbf" or "iat")
+        {
+            if (claimValue is int)
+            {
+                return; // Every Int32 second is in the supported NumericDate range.
+            }
+
+            if (claimValue is long seconds &&
+                seconds >= DateTimeOffset.MinValue.ToUnixTimeSeconds() &&
+                seconds <= DateTimeOffset.MaxValue.ToUnixTimeSeconds())
+            {
+                return;
+            }
+        }
+
+        // Examine what the signer actually writes, not JsonSerializer's
+        // representation of the CLR value. JwtSigner supports values such as
+        // multidimensional arrays that JsonSerializer cannot serialize.
+        using var document = JwtSigner.SerializeClaimValueDocument(claimValue);
+        var element = document.RootElement;
 
         var valid = claimName switch
         {
