@@ -47,6 +47,18 @@ public static class Base64UrlEncoder
     {
         ArgumentNullException.ThrowIfNull(text);
 
+        // Do not allocate a large UTF-8 buffer only to reject its size.
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(text.Length, MAX_INPUT_LENGTH, nameof(text));
+
+        // Each UTF-16 code unit can produce at most three UTF-8 bytes.
+        // Common small inputs need no extra scan; large inputs must be
+        // checked for multi-byte expansion before allocating the buffer.
+        if (text.Length > MAX_INPUT_LENGTH / 3)
+        {
+            var byteCount = System.Text.Encoding.UTF8.GetByteCount(text);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(byteCount, MAX_INPUT_LENGTH, nameof(text));
+        }
+
         byte[] bytes = System.Text.Encoding.UTF8.GetBytes(text);
         return Encode(bytes);
     }
