@@ -378,6 +378,24 @@ public class JwtSigner : IJwtSigner
     }
 
     /// <summary>
+    /// Serializes one claim using precisely the same representation that
+    /// CreateJwt signs, including collections supported by WriteValue but
+    /// not by JsonSerializer (such as multidimensional arrays).
+    /// Caller owns the returned document.
+    /// </summary>
+    internal static JsonDocument SerializeClaimValueDocument(object? value)
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            WriteValue(writer, value!);
+            writer.Flush();
+        }
+
+        return JsonDocument.Parse(buffer.WrittenMemory);
+    }
+
+    /// <summary>
     /// Writes a value of unknown type to Utf8JsonWriter.
     /// Supports primitives, JsonElement, dictionaries, and collections for AOT compatibility.
     /// </summary>

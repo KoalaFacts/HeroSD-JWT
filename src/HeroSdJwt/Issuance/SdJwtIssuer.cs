@@ -132,6 +132,7 @@ public class SdJwtIssuer(
                         nameof(claims));
                 }
 
+                ValidateRegisteredClaimRepresentation(claim.Key, claim.Value);
                 ValidateNoUntrustedSdControlMembers(claim.Value, claim.Key);
             }
 
@@ -367,6 +368,87 @@ public class SdJwtIssuer(
         {
             throw;
         }
+    }
+
+    /// <summary>
+    /// Refuse registered JWT claims whose JSON shapes are invalid before
+    /// signing. Otherwise the issuer can mint a token that this library's
+    /// own verifier (and RFC 7519 conforming consumers) must reject.
+    /// </summary>
+    private static void ValidateRegisteredClaimRepresentation(string claimName, object? claimValue)
+    {
+        if (claimName is not ("iss" or "sub" or "jti" or "aud" or "nbf" or "iat"))
+        {
+            return;
+        }
+
+        // Common primitive claims already have their exact wire representation,
+        // so avoid an extra JSON serialization in the issuance hot path.
+        if (claimValue is string && (claimName is "iss" or "sub" or "jti" or "aud"))
+        {
+            return;
+        }
+
+        if (claimName is "nbf" or "iat")
+        {
+            if (claimValue is int)
+            {
+                return; // Every Int32 second is in the supported NumericDate range.
+            }
+
+            if (claimValue is long seconds &&
+                seconds >= DateTimeOffset.MinValue.ToUnixTimeSeconds() &&
+                seconds <= DateTimeOffset.MaxValue.ToUnixTimeSeconds())
+            {
+                return;
+            }
+        }
+
+        // Examine what the signer actually writes, not JsonSerializer's
+        // representation of the CLR value. JwtSigner supports values such as
+        // multidimensional arrays that JsonSerializer cannot serialize.
+        using var document = JwtSigner.SerializeClaimValueDocument(claimValue);
+        var element = document.RootElement;
+
+        var valid = claimName switch
+        {
+            "iss" or "sub" or "jti" => element.ValueKind == JsonValueKind.String,
+            "aud" => HasValidAudienceShape(element),
+            "nbf" or "iat" => NumericDateParser.TryParseUnixTicks(element, out _),
+            _ => true
+        };
+
+        if (!valid)
+        {
+            throw new ArgumentException(
+                $"The '{claimName}' claim has an invalid RFC 7519 JSON representation.",
+                "claims");
+        }
+    }
+
+    private static bool HasValidAudienceShape(JsonElement audience)
+    {
+        if (audience.ValueKind == JsonValueKind.String)
+        {
+            return true;
+        }
+
+        if (audience.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        // A single valid audience must not hide a malformed entry elsewhere
+        // in a signed array. Every value must be a string.
+        foreach (var value in audience.EnumerateArray())
+        {
+            if (value.ValueKind != JsonValueKind.String)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
