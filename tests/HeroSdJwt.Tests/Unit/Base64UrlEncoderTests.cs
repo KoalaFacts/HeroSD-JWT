@@ -201,6 +201,32 @@ public class Base64UrlEncoderTests
     }
 
     [Fact]
+    public void DecodeBytes_LargePayload_DoesNotAllocateRedundantInputAndCopyBuffers()
+    {
+        // The hot-path decoder should only need its binary result, not an
+        // additional UTF-8 copy of the base64url string and a copied output.
+        // Warm up before measuring thread-local allocations to exclude JIT work.
+        var source = new byte[16 * 1024];
+        for (int i = 0; i < source.Length; i++)
+        {
+            source[i] = (byte)i;
+        }
+
+        var encoded = Base64UrlEncoder.Encode(source);
+        _ = Base64UrlEncoder.DecodeBytes(encoded);
+        _ = Base64UrlEncoder.DecodeBytes(encoded);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var decoded = Base64UrlEncoder.DecodeBytes(encoded);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(source, decoded);
+        Assert.True(
+            allocated < (source.Length * 2L) + 1024,
+            $"Decoding {source.Length} bytes allocated {allocated} bytes, indicating redundant buffers.");
+    }
+
+    [Fact]
     public void EncodeAndDecode_WithBinaryData_PreservesBytes()
     {
         // Arrange
