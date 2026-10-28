@@ -1,7 +1,7 @@
-name: Publish approved 2.0.0
+name: Resume approved 2.0.0 NuGet publication
 
-# One-time entry point for the owner's explicit 2.0.0 publication request.
-# Only merging this file to main starts the existing, validated release pipeline.
+# GitHub Release v2.0.0 was created successfully, but its workflow_run
+# publisher did not start. Reuse this existing, main-only one-shot entry point.
 on:
   push:
     branches: [main]
@@ -20,21 +20,32 @@ jobs:
     if: github.repository == 'KoalaFacts/HeroSD-JWT' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Start existing Create Release workflow for approved version
+      - name: Verify original release and dispatch pinned NuGet publisher
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          EXPECTED_SHA: ${{ github.sha }}
+          EXPECTED_RELEASE_SHA: afcf316e7bcc504d2aa6783715482b22e53feaab
+          RELEASE_RUN_ID: '40775989098'
         run: |
           set -euo pipefail
           CURRENT_MAIN="$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq .object.sha)"
-          if [[ "$CURRENT_MAIN" != "$EXPECTED_SHA" ]]; then
-            echo "Main moved; do not release an unreviewed source commit." >&2
-            exit 1
+          if [[ "$CURRENT_MAIN" != "$GITHUB_SHA" ]]; then
+            echo "Main moved; refuse to dispatch from stale source." >&2; exit 1
           fi
-          # The existing workflow rebuilds, tests, smoke-tests installed packages,
-          # checks source identity, records hashes, and refuses an existing tag.
-          # Its successful completion triggers the existing NuGet OIDC publisher.
-          gh workflow run create-release.yml --repo "$GH_REPO" --ref main -f version=2.0.0
-          echo "Create Release v2.0.0 dispatched; this is not a publication-success claim."
+          TAG_SHA="$(gh api "repos/$GH_REPO/git/ref/tags/v2.0.0" --jq .object.sha)"
+          RELEASE_INFO="$(gh api "repos/$GH_REPO/releases/tags/v2.0.0" --jq '[.tag_name,.target_commitish,.draft,.immutable] | @tsv')"
+          IFS=$'\t' read -r TAG_NAME TARGET DRAFT IMMUTABLE <<< "$RELEASE_INFO"
+          if [[ "$TAG_SHA" != "$EXPECTED_RELEASE_SHA" || "$TAG_NAME" != "v2.0.0" || "$TARGET" != "$EXPECTED_RELEASE_SHA" || "$DRAFT" != "false" || "$IMMUTABLE" != "true" ]]; then
+            echo "Unexpected tag or mutable/unpublished release; refuse publishing." >&2; exit 1
+          fi
+          RUN_INFO="$(gh api "repos/$GH_REPO/actions/runs/$RELEASE_RUN_ID" --jq '[.status,.conclusion,.head_sha,.head_branch,.path] | @tsv')"
+          IFS=$'\t' read -r STATUS CONCLUSION HEAD_SHA HEAD_BRANCH RUN_PATH <<< "$RUN_INFO"
+          if [[ "$STATUS" != "completed" || "$CONCLUSION" != "success" || "$HEAD_SHA" != "$EXPECTED_RELEASE_SHA" || "$HEAD_BRANCH" != "main" || "$RUN_PATH" != ".github/workflows/create-release.yml" ]]; then
+            echo "Create Release run is not successful or has wrong source." >&2; exit 1
+          fi
+          # The publisher re-downloads original run identity and verifies tag
+          # SHA and both package SHA-256 digests before Trusted Publishing.
+          gh workflow run publish-nuget.yml --repo "$GH_REPO" --ref main \
+            -f version=2.0.0 -f release_run_id="$RELEASE_RUN_ID"
+          echo "Pinned NuGet publishing dispatched; inspect downstream run."
