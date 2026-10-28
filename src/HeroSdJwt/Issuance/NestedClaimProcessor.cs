@@ -47,7 +47,12 @@ internal class NestedClaimProcessor(IDisclosureGenerator disclosureGenerator, ID
         {
             if (!claims.TryGetValue(baseName, out var baseValue))
             {
-                continue; // Base claim doesn't exist
+                // Silently ignoring an explicitly requested path can cause an
+                // issuer to return a credential with a different disclosure
+                // policy than the caller intended.
+                throw new ArgumentException(
+                    $"Requested nested claim path '{paths[0].OriginalSpec}' has no base claim '{baseName}'.",
+                    nameof(nestedClaimPaths));
             }
 
             // Convert to JsonElement for processing
@@ -64,6 +69,12 @@ internal class NestedClaimProcessor(IDisclosureGenerator disclosureGenerator, ID
                     nameof(nestedClaimPaths));
             }
 
+            // Validate every requested path before generating disclosures.
+            // If an intermediate value is a scalar/array or a leaf is absent,
+            // the recursive builder would otherwise disclose its whole parent
+            // while silently failing to protect the requested leaf.
+            EnsureRequestedPathsExist(baseElement, paths);
+
             // Build modified object with _sd array
             var modifiedObject = BuildObjectWithSelectiveDisclosure(
                 baseElement,
@@ -75,6 +86,34 @@ internal class NestedClaimProcessor(IDisclosureGenerator disclosureGenerator, ID
         }
 
         return modifiedClaims;
+    }
+
+    private static void EnsureRequestedPathsExist(JsonElement baseElement, IReadOnlyList<ClaimPath> paths)
+    {
+        foreach (var path in paths)
+        {
+            var element = baseElement;
+            for (var index = 1; index < path.PathComponents.Length; index++)
+            {
+                if (element.ValueKind != JsonValueKind.Object)
+                {
+                    throw new ArgumentException(
+                        $"Cannot selectively disclose '{path.OriginalSpec}': " +
+                        $"'{path.PathComponents[index - 1]}' is not an object.",
+                        nameof(paths));
+                }
+
+                if (!element.TryGetProperty(path.PathComponents[index], out var next))
+                {
+                    throw new ArgumentException(
+                        $"Cannot selectively disclose '{path.OriginalSpec}': " +
+                        $"property '{path.PathComponents[index]}' does not exist.",
+                        nameof(paths));
+                }
+
+                element = next;
+            }
+        }
     }
 
     /// <summary>
