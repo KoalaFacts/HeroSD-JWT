@@ -132,6 +132,7 @@ public class SdJwtIssuer(
                         nameof(claims));
                 }
 
+                ValidateRegisteredClaimRepresentation(claim.Key, claim.Value);
                 ValidateNoUntrustedSdControlMembers(claim.Value, claim.Key);
             }
 
@@ -367,6 +368,65 @@ public class SdJwtIssuer(
         {
             throw;
         }
+    }
+
+    /// <summary>
+    /// Refuse registered JWT claims whose JSON shapes are invalid before
+    /// signing. Otherwise the issuer can mint a token that this library's
+    /// own verifier (and RFC 7519 conforming consumers) must reject.
+    /// </summary>
+    private static void ValidateRegisteredClaimRepresentation(string claimName, object? claimValue)
+    {
+        if (claimName is not ("iss" or "sub" or "jti" or "aud" or "nbf" or "iat"))
+        {
+            return;
+        }
+
+        // This public API accepts arbitrary CLR claim values. Validate their
+        // serialized JSON representation rather than their CLR types.
+#pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement at API boundary
+        var element = JsonSerializer.SerializeToElement(claimValue);
+#pragma warning restore IL2026, IL3050
+
+        var valid = claimName switch
+        {
+            "iss" or "sub" or "jti" => element.ValueKind == JsonValueKind.String,
+            "aud" => HasValidAudienceShape(element),
+            "nbf" or "iat" => NumericDateParser.TryParseUnixTicks(element, out _),
+            _ => true
+        };
+
+        if (!valid)
+        {
+            throw new ArgumentException(
+                $"The '{claimName}' claim has an invalid RFC 7519 JSON representation.",
+                "claims");
+        }
+    }
+
+    private static bool HasValidAudienceShape(JsonElement audience)
+    {
+        if (audience.ValueKind == JsonValueKind.String)
+        {
+            return true;
+        }
+
+        if (audience.ValueKind != JsonValueKind.Array)
+        {
+            return false;
+        }
+
+        // A single valid audience must not hide a malformed entry elsewhere
+        // in a signed array. Every value must be a string.
+        foreach (var value in audience.EnumerateArray())
+        {
+            if (value.ValueKind != JsonValueKind.String)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
