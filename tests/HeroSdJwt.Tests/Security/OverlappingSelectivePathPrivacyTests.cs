@@ -27,15 +27,15 @@ public class OverlappingSelectivePathPrivacyTests
                 contact = new { email = "secret@example.com", phone = "555-0100" }
             }
         };
-        var selectedPaths = parentFirst
-            ? new[] { "profile", "profile.contact.email" }
-            : new[] { "profile.contact.email", "profile" };
+        string[] selectedPaths = parentFirst
+            ? ["profile", "profile.contact.email"]
+            : ["profile.contact.email", "profile"];
 
         var sdJwt = TestHelpers.CreateIssuer().CreateSdJwt(
             claims, selectedPaths, signingKey, HashAlgorithm.Sha256);
 
         var parser = new DisclosureParser();
-        var parent = Assert.Single(sdJwt.Disclosures.Where(d => parser.GetClaimName(d) == "profile"));
+        var parent = Assert.Single(sdJwt.Disclosures, d => parser.GetClaimName(d) == "profile");
         var parentValue = parser.Parse(parent).ClaimValue;
 
         Assert.Equal("Alice", parentValue.GetProperty("display").GetString());
@@ -65,15 +65,15 @@ public class OverlappingSelectivePathPrivacyTests
             ["sub"] = "holder-1",
             ["roles"] = new[] { "viewer", "secret-admin", "editor" }
         };
-        var selectedPaths = parentFirst
-            ? new[] { "roles", "roles[1]" }
-            : new[] { "roles[1]", "roles" };
+        string[] selectedPaths = parentFirst
+            ? ["roles", "roles[1]"]
+            : ["roles[1]", "roles"];
 
         var sdJwt = TestHelpers.CreateIssuer().CreateSdJwt(
             claims, selectedPaths, signingKey, HashAlgorithm.Sha256);
 
         var parser = new DisclosureParser();
-        var parent = Assert.Single(sdJwt.Disclosures.Where(d => parser.GetClaimName(d) == "roles"));
+        var parent = Assert.Single(sdJwt.Disclosures, d => parser.GetClaimName(d) == "roles");
         var parentValue = parser.Parse(parent).ClaimValue;
 
         Assert.Equal("viewer", parentValue[0].GetString());
