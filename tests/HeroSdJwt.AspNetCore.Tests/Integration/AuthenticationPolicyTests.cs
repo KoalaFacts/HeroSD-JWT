@@ -119,6 +119,34 @@ public sealed class AuthenticationPolicyTests : IDisposable
     }
 
     [Theory]
+    [InlineData(NONCE, AUDIENCE, true)]
+    [InlineData("incorrect-challenge", AUDIENCE, false)]
+    [InlineData(NONCE, "https://different-verifier.example", false)]
+    public async Task PublicRegistration_SeparatesHolderVerifierAudienceFromIssuerClaims(
+        string nonce, string holderAudience, bool expectedSuccess)
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        // The issuer JWT intentionally has no aud claim. The KB-JWT aud is
+        // solely the verifier identity, independently required by its scheme.
+        var token = SdJwtIssuerBuilder.Create().WithClaim("iss", ISSUER)
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds())
+            .WithKeyBinding(holder.ExportSubjectPublicKeyInfo()).SignWithEcdsa(_key.ExportPkcs8PrivateKey())
+            .Build().ToCombinedFormat();
+        var digest = Base64UrlEncoder.Encode(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token)));
+        var binding = new KeyBindingGenerator().CreateKeyBindingJwt(
+            holder.ExportECPrivateKey(), digest, holderAudience, nonce);
+
+        using var provider = BuildProvider(new SdJwtVerificationOptions
+        {
+            ExpectedIssuer = ISSUER,
+            ExpectedKeyBindingAudience = AUDIENCE,
+            ExpectedNonce = NONCE,
+            RequireKeyBinding = true
+        });
+        Assert.Equal(expectedSuccess, (await Authenticate(provider, token + binding)).Succeeded);
+    }
+
+    [Theory]
     [InlineData(HashAlgorithm.Sha256, true)]
     [InlineData(HashAlgorithm.Sha384, false)]
     public async Task PublicRegistration_EnforcesExpectedHashAlgorithm(HashAlgorithm expected, bool succeeds)
