@@ -314,6 +314,61 @@ public class EcPublicKeyConverterTests
     #region FromJwkObject Tests
 
     [Fact]
+    public void FromJwkObject_WithDeserializedJsonDictionary_RoundTripsPublicKey()
+    {
+        // System.Text.Json materializes object-valued dictionary entries as JsonElement.
+        // The Dictionary overload must accept the same public key as the JsonElement overload.
+        var jwk = new Dictionary<string, object>(_validJwkDict)
+        {
+            ["kid"] = "holder-1",
+            ["use"] = "sig",
+            ["alg"] = "ES256",
+            ["key_ops"] = new[] { "verify" }
+        };
+
+        var decoded = JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(jwk));
+        Assert.NotNull(decoded);
+        Assert.All(decoded.Values, value => Assert.IsType<JsonElement>(value));
+
+        var publicKey = _converter.FromJwkObject(decoded);
+
+        using var original = ECDsa.Create();
+        original.ImportSubjectPublicKeyInfo(_validP256PublicKey, out _);
+        using var reconstructed = ECDsa.Create();
+        reconstructed.ImportSubjectPublicKeyInfo(publicKey, out _);
+        Assert.Equal(original.ExportParameters(false).Q.X, reconstructed.ExportParameters(false).Q.X);
+        Assert.Equal(original.ExportParameters(false).Q.Y, reconstructed.ExportParameters(false).Q.Y);
+    }
+
+    [Theory]
+    [InlineData("use", "enc")]
+    [InlineData("alg", "ES384")]
+    [InlineData("key_ops", "sign")]
+    public void FromJwkObject_WithDeserializedJsonDictionary_RejectsConflictingMetadata(
+        string member, string value)
+    {
+        var jwk = new Dictionary<string, object>(_validJwkDict);
+        jwk[member] = member == "key_ops" ? (object)new[] { value } : value;
+        var decoded = JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(jwk));
+        Assert.NotNull(decoded);
+
+        Assert.Throws<ArgumentException>(() => _converter.FromJwkObject(decoded));
+    }
+
+    [Fact]
+    public void FromJwkObject_WithDeserializedJsonDictionary_RejectsPrivateMaterial()
+    {
+        var jwk = new Dictionary<string, object>(_validJwkDict)
+        {
+            ["d"] = Base64UrlEncoder.Encode(new byte[32])
+        };
+        var decoded = JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(jwk));
+        Assert.NotNull(decoded);
+
+        Assert.Throws<ArgumentException>(() => _converter.FromJwkObject(decoded));
+    }
+
+    [Fact]
     public void FromJwkObject_WithDictionaryPrivateD_RejectsSecretKeyMaterial()
     {
         var jwkWithPrivateKey = new Dictionary<string, object>(_validJwkDict)
