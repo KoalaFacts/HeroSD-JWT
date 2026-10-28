@@ -65,4 +65,43 @@ public class MissingSelectiveClaimAdmissionTests
 
         Assert.Equal(2, credential.Disclosures.Count);
     }
+    [Theory]
+    [InlineData("email")]
+    [InlineData("roles[0]")]
+    public void Should_RejectCaseFoldedClaimPath_WhenCallerDictionaryIgnoresCase(string requestedPath)
+    {
+        var claims = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Email"] = "private@example.com",
+            ["Roles"] = new[] { "viewer", "editor" }
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            SdJwtIssuerBuilder.Create()
+                .WithClaims(claims)
+                .MakeSelective(requestedPath)
+                .SignWithHmac(KeyGenerator.Instance.GenerateHmacKey())
+                .Build());
+
+        Assert.Contains("does not exist", exception.Message);
+    }
+
+    [Fact]
+    public void Should_AllowExactCaseClaimPaths_WhenCallerDictionaryIgnoresCase()
+    {
+        var claims = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Email"] = "private@example.com",
+            ["Roles"] = new[] { "viewer", "editor" }
+        };
+
+        var credential = SdJwtIssuerBuilder.Create()
+            .WithClaims(claims)
+            .MakeSelective("Email", "Roles[0]")
+            .SignWithHmac(KeyGenerator.Instance.GenerateHmacKey())
+            .Build();
+
+        Assert.Equal(2, credential.Disclosures.Count);
+    }
+
 }
