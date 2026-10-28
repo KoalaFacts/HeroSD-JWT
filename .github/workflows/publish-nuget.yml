@@ -39,6 +39,8 @@ jobs:
       version: ${{ steps.version.outputs.VERSION }}
       tag: ${{ steps.version.outputs.TAG }}
       source_sha: ${{ steps.version.outputs.SOURCE_SHA }}
+      nupkg_sha256: ${{ steps.version.outputs.NUPKG_SHA256 }}
+      snupkg_sha256: ${{ steps.version.outputs.SNUPKG_SHA256 }}
     steps:
       - name: Download identity from the successful triggering workflow
         if: github.event_name == 'workflow_run'
@@ -59,9 +61,16 @@ jobs:
         run: |
           set -euo pipefail
           SOURCE_SHA=""
+          NUPKG_SHA256=""
+          SNUPKG_SHA256=""
           if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
             VERSION="$(cat release-identity/release-version.txt)"
             SOURCE_SHA="$(cat release-identity/release-source-sha.txt)"
+            NUPKG_SHA256="$(cat release-identity/release-nupkg-sha256.txt)"
+            SNUPKG_SHA256="$(cat release-identity/release-snupkg-sha256.txt)"
+            if [[ ! "$NUPKG_SHA256" =~ ^[0-9a-f]{64}$ || ! "$SNUPKG_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+              echo "Release identity artifact has invalid package SHA-256 digests"; exit 1
+            fi
             if [[ "$SOURCE_SHA" != "$TRIGGER_SHA" ]]; then
               echo "Release source SHA differs from trigger"; exit 1
             fi
@@ -76,6 +85,8 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
           echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
           echo "SOURCE_SHA=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "NUPKG_SHA256=$NUPKG_SHA256" >> "$GITHUB_OUTPUT"
+          echo "SNUPKG_SHA256=$SNUPKG_SHA256" >> "$GITHUB_OUTPUT"
           echo "Pinned $TAG to triggering Create Release run"
 
 
@@ -184,6 +195,16 @@ jobs:
               unzip -l "$pkg" | head -50 || true
             fi
           done
+
+      - name: Verify downloaded release asset hashes before attestation and publish
+        if: github.event_name == 'workflow_run'
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.get-version.outputs.version }}
+          NUPKG_SHA256: ${{ needs.get-version.outputs.nupkg_sha256 }}
+          SNUPKG_SHA256: ${{ needs.get-version.outputs.snupkg_sha256 }}
+        run: |
+          bash .github/scripts/verify_release_asset_hashes.sh "$RELEASE_VERSION" ./packages "$NUPKG_SHA256" "$SNUPKG_SHA256"
 
       - name: Generate package provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
