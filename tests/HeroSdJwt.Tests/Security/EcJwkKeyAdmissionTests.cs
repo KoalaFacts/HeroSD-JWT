@@ -132,5 +132,4 @@ public class EcJwkKeyAdmissionTests
         Assert.NotEmpty(converter.FromJwk(document.RootElement));
         Assert.NotEmpty(converter.FromJwkObject(jwk));
     }
-
 }
