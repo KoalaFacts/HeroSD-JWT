@@ -64,7 +64,7 @@ Or via NuGet Package Manager:
 Install-Package HeroSD-JWT
 ```
 
-**Release/version note:** The published `HeroSD-JWT` **1.1.7** verifier defaults to `ExpectedKeyType = Either`, while this repository's development source defaults to `Asymmetric`. Choose an explicit policy for your issuer: `Symmetric` for HS* secret keys or `Asymmetric` for RSA/ECDSA public keys. The examples and descriptions below follow development source, and may differ from the installed NuGet version.
+**Upgrade note (1.x → 2.x):** In `1.1.7`, verification defaults to `ExpectedKeyType = Either`; starting with `2.0.0`, it defaults to `Asymmetric`. Applications that verify HS* signatures **must explicitly configure** `VerificationKeyType.Symmetric`, or previously accepted presentations will fail. RSA/ECDSA verifiers normally use `Asymmetric`. See [the 1.1.7 → 2.0 migration guide](https://github.com/KoalaFacts/HeroSD-JWT/blob/main/docs/users/upgrading-to-2.0.md) for ASP.NET scheme and DI changes. Check the installed NuGet version: repository source may be newer than the latest published package.
 
 ## Quick Start
 
@@ -344,7 +344,7 @@ var sdJwt = issuer.CreateSdJwt(
 ```
 
 - ECDSA signatures (ES256/ES384/ES512) follow the JWS spec and are emitted in JOSE raw `R||S` format (not ASN.1 DER); verifiers accept the JOSE form.
-- **Development source** defaults to `ExpectedKeyType = Asymmetric`, while published **1.1.7** defaults to `Either`. Configure `Asymmetric` for RSA/ECDSA public keys or `Symmetric` for HS* secrets; use `Either` only when both are deliberately permitted.
+- **Version compatibility:** `ExpectedKeyType` defaults to `Either` in 1.1.7 and `Asymmetric` from 2.0.0 onward. Configure `Asymmetric` for RSA/ECDSA public keys or `Symmetric` for HS* secrets; use `Either` only when both are deliberately permitted. See the [migration guide](https://github.com/KoalaFacts/HeroSD-JWT/blob/main/docs/users/upgrading-to-2.0.md).
 - `SdJwtVerifierBuilder` exposes `.WithExpectedKeyType(...)` so you can wire the key-type policy when constructing verifiers via DI.
 
 **Array Element Example**:

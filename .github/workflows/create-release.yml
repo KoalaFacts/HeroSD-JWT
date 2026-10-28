@@ -161,7 +161,7 @@ jobs:
           echo "All SBOMs generated:"
           ls -lh release-sboms/
 
-      - name: Create release description footer
+      - name: Create release description footer and migration warning
         id: release-notes
         run: |
           VERSION="$RELEASE_VERSION"
@@ -191,7 +191,26 @@ jobs:
           - [Full Changelog](https://github.com/KoalaFacts/HeroSD-JWT/blob/main/CHANGELOG.md)
           EOF
           sed -i "s/__VERSION__/$VERSION/g" release-footer.md
-          echo "Release footer created with installation and package details"
+          # 2.x strengthens verification defaults. Put the migration warning
+          # directly in the published notes so HMAC consumers see it.
+          if [[ "$VERSION" == 2.* ]]; then
+            cat > release-migration.md <<'EOF'
+
+          ### Breaking upgrade changes from 1.x
+
+          **Action required for HS* verification:** `ExpectedKeyType` now defaults to
+          `Asymmetric` instead of `Either`. Explicitly set
+          `VerificationKeyType.Symmetric` for HMAC-issued credentials. Review
+          ASP.NET per-scheme verification policy, custom verifier factories, and DI
+          lifetime changes before deploying.
+
+          [1.1.7 → 2.0 upgrade guide](https://github.com/KoalaFacts/HeroSD-JWT/blob/v__VERSION__/docs/users/upgrading-to-2.0.md)
+          EOF
+            sed -i "s/__VERSION__/$VERSION/g" release-migration.md
+          else
+            : > release-migration.md
+          fi
+          echo "Release footer and version-specific migration notice prepared"
 
       - name: Generate release notes (auto + footer)
         run: |
@@ -204,8 +223,8 @@ jobs:
             -f target_commitish="${GITHUB_SHA}" \
             --jq .body > auto-notes.md
 
-          # Combine auto-notes with footer
-          cat auto-notes.md release-footer.md > release-notes.md
+          # Put breaking migration guidance before the often-long generated PR list.
+          cat release-migration.md auto-notes.md release-footer.md > release-notes.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
