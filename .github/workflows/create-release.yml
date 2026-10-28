@@ -223,8 +223,8 @@ jobs:
             -f target_commitish="${GITHUB_SHA}" \
             --jq .body > auto-notes.md
 
-          # Combine auto-notes with footer
-          cat auto-notes.md release-migration.md release-footer.md > release-notes.md
+          # Put breaking migration guidance before the often-long generated PR list.
+          cat release-migration.md auto-notes.md release-footer.md > release-notes.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
