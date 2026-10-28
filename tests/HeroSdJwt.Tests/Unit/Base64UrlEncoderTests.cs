@@ -227,6 +227,36 @@ public class Base64UrlEncoderTests
     }
 
     [Fact]
+    public void Encode_WithOversizedAsciiString_DoesNotAllocateUtf8Buffer()
+    {
+        // A rejected untrusted input must not allocate an 11-MiB UTF-8
+        // buffer merely to discover that it exceeds the 10-MiB limit.
+        var text = new string('A', 11 * 1024 * 1024);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => Base64UrlEncoder.Encode(text));
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated < 64 * 1024,
+            $"Rejecting an oversized ASCII input allocated {allocated} bytes.");
+    }
+
+    [Fact]
+    public void Encode_WithOversizedUtf8String_DoesNotAllocateUtf8Buffer()
+    {
+        // A shorter UTF-16 string can still expand past the byte limit.
+        // The encoder must count UTF-8 bytes before allocating that buffer.
+        var text = new string('\u6F22', 4 * 1024 * 1024);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => Base64UrlEncoder.Encode(text));
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated < 64 * 1024,
+            $"Rejecting an oversized UTF-8 input allocated {allocated} bytes.");
+    }
+
+    [Fact]
     public void EncodeAndDecode_WithBinaryData_PreservesBytes()
     {
         // Arrange
