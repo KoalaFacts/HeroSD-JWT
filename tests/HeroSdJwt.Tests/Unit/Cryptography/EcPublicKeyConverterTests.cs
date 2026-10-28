@@ -347,8 +347,10 @@ public class EcPublicKeyConverterTests
     public void FromJwkObject_WithDeserializedJsonDictionary_RejectsConflictingMetadata(
         string member, string value)
     {
-        var jwk = new Dictionary<string, object>(_validJwkDict);
-        jwk[member] = member == "key_ops" ? (object)new[] { value } : value;
+        var jwk = new Dictionary<string, object>(_validJwkDict)
+        {
+            [member] = member == "key_ops" ? new[] { value } : value
+        };
         var decoded = JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(jwk));
         Assert.NotNull(decoded);
 
