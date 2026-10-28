@@ -59,6 +59,22 @@ public class JwtSigner : IJwtSigner
             _ => throw new ArgumentException($"Unsupported algorithm: {algorithm}", nameof(algorithm))
         };
 
+        // RFC 7518 Section 3.2: HMAC keys must be at least as long as
+        // their SHA-2 output. Reject weak secrets before creating a signed JWT.
+        var minimumHmacKeyLength = algorithm switch
+        {
+            SignatureAlgorithm.HS256 => 32,
+            SignatureAlgorithm.HS384 => 48,
+            SignatureAlgorithm.HS512 => 64,
+            _ => 0
+        };
+        if (signingKey.Length < minimumHmacKeyLength)
+        {
+            throw new ArgumentException(
+                $"{algName} requires an HMAC key of at least {minimumHmacKeyLength} bytes (RFC 7518 Section 3.2).",
+                nameof(signingKey));
+        }
+
         var header = new Dictionary<string, object>
         {
             { "alg", algName },
