@@ -1096,7 +1096,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                         claimsDict[property.Name] = property.Value;
                     }
 
-                    await _jtiValidator.ValidateAsync(claimsDict, cancellationToken).ConfigureAwait(false);
+                    await _jtiValidator.ValidateAsync(claimsDict, _options.ClockSkew, cancellationToken).ConfigureAwait(false);
                 }
                 catch (ReplayAttackException)
                 {

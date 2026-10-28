@@ -11,6 +11,46 @@ public class ReplayAdmissionRegressionTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task Should_KeepAcceptedTokenReplayProtectedThroughVerifierClockSkew(bool asynchronous)
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var replayOptions = new ReplayProtectionOptions
+        {
+            Enabled = true,
+            ClockSkewTolerance = TimeSpan.FromSeconds(30)
+        };
+        using var cache = new InMemoryJtiCache(replayOptions);
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .WithReplayProtection(new JtiValidator(cache, replayOptions))
+            .Build();
+        var claims = new Dictionary<string, object>
+        {
+            ["iss"] = "issuer",
+            ["jti"] = "within-verifier-skew",
+            ["exp"] = DateTimeOffset.UtcNow.AddSeconds(-60).ToUnixTimeSeconds()
+        };
+        var presentation = new JwtSigner().CreateJwt(claims, key, SignatureAlgorithm.HS256) + "~";
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        // The default claim policy accepts exp up to five minutes ago.
+        // Replay retention must not end after the separate 30-second tolerance.
+        var first = asynchronous
+            ? await verifier.TryVerifyPresentationAsync(presentation, key, cancellationToken: cancellationToken)
+            : verifier.TryVerifyPresentation(presentation, key);
+        Assert.True(first.IsValid, first.ErrorDetails);
+        Assert.True(await cache.ExistsAsync("issuer", "within-verifier-skew", cancellationToken));
+
+        var second = asynchronous
+            ? await verifier.TryVerifyPresentationAsync(presentation, key, cancellationToken: cancellationToken)
+            : verifier.TryVerifyPresentation(presentation, key);
+        Assert.False(second.IsValid);
+        Assert.Contains(ErrorCode.ReplayAttack, second.Errors);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task Should_NotConsumeJti_WhenSignatureIsInvalid(bool asynchronous)
     {
         var key = RandomNumberGenerator.GetBytes(32);
