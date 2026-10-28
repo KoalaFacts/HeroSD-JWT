@@ -94,6 +94,13 @@ public class SignatureValidator : ISignatureValidator
     /// </summary>
     private static bool VerifyHmacSha256(byte[] data, byte[] signature, byte[] key)
     {
+        // RFC 7518 Section 3.2 forbids authenticating HMAC JWTs with
+        // keys shorter than the algorithm's digest, even when the MAC matches.
+        if (key.Length < 32)
+        {
+            return false;
+        }
+
         using var hmac = new HMACSHA256(key);
         var computedSignature = hmac.ComputeHash(data);
 
@@ -107,6 +114,13 @@ public class SignatureValidator : ISignatureValidator
     /// </summary>
     private static bool VerifyHmacSha384(byte[] data, byte[] signature, byte[] key)
     {
+        // RFC 7518 Section 3.2 forbids authenticating HMAC JWTs with
+        // keys shorter than the algorithm's digest, even when the MAC matches.
+        if (key.Length < 48)
+        {
+            return false;
+        }
+
         using var hmac = new HMACSHA384(key);
         var computedSignature = hmac.ComputeHash(data);
 
@@ -119,6 +133,13 @@ public class SignatureValidator : ISignatureValidator
     /// </summary>
     private static bool VerifyHmacSha512(byte[] data, byte[] signature, byte[] key)
     {
+        // RFC 7518 Section 3.2 forbids authenticating HMAC JWTs with
+        // keys shorter than the algorithm's digest, even when the MAC matches.
+        if (key.Length < 64)
+        {
+            return false;
+        }
+
         using var hmac = new HMACSHA512(key);
         var computedSignature = hmac.ComputeHash(data);
 
