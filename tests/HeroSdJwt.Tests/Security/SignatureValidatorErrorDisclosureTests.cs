@@ -40,7 +40,10 @@ public sealed class SignatureValidatorErrorDisclosureTests
             new KeyBindingValidator(),
             new ClaimValidator());
 
-        byte[]? ResolveKey(string keyId) => keyId == "signature-test-key" ? _signingKey : null;
+        static byte[]? ResolveKey(string keyId)
+        {
+            return keyId == "signature-test-key" ? _signingKey : null;
+        }
 
         var syncResult = useResolver
             ? verifier.TryVerifyPresentation(presentation, ResolveKey)

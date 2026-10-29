@@ -767,10 +767,12 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             {
                 throw; // Re-throw unsupported algorithm exceptions
             }
-            catch (Exception ex)
+            catch (Exception)
             {
+                // Application-supplied signature validators may wrap KMS or database errors.
+                // Do not expose backend diagnostics in public verification results.
                 errors.Add(ErrorCode.InvalidSignature);
-                errorDetails.Add($"Signature validation failed: {ex.Message}");
+                errorDetails.Add("Signature validation failed");
             }
 
             if (!signatureValid)
