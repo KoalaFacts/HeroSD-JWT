@@ -1,5 +1,6 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Models;
+using System.Text.Json;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 using SignatureAlgorithm = HeroSdJwt.Primitives.SignatureAlgorithm;
 
@@ -39,6 +40,9 @@ public class SdJwtIssuerBuilder
     private int _decoyDigestCount = 0;
     private string? _keyId;
 
+    // JsonElement values may reference a JsonDocument owned and disposed by the caller.
+    private static object RetainJsonElement(object value) => value is JsonElement element ? element.Clone() : value;
+
     /// <summary>
     /// Creates a new builder instance.
     /// </summary>
@@ -55,9 +59,14 @@ public class SdJwtIssuerBuilder
     {
         ArgumentNullException.ThrowIfNull(claims);
 
-        // Keep caller-owned top-level entries separate from later builder edits
-        // and from caller changes before Build() signs the credential.
-        _claims = new Dictionary<string, object>(claims, StringComparer.Ordinal);
+        // Own top-level entries and detach JsonElement values from caller-owned documents.
+        var ownedClaims = new Dictionary<string, object>(claims.Count, StringComparer.Ordinal);
+        foreach (var (name, value) in claims)
+        {
+            ownedClaims.Add(name, RetainJsonElement(value));
+        }
+
+        _claims = ownedClaims;
         return this;
     }
 
@@ -69,7 +78,7 @@ public class SdJwtIssuerBuilder
     public SdJwtIssuerBuilder WithClaim(string name, object value)
     {
         _claims ??= [];
-        _claims[name] = value;
+        _claims[name] = RetainJsonElement(value);
         return this;
     }
 
