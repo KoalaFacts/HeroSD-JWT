@@ -1,4 +1,5 @@
 using HeroSdJwt.Exceptions;
+using HeroSdJwt.Extensions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
@@ -17,15 +18,21 @@ public sealed class RevocationStoreErrorDisclosureTests
     private static readonly byte[] _signingKey = [.. Enumerable.Range(1, 32).Select(i => (byte)i)];
 
     [Theory]
-    [InlineData("jti", false)]
-    [InlineData("jti", true)]
-    [InlineData("key", false)]
-    [InlineData("key", true)]
-    [InlineData("user", false)]
-    [InlineData("user", true)]
-    public async Task Should_NotExposeBackendDiagnostics_WhenFailClosed(string failAt, bool resolveKey)
+    [InlineData("jti", false, false)]
+    [InlineData("jti", false, true)]
+    [InlineData("jti", true, false)]
+    [InlineData("jti", true, true)]
+    [InlineData("key", false, false)]
+    [InlineData("key", false, true)]
+    [InlineData("key", true, false)]
+    [InlineData("key", true, true)]
+    [InlineData("user", false, false)]
+    [InlineData("user", false, true)]
+    [InlineData("user", true, false)]
+    [InlineData("user", true, true)]
+    public async Task Should_NotExposeBackendDiagnostics_WhenFailClosed(string failAt, bool resolveKey, bool domainException)
     {
-        var store = new FaultingRevocationStore(failAt);
+        var store = new FaultingRevocationStore(failAt, domainException);
         var verifier = TestHelpers.CreateVerifierWithRevocation(
             new SdJwtVerificationOptions
             {
@@ -86,10 +93,12 @@ public sealed class RevocationStoreErrorDisclosureTests
 
     private static byte[]? ResolveKey(string keyId) => keyId == KEY_ID ? _signingKey : null;
 
-    private sealed class FaultingRevocationStore(string failAt) : IRevocationStore
+    private sealed class FaultingRevocationStore(string failAt, bool domainException) : IRevocationStore
     {
-        private static Task<bool> FailedLookup() =>
-            Task.FromException<bool>(new IOException(BACKEND_SECRET));
+        private Task<bool> FailedLookup() =>
+            Task.FromException<bool>(domainException
+                ? new SdJwtException(BACKEND_SECRET, ErrorCode.InvalidInput)
+                : new IOException(BACKEND_SECRET));
 
         public Task<bool> IsJtiRevokedAsync(
             string jti, CancellationToken cancellationToken = default) =>
