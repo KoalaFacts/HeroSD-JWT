@@ -28,7 +28,20 @@ public class JtiValidator
     internal JtiValidator(IJtiCache cache, ReplayProtectionOptions options, TimeProvider timeProvider)
     {
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
+        // The replay policy controls whether tokens are admitted at all and
+        // how long replay markers survive. Keep the validated policy independent
+        // from mutable options retained by the caller.
+        _options = new ReplayProtectionOptions
+        {
+            Enabled = options.Enabled,
+            FailureMode = options.FailureMode,
+            MaxCacheEntries = options.MaxCacheEntries,
+            DefaultTtl = options.DefaultTtl,
+            MaximumTtl = options.MaximumTtl,
+            ClockSkewTolerance = options.ClockSkewTolerance,
+            RequireJtiClaim = options.RequireJtiClaim
+        };
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
