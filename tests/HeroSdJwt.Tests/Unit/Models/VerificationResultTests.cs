@@ -565,6 +565,26 @@ public class VerificationResultTests
     }
 
     [Fact]
+    public void Constructor_WithDocumentBackedClaims_PreservesValuesAfterSourceDisposal()
+    {
+        VerificationResult result;
+        using (var document = JsonDocument.Parse("""{"role":"user","profile":{"verified":true},"history":[1,2]}"""))
+        {
+            result = new VerificationResult(new Dictionary<string, JsonElement>
+            {
+                ["role"] = document.RootElement.GetProperty("role"),
+                ["profile"] = document.RootElement.GetProperty("profile"),
+                ["history"] = document.RootElement.GetProperty("history")
+            });
+        }
+
+        // A successful verification result must not borrow a disposable caller document.
+        Assert.Equal("user", result.DisclosedClaims["role"].GetString());
+        Assert.True(result.DisclosedClaims["profile"].GetProperty("verified").GetBoolean());
+        Assert.Equal(2, result.DisclosedClaims["history"].GetArrayLength());
+    }
+
+    [Fact]
     public void Constructor_WithErrorList_DoesNotModifyOriginalList()
     {
         // Arrange

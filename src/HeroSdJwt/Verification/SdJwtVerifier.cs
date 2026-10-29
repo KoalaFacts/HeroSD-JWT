@@ -1221,7 +1221,8 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             {
                 var disclosure = disclosures[disclosureIndex];
                 var json = Base64UrlEncoder.DecodeString(disclosure);
-                var array = JsonDocument.Parse(json).RootElement;
+                using var document = JsonDocument.Parse(json);
+                var array = document.RootElement;
 
                 if (array.ValueKind != JsonValueKind.Array)
                 {
@@ -1242,14 +1243,16 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
 
                     if (!isIntermediateObject)
                     {
-                        claims[fullPath] = claimValue;
+                        // Retain only the value, not the entire parsed Disclosure document.
+                        claims[fullPath] = claimValue.Clone();
                     }
                 }
                 else if (arrayLength == 2)
                 {
                     // Array element disclosure: [salt, claim_value]
                     var claimValue = array[1];
-                    claims[fullPath] = claimValue;
+                    // Retain only the value, not the entire parsed Disclosure document.
+                        claims[fullPath] = claimValue.Clone();
                 }
             }
         }

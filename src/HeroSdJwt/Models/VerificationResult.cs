@@ -47,7 +47,9 @@ public sealed class VerificationResult
         var verifiedClaims = new Dictionary<string, JsonElement>(disclosedClaims.Count, StringComparer.Ordinal);
         foreach (var (name, value) in disclosedClaims)
         {
-            verifiedClaims.Add(name, value);
+            // Clone borrowed JsonElement values so disposing the source document
+            // cannot invalidate a previously successful verification result.
+            verifiedClaims.Add(name, value.Clone());
         }
 
         IsValid = true;
