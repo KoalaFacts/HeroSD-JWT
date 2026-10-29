@@ -65,7 +65,18 @@ public sealed class SdJwt
         Disclosures = new ReadOnlyCollection<string>([.. disclosures]);
         HashAlgorithm = hashAlgorithm;
         KeyBindingJwt = keyBindingJwt;
-        ClaimPathMapping = claimPathMapping;
+        if (claimPathMapping is not null)
+        {
+            // Keep the cached selection map independent from caller-owned storage.
+            // IReadOnlyDictionary does not make an underlying Dictionary immutable.
+            var ownedMapping = new Dictionary<string, int>(claimPathMapping.Count, StringComparer.Ordinal);
+            foreach (var (path, index) in claimPathMapping)
+            {
+                ownedMapping.Add(path, index);
+            }
+
+            ClaimPathMapping = new ReadOnlyDictionary<string, int>(ownedMapping);
+        }
     }
 
     /// <summary>
