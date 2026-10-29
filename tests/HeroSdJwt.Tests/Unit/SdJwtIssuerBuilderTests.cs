@@ -1,5 +1,7 @@
 using HeroSdJwt.Cryptography;
+using HeroSdJwt.Encoding;
 using HeroSdJwt.Issuance;
+using System.Text.Json;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Unit;
@@ -34,6 +36,50 @@ public class SdJwtIssuerBuilderTests
         Assert.NotNull(sdJwt);
         Assert.NotEmpty(sdJwt.Jwt);
         _ = Assert.Single(sdJwt.Disclosures);
+    }
+
+    [Fact]
+    public void WithClaims_ThenWithClaim_DoesNotModifyCallerDictionary()
+    {
+        var claims = new Dictionary<string, object>
+        {
+            ["sub"] = "original"
+        };
+
+        _ = SdJwtIssuerBuilder.Create()
+            .WithClaims(claims)
+            .WithClaim("role", "user");
+
+        // The builder must not silently add claims to its caller's dictionary.
+        Assert.False(claims.ContainsKey("role"));
+        Assert.Equal("original", claims["sub"]);
+    }
+
+    [Fact]
+    public void WithClaims_CallerMutationBeforeBuild_DoesNotChangeSignedDisclosure()
+    {
+        var key = _keyGenerator.GenerateHmacKey();
+        var claims = new Dictionary<string, object>
+        {
+            ["sub"] = "original",
+            ["email"] = "first@example.com"
+        };
+
+        var builder = SdJwtIssuerBuilder.Create()
+            .WithClaims(claims)
+            .MakeSelective("email")
+            .SignWithHmac(key);
+
+        // A top-level caller edit after configuration must not silently
+        // change what the builder issues and signs.
+        claims["email"] = "second@example.com";
+
+        var sdJwt = builder.Build();
+        var encodedDisclosure = Assert.Single(sdJwt.Disclosures);
+        using var document = JsonDocument.Parse(Base64UrlEncoder.DecodeString(encodedDisclosure));
+
+        Assert.Equal("email", document.RootElement[1].GetString());
+        Assert.Equal("first@example.com", document.RootElement[2].GetString());
     }
 
     [Fact]

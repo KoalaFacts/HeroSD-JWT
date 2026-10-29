@@ -53,7 +53,11 @@ public class SdJwtIssuerBuilder
     /// <param name="claims">The claims to include in the JWT.</param>
     public SdJwtIssuerBuilder WithClaims(Dictionary<string, object> claims)
     {
-        _claims = claims ?? throw new ArgumentNullException(nameof(claims));
+        ArgumentNullException.ThrowIfNull(claims);
+
+        // Keep caller-owned top-level entries separate from later builder edits
+        // and from caller changes before Build() signs the credential.
+        _claims = new Dictionary<string, object>(claims, StringComparer.Ordinal);
         return this;
     }
 
