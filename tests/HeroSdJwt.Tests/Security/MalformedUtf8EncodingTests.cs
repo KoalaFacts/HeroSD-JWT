@@ -39,6 +39,37 @@ public class MalformedUtf8EncodingTests
     }
 
     [Fact]
+    public void Should_RejectUnpairedUtf16Surrogates_WhenEncodingBase64UrlText()
+    {
+        string[] invalidInputs =
+        [
+            new string('\uD800', 1),
+            new string('\uDC00', 1),
+            "prefix" + new string('\uD800', 1) + "suffix",
+            new string('\uD800', 1) + "A" + new string('\uDC00', 1)
+        ];
+
+        foreach (var input in invalidInputs)
+        {
+            // Silent UTF-8 replacement changes the caller's text. Encoding
+            // should reject malformed UTF-16 just as decoding rejects malformed UTF-8.
+            var exception = Assert.Throws<SdJwtException>(() => Base64UrlEncoder.Encode(input));
+            Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
+        }
+    }
+
+    [Fact]
+    public void Should_RejectUnpairedUtf16Surrogate_WhenTextUsesLargeInputPreflight()
+    {
+        // Exercise the GetByteCount preflight branch without allocating a
+        // large intermediate UTF-8 byte buffer.
+        var input = new string('a', (10 * 1024 * 1024 / 3) + 1) + new string('\uD800', 1);
+
+        var exception = Assert.Throws<SdJwtException>(() => Base64UrlEncoder.Encode(input));
+        Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
+    }
+
+    [Fact]
     public void Should_RejectMalformedUtf8InObjectDisclosure()
     {
         var malformedJson = InsertInvalidUtf8(/*lang=json,strict*/ "[\"salt\",\"name\",\"!\"]");

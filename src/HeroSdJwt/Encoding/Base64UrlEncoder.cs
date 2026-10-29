@@ -53,14 +53,24 @@ public static class Base64UrlEncoder
         // Each UTF-16 code unit can produce at most three UTF-8 bytes.
         // Common small inputs need no extra scan; large inputs must be
         // checked for multi-byte expansion before allocating the buffer.
-        if (text.Length > MAX_INPUT_LENGTH / 3)
+        try
         {
-            var byteCount = System.Text.Encoding.UTF8.GetByteCount(text);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(byteCount, MAX_INPUT_LENGTH, nameof(text));
-        }
+            if (text.Length > MAX_INPUT_LENGTH / 3)
+            {
+                var byteCount = _strictUtf8.GetByteCount(text);
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(byteCount, MAX_INPUT_LENGTH, nameof(text));
+            }
 
-        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(text);
-        return Encode(bytes);
+            byte[] bytes = _strictUtf8.GetBytes(text);
+            return Encode(bytes);
+        }
+        catch (System.Text.EncoderFallbackException ex)
+        {
+            throw new SdJwtException(
+                "Invalid UTF-16 text in base64url input",
+                ErrorCode.InvalidInput,
+                ex);
+        }
     }
 
     /// <summary>
