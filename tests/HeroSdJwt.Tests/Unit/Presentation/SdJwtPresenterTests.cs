@@ -99,7 +99,7 @@ public class SdJwtPresenterTests
             _presenter.CreatePresentation(_testSdJwt, ["nonexistent"]));
 
         Assert.Contains("Claim path 'nonexistent' not found", exception.Message);
-        Assert.Contains("Available paths:", exception.Message);
+        Assert.DoesNotContain("Available paths:", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
