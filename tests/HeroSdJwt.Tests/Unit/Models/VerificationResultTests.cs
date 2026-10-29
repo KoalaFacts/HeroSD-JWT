@@ -526,6 +526,45 @@ public class VerificationResultTests
     #region Collection Isolation Tests
 
     [Fact]
+    public void Constructor_WithClaims_DoesNotAllowInputMutationToChangeVerifiedClaims()
+    {
+        using var original = JsonDocument.Parse("\"user\"");
+        using var replacement = JsonDocument.Parse("\"admin\"");
+        using var added = JsonDocument.Parse("true");
+        var claims = new Dictionary<string, JsonElement>
+        {
+            ["role"] = original.RootElement.Clone()
+        };
+        var result = new VerificationResult(claims);
+
+        // Once a result has been marked valid, changing the caller's
+        // dictionary must not change which claims were verified.
+        claims["role"] = replacement.RootElement.Clone();
+        claims["isAdmin"] = added.RootElement.Clone();
+
+        Assert.Equal("user", result.DisclosedClaims["role"].GetString());
+        Assert.False(result.DisclosedClaims.ContainsKey("isAdmin"));
+    }
+
+    [Fact]
+    public void Constructor_WithClaims_DoesNotExposeWritableVerifiedClaimStorage()
+    {
+        using var original = JsonDocument.Parse("\"user\"");
+        using var replacement = JsonDocument.Parse("\"admin\"");
+        var claims = new Dictionary<string, JsonElement>
+        {
+            ["role"] = original.RootElement.Clone()
+        };
+        var result = new VerificationResult(claims);
+
+        // IReadOnlyDictionary alone does not prevent casting a Dictionary
+        // back to a writable IDictionary and forging a successful result.
+        var exposed = Assert.IsAssignableFrom<IDictionary<string, JsonElement>>(result.DisclosedClaims);
+        Assert.True(exposed.IsReadOnly);
+        _ = Assert.Throws<NotSupportedException>(() => exposed["role"] = replacement.RootElement.Clone());
+    }
+
+    [Fact]
     public void Constructor_WithErrorList_DoesNotModifyOriginalList()
     {
         // Arrange
