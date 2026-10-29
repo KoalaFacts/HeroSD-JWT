@@ -833,26 +833,41 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
 
             var payloadAudiences = ExtractAudiences(payload);
 
-            // Step 3: Validate temporal claims (exp, nbf, iat)
-            bool claimsValid = _claimValidator.ValidateTemporalClaims(payload, _options);
-            if (!claimsValid)
+            // Step 3: Validate temporal claims (exp, nbf, iat), issuer and audience.
+            // Injected claim validators may call remote policy services. Treat
+            // failures as invalid credentials without exposing backend diagnostics.
+            try
             {
-                errors.Add(ErrorCode.TokenExpired);
-                errorDetails.Add("Temporal claims validation failed");
-            }
+                bool claimsValid = _claimValidator.ValidateTemporalClaims(payload, _options);
+                if (!claimsValid)
+                {
+                    errors.Add(ErrorCode.TokenExpired);
+                    errorDetails.Add("Temporal claims validation failed");
+                }
 
-            // Validate issuer if configured
-            if (!_claimValidator.ValidateIssuer(payload, _options.ExpectedIssuer))
+                // Validate issuer if configured
+                if (!_claimValidator.ValidateIssuer(payload, _options.ExpectedIssuer))
+                {
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add("Issuer validation failed");
+                }
+
+                // Validate audience if configured
+                if (!_claimValidator.ValidateAudience(payload, expectedAudiences))
+                {
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add("Audience validation failed");
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Preserve cancellation for throwing verification APIs.
+                throw;
+            }
+            catch (Exception)
             {
                 errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add("Issuer validation failed");
-            }
-
-            // Validate audience if configured
-            if (!_claimValidator.ValidateAudience(payload, expectedAudiences))
-            {
-                errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add("Audience validation failed");
+                return new VerificationResult(errors, "Claim validation failed");
             }
 
             // Step 4: Validate disclosure digests

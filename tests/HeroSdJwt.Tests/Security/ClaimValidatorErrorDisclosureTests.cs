@@ -38,8 +38,10 @@ public sealed class ClaimValidatorErrorDisclosureTests
             .WithClaimValidator(new FailingClaimValidator(failingStage, domainException))
             .Build();
 
-        static byte[]? ResolveKey(string keyId) =>
-            keyId == "claim-validator-test-key" ? _signingKey : null;
+        static byte[]? ResolveKey(string keyId)
+        {
+            return keyId == "claim-validator-test-key" ? _signingKey : null;
+        }
 
         foreach (var useResolver in new[] { false, true })
         {
@@ -63,29 +65,19 @@ public sealed class ClaimValidatorErrorDisclosureTests
 
             var syncException = Assert.Throws<SdJwtException>(() =>
             {
-                if (useResolver)
-                {
-                    _ = verifier.VerifyPresentation(presentation, ResolveKey);
-                }
-                else
-                {
-                    _ = verifier.VerifyPresentation(presentation, _signingKey);
-                }
+                _ = useResolver
+                    ? verifier.VerifyPresentation(presentation, ResolveKey)
+                    : verifier.VerifyPresentation(presentation, _signingKey);
             });
             Assert.DoesNotContain(BACKEND_DIAGNOSTIC, syncException.ToString(), StringComparison.Ordinal);
 
             var asyncException = await Assert.ThrowsAsync<SdJwtException>(async () =>
             {
-                if (useResolver)
-                {
-                    _ = await verifier.VerifyPresentationAsync(
-                        presentation, ResolveKey, cancellationToken: TestContext.Current.CancellationToken);
-                }
-                else
-                {
-                    _ = await verifier.VerifyPresentationAsync(
+                _ = useResolver
+                    ? await verifier.VerifyPresentationAsync(
+                        presentation, ResolveKey, cancellationToken: TestContext.Current.CancellationToken)
+                    : await verifier.VerifyPresentationAsync(
                         presentation, _signingKey, cancellationToken: TestContext.Current.CancellationToken);
-                }
             });
             Assert.DoesNotContain(BACKEND_DIAGNOSTIC, asyncException.ToString(), StringComparison.Ordinal);
         }
