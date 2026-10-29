@@ -86,6 +86,15 @@ public class SdJwtIssuer(
 
         var selectiveClaimsList = selectivelyDisclosableClaims?.ToList() ?? [];
 
+        // Repeating the same selective path must not create multiple salted
+        // Disclosures: that would make claim-path mapping ambiguous at issuance.
+        // Keep the first occurrence and preserve ordinal (case-sensitive) paths.
+        if (selectiveClaimsList.Count > 1)
+        {
+            var seenPaths = new HashSet<string>(StringComparer.Ordinal);
+            selectiveClaimsList.RemoveAll(path => !seenPaths.Add(path));
+        }
+
         try
         {
             // Parse claim specifications to separate simple claims from array elements
