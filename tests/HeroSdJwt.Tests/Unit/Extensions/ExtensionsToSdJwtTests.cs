@@ -99,7 +99,7 @@ public class ExtensionsToSdJwtTests
             _testSdJwt.ToPresentation("nonexistent"));
 
         Assert.Contains("Claim path 'nonexistent' not found", exception.Message);
-        Assert.Contains("Available paths: email, name, age, address", exception.Message);
+        Assert.DoesNotContain("Available paths:", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
