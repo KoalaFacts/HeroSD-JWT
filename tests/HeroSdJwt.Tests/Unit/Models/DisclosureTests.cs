@@ -570,10 +570,9 @@ public class DisclosureTests
         var result = disclosure.ToString();
 
         // Assert
-        Assert.Contains("Disclosure", result);
-        Assert.Contains("email", result);
-        Assert.Contains("ClaimName", result);
-        Assert.DoesNotContain("ArrayElement", result);
+        Assert.Equal("Disclosure(ObjectProperty)", result);
+        Assert.DoesNotContain("email", result);
+        Assert.DoesNotContain("verylongsalt", result);
     }
 
     [Fact]
@@ -588,13 +587,12 @@ public class DisclosureTests
         var result = disclosure.ToString();
 
         // Assert
-        Assert.Contains("Disclosure", result);
-        Assert.Contains("ArrayElement", result);
-        Assert.DoesNotContain("ClaimName", result);
+        Assert.Equal("Disclosure(ArrayElement)", result);
+        Assert.DoesNotContain("arraysalt", result);
     }
 
     [Fact]
-    public void ToString_TruncatesSalt()
+    public void ToString_RedactsSaltEntirely()
     {
         // Arrange
         var longSalt = "this_is_a_very_long_salt_value_that_should_be_truncated";
@@ -605,7 +603,8 @@ public class DisclosureTests
         var result = disclosure.ToString();
 
         // Assert
-        Assert.Contains("...", result);
+        Assert.Equal("Disclosure(ObjectProperty)", result);
+        Assert.DoesNotContain("this_is_a", result);
         Assert.DoesNotContain("truncated", result);
     }
 

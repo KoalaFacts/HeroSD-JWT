@@ -157,8 +157,15 @@ public readonly struct Disclosure : IEquatable<Disclosure>
     /// <inheritdoc/>
     public override string ToString()
     {
+        // A diagnostic string must not leak the random salt or private claim
+        // name when application logging formats a Disclosure implicitly.
+        if (Salt is null)
+        {
+            return "Disclosure(Uninitialized)";
+        }
+
         return IsArrayElement
-            ? $"Disclosure(Salt={Salt[..Math.Min(8, Salt.Length)]}..., ArrayElement)"
-            : $"Disclosure(Salt={Salt[..Math.Min(8, Salt.Length)]}..., ClaimName={ClaimName})";
+            ? "Disclosure(ArrayElement)"
+            : "Disclosure(ObjectProperty)";
     }
 }

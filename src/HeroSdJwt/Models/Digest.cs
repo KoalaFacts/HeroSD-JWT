@@ -136,6 +136,13 @@ public readonly struct Digest : IEquatable<Digest>
     /// <inheritdoc/>
     public override string ToString()
     {
+        // A default-initialized value type has no encoded digest. It should
+        // remain safe to inspect in debuggers and structured logging.
+        if (Value is null)
+        {
+            return $"Digest(Algorithm={Algorithm}, Value=<unset>)";
+        }
+
         return $"Digest(Algorithm={Algorithm}, Value={Value[..Math.Min(16, Value.Length)]}...)";
     }
 }
