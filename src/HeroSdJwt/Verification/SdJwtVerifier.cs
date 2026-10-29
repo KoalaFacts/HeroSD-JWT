@@ -529,29 +529,29 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                         ErrorCode.KeyResolverMissing);
                 }
 
+                byte[]? resolvedKey;
                 try
                 {
-                    verificationKey = keyResolver(resolvedKeyId)
-                        ?? throw new SdJwtException(
-                            $"Key resolver could not find key for kid '{resolvedKeyId}'",
-                            ErrorCode.KeyIdNotFound);
-                }
-                catch (SdJwtException)
-                {
-                    throw;
+                    resolvedKey = keyResolver(resolvedKeyId);
                 }
                 catch (OperationCanceledException)
                 {
                     // A resolver timeout or caller cancellation is not a failed key lookup.
                     throw;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
+                    // Resolver errors can contain database or KMS secrets. Neither
+                    // the public message nor an inner exception may expose them.
                     throw new SdJwtException(
-                        $"Key resolver threw an exception while resolving kid '{resolvedKeyId}': {ex.Message}",
-                        ErrorCode.KeyResolverFailed,
-                        ex);
+                        "Key resolver failed while resolving a key identifier",
+                        ErrorCode.KeyResolverFailed);
                 }
+
+                verificationKey = resolvedKey
+                    ?? throw new SdJwtException(
+                        $"Key resolver could not find key for kid '{resolvedKeyId}'",
+                        ErrorCode.KeyIdNotFound);
             }
             else
             {
