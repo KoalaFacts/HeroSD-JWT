@@ -40,8 +40,25 @@ public class SdJwtIssuerBuilder
     private int _decoyDigestCount = 0;
     private string? _keyId;
 
-    // JsonElement values may reference a JsonDocument owned and disposed by the caller.
-    private static object RetainJsonElement(object value) => value is JsonElement element ? element.Clone() : value;
+    // Capture caller-owned collections at configuration time. The issuer signs
+    // this exact JSON representation, so a later mutation must not change the
+    // credential or leave a nested JsonElement tied to a disposed JsonDocument.
+    // Reuse the signer's writer to preserve its dictionary/collection semantics.
+    private static object RetainClaimValue(object? value)
+    {
+        if (value is JsonElement element)
+        {
+            return element.Clone();
+        }
+
+        if (value is System.Collections.IEnumerable and not string)
+        {
+            using var snapshot = JwtSigner.SerializeClaimValueDocument(value);
+            return snapshot.RootElement.Clone();
+        }
+
+        return value!;
+    }
 
     /// <summary>
     /// Creates a new builder instance.
@@ -63,7 +80,7 @@ public class SdJwtIssuerBuilder
         var ownedClaims = new Dictionary<string, object>(claims.Count, StringComparer.Ordinal);
         foreach (var (name, value) in claims)
         {
-            ownedClaims.Add(name, RetainJsonElement(value));
+            ownedClaims.Add(name, RetainClaimValue(value));
         }
 
         _claims = ownedClaims;
@@ -78,7 +95,7 @@ public class SdJwtIssuerBuilder
     public SdJwtIssuerBuilder WithClaim(string name, object value)
     {
         _claims ??= [];
-        _claims[name] = RetainJsonElement(value);
+        _claims[name] = RetainClaimValue(value);
         return this;
     }
 
