@@ -51,6 +51,24 @@ public class KeyBindingGenerator : IKeyBindingGenerator
         ArgumentNullException.ThrowIfNull(audience);
         ArgumentNullException.ThrowIfNull(nonce);
 
+        // Reject unusable holder proofs before serialization or signing. A
+        // blank hash cannot bind a presentation, and the verifier requires a
+        // non-blank audience and nonce.
+        if (string.IsNullOrWhiteSpace(sdJwtHash))
+        {
+            throw new ArgumentException("SD-JWT hash cannot be empty or whitespace.", nameof(sdJwtHash));
+        }
+
+        if (string.IsNullOrWhiteSpace(audience))
+        {
+            throw new ArgumentException("Audience cannot be empty or whitespace.", nameof(audience));
+        }
+
+        if (string.IsNullOrWhiteSpace(nonce))
+        {
+            throw new ArgumentException("Nonce cannot be empty or whitespace.", nameof(nonce));
+        }
+
         // Encode header and payload using AOT-compatible serialization
         var headerJson = SerializeKeyBindingHeader();
         var payloadJson = SerializeKeyBindingPayload(
