@@ -154,8 +154,8 @@ public class ArrayElementDisclosureTests
         var result = disclosure.ToString();
 
         // Assert
-        Assert.Contains("ArrayElement", result);
-        Assert.Contains("test-sal", result); // Truncated salt
+        Assert.Equal("Disclosure(ArrayElement)", result);
+        Assert.DoesNotContain("test-sal", result);
     }
 
     [Fact]
@@ -169,8 +169,9 @@ public class ArrayElementDisclosureTests
         var result = disclosure.ToString();
 
         // Assert
-        Assert.Contains("testClaim", result);
-        Assert.Contains("test-sal", result); // Truncated salt
+        Assert.Equal("Disclosure(ObjectProperty)", result);
+        Assert.DoesNotContain("testClaim", result);
+        Assert.DoesNotContain("test-sal", result);
     }
 
     [Fact]
