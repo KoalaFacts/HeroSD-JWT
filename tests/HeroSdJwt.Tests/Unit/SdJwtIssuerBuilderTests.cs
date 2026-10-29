@@ -1,6 +1,7 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Issuance;
+using HeroSdJwt.Verification;
 using System.Text.Json;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
@@ -80,6 +81,87 @@ public class SdJwtIssuerBuilderTests
 
         Assert.Equal("email", document.RootElement[1].GetString());
         Assert.Equal("first@example.com", document.RootElement[2].GetString());
+    }
+
+
+    [Fact]
+    public void SignWithHmac_CallerClearsInputKey_BuildUsesConfiguredKey()
+    {
+        var suppliedKey = _keyGenerator.GenerateHmacKey();
+        var originalKey = (byte[])suppliedKey.Clone();
+        var builder = SdJwtIssuerBuilder.Create()
+            .WithClaim("sub", "user123")
+            .SignWithHmac(suppliedKey);
+
+        // A caller may clear a key buffer after configuring the builder.
+        // The issued JWT must still use the key accepted at configuration.
+        Array.Clear(suppliedKey);
+
+        var sdJwt = builder.Build();
+        Assert.True(new SignatureValidator().VerifyJwtSignature(sdJwt.Jwt, originalKey));
+    }
+
+    [Fact]
+    public void SignWithRsa_CallerClearsPrivateKey_BuildUsesConfiguredKey()
+    {
+        var (suppliedKey, publicKey) = _keyGenerator.GenerateRsaKeyPair();
+        var builder = SdJwtIssuerBuilder.Create()
+            .WithClaim("sub", "user123")
+            .SignWithRsa(suppliedKey);
+
+        Array.Clear(suppliedKey);
+
+        var sdJwt = builder.Build();
+        Assert.True(new SignatureValidator().VerifyJwtSignature(sdJwt.Jwt, publicKey));
+    }
+
+    [Fact]
+    public void SignWithEcdsa_CallerClearsPrivateKey_BuildUsesConfiguredKey()
+    {
+        var (suppliedKey, publicKey) = _keyGenerator.GenerateEcdsaKeyPair();
+        var builder = SdJwtIssuerBuilder.Create()
+            .WithClaim("sub", "user123")
+            .SignWithEcdsa(suppliedKey);
+
+        Array.Clear(suppliedKey);
+
+        var sdJwt = builder.Build();
+        Assert.True(new SignatureValidator().VerifyJwtSignature(sdJwt.Jwt, publicKey));
+    }
+
+    [Fact]
+    public void SignWithEd25519_CallerClearsPrivateKey_BuildUsesConfiguredKey()
+    {
+        var (suppliedKey, publicKey) = _keyGenerator.GenerateEd25519KeyPair();
+        var builder = SdJwtIssuerBuilder.Create()
+            .WithClaim("sub", "user123")
+            .SignWithEd25519(suppliedKey);
+
+        Array.Clear(suppliedKey);
+
+        var sdJwt = builder.Build();
+        Assert.True(new SignatureValidator().VerifyJwtSignature(sdJwt.Jwt, publicKey));
+    }
+
+    [Fact]
+    public void WithKeyBinding_CallerClearsPublicKey_BuildUsesConfiguredConfirmationKey()
+    {
+        var issuerKey = _keyGenerator.GenerateHmacKey();
+        var (_, suppliedKey) = _keyGenerator.GenerateEcdsaKeyPair();
+        var expectedJwk = new EcPublicKeyConverter().ToJwk(suppliedKey);
+        var builder = SdJwtIssuerBuilder.Create()
+            .WithClaim("sub", "user123")
+            .SignWithHmac(issuerKey)
+            .WithKeyBinding(suppliedKey);
+
+        Array.Clear(suppliedKey);
+
+        var sdJwt = builder.Build();
+        using var document = JsonDocument.Parse(Base64UrlEncoder.DecodeString(sdJwt.Jwt.Split('.')[1]));
+        var confirmationJwk = document.RootElement.GetProperty("cnf").GetProperty("jwk");
+
+        Assert.Equal((string)expectedJwk["x"], confirmationJwk.GetProperty("x").GetString());
+        Assert.Equal((string)expectedJwk["y"], confirmationJwk.GetProperty("y").GetString());
     }
 
     [Fact]

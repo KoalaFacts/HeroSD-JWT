@@ -92,7 +92,8 @@ public class SdJwtIssuerBuilder
     /// <param name="key">HMAC key (recommended: 256 bits / 32 bytes).</param>
     public SdJwtIssuerBuilder SignWithHmac(byte[] key)
     {
-        _signingKey = key ?? throw new ArgumentNullException(nameof(key));
+        // Own the configured key material; caller-owned byte arrays may be cleared or reused.
+        _signingKey = (byte[])(key ?? throw new ArgumentNullException(nameof(key))).Clone();
         _signatureAlgorithm = SignatureAlgorithm.HS256;
         return this;
     }
@@ -104,7 +105,7 @@ public class SdJwtIssuerBuilder
     /// <param name="privateKey">RSA private key in PKCS#8 format.</param>
     public SdJwtIssuerBuilder SignWithRsa(byte[] privateKey)
     {
-        _signingKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
+        _signingKey = (byte[])(privateKey ?? throw new ArgumentNullException(nameof(privateKey))).Clone();
         _signatureAlgorithm = SignatureAlgorithm.RS256;
         return this;
     }
@@ -116,7 +117,7 @@ public class SdJwtIssuerBuilder
     /// <param name="privateKey">ECDSA private key in PKCS#8 format.</param>
     public SdJwtIssuerBuilder SignWithEcdsa(byte[] privateKey)
     {
-        _signingKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
+        _signingKey = (byte[])(privateKey ?? throw new ArgumentNullException(nameof(privateKey))).Clone();
         _signatureAlgorithm = SignatureAlgorithm.ES256;
         return this;
     }
@@ -129,7 +130,7 @@ public class SdJwtIssuerBuilder
     /// <param name="privateKey">Ed25519 private key in PKCS#8 format.</param>
     public SdJwtIssuerBuilder SignWithEd25519(byte[] privateKey)
     {
-        _signingKey = privateKey ?? throw new ArgumentNullException(nameof(privateKey));
+        _signingKey = (byte[])(privateKey ?? throw new ArgumentNullException(nameof(privateKey))).Clone();
         _signatureAlgorithm = SignatureAlgorithm.EdDSA;
         return this;
     }
@@ -153,7 +154,7 @@ public class SdJwtIssuerBuilder
     /// <param name="holderPublicKey">Holder's public key in SubjectPublicKeyInfo format.</param>
     public SdJwtIssuerBuilder WithKeyBinding(byte[] holderPublicKey)
     {
-        _holderPublicKey = holderPublicKey ?? throw new ArgumentNullException(nameof(holderPublicKey));
+        _holderPublicKey = (byte[])(holderPublicKey ?? throw new ArgumentNullException(nameof(holderPublicKey))).Clone();
         return this;
     }
 
