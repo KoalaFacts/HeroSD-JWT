@@ -121,6 +121,7 @@ public readonly struct Disclosure : IEquatable<Disclosure>
     {
         return Salt == other.Salt &&
                ClaimName == other.ClaimName &&
+               ClaimValue.ValueKind == other.ClaimValue.ValueKind &&
                ClaimValue.ToString() == other.ClaimValue.ToString();
     }
 
@@ -133,7 +134,7 @@ public readonly struct Disclosure : IEquatable<Disclosure>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        return HashCode.Combine(Salt, ClaimName, ClaimValue.ToString());
+        return HashCode.Combine(Salt, ClaimName, ClaimValue.ValueKind, ClaimValue.ToString());
     }
 
     /// <summary>

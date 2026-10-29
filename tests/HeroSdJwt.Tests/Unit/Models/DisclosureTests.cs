@@ -421,6 +421,36 @@ public class DisclosureTests
         Assert.True(result);
     }
 
+    [Theory]
+    [InlineData("123", "\"123\"")]
+    [InlineData("true", "\"True\"")]
+    [InlineData("{}", "\"{}\"")]
+    public void Equals_DistinguishesJsonKindsEvenWhenDisplayTextMatches(string firstJson, string secondJson)
+    {
+        using var firstDocument = JsonDocument.Parse(firstJson);
+        using var secondDocument = JsonDocument.Parse(secondJson);
+        var first = new Disclosure("same-salt", "claim", firstDocument.RootElement);
+        var second = new Disclosure("same-salt", "claim", secondDocument.RootElement);
+
+        // JsonElement.ToString() is ambiguous across JSON kinds, e.g. 123 and "123".
+        Assert.Equal(first.ClaimValue.ToString(), second.ClaimValue.ToString());
+        Assert.NotEqual(first, second);
+        Assert.True(first != second);
+        Assert.Equal(2, new HashSet<Disclosure> { first, second }.Count);
+    }
+
+    [Fact]
+    public void Equals_DistinguishesArrayElementJsonKinds()
+    {
+        using var numberDocument = JsonDocument.Parse("123");
+        using var stringDocument = JsonDocument.Parse("\"123\"");
+        var number = new Disclosure("same-salt", numberDocument.RootElement);
+        var text = new Disclosure("same-salt", stringDocument.RootElement);
+
+        Assert.NotEqual(number, text);
+        Assert.Equal(2, new HashSet<Disclosure> { number, text }.Count);
+    }
+
     #endregion
 
     #region GetHashCode Tests
