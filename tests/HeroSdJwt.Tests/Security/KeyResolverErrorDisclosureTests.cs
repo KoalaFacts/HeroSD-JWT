@@ -94,4 +94,22 @@ public class KeyResolverErrorDisclosureTests
         Assert.DoesNotContain(BACKEND_SECRET, exception.ToString(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Should_PreserveCancellationAndMissingKey_WhenStandaloneSignatureResolverDoesNotResolve()
+    {
+        var jwt = SdJwtIssuerBuilder.Create()
+            .WithKeyId("issuer-key")
+            .WithClaim("sub", "subject")
+            .SignWithHmac(_signingKey)
+            .Build()
+            .Jwt;
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            new SignatureValidator().VerifyJwtSignature(
+                jwt, _ => throw new OperationCanceledException("Key store canceled")));
+
+        var exception = Assert.Throws<SdJwtException>(() =>
+            new SignatureValidator().VerifyJwtSignature(jwt, _ => null));
+        Assert.Equal(ErrorCode.KeyIdNotFound, exception.ErrorCode);
+    }
 }
