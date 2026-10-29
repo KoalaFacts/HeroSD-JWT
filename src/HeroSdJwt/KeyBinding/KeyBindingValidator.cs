@@ -77,6 +77,13 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
 
         ArgumentNullException.ThrowIfNull(expectedAudiences);
 
+        // A caller-supplied blank expected hash provides no binding to the
+        // presented SD-JWT, even if a correctly signed KB-JWT repeats it.
+        if (string.IsNullOrWhiteSpace(expectedSdJwtHash))
+        {
+            return false;
+        }
+
         // Direct callers bypass the SD-JWT presentation size gate. Bound a
         // compact KB-JWT before splitting or decoding untrusted input.
         if (keyBindingJwt.Length > Constants.MAX_JWT_SIZE_BYTES)
