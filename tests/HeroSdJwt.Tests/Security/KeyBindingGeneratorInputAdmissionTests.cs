@@ -1,14 +1,19 @@
+using HeroSdJwt.Encoding;
 using HeroSdJwt.KeyBinding;
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace HeroSdJwt.Tests.Security;
 
 /// <summary>
-/// A holder must not issue a signed KB-JWT without the required disclosure hash,
-/// audience or replay challenge: the verifier will reject such a proof.
+/// A holder must not issue or accept a signed KB-JWT without the required
+/// disclosure hash, audience or replay challenge.
 /// </summary>
 public class KeyBindingGeneratorInputAdmissionTests
 {
+    private const string Audience = "https://verifier.example.test";
+    private const string Nonce = "one-time-challenge";
+
     [Theory]
     [InlineData("sdJwtHash", "")]
     [InlineData("sdJwtHash", "   ")]
@@ -20,13 +25,38 @@ public class KeyBindingGeneratorInputAdmissionTests
     {
         using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var sdJwtHash = parameterName == "sdJwtHash" ? blankValue : "disclosure-hash";
-        var audience = parameterName == "audience" ? blankValue : "https://verifier.example.test";
-        var nonce = parameterName == "nonce" ? blankValue : "one-time-challenge";
+        var audience = parameterName == "audience" ? blankValue : Audience;
+        var nonce = parameterName == "nonce" ? blankValue : Nonce;
 
         var error = Assert.Throws<ArgumentException>(() =>
             new KeyBindingGenerator().CreateKeyBindingJwt(
                 holder.ExportECPrivateKey(), sdJwtHash, audience, nonce));
 
         Assert.Equal(parameterName, error.ParamName);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Should_RejectSignedHolderProofWhenSdHashAndExpectedHashAreBlank(string blankHash)
+    {
+        // Deliberately sign the otherwise well-formed proof without using
+        // KeyBindingGenerator: the generator itself must reject this input.
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var header = Base64UrlEncoder.Encode("{\"alg\":\"ES256\",\"typ\":\"kb+jwt\"}");
+        var payload = Base64UrlEncoder.Encode(JsonSerializer.Serialize(new
+        {
+            iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            aud = Audience,
+            nonce = Nonce,
+            sd_hash = blankHash
+        }));
+        var signingInput = $"{header}.{payload}";
+        var signature = holder.SignData(
+            System.Text.Encoding.UTF8.GetBytes(signingInput), HashAlgorithmName.SHA256);
+        var proof = $"{signingInput}.{Base64UrlEncoder.Encode(signature)}";
+
+        Assert.False(new KeyBindingValidator().ValidateKeyBinding(
+            proof, holder.ExportSubjectPublicKeyInfo(), blankHash, Audience, Nonce));
     }
 }
