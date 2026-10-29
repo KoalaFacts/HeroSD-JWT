@@ -1145,11 +1145,12 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     // async callers, not be mistaken for a malformed presentation.
                     throw;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    // Wrap unexpected exceptions
+                    // The cache may wrap external storage whose exception text
+                    // includes credentials. Reject without exposing backend details.
                     errors.Add(ErrorCode.InvalidInput);
-                    errorDetails.Add($"Replay protection validation failed: {ex.Message}");
+                    errorDetails.Add("Replay protection validation failed");
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
             }
