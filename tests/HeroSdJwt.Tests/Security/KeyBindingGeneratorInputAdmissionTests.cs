@@ -11,8 +11,8 @@ namespace HeroSdJwt.Tests.Security;
 /// </summary>
 public class KeyBindingGeneratorInputAdmissionTests
 {
-    private const string Audience = "https://verifier.example.test";
-    private const string Nonce = "one-time-challenge";
+    private const string AUDIENCE = "https://verifier.example.test";
+    private const string NONCE = "one-time-challenge";
 
     [Theory]
     [InlineData("sdJwtHash", "")]
@@ -25,8 +25,8 @@ public class KeyBindingGeneratorInputAdmissionTests
     {
         using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var sdJwtHash = parameterName == "sdJwtHash" ? blankValue : "disclosure-hash";
-        var audience = parameterName == "audience" ? blankValue : Audience;
-        var nonce = parameterName == "nonce" ? blankValue : Nonce;
+        var audience = parameterName == "audience" ? blankValue : AUDIENCE;
+        var nonce = parameterName == "nonce" ? blankValue : NONCE;
 
         var error = Assert.Throws<ArgumentException>(() =>
             new KeyBindingGenerator().CreateKeyBindingJwt(
@@ -47,8 +47,8 @@ public class KeyBindingGeneratorInputAdmissionTests
         var payload = Base64UrlEncoder.Encode(JsonSerializer.Serialize(new
         {
             iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            aud = Audience,
-            nonce = Nonce,
+            aud = AUDIENCE,
+            nonce = NONCE,
             sd_hash = blankHash
         }));
         var signingInput = $"{header}.{payload}";
@@ -57,6 +57,6 @@ public class KeyBindingGeneratorInputAdmissionTests
         var proof = $"{signingInput}.{Base64UrlEncoder.Encode(signature)}";
 
         Assert.False(new KeyBindingValidator().ValidateKeyBinding(
-            proof, holder.ExportSubjectPublicKeyInfo(), blankHash, Audience, Nonce));
+            proof, holder.ExportSubjectPublicKeyInfo(), blankHash, AUDIENCE, NONCE));
     }
 }
