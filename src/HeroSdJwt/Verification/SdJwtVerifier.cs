@@ -60,8 +60,26 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         ArgumentNullException.ThrowIfNull(keyBindingValidator);
         ArgumentNullException.ThrowIfNull(claimValidator);
 
-        options.Validate();
-        _options = options;
+        // Once configured, a verifier must not inherit later mutations to
+        // caller-owned collections or the mutable revocation failure mode.
+        // Snapshot before validating so the validated policy is the used policy.
+        _options = new SdJwtVerificationOptions
+        {
+            ClockSkew = options.ClockSkew,
+            RequireKeyBinding = options.RequireKeyBinding,
+            ExpectedIssuer = options.ExpectedIssuer,
+            ExpectedAudience = options.ExpectedAudience,
+            ExpectedAudiences = options.ExpectedAudiences?.ToArray(),
+            ExpectedKeyBindingAudience = options.ExpectedKeyBindingAudience,
+            ExpectedHashAlgorithm = options.ExpectedHashAlgorithm,
+            ExpectedNonce = options.ExpectedNonce,
+            ExpectedKeyType = options.ExpectedKeyType,
+            Revocation = new RevocationOptions
+            {
+                FailureMode = options.Revocation?.FailureMode ?? RevocationFailureMode.FailClosed
+            }
+        };
+        _options.Validate();
         _ecPublicKeyConverter = ecPublicKeyConverter;
         _signatureValidator = signatureValidator;
         _digestValidator = digestValidator;
