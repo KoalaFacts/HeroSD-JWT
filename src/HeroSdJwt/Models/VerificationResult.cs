@@ -41,9 +41,18 @@ public sealed class VerificationResult
     {
         ArgumentNullException.ThrowIfNull(disclosedClaims);
 
+        // A successful result must be a stable record of what was actually
+        // verified. Do not expose the caller's mutable dictionary (even through
+        // an IReadOnlyDictionary property, which can be cast back to IDictionary).
+        var verifiedClaims = new Dictionary<string, JsonElement>(disclosedClaims.Count, StringComparer.Ordinal);
+        foreach (var (name, value) in disclosedClaims)
+        {
+            verifiedClaims.Add(name, value);
+        }
+
         IsValid = true;
         Errors = [];
-        DisclosedClaims = disclosedClaims;
+        DisclosedClaims = new ReadOnlyDictionary<string, JsonElement>(verifiedClaims);
         ErrorDetails = null;
     }
 
