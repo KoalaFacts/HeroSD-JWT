@@ -1251,8 +1251,9 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 {
                     // Array element disclosure: [salt, claim_value]
                     var claimValue = array[1];
+
                     // Retain only the value, not the entire parsed Disclosure document.
-                        claims[fullPath] = claimValue.Clone();
+                    claims[fullPath] = claimValue.Clone();
                 }
             }
         }
