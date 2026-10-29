@@ -12,7 +12,7 @@ namespace HeroSdJwt.Tests.Security;
 /// </summary>
 public class ReplayCacheErrorDisclosureTests
 {
-    private const string BACKEND_SECRET = "password=replay-cache-credential";
+    private const string BACKEND_SECRET = "sensitive-replay-backend-diagnostic-marker";
     private const string KEY_ID = "replay-error-key";
     private static readonly byte[] _signingKey = [.. Enumerable.Range(1, 32).Select(i => (byte)i)];
 
