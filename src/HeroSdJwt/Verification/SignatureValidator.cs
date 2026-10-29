@@ -480,31 +480,30 @@ public class SignatureValidator : ISignatureValidator
                     ErrorCode.KeyResolverMissing);
             }
 
-            // Resolve key ID to verification key
+            // Resolve key ID to verification key. Backend exceptions can contain
+            // database/KMS secrets; neither the public message nor an inner
+            // exception may expose their diagnostics.
+            byte[]? resolvedKey;
             try
             {
-                verificationKey = keyResolver(resolvedKeyId)
-                    ?? throw new SdJwtException(
-                        $"Key resolver could not find key for kid '{resolvedKeyId}'",
-                        ErrorCode.KeyIdNotFound);
-            }
-            catch (SdJwtException)
-            {
-                throw; // Re-throw our exceptions
+                resolvedKey = keyResolver(resolvedKeyId);
             }
             catch (OperationCanceledException)
             {
-                // A canceled or timed-out key lookup is not a key-resolution failure.
-                // Preserve the original cancellation for callers and retry policies.
+                // Preserve cancellation for callers and retry policies.
                 throw;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw new SdJwtException(
-                    $"Key resolver threw an exception while resolving kid '{resolvedKeyId}': {ex.Message}",
-                    ErrorCode.KeyResolverFailed,
-                    ex);
+                    "Key resolver failed while resolving a key identifier",
+                    ErrorCode.KeyResolverFailed);
             }
+
+            verificationKey = resolvedKey
+                ?? throw new SdJwtException(
+                    $"Key resolver could not find key for kid '{resolvedKeyId}'",
+                    ErrorCode.KeyIdNotFound);
         }
         else
         {

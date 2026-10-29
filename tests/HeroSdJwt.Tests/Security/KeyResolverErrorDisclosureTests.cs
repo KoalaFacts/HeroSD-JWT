@@ -65,4 +65,51 @@ public class KeyResolverErrorDisclosureTests
         Assert.Equal(ErrorCode.KeyResolverFailed, asyncException.ErrorCode);
         Assert.DoesNotContain(BACKEND_SECRET, asyncException.ToString(), StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Should_NotExposeBackendExceptionDetails_WhenStandaloneSignatureResolverFails(bool domainException)
+    {
+        var jwt = SdJwtIssuerBuilder.Create()
+            .WithKeyId("issuer-key")
+            .WithClaim("sub", "subject")
+            .SignWithHmac(_signingKey)
+            .Build()
+            .Jwt;
+
+        byte[]? resolver(string _)
+        {
+            if (domainException)
+            {
+                throw new SdJwtException(BACKEND_SECRET, ErrorCode.InvalidInput);
+            }
+
+            throw new IOException(BACKEND_SECRET);
+        }
+
+        var exception = Assert.Throws<SdJwtException>(() =>
+            new SignatureValidator().VerifyJwtSignature(jwt, resolver));
+        Assert.Equal(ErrorCode.KeyResolverFailed, exception.ErrorCode);
+        Assert.DoesNotContain(BACKEND_SECRET, exception.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Should_PreserveCancellationAndMissingKey_WhenStandaloneSignatureResolverDoesNotResolve()
+    {
+        var jwt = SdJwtIssuerBuilder.Create()
+            .WithKeyId("issuer-key")
+            .WithClaim("sub", "subject")
+            .SignWithHmac(_signingKey)
+            .Build()
+            .Jwt;
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            new SignatureValidator().VerifyJwtSignature(
+                jwt, _ => throw new OperationCanceledException("Key store canceled")));
+
+        var exception = Assert.Throws<SdJwtException>(() =>
+            new SignatureValidator().VerifyJwtSignature(jwt, _ => null));
+        Assert.Equal(ErrorCode.KeyIdNotFound, exception.ErrorCode);
+    }
 }
