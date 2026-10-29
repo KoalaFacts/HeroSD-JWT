@@ -1477,6 +1477,15 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             return;
         }
 
+        // Validate the signed key identifier outside the storage-failure handler.
+        // This keeps local policy errors distinct while allowing *all* exceptions
+        // from an injected store (including SdJwtException) to be sanitized.
+        if (header.TryGetProperty("kid", out var revocationKeyId) &&
+            revocationKeyId.ValueKind == JsonValueKind.String)
+        {
+            KeyIdGuard.EnsureValid(revocationKeyId.GetString()!);
+        }
+
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -1501,7 +1510,6 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             if (header.TryGetProperty("kid", out var kidElement) && kidElement.ValueKind == JsonValueKind.String)
             {
                 var keyId = kidElement.GetString()!;
-                KeyIdGuard.EnsureValid(keyId);
                 var isRevoked = await _revocationStore.IsKeyRevokedAsync(keyId, cancellationToken).ConfigureAwait(false);
                 // Some stores return false even when cancellation arrives during the read.
                 // Never admit the credential or consult subsequent backends after cancellation.
@@ -1538,28 +1546,25 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             // Re-throw revocation exceptions
             throw;
         }
-        catch (SdJwtException)
-        {
-            // Surface key-id validation failures directly (do not treat as revocation IO failure)
-            throw;
-        }
         catch (OperationCanceledException)
         {
             // Cancellation (including a revoked request or backend timeout) is
             // not a revocation-store outage to be admitted by fail-open policy.
             throw;
         }
-        catch (Exception ex) when (_options.Revocation.FailureMode == RevocationFailureMode.FailOpen)
+        catch (Exception) when (_options.Revocation.FailureMode == RevocationFailureMode.FailOpen)
         {
-            // Fail-open: Log error but allow token (availability over security)
-            errorDetails.Add($"Revocation check failed but allowing token (fail-open mode): {ex.Message}");
+            // Fail-open remains an explicit availability policy, but backend
+            // diagnostics must not enter publicly observable verification state.
+            errorDetails.Add("Revocation check failed but allowing token (fail-open mode)");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            // Fail-closed (default): Reject token on revocation check failure
+            // Fail-closed (default): reject without retaining any backend
+            // exception or diagnostic text in the publicly thrown exception.
             errors.Add(ErrorCode.InvalidInput);
-            errorDetails.Add($"Revocation check failed: {ex.Message}");
-            throw new SdJwtException("Revocation check failed (fail-closed mode)", ErrorCode.InvalidInput, ex);
+            errorDetails.Add("Revocation check failed");
+            throw new SdJwtException("Revocation check failed (fail-closed mode)", ErrorCode.InvalidInput);
         }
     }
 
