@@ -1,4 +1,6 @@
 using HeroSdJwt.Encoding;
+using HeroSdJwt.Exceptions;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
@@ -69,12 +71,14 @@ public readonly struct Digest : IEquatable<Digest>
             return valueBytes.Length == otherBytes.Length &&
                 CryptographicOperations.FixedTimeEquals(valueBytes, otherBytes);
         }
-        catch
+        catch (Exception ex) when (ex is SdJwtException or ArgumentOutOfRangeException)
         {
-            // If decoding fails, this indicates malformed digest values
-            // We must fail safely and return false to maintain security
-            // Never fall back to non-constant-time comparison as it defeats timing attack prevention
-            return false;
+            // The public constructor accepts malformed Base64Url. A value must
+            // still equal itself (and an identical copy). Compare raw UTF-16
+            // without an early exit only when decoding cannot succeed.
+            return CryptographicOperations.FixedTimeEquals(
+                MemoryMarshal.AsBytes(Value.AsSpan()),
+                MemoryMarshal.AsBytes(other.Value.AsSpan()));
         }
     }
 
@@ -87,7 +91,30 @@ public readonly struct Digest : IEquatable<Digest>
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        return HashCode.Combine(Value, Algorithm);
+        if (Value is null)
+        {
+            return HashCode.Combine(Value, Algorithm);
+        }
+
+        try
+        {
+            // Equals compares decoded bytes, not encoded spelling. Padded and
+            // unpadded forms must therefore have the same hash for collections.
+            var bytes = Base64UrlEncoder.DecodeBytes(Value);
+            var hash = new HashCode();
+            hash.Add(Algorithm);
+            foreach (var valueByte in bytes)
+            {
+                hash.Add(valueByte);
+            }
+
+            return hash.ToHashCode();
+        }
+        catch (Exception ex) when (ex is SdJwtException or ArgumentOutOfRangeException)
+        {
+            // Malformed values use raw-content equality and hashing.
+            return HashCode.Combine(Value, Algorithm);
+        }
     }
 
     /// <summary>
