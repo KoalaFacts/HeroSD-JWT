@@ -82,9 +82,10 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
 
                     if (matchedKey == null)
                     {
+                        // Do not enumerate undisclosed claim paths in an exception:
+                        // holder API clients and logs may receive this message.
                         throw new ArgumentException(
-                            $"Claim path '{claimPath}' not found in SD-JWT. " +
-                            $"Available paths: {string.Join(", ", claimPathToIndex.Keys)}",
+                            $"Claim path '{claimPath}' not found in SD-JWT.",
                             nameof(selectedClaimNames));
                     }
 
