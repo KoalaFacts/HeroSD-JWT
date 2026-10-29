@@ -43,7 +43,7 @@ public class KeyBindingGeneratorInputAdmissionTests
         // Deliberately sign the otherwise well-formed proof without using
         // KeyBindingGenerator: the generator itself must reject this input.
         using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var header = Base64UrlEncoder.Encode("{\"alg\":\"ES256\",\"typ\":\"kb+jwt\"}");
+        var header = Base64UrlEncoder.Encode(JsonSerializer.Serialize(new { alg = "ES256", typ = "kb+jwt" }));
         var payload = Base64UrlEncoder.Encode(JsonSerializer.Serialize(new
         {
             iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
