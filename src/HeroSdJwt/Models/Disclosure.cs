@@ -8,7 +8,8 @@ namespace HeroSdJwt.Models;
 /// A disclosure can be either:
 /// - Object property: [salt, claim_name, claim_value] (3-element array)
 /// - Array element: [salt, claim_value] (2-element array)
-/// Immutable value type for thread safety.
+/// Immutable value type for thread safety. Clones incoming JSON values to avoid
+/// depending on the lifetime of a caller-owned JsonDocument.
 /// </summary>
 public readonly struct Disclosure : IEquatable<Disclosure>
 {
@@ -61,7 +62,7 @@ public readonly struct Disclosure : IEquatable<Disclosure>
 
         Salt = salt;
         ClaimName = claimName;
-        ClaimValue = claimValue;
+        ClaimValue = claimValue.Clone();
     }
 
     /// <summary>
@@ -82,7 +83,7 @@ public readonly struct Disclosure : IEquatable<Disclosure>
 
         Salt = salt;
         ClaimName = null;
-        ClaimValue = claimValue;
+        ClaimValue = claimValue.Clone();
     }
 
     /// <summary>
