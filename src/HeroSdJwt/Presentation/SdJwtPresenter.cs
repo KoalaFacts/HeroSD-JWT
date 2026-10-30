@@ -59,27 +59,29 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
 
                 if (!claimPathToIndex.TryGetValue(claimPath, out var disclosureIndex))
                 {
-                    // Legacy unqualified claim names remain convenient only when unique.
-                    // Otherwise choosing the first dictionary entry could disclose
-                    // a different claim than the holder intended.
+                    // Only a bare object member name may use the unique-short-name
+                    // convenience. A partially qualified path or array selector
+                    // must match exactly to avoid revealing another claim.
                     string? matchedKey = null;
-                    foreach (var kvp in claimPathToIndex)
+                    if (!claimPath.Contains('.') && !claimPath.Contains('[') && !claimPath.Contains(']'))
                     {
-                        // Absolute URI claim names are opaque top-level members,
-                        // not nested paths. Never disclose one via short-name fallback.
-                        if ((kvp.Key.EndsWith($".{claimPath}", StringComparison.Ordinal) ||
-                             kvp.Key.EndsWith($"[{claimPath}]", StringComparison.Ordinal)) &&
-                            !Uri.TryCreate(kvp.Key, UriKind.Absolute, out _))
+                        foreach (var kvp in claimPathToIndex)
                         {
-                            if (matchedKey != null)
+                            // Absolute URI claim names are opaque top-level members,
+                            // not nested paths. Never disclose one via short-name fallback.
+                            if (kvp.Key.EndsWith($".{claimPath}", StringComparison.Ordinal) &&
+                                !Uri.TryCreate(kvp.Key, UriKind.Absolute, out _))
                             {
-                                throw new ArgumentException(
-                                    $"Claim path '{claimPath}' is ambiguous. Specify the full claim path.",
-                                    nameof(selectedClaimNames));
-                            }
+                                if (matchedKey != null)
+                                {
+                                    throw new ArgumentException(
+                                        $"Claim path '{claimPath}' is ambiguous. Specify the full claim path.",
+                                        nameof(selectedClaimNames));
+                                }
 
-                            matchedKey = kvp.Key;
-                            disclosureIndex = kvp.Value;
+                                matchedKey = kvp.Key;
+                                disclosureIndex = kvp.Value;
+                            }
                         }
                     }
 
