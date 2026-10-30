@@ -56,6 +56,16 @@ internal readonly struct ClaimPath
     }
 
     /// <summary>
+    /// Treats an exact top-level JWT member name as a single claim, even when
+    /// it is an absolute URI containing characters used by path notation.
+    /// </summary>
+    internal static ClaimPath ForLiteralTopLevelName(string claimName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(claimName);
+        return new ClaimPath(claimName, claimName, null, null, [claimName]);
+    }
+
+    /// <summary>
     /// Parses a claim specification into a ClaimPath.
     /// Supports formats:
     /// - Simple: "claimName"

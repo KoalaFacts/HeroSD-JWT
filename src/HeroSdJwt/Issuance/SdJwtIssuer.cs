@@ -98,7 +98,15 @@ public class SdJwtIssuer(
         try
         {
             // Parse claim specifications to separate simple claims from array elements
-            var parsedClaims = selectiveClaimsList.Select(ClaimPath.Parse).ToList();
+            // RFC 7519 allows URI-valued claim names. Treat URI-shaped
+            // selectors as literal top-level members, not nested paths;
+            // ordinary dot and array selectors keep their existing meaning.
+            var parsedClaims = selectiveClaimsList.Select(path =>
+                path is not null &&
+                path.Contains('/') &&
+                Uri.TryCreate(path, UriKind.Absolute, out _)
+                    ? ClaimPath.ForLiteralTopLevelName(path)
+                    : ClaimPath.Parse(path)).ToList();
 
             // Validate that security-critical claims are not selectively disclosable
             // Per SD-JWT spec section 5.3: "An Issuer MUST NOT allow any content to be
