@@ -18,9 +18,9 @@ public class KeyGenerator : IKeyGenerator
     /// <inheritdoc/>
     public byte[] GenerateHmacKey(int bits = 256)
     {
-        if (bits <= 0 || bits % 8 != 0)
+        if (bits < 256 || bits % 8 != 0)
         {
-            throw new ArgumentException("Key size must be a positive multiple of 8", nameof(bits));
+            throw new ArgumentException("HMAC key size must be at least 256 bits and a multiple of 8", nameof(bits));
         }
 
         byte[] key = new byte[bits / 8];
