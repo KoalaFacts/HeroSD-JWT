@@ -256,6 +256,47 @@ public class SdJwtPresenterClaimSelectionTests
     }
 
     [Theory]
+    [InlineData("contact.email", "identity.contact.email")]
+    [InlineData("roles[1]", "identity.roles[1]")]
+    [InlineData("1", "identity.roles[1]")]
+    public void Should_RejectNonExactPathSuffix_InsteadOfDisclosingUnrequestedClaim(
+        string requestedPath, string availablePath)
+    {
+        // Only an unqualified object member name may use the unique-short-name
+        // convenience. A partially qualified path or bare array index must
+        // never resolve to a different, deeper path.
+        var credential = CreateCredential(
+            ["private"],
+            new Dictionary<string, int> { [availablePath] = 0 });
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresenter().CreatePresentation(credential, [requestedPath]));
+
+        Assert.Equal("selectedClaimNames", exception.ParamName);
+        Assert.Contains("not found", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Should_RejectPartiallyQualifiedPath_OnIssuedCredential()
+    {
+        var signingKey = RandomNumberGenerator.GetBytes(32);
+        var credential = TestHelpers.CreateIssuer().CreateSdJwt(
+            new Dictionary<string, object>
+            {
+                ["identity"] = new { contact = new { email = "private@example.org" } }
+            },
+            ["identity.contact.email"],
+            signingKey,
+            HashAlgorithm.Sha256);
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresenter().CreatePresentation(credential, ["contact.email"]));
+
+        Assert.Equal("selectedClaimNames", exception.ParamName);
+        Assert.Contains("not found", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
