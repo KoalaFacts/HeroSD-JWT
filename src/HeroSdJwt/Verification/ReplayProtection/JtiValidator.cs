@@ -76,7 +76,7 @@ public class JtiValidator
         cancellationToken.ThrowIfCancellationRequested();
 
         // Extract issuer (required for cache key)
-        if (!claims.TryGetValue("iss", out var issElement))
+        if (!TryGetRegisteredClaim(claims, "iss", out var issElement))
         {
             throw new SdJwtException("Issuer claim (iss) is required for replay protection", Primitives.ErrorCode.MissingRequiredClaim);
         }
@@ -93,7 +93,7 @@ public class JtiValidator
         }
 
         // Extract jti
-        if (!claims.TryGetValue("jti", out var jtiElement))
+        if (!TryGetRegisteredClaim(claims, "jti", out var jtiElement))
         {
             if (_options.RequireJtiClaim)
             {
@@ -132,13 +132,40 @@ public class JtiValidator
         }
     }
 
+    // Registered JWT claim names are case-sensitive even when a standalone
+    // caller supplies a dictionary with a case-insensitive/custom comparer.
+    // Keep O(1) lookups for the normal ordinal dictionaries from verification.
+    private static bool TryGetRegisteredClaim(
+        Dictionary<string, JsonElement> claims,
+        string claimName,
+        out JsonElement value)
+    {
+        if (ReferenceEquals(claims.Comparer, EqualityComparer<string>.Default) ||
+            ReferenceEquals(claims.Comparer, StringComparer.Ordinal))
+        {
+            return claims.TryGetValue(claimName, out value);
+        }
+
+        foreach (var (name, candidate) in claims)
+        {
+            if (string.Equals(name, claimName, StringComparison.Ordinal))
+            {
+                value = candidate;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
     /// <summary>
     /// Calculates a marker lifetime covering the entire remaining token validity.
     /// Rejects credentials that cannot be protected within the configured retention limit.
     /// </summary>
     private TimeSpan CalculateTtl(Dictionary<string, JsonElement> claims, TimeSpan verifierClockSkew)
     {
-        if (!claims.TryGetValue("exp", out var expElement))
+        if (!TryGetRegisteredClaim(claims, "exp", out var expElement))
         {
             throw new SdJwtException(
                 "Expiration claim (exp) is required for replay protection",
