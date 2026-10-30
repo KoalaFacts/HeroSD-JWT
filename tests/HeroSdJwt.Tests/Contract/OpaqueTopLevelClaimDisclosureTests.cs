@@ -61,7 +61,7 @@ public class OpaqueTopLevelClaimDisclosureTests
             .MakeSelective(selector)
             .SignWithHmac(key);
 
-        var exception = Assert.Throws<ArgumentException>(() => issuer.Build());
+        var exception = Assert.Throws<ArgumentException>(issuer.Build);
         Assert.Equal("selectivelyDisclosableClaims", exception.ParamName);
     }
 }
