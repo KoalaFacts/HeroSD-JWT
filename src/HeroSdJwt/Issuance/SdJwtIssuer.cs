@@ -56,9 +56,15 @@ public class SdJwtIssuer(
         ArgumentNullException.ThrowIfNull(claims);
         ArgumentNullException.ThrowIfNull(signingKey);
 
+        // Normalize to case-sensitive JSON names even if the caller supplied
+        // a dictionary with a case-insensitive comparer. Registered JWT claim
+        // names (including exp) must be matched with ordinal case sensitivity.
+        // An owned copy also prevents subsequent changes to caller-owned data.
+        var modifiedClaims = new Dictionary<string, object>(claims, StringComparer.Ordinal);
+
         // SD-JWT spec requires an expiration claim. Generate the default without
         // modifying the caller's dictionary, even when later validation fails.
-        var hasExplicitExpiration = claims.TryGetValue("exp", out var expClaim);
+        var hasExplicitExpiration = modifiedClaims.TryGetValue("exp", out var expClaim);
         if (!hasExplicitExpiration)
         {
             expClaim = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
@@ -153,12 +159,6 @@ public class SdJwtIssuer(
                 ValidateRegisteredClaimRepresentation(claim.Key, claim.Value);
                 ValidateNoUntrustedSdControlMembers(claim.Value, claim.Key);
             }
-
-            // Normalize to case-sensitive JSON names even if the caller supplied
-            // a dictionary with a case-insensitive comparer. Otherwise a
-            // case-mismatched selector could pass validation while leaving
-            // the original claim permanently disclosed in the signed token.
-            var modifiedClaims = new Dictionary<string, object>(claims, StringComparer.Ordinal);
 
             // A requested top-level disclosure policy must be applied in full.
             // Missing simple claims and array bases were previously ignored,
