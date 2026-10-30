@@ -114,6 +114,7 @@ public static class ExtensionsToVerificationResult
 
         // Find all nested property claims for this base name
         var nestedProperties = new List<(string[] path, JsonElement value)>();
+        var selectedPaths = new HashSet<string>(StringComparer.Ordinal);
         var objectPrefix = $"{claimName}.";
 
         foreach (var (key, value) in result.DisclosedClaims)
@@ -127,6 +128,7 @@ public static class ExtensionsToVerificationResult
             if (path.BaseName == claimName && path.IsNested)
             {
                 nestedProperties.Add((path.PathComponents, value));
+                _ = selectedPaths.Add(key);
             }
         }
 
@@ -134,6 +136,21 @@ public static class ExtensionsToVerificationResult
         if (nestedProperties.Count == 0)
         {
             return null;
+        }
+
+        // A disclosed ancestor and a separately disclosed descendant cannot both
+        // be materialized as a single unambiguous value. Detect the collision
+        // before inserting JSON nodes so enumeration order cannot overwrite data
+        // or cause an InvalidCastException while traversing a scalar ancestor.
+        foreach (var (pathComponents, _) in nestedProperties)
+        {
+            for (int componentCount = 2; componentCount < pathComponents.Length; componentCount++)
+            {
+                if (selectedPaths.Contains(string.Join(".", pathComponents, 0, componentCount)))
+                {
+                    throw new InvalidOperationException("Cannot reconstruct overlapping disclosed claim paths.");
+                }
+            }
         }
 
         // Build hierarchical object using bottom-up tree construction
