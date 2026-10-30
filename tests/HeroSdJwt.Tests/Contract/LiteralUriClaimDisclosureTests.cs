@@ -15,6 +15,8 @@ public class LiteralUriClaimDisclosureTests
     [Theory]
     [InlineData("https://example.org/claims/employee-id")]
     [InlineData("https://example.org/credentials/contact.email")]
+    [InlineData("urn:example:claims.employee-id")]
+    [InlineData("urn:example:employee.contact.email")]
     public void Should_RoundTripSelectedUriClaim_WhenNameContainsPathSeparators(string claimName)
     {
         var key = KeyGenerator.Instance.GenerateHmacKey();
