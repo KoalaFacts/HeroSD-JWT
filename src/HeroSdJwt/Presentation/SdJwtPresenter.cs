@@ -65,8 +65,11 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
                     string? matchedKey = null;
                     foreach (var kvp in claimPathToIndex)
                     {
-                        if (kvp.Key.EndsWith($".{claimPath}", StringComparison.Ordinal) ||
-                            kvp.Key.EndsWith($"[{claimPath}]", StringComparison.Ordinal))
+                        // Absolute URI claim names are opaque top-level members,
+                        // not nested paths. Never disclose one via short-name fallback.
+                        if ((kvp.Key.EndsWith($".{claimPath}", StringComparison.Ordinal) ||
+                             kvp.Key.EndsWith($"[{claimPath}]", StringComparison.Ordinal)) &&
+                            !Uri.TryCreate(kvp.Key, UriKind.Absolute, out _))
                         {
                             if (matchedKey != null)
                             {
