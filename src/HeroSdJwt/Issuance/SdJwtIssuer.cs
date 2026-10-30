@@ -111,9 +111,31 @@ public class SdJwtIssuer(
             var parsedClaims = selectiveClaimsList.Select(path =>
             {
                 ArgumentNullException.ThrowIfNull(path);
-                return Uri.TryCreate(path, UriKind.Absolute, out _)
-                    ? ClaimPath.ForLiteralTopLevelName(path)
-                    : ClaimPath.Parse(path);
+                if (Uri.TryCreate(path, UriKind.Absolute, out _))
+                {
+                    return ClaimPath.ForLiteralTopLevelName(path);
+                }
+
+                // JSON member names are opaque. A literal top-level key such as
+                // "account.tier" or "employee[status]" is not necessarily a
+                // nested path or array selector.
+                var pathSeparator = path.IndexOfAny(['.', '[']);
+                if (pathSeparator >= 0 && modifiedClaims.ContainsKey(path))
+                {
+                    // If the structural base also exists, silently interpreting
+                    // the selector as either meaning could disclose the other
+                    // permanently visible top-level claim. Fail closed.
+                    if (modifiedClaims.ContainsKey(path[..pathSeparator]))
+                    {
+                        throw new ArgumentException(
+                            $"Claim selector '{path}' is ambiguous between a top-level member and a nested or array path.",
+                            nameof(selectivelyDisclosableClaims));
+                    }
+
+                    return ClaimPath.ForLiteralTopLevelName(path);
+                }
+
+                return ClaimPath.Parse(path);
             }).ToList();
 
             // Validate that security-critical claims are not selectively disclosable
