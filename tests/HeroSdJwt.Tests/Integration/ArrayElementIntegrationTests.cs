@@ -268,4 +268,21 @@ public class ArrayElementIntegrationTests
         var itemsArray = payload.GetProperty("items");
         Assert.Equal(0, itemsArray.GetArrayLength());
     }
+
+    [Fact]
+    public void CreateSdJwt_NonCanonicalArrayIndex_RejectsUnselectableDisclosurePath()
+    {
+        var claims = new Dictionary<string, object>
+        {
+            ["items"] = new[] { "public", "private" }
+        };
+
+        // Issuance used to accept this alias, but presentation mapping only
+        // exposes "items[1]", so the requested selector could not round-trip.
+        var exception = Assert.Throws<ArgumentException>(() =>
+            _issuer.CreateSdJwt(claims, ["items[01]"], _signingKey, HashAlgorithm.Sha256));
+
+        Assert.Contains("canonical", exception.Message);
+    }
+
 }
