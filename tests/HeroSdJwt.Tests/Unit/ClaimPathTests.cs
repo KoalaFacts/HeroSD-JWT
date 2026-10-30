@@ -186,4 +186,19 @@ public class ClaimPathTests
         // Security fix: ".." is now caught by path traversal validation
         Assert.Contains("path traversal", exception.Message);
     }
+
+    [Theory]
+    [InlineData("items[01]")]
+    [InlineData("items[+1]")]
+    [InlineData("items[ 1]")]
+    [InlineData("items[1 ]")]
+    public void Parse_NonCanonicalArrayIndex_ThrowsArgumentException(string specification)
+    {
+        // Aliases resolve to the same integer but do not match canonical
+        // presentation paths such as "items[1]".
+        var exception = Assert.Throws<ArgumentException>(() => ClaimPath.Parse(specification));
+
+        Assert.Contains("canonical", exception.Message);
+    }
+
 }
