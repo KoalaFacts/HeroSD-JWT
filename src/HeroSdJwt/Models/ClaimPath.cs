@@ -164,6 +164,27 @@ internal readonly struct ClaimPath
 
             ArgumentOutOfRangeException.ThrowIfNegative(index, nameof(index));
 
+            // The presenter maps array paths using the canonical decimal
+            // index (e.g. "items[1]"). Accepting aliases like "[01]", "[+1]"
+            // or "[ 1]" makes a selector valid during issuance but unusable
+            // with the same spelling during presentation.
+            var canonicalIndex = indexStr.Length == 1 || indexStr[0] != '0';
+            foreach (var digit in indexStr)
+            {
+                if (digit is < '0' or > '9')
+                {
+                    canonicalIndex = false;
+                    break;
+                }
+            }
+
+            if (!canonicalIndex)
+            {
+                throw new ArgumentException(
+                    $"Invalid claim specification '{claimSpec}': array index must use canonical ASCII decimal notation.",
+                    nameof(claimSpec));
+            }
+
             // Security: Prevent DoS attacks with unreasonably large array indices
             ArgumentOutOfRangeException.ThrowIfGreaterThan(index, 10000, nameof(index));
 
