@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using HeroSdJwt.Primitives;
 namespace HeroSdJwt.Verification.Revocation;
 
 /// <summary>
@@ -96,13 +97,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     /// <inheritdoc />
     public Task RevokeKeyAsync(string keyId, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(keyId);
-
-        if (string.IsNullOrWhiteSpace(keyId))
-        {
-            throw new ArgumentException("Key ID cannot be empty or whitespace", nameof(keyId));
-        }
-
+        KeyIdValidator.Validate(keyId);
         cancellationToken.ThrowIfCancellationRequested();
 
         var revokedAt = DateTimeOffset.UtcNow;
@@ -114,7 +109,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     /// <inheritdoc />
     public Task<bool> IsKeyRevokedAsync(string keyId, CancellationToken cancellationToken = default)
     {
-        ValidateId(keyId, nameof(keyId));
+        KeyIdValidator.Validate(keyId);
         cancellationToken.ThrowIfCancellationRequested();
 
         return Task.FromResult(_revokedKeys.ContainsKey(keyId));
@@ -123,7 +118,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     /// <inheritdoc />
     public Task UnrevokeKeyAsync(string keyId, CancellationToken cancellationToken = default)
     {
-        ValidateId(keyId, nameof(keyId));
+        KeyIdValidator.Validate(keyId);
         cancellationToken.ThrowIfCancellationRequested();
 
         // Idempotent: TryRemove returns false if key doesn't exist, which is fine
