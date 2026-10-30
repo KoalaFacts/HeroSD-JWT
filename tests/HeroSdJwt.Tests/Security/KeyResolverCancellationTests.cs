@@ -91,7 +91,10 @@ public class KeyResolverCancellationTests
         var verifier = CreateVerifier();
         var presentation = CreatePresentation();
 
-        byte[]? resolver(string _) => throw new OperationCanceledException(backendDiagnostic);
+        static byte[]? resolver(string _)
+        {
+            throw new OperationCanceledException("kms-connection-secret=do-not-disclose");
+        }
 
         var syncResult = verifier.TryVerifyPresentation(presentation, resolver);
         Assert.False(syncResult.IsValid);
