@@ -146,6 +146,28 @@ public class IssuerBuilderNestedClaimOwnershipTests
         }
     }
 
+    [Fact]
+    public void Should_PreserveEnumerableValueTypeSnapshot_When_NestedValueMutates()
+    {
+        // ImmutableArray is a value-type IEnumerable, but its elements can be
+        // mutable objects. It was snapshotted before the POCO fix and must
+        // continue to be snapshotted at configuration time.
+        var contact = new MutableContact { Email = "original@example.test" };
+        var contacts = System.Collections.Immutable.ImmutableArray.Create(contact);
+        var builder = SdJwtIssuerBuilder.Create()
+            .WithClaim("sub", "holder-1")
+            .WithClaim("contacts", contacts)
+            .SignWithHmac(_issuerKey);
+
+        contact.Email = "modified@example.test";
+
+        var sdJwt = builder.Build();
+        using var payload = JsonDocument.Parse(Base64UrlEncoder.DecodeString(sdJwt.Jwt.Split('.')[1]));
+        Assert.Equal(
+            "original@example.test",
+            payload.RootElement.GetProperty("contacts")[0].GetProperty("Email").GetString());
+    }
+
     private sealed class MutableProfile
     {
         public string Name { get; set; } = string.Empty;
