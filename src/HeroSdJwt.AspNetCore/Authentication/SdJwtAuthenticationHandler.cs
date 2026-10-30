@@ -135,6 +135,18 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
 
             return AuthenticateResult.Success(ticket);
         }
+        catch (InvalidOperationException ex) when (
+            string.Equals(
+                ex.Message,
+                "Derived verifiers must override ISdJwtVerifierFactory.CreateVerifier to preserve custom verification behavior.",
+                StringComparison.Ordinal))
+        {
+            // Preserve the library's fixed, documented migration guidance.
+            // Never forward an arbitrary provider exception message.
+            Logger.LogWarning("A derived SD-JWT verifier did not override its policy factory.");
+            return AuthenticateResult.Fail(
+                "Derived verifiers must override ISdJwtVerifierFactory.CreateVerifier to preserve custom verification behavior.");
+        }
         catch (Exception ex)
         {
             // An exception from a custom verifier/factory may contain secrets
