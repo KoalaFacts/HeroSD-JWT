@@ -102,11 +102,12 @@ public class SdJwtIssuer(
             // selectors as literal top-level members, not nested paths;
             // ordinary dot and array selectors keep their existing meaning.
             var parsedClaims = selectiveClaimsList.Select(path =>
-                path is not null &&
-                path.Contains('/') &&
-                Uri.TryCreate(path, UriKind.Absolute, out _)
+            {
+                ArgumentNullException.ThrowIfNull(path);
+                return path.Contains('/') && Uri.TryCreate(path, UriKind.Absolute, out _)
                     ? ClaimPath.ForLiteralTopLevelName(path)
-                    : ClaimPath.Parse(path)).ToList();
+                    : ClaimPath.Parse(path);
+            }).ToList();
 
             // Validate that security-critical claims are not selectively disclosable
             // Per SD-JWT spec section 5.3: "An Issuer MUST NOT allow any content to be
