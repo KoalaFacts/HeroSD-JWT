@@ -79,4 +79,33 @@ public class IssuerImplicitExpirationContractTests
         using var document = JsonDocument.Parse(payload);
         Assert.Equal(explicitExpiration, document.RootElement.GetProperty("exp").GetInt64());
     }
+
+    [Fact]
+    public void Should_InjectCanonicalExpirationWhenCaseInsensitiveClaimsContainUppercaseExp()
+    {
+        // RFC 7519 claim names are case-sensitive, regardless of the
+        // caller's dictionary comparer. EXP is not the registered exp claim.
+        var claims = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["sub"] = "subject-123",
+            ["EXP"] = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds()
+        };
+
+        var issued = TestHelpers.CreateIssuer()
+            .CreateSdJwt(claims, [], _signingKey, HashAlgorithm.Sha256);
+
+        var payload = Base64UrlEncoder.DecodeString(issued.Jwt.Split('.')[1]);
+        using var document = JsonDocument.Parse(payload);
+        Assert.True(document.RootElement.TryGetProperty("EXP", out _));
+        Assert.True(document.RootElement.TryGetProperty("exp", out var expiration));
+        Assert.True(expiration.GetInt64() > DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        Assert.Equal(2, claims.Count);
+        Assert.Contains(claims.Keys, key => key == "EXP");
+
+        var verifier = HeroSdJwt.Verification.SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .Build();
+        var result = verifier.TryVerifyPresentation(issued.ToCombinedFormat(), _signingKey);
+        Assert.True(result.IsValid, result.ErrorDetails);
+    }
 }
