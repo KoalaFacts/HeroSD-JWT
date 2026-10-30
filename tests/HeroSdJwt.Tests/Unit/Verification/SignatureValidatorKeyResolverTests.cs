@@ -1,10 +1,10 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
-using System.Security.Cryptography;
-using System.Text.Json;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace HeroSdJwt.Tests.Unit.Verification;
 
@@ -329,6 +329,7 @@ public class SignatureValidatorKeyResolverTests
         Assert.Equal(ErrorCode.KeyIdTooLong, exception.ErrorCode);
         Assert.False(resolverCalled);
     }
+
     // Negative verifier tests must retain a correctly signed imported token.
     // Build its JOSE header directly rather than asking the public signer to
     // create a malformed kid that the signer now refuses.
@@ -340,10 +341,9 @@ public class SignatureValidatorKeyResolverTests
             typ = "JWT",
             kid = keyId
         }));
-        var payload = Base64UrlEncoder.Encode("{\"sub\":\"user-123\"}");
+        var payload = Base64UrlEncoder.Encode(JsonSerializer.Serialize(new { sub = "user-123" }));
         var signingInput = $"{header}.{payload}";
         var signature = HMACSHA256.HashData(hmacKey, System.Text.Encoding.UTF8.GetBytes(signingInput));
         return $"{signingInput}.{Base64UrlEncoder.Encode(signature)}";
     }
-
 }
