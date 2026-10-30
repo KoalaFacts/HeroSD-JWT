@@ -132,4 +132,40 @@ public class EcJwkKeyAdmissionTests
         Assert.NotEmpty(converter.FromJwk(document.RootElement));
         Assert.NotEmpty(converter.FromJwkObject(jwk));
     }
+
+    [Theory]
+    [InlineData("kty")]
+    [InlineData("crv")]
+    [InlineData("x")]
+    [InlineData("y")]
+    public void FromJwkObject_ShouldRejectCaseAliasedRequiredMembersInCaseInsensitiveDictionary(string member)
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var converter = new EcPublicKeyConverter();
+        var jwk = new Dictionary<string, object>(
+            converter.ToJwk(holder.ExportSubjectPublicKeyInfo()),
+            StringComparer.OrdinalIgnoreCase);
+
+        // The dictionary can resolve the wrong spelling during lookup, but the
+        // serialized JWK does not contain the required case-sensitive member.
+        var value = jwk[member];
+        Assert.True(jwk.Remove(member));
+        jwk.Add(member.ToUpperInvariant(), value);
+
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(jwk));
+        Assert.Throws<ArgumentException>(() => converter.FromJwk(document.RootElement));
+        Assert.Throws<ArgumentException>(() => converter.FromJwkObject(jwk));
+    }
+
+    [Fact]
+    public void FromJwkObject_ShouldAcceptCanonicalMembersWithCaseInsensitiveDictionary()
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var converter = new EcPublicKeyConverter();
+        var jwk = new Dictionary<string, object>(
+            converter.ToJwk(holder.ExportSubjectPublicKeyInfo()),
+            StringComparer.OrdinalIgnoreCase);
+
+        Assert.NotEmpty(converter.FromJwkObject(jwk));
+    }
 }
