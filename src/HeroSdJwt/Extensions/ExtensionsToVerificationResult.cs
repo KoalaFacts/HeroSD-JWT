@@ -241,6 +241,14 @@ public static class ExtensionsToVerificationResult
     // verification result and must not stop reconstruction of other claims.
     private static bool TryParseReconstructionPath(string name, out ClaimPath path)
     {
+        // RFC 7519 URI claim names (including dotted URNs) are opaque JSON
+        // member names, not dotted paths for convenience reconstruction.
+        if (Uri.TryCreate(name, UriKind.Absolute, out _))
+        {
+            path = default;
+            return false;
+        }
+
         try
         {
             path = ClaimPath.Parse(name);
