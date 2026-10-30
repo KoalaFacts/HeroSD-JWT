@@ -84,6 +84,8 @@ public class JwtSigner : IJwtSigner
         // Add key ID if provided (RFC 7515 Section 4.1.4)
         if (!string.IsNullOrWhiteSpace(keyId))
         {
+            // Only emit key IDs that the verifier and revocation stores accept.
+            KeyIdValidator.Validate(keyId);
             header["kid"] = keyId;
         }
 
