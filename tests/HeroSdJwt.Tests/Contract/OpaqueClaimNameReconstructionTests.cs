@@ -35,6 +35,14 @@ public class OpaqueClaimNameReconstructionTests
     }
 
     [Fact]
+    public void GetDisclosedObject_Should_NotTreatDottedUrnAsNestedProperty()
+    {
+        var result = CreateResult();
+
+        Assert.Null(result.GetDisclosedObject("urn:example:claims"));
+    }
+
+    [Fact]
     public void GetReconstructibleClaims_Should_IgnoreUnrelatedUriClaimName()
     {
         var result = CreateResult();
@@ -53,6 +61,7 @@ public class OpaqueClaimNameReconstructionTests
         using var document = JsonDocument.Parse("""
             {
               "https://example.org/claims/employee-id": "employee-42",
+              "urn:example:claims.employee-id": "employee-99",
               "degrees[1]": "MBA",
               "address.street": "Main Street"
             }

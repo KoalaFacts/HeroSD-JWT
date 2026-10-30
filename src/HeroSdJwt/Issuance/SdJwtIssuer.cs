@@ -98,13 +98,13 @@ public class SdJwtIssuer(
         try
         {
             // Parse claim specifications to separate simple claims from array elements
-            // RFC 7519 allows URI-valued claim names. Treat URI-shaped
-            // selectors as literal top-level members, not nested paths;
-            // ordinary dot and array selectors keep their existing meaning.
+            // RFC 7519 allows absolute URI claim names, including URNs that
+            // contain dots but no slash. Treat URI selectors as literal
+            // top-level members; ordinary nested and array paths are unchanged.
             var parsedClaims = selectiveClaimsList.Select(path =>
             {
                 ArgumentNullException.ThrowIfNull(path);
-                return path.Contains('/') && Uri.TryCreate(path, UriKind.Absolute, out _)
+                return Uri.TryCreate(path, UriKind.Absolute, out _)
                     ? ClaimPath.ForLiteralTopLevelName(path)
                     : ClaimPath.Parse(path);
             }).ToList();
