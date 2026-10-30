@@ -42,8 +42,10 @@ public sealed class DigestValidatorErrorDisclosureTests
             .WithDigestValidator(new FailingDigestValidator(failingStage, domainException))
             .Build();
 
-        static byte[]? ResolveKey(string keyId) =>
-            keyId == "digest-validator-test-key" ? _signingKey : null;
+        static byte[]? ResolveKey(string keyId)
+        {
+            return keyId == "digest-validator-test-key" ? _signingKey : null;
+        }
 
         foreach (var useResolver in new[] { false, true })
         {
@@ -87,13 +89,28 @@ public sealed class DigestValidatorErrorDisclosureTests
 
     private sealed class FailingDigestValidator(string failingStage, bool domainException) : IDigestValidator
     {
-        public bool ValidateDigest(string disclosure, Digest expectedDigest, HashAlgorithm algorithm) =>
-            failingStage == "single" ? Fail() : false;
+        public bool ValidateDigest(string disclosure, Digest expectedDigest, HashAlgorithm algorithm)
+        {
+            if (failingStage == "single")
+            {
+                return Fail();
+            }
+
+            return false;
+        }
 
         public bool ValidateAllDigests(
             IReadOnlyList<string> disclosures,
             IReadOnlyList<Digest> expectedDigests,
-            HashAlgorithm algorithm) => failingStage == "all" ? Fail() : true;
+            HashAlgorithm algorithm)
+        {
+            if (failingStage == "all")
+            {
+                return Fail();
+            }
+
+            return true;
+        }
 
         private bool Fail()
         {

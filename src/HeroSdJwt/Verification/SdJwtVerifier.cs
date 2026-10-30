@@ -941,31 +941,49 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 }
             }
 
-            if (nonArrayDisclosures.Any(disclosure => arrayDigests.Any(digest =>
-                _digestValidator.ValidateDigest(disclosure, digest, algorithm))))
+            // Custom digest validators may use remote services. Never surface
+            // backend exception text, including domain exception messages, to
+            // callers. A failed validator must always reject the presentation.
+            try
             {
-                errors.Add(ErrorCode.InvalidInput);
-                return new VerificationResult(errors, "Array placeholders require two-element disclosures");
-            }
-
-            // A two-element Disclosure is valid only for an array placeholder.
-            // A matching object _sd digest cannot turn it into a claim value.
-            if (arrayDisclosures.Any(disclosure => expectedDigests.Any(digest =>
-                !arrayDigests.Any(arrayDigest => arrayDigest.Value == digest.Value) &&
-                _digestValidator.ValidateDigest(disclosure, digest, algorithm))))
-            {
-                errors.Add(ErrorCode.InvalidInput);
-                return new VerificationResult(errors, "Object disclosure digests require three-element disclosures");
-            }
-
-            if (disclosures.Count > 0)
-            {
-                bool digestsValid = _digestValidator.ValidateAllDigests(disclosures, expectedDigests, algorithm);
-                if (!digestsValid)
+                if (nonArrayDisclosures.Any(disclosure => arrayDigests.Any(digest =>
+                    _digestValidator.ValidateDigest(disclosure, digest, algorithm))))
                 {
-                    errors.Add(ErrorCode.DigestMismatch);
-                    errorDetails.Add("Disclosure digest validation failed");
+                    errors.Add(ErrorCode.InvalidInput);
+                    return new VerificationResult(errors, "Array placeholders require two-element disclosures");
                 }
+
+                // A two-element Disclosure is valid only for an array placeholder.
+                // A matching object _sd digest cannot turn it into a claim value.
+                if (arrayDisclosures.Any(disclosure => expectedDigests.Any(digest =>
+                    !arrayDigests.Any(arrayDigest => arrayDigest.Value == digest.Value) &&
+                    _digestValidator.ValidateDigest(disclosure, digest, algorithm))))
+                {
+                    errors.Add(ErrorCode.InvalidInput);
+                    return new VerificationResult(errors, "Object disclosure digests require three-element disclosures");
+                }
+
+                if (disclosures.Count > 0)
+                {
+                    bool digestsValid = _digestValidator.ValidateAllDigests(disclosures, expectedDigests, algorithm);
+                    if (!digestsValid)
+                    {
+                        errors.Add(ErrorCode.DigestMismatch);
+                        errorDetails.Add("Disclosure digest validation failed");
+                    }
+                }
+
+            }
+            catch (OperationCanceledException)
+            {
+                // Preserve cancellation for throwing async verification APIs.
+                throw;
+            }
+            catch (Exception)
+            {
+                errors.Add(ErrorCode.DigestMismatch);
+                errorDetails.Add("Disclosure digest validation failed");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
             // The KB-JWT audience identifies the verifier and is independent of
