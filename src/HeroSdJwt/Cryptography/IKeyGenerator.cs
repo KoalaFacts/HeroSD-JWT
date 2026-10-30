@@ -11,7 +11,7 @@ public interface IKeyGenerator
     /// <summary>
     /// Generates a cryptographically secure HMAC key.
     /// </summary>
-    /// <param name="bits">Key size in bits (default: 256).</param>
+    /// <param name="bits">Key size in bits (minimum 256, default 256). Use 384 for HS384 or 512 for HS512.</param>
     /// <returns>Randomly generated HMAC key.</returns>
     byte[] GenerateHmacKey(int bits = 256);
 
