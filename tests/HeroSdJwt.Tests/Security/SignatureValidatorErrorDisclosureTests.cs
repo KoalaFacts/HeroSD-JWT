@@ -90,8 +90,10 @@ public sealed class SignatureValidatorErrorDisclosureTests
             new KeyBindingValidator(),
             new ClaimValidator());
 
-        static byte[]? ResolveKey(string keyId) =>
-            keyId == "signature-test-key" ? _signingKey : null;
+        static byte[]? ResolveKey(string keyId)
+        {
+            return keyId == "signature-test-key" ? _signingKey : null;
+        }
 
         var expectedCode = confusion ? ErrorCode.AlgorithmConfusion : ErrorCode.UnsupportedAlgorithm;
 

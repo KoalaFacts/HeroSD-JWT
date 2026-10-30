@@ -759,13 +759,25 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             {
                 signatureValid = _signatureValidator.VerifyJwtSignature(jwt, publicKey);
             }
+            catch (AlgorithmConfusionException) when (_signatureValidator.GetType() != typeof(SignatureValidator))
+            {
+                // Custom providers may include KMS diagnostics in an algorithm exception.
+                // Preserve the domain error code without exposing its message.
+                errors.Add(ErrorCode.AlgorithmConfusion);
+                errorDetails.Add("Signature validator reported algorithm confusion");
+            }
             catch (AlgorithmConfusionException)
             {
-                throw; // Re-throw algorithm confusion exceptions
+                throw; // Preserve the built-in validator's existing exception contract.
+            }
+            catch (AlgorithmNotSupportedException) when (_signatureValidator.GetType() != typeof(SignatureValidator))
+            {
+                errors.Add(ErrorCode.UnsupportedAlgorithm);
+                errorDetails.Add("Signature validator reported an unsupported algorithm");
             }
             catch (AlgorithmNotSupportedException)
             {
-                throw; // Re-throw unsupported algorithm exceptions
+                throw; // Preserve the built-in validator's existing exception contract.
             }
             catch (Exception)
             {
