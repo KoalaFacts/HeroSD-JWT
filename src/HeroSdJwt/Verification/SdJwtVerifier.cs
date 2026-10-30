@@ -200,9 +200,9 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             // Preserve the error code from SdJwtException
             return new VerificationResult(ex.ErrorCode, $"Verification failed: {ex.Message}");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return new VerificationResult(ErrorCode.InvalidInput, $"Verification failed: {ex.Message}");
+            return new VerificationResult(ErrorCode.InvalidInput, "Verification failed");
         }
     }
 
@@ -251,7 +251,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         catch (AlgorithmConfusionException ex) { return new VerificationResult(ErrorCode.AlgorithmConfusion, ex.Message); }
         catch (AlgorithmNotSupportedException ex) { return new VerificationResult(ErrorCode.UnsupportedAlgorithm, ex.Message); }
         catch (SdJwtException ex) { return new VerificationResult(ex.ErrorCode, $"Verification failed: {ex.Message}"); }
-        catch (Exception ex) { return new VerificationResult(ErrorCode.InvalidInput, $"Verification failed: {ex.Message}"); }
+        catch (Exception) { return new VerificationResult(ErrorCode.InvalidInput, "Verification failed"); }
     }
 
     /// <summary>
@@ -334,9 +334,9 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         {
             return new VerificationResult(ex.ErrorCode, $"Verification failed: {ex.Message}");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return new VerificationResult(ErrorCode.InvalidInput, $"Verification failed: {ex.Message}");
+            return new VerificationResult(ErrorCode.InvalidInput, "Verification failed");
         }
     }
 
@@ -386,7 +386,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         catch (AlgorithmConfusionException ex) { return new VerificationResult(ErrorCode.AlgorithmConfusion, ex.Message); }
         catch (AlgorithmNotSupportedException ex) { return new VerificationResult(ErrorCode.UnsupportedAlgorithm, ex.Message); }
         catch (SdJwtException ex) { return new VerificationResult(ex.ErrorCode, $"Verification failed: {ex.Message}"); }
-        catch (Exception ex) { return new VerificationResult(ErrorCode.InvalidInput, $"Verification failed: {ex.Message}"); }
+        catch (Exception) { return new VerificationResult(ErrorCode.InvalidInput, "Verification failed"); }
     }
 
     // The async VerifyPresentation contract is throwing, unlike TryVerifyPresentation.

@@ -84,6 +84,30 @@ public class KeyResolverCancellationTests
         }
     }
 
+    [Fact]
+    public async Task Should_RedactBackendCancellationDetails_InTryVerificationResults()
+    {
+        const string backendDiagnostic = "kms-connection-secret=do-not-disclose";
+        var verifier = CreateVerifier();
+        var presentation = CreatePresentation();
+
+        static byte[]? resolver(string _)
+        {
+            throw new OperationCanceledException("kms-connection-secret=do-not-disclose");
+        }
+
+        var syncResult = verifier.TryVerifyPresentation(presentation, resolver);
+        Assert.False(syncResult.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, syncResult.Errors);
+        Assert.DoesNotContain(backendDiagnostic, syncResult.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+
+        var asyncResult = await verifier.TryVerifyPresentationAsync(
+            presentation, resolver, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.False(asyncResult.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, asyncResult.Errors);
+        Assert.DoesNotContain(backendDiagnostic, asyncResult.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+    }
+
     private static SdJwtVerifier CreateVerifier() =>
         TestHelpers.CreateVerifier(new SdJwtVerificationOptions
         {
