@@ -102,12 +102,14 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
 
             if (!result.IsValid)
             {
+                // ErrorDetails may originate from application-provided verifiers
+                // or external KMS/database services. Keep it out of public
+                // authentication failures and routine logs.
                 Logger.LogWarning(
-                    "SD-JWT verification failed. Errors: {Errors}. Details: {Details}",
-                string.Join(", ", result.Errors),
-                result.ErrorDetails);
+                    "SD-JWT verification failed. Errors: {Errors}",
+                    string.Join(", ", result.Errors));
 
-                return AuthenticateResult.Fail($"SD-JWT verification failed: {result.ErrorDetails}");
+                return AuthenticateResult.Fail("SD-JWT verification failed");
             }
 
             // Map both JWT payload claims and disclosed claims to ClaimsPrincipal
@@ -133,10 +135,26 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
 
             return AuthenticateResult.Success(ticket);
         }
+        catch (InvalidOperationException ex) when (
+            string.Equals(
+                ex.Message,
+                "Derived verifiers must override ISdJwtVerifierFactory.CreateVerifier to preserve custom verification behavior.",
+                StringComparison.Ordinal))
+        {
+            // Preserve the library's fixed, documented migration guidance.
+            // Never forward an arbitrary provider exception message.
+            Logger.LogWarning("A derived SD-JWT verifier did not override its policy factory.");
+            return AuthenticateResult.Fail(
+                "Derived verifiers must override ISdJwtVerifierFactory.CreateVerifier to preserve custom verification behavior.");
+        }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Exception occurred during SD-JWT authentication");
-            return AuthenticateResult.Fail($"Authentication error: {ex.Message}");
+            // An exception from a custom verifier/factory may contain secrets
+            // in both its message and inner exception. Log only its type.
+            Logger.LogError(
+                "Exception occurred during SD-JWT authentication. Type: {ExceptionType}",
+                ex.GetType().Name);
+            return AuthenticateResult.Fail("SD-JWT authentication failed");
         }
     }
 
