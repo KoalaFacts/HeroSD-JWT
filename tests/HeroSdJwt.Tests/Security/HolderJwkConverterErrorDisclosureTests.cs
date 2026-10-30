@@ -42,8 +42,10 @@ public sealed class HolderJwkConverterErrorDisclosureTests
             new KeyBindingValidator(),
             new ClaimValidator());
 
-        static byte[]? ResolveKey(string keyId) =>
-            keyId == "issuer-key" ? _issuerKey : null;
+        static byte[]? ResolveKey(string keyId)
+        {
+            return keyId == "issuer-key" ? _issuerKey : null;
+        }
 
         var result = useResolver
             ? verifier.TryVerifyPresentation(presentation, ResolveKey)
