@@ -13,15 +13,16 @@ public class ReplayAndRevocationExceptionTests
     // ---- ReplayAttackException ----
 
     [Fact]
-    public void ReplayAttack_DefaultMessage_IncludesJtiAndIssuer()
+    public void ReplayAttack_DefaultMessage_DoesNotExposeJtiOrIssuer()
     {
         var ex = new ReplayAttackException("jti-1", "https://issuer");
 
         Assert.Equal("jti-1", ex.Jti);
         Assert.Equal("https://issuer", ex.Issuer);
         Assert.Equal(ErrorCode.ReplayAttack, ex.ErrorCode);
-        Assert.Contains("jti-1", ex.Message);
-        Assert.Contains("https://issuer", ex.Message);
+        Assert.Equal("Token replay detected", ex.Message);
+        Assert.DoesNotContain("jti-1", ex.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("https://issuer", ex.ToString(), StringComparison.Ordinal);
         Assert.True(ex.DetectedAt <= DateTimeOffset.UtcNow);
     }
 

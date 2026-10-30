@@ -391,6 +391,8 @@ public class ReplayProtectionIntegrationTests : IDisposable
         // Assert - Should return false with ReplayAttack error
         Assert.False(result2.IsValid, "Second TryVerify should fail");
         Assert.Contains(ErrorCode.ReplayAttack, result2.Errors);
+        Assert.DoesNotContain(jti, result2.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain("https://issuer.example.com", result2.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
     }
 
     // Helper methods

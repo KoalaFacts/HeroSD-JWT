@@ -34,7 +34,7 @@ public class ReplayAttackException : SdJwtException
         string issuer,
         string? message = null)
         : base(
-            message ?? $"Token replay detected: jti '{jti}' from issuer '{issuer}' has already been used",
+            message ?? "Token replay detected",
             ErrorCode.ReplayAttack)
     {
         Jti = jti ?? throw new ArgumentNullException(nameof(jti));
