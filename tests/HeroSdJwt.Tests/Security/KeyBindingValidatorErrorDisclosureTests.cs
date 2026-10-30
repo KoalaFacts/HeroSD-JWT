@@ -6,7 +6,6 @@ using HeroSdJwt.Presentation;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -35,8 +34,10 @@ public sealed class KeyBindingValidatorErrorDisclosureTests
             .WithKeyBindingValidator(new ThrowingKeyBindingValidator(domainException))
             .Build();
 
-        static byte[]? ResolveKey(string kid) =>
-            kid == "holder-proof-test-key" ? _issuerKey : null;
+        static byte[]? ResolveKey(string kid)
+        {
+            return kid == "holder-proof-test-key" ? _issuerKey : null;
+        }
 
         foreach (var useResolver in new[] { false, true })
         {
@@ -111,7 +112,7 @@ public sealed class KeyBindingValidatorErrorDisclosureTests
         var presenter = new SdJwtPresenter();
         var unsignedPresentation = presenter.FormatPresentation(
             presenter.CreatePresentationWithAllClaims(issued));
-        var hash = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.UTF8.GetBytes(unsignedPresentation)));
+        var hash = Base64UrlEncoder.Encode(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(unsignedPresentation)));
         var proof = new KeyBindingGenerator().CreateKeyBindingJwt(
             holder.ExportECPrivateKey(), hash, AUDIENCE, NONCE);
         return presenter.FormatPresentation(presenter.CreatePresentationWithAllClaims(issued, proof));
