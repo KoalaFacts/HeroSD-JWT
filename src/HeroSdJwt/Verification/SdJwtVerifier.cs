@@ -1076,10 +1076,13 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     errorDetails.Add("Invalid cnf claim: holder key curve is unsupported on this platform");
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
-                catch (ArgumentException ex)
+                catch (ArgumentException)
                 {
+                    // Custom JWK converters may query KMS or policy services.
+                    // Their exception messages can contain secrets; return only
+                    // a fixed public diagnostic while retaining InvalidInput.
                     errors.Add(ErrorCode.InvalidInput);
-                    errorDetails.Add($"Invalid cnf claim JWK: {ex.Message}");
+                    errorDetails.Add("Invalid cnf claim JWK");
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
 
