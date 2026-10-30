@@ -286,7 +286,7 @@ public class SdJwtIssuerTests
     #region Null SelectivelyDisclosableClaims Tests
 
     [Fact]
-    public void CreateSdJwt_WithNullSelectiveClaims_TreatsAsEmptyList()
+    public void CreateSdJwt_WithEmptySelectiveClaims_TreatsAsEmptyList()
     {
         // Arrange
         var claims = new Dictionary<string, object>
@@ -295,10 +295,10 @@ public class SdJwtIssuerTests
             ["email"] = "user@example.com"
         };
 
-        // Act
-        var result = _issuer.CreateSdJwt(claims, null!, _signingKey, HashAlgorithm.Sha256);
+        // Act - An explicit empty selection is different from a missing policy.
+        var result = _issuer.CreateSdJwt(claims, [], _signingKey, HashAlgorithm.Sha256);
 
-        // Assert - Should not throw, should treat as no selective disclosures
+        // Assert - The explicit empty policy produces no disclosures.
         Assert.NotNull(result);
         Assert.Empty(result.Disclosures);
     }

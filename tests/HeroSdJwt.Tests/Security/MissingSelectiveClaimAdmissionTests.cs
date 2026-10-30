@@ -10,6 +10,25 @@ namespace HeroSdJwt.Tests.Security;
 /// </summary>
 public class MissingSelectiveClaimAdmissionTests
 {
+    [Fact]
+    public void Should_RejectNullSelectivePolicy_InsteadOfPublishingPrivateClaims()
+    {
+        var claims = new Dictionary<string, object>
+        {
+            ["email"] = "private@example.com"
+        };
+
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            TestHelpers.CreateIssuer().CreateSdJwt(
+                claims,
+                null!,
+                KeyGenerator.Instance.GenerateHmacKey(),
+                HashAlgorithm.Sha256));
+
+        Assert.Equal("selectivelyDisclosableClaims", exception.ParamName);
+        Assert.Equal("private@example.com", claims["email"]);
+    }
+
     [Theory]
     [InlineData("missing")]
     [InlineData("missing[0]")]
