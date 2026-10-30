@@ -50,7 +50,8 @@ public class SignatureValidator : ISignatureValidator
 
         // Decode and parse header
         var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
-        var header = JsonDocument.Parse(headerJson).RootElement;
+        using var headerDocument = JsonDocument.Parse(headerJson);
+        var header = headerDocument.RootElement;
 
         if (JoseHeaderGuard.HasInvalidOrUnsupportedParameters(header))
         {
@@ -450,7 +451,8 @@ public class SignatureValidator : ISignatureValidator
 
         // Decode and parse header
         var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
-        var header = JsonDocument.Parse(headerJson).RootElement;
+        using var headerDocument = JsonDocument.Parse(headerJson);
+        var header = headerDocument.RootElement;
 
         if (JoseHeaderGuard.HasInvalidOrUnsupportedParameters(header))
         {
