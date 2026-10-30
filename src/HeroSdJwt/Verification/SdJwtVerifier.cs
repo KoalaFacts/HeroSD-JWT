@@ -1108,13 +1108,27 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
 
-                // Validate key binding JWT
-                bool keyBindingValid = _keyBindingValidator.ValidateKeyBinding(
-                    keyBindingJwt,
-                    holderPublicKey,
-                    sdJwtHash,
-                    keyBindingAudiences,
-                    _options.ExpectedNonce);
+                // Application-provided holder-proof validators may consult KMS
+                // or policy services. Fail closed without exposing diagnostics.
+                bool keyBindingValid;
+                try
+                {
+                    keyBindingValid = _keyBindingValidator.ValidateKeyBinding(
+                        keyBindingJwt,
+                        holderPublicKey,
+                        sdJwtHash,
+                        keyBindingAudiences,
+                        _options.ExpectedNonce);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Preserve caller and provider cancellation in throwing APIs.
+                    throw;
+                }
+                catch (Exception)
+                {
+                    keyBindingValid = false;
+                }
 
                 if (!keyBindingValid)
                 {
