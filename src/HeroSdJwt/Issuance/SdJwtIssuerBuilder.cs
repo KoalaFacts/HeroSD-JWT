@@ -51,7 +51,10 @@ public class SdJwtIssuerBuilder
             return element.Clone();
         }
 
-        if (value is System.Collections.IEnumerable and not string)
+        // Every caller-owned reference graph can be mutated after configuration,
+        // including POCOs that do not implement IEnumerable. Snapshot its exact
+        // signed JSON representation now, not later when Build() is called.
+        if (value is not null && value is not string && !value.GetType().IsValueType)
         {
             using var snapshot = JwtSigner.SerializeClaimValueDocument(value);
             return snapshot.RootElement.Clone();
