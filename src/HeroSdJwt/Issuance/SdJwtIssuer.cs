@@ -54,6 +54,7 @@ public class SdJwtIssuer(
         string? keyId = null)
     {
         ArgumentNullException.ThrowIfNull(claims);
+        ArgumentNullException.ThrowIfNull(selectivelyDisclosableClaims);
         ArgumentNullException.ThrowIfNull(signingKey);
 
         // Normalize to case-sensitive JSON names even if the caller supplied
@@ -90,7 +91,7 @@ public class SdJwtIssuer(
                 ex);
         }
 
-        var selectiveClaimsList = selectivelyDisclosableClaims?.ToList() ?? [];
+        var selectiveClaimsList = selectivelyDisclosableClaims.ToList();
 
         // Repeating the same selective path must not create multiple salted
         // Disclosures: that would make claim-path mapping ambiguous at issuance.
