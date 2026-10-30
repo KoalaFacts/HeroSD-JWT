@@ -1,3 +1,4 @@
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification.Revocation;
 using Microsoft.Extensions.Caching.Distributed;
 
@@ -54,7 +55,7 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
     /// <inheritdoc />
     public async Task RevokeKeyAsync(string keyId, CancellationToken cancellationToken = default)
     {
-        ValidateId(keyId, nameof(keyId));
+        KeyIdValidator.Validate(keyId);
         cancellationToken.ThrowIfCancellationRequested();
 
         var key = BuildKeyIdKey(keyId);
@@ -64,7 +65,7 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
     /// <inheritdoc />
     public async Task<bool> IsKeyRevokedAsync(string keyId, CancellationToken cancellationToken = default)
     {
-        ValidateId(keyId, nameof(keyId));
+        KeyIdValidator.Validate(keyId);
         cancellationToken.ThrowIfCancellationRequested();
 
         var key = BuildKeyIdKey(keyId);
@@ -75,7 +76,7 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
     /// <inheritdoc />
     public Task UnrevokeKeyAsync(string keyId, CancellationToken cancellationToken = default)
     {
-        ValidateId(keyId, nameof(keyId));
+        KeyIdValidator.Validate(keyId);
         cancellationToken.ThrowIfCancellationRequested();
 
         var key = BuildKeyIdKey(keyId);

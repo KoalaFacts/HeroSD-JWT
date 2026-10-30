@@ -113,6 +113,28 @@ public class DistributedRevocationStoreTests : IDisposable
         Assert.False(await store.IsKeyRevokedAsync("kid-1", TestContext.Current.CancellationToken));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task KeyRevocationOperations_RejectIdsVerifierCannotAccept(int invalidCase)
+    {
+        var keyId = invalidCase switch
+        {
+            0 => "kid\nforged-log-line",
+            1 => "kid-\u00e9",
+            _ => new string('k', 257)
+        };
+        var store = new DistributedRevocationStore(_cache);
+        var token = TestContext.Current.CancellationToken;
+
+        await Assert.ThrowsAsync<ArgumentException>(() => store.RevokeKeyAsync(keyId, token));
+        Assert.Null(await _cache.GetAsync($"sdjwt:revocation:kid:{keyId}", token));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => store.IsKeyRevokedAsync(keyId, token));
+        await Assert.ThrowsAsync<ArgumentException>(() => store.UnrevokeKeyAsync(keyId, token));
+    }
+
     [Fact]
     public async Task RevokeUserAsync_SetsFlag()
     {
