@@ -41,10 +41,16 @@ public static class ExtensionsToVerificationResult
 
         // Find all array element claims for this base name
         var arrayElements = new SortedDictionary<int, JsonElement>();
+        var arrayPrefix = $"{claimName}[";
 
         foreach (var (key, value) in result.DisclosedClaims)
         {
-            var path = ClaimPath.Parse(key);
+            // Opaque claims (such as URI-named JSON claims) are not array paths.
+            if (!key.StartsWith(arrayPrefix, StringComparison.Ordinal) ||
+                !TryParseReconstructionPath(key, out var path))
+            {
+                continue;
+            }
 
             if (path.BaseName == claimName && path.IsArrayElement)
             {
@@ -108,10 +114,15 @@ public static class ExtensionsToVerificationResult
 
         // Find all nested property claims for this base name
         var nestedProperties = new List<(string[] path, JsonElement value)>();
+        var objectPrefix = $"{claimName}.";
 
         foreach (var (key, value) in result.DisclosedClaims)
         {
-            var path = ClaimPath.Parse(key);
+            if (!key.StartsWith(objectPrefix, StringComparison.Ordinal) ||
+                !TryParseReconstructionPath(key, out var path))
+            {
+                continue;
+            }
 
             if (path.BaseName == claimName && path.IsNested)
             {
@@ -182,7 +193,10 @@ public static class ExtensionsToVerificationResult
 
         foreach (var (key, _) in result.DisclosedClaims)
         {
-            var path = ClaimPath.Parse(key);
+            if (!TryParseReconstructionPath(key, out var path))
+            {
+                continue;
+            }
 
             // Skip if we've already categorized this base name
             if (reconstructible.ContainsKey(path.BaseName))
@@ -203,5 +217,22 @@ public static class ExtensionsToVerificationResult
         }
 
         return reconstructible;
+    }
+
+    // Only dotted property and canonical array selectors belong to this convenience
+    // API. Arbitrary JSON claim names (including URI claims) remain valid in a
+    // verification result and must not stop reconstruction of other claims.
+    private static bool TryParseReconstructionPath(string name, out ClaimPath path)
+    {
+        try
+        {
+            path = ClaimPath.Parse(name);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            path = default;
+            return false;
+        }
     }
 }
