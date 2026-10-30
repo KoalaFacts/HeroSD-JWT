@@ -74,6 +74,37 @@ public class LiteralUriClaimDisclosureTests
         _ = Assert.Single(presenter.CreatePresentation(credential, [claimName]).SelectedDisclosures);
     }
 
+    [Theory]
+    [InlineData("https://example.org/credentials/contact.email", false)]
+    [InlineData("https://example.org/credentials/contact.email", true)]
+    [InlineData("urn:example:employee.contact.email", false)]
+    [InlineData("urn:example:employee.contact.email", true)]
+    public void Should_KeepNestedShortNameSelection_WhenUriClaimHasSameSuffix(
+        string uriClaimName,
+        bool importWithoutCachedMapping)
+    {
+        var key = KeyGenerator.Instance.GenerateHmacKey();
+        var issued = SdJwtIssuerBuilder.Create()
+            .WithClaim("profile", new { email = "nested-value" })
+            .WithClaim(uriClaimName, "opaque-value")
+            .MakeSelective("profile.email", uriClaimName)
+            .SignWithHmac(key)
+            .Build();
+
+        var credential = importWithoutCachedMapping
+            ? new SdJwt(issued.Jwt, issued.Disclosures, issued.HashAlgorithm)
+            : issued;
+        var presenter = new SdJwtPresenter();
+
+        var presentation = presenter.CreatePresentation(credential, ["email"]);
+        _ = Assert.Single(presentation.SelectedDisclosures);
+
+        var result = TestHelpers.CreateVerifier().VerifyPresentation(
+            presenter.FormatPresentation(presentation), key);
+        Assert.True(result.IsValid);
+        Assert.DoesNotContain(uriClaimName, result.DisclosedClaims.Keys);
+    }
+
     [Fact]
     public void Should_RejectUnknownUriSelector_WhenClaimDoesNotExist()
     {
