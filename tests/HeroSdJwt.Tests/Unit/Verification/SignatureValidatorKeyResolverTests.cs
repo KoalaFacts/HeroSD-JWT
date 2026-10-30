@@ -1,5 +1,8 @@
 using HeroSdJwt.Cryptography;
+using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
+using System.Security.Cryptography;
+using System.Text.Json;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 
@@ -284,10 +287,9 @@ public class SignatureValidatorKeyResolverTests
     {
         // Arrange
         var hmacKey = _keyGen.GenerateHmacKey();
-        var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
         var keyId = "key-\u0001-invalid";
 
-        var jwt = _signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = CreateSignedHmacJwtWithKeyId(hmacKey, keyId);
 
         var resolverCalled = false;
         byte[]? resolver(string kid)
@@ -309,10 +311,9 @@ public class SignatureValidatorKeyResolverTests
     {
         // Arrange
         var hmacKey = _keyGen.GenerateHmacKey();
-        var payload = new Dictionary<string, object> { ["sub"] = "user-123" };
         var keyId = new string('k', 300);
 
-        var jwt = _signer.CreateJwt(payload, hmacKey, SignatureAlgorithm.HS256, keyId);
+        var jwt = CreateSignedHmacJwtWithKeyId(hmacKey, keyId);
 
         var resolverCalled = false;
         byte[]? resolver(string kid)
@@ -328,4 +329,21 @@ public class SignatureValidatorKeyResolverTests
         Assert.Equal(ErrorCode.KeyIdTooLong, exception.ErrorCode);
         Assert.False(resolverCalled);
     }
+    // Negative verifier tests must retain a correctly signed imported token.
+    // Build its JOSE header directly rather than asking the public signer to
+    // create a malformed kid that the signer now refuses.
+    private static string CreateSignedHmacJwtWithKeyId(byte[] hmacKey, string keyId)
+    {
+        var header = Base64UrlEncoder.Encode(JsonSerializer.Serialize(new
+        {
+            alg = "HS256",
+            typ = "JWT",
+            kid = keyId
+        }));
+        var payload = Base64UrlEncoder.Encode("{\"sub\":\"user-123\"}");
+        var signingInput = $"{header}.{payload}";
+        var signature = HMACSHA256.HashData(hmacKey, System.Text.Encoding.UTF8.GetBytes(signingInput));
+        return $"{signingInput}.{Base64UrlEncoder.Encode(signature)}";
+    }
+
 }
