@@ -196,6 +196,15 @@ public class EcPublicKeyConverter : IEcPublicKeyConverter
     /// </summary>
     private byte[] FromJwkDictionary(Dictionary<string, object> dict)
     {
+        // RFC 7517 member names are case-sensitive, independently of the
+        // comparer chosen by callers. Keep ordinary ordinal dictionaries on
+        // the no-allocation path; snapshot only custom comparer dictionaries.
+        if (!ReferenceEquals(dict.Comparer, StringComparer.Ordinal) &&
+            !ReferenceEquals(dict.Comparer, EqualityComparer<string>.Default))
+        {
+            dict = new Dictionary<string, object>(dict, StringComparer.Ordinal);
+        }
+
         // Apply the same public-only rule to dictionary-based JWK inputs.
         if (dict.ContainsKey("d"))
         {
