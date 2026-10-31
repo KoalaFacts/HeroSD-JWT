@@ -12,7 +12,7 @@ public class DisclosureDuplicateMemberTests
 {
     [Theory]
     [InlineData("""["salt","profile",{"role":"user","role":"admin"}]""")]
-    [InlineData("""["salt","profile",{"role":"user","\\u0072ole":"admin"}]""")]
+    [InlineData("""["salt","profile",{"role":"user","\u0072ole":"admin"}]""")]
     [InlineData("""["salt","profile",{"address":{"zip":"1","zip":"2"}}]""")]
     [InlineData("""["salt","profile",[{"role":"user","role":"admin"}]]""")]
     [InlineData("""["salt",{"role":"user","role":"admin"}]""")]
