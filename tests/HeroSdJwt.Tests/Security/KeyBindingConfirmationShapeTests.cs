@@ -239,6 +239,82 @@ public class KeyBindingConfirmationShapeTests
         Assert.True(result.IsValid, result.ErrorDetails);
     }
 
+
+    [Fact]
+    public async Task Should_RejectLegacyConfirmationKeyWithTrailingSpkiBytes_BeforeCallingHolderValidator()
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        byte[] malformedPublicKey = [.. holder.ExportSubjectPublicKeyInfo(), 0x00, 0x01];
+        var confirmationJson = JsonSerializer.Serialize(new
+        {
+            jwk = Convert.ToBase64String(malformedPublicKey)
+        });
+        var presentation = CreateSignedPresentation(confirmationJson, holder);
+        var holderValidator = new AcceptingKeyBindingValidator();
+        var verifier = CreateVerifier(holderValidator);
+
+        // Even when an application supplies a custom holder validator,
+        // the core verifier must reject trailing ASN.1 bytes in cnf.jwk.
+        var direct = verifier.TryVerifyPresentation(presentation, _issuerKey);
+        Assert.False(direct.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
+        Assert.Equal(0, holderValidator.CallCount);
+
+        var resolved = verifier.TryVerifyPresentation(
+            presentation, kid => kid == "issuer-key" ? _issuerKey : null);
+        Assert.False(resolved.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
+        Assert.Equal(0, holderValidator.CallCount);
+
+        var asyncResult = await verifier.TryVerifyPresentationAsync(
+            presentation, _issuerKey, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.False(asyncResult.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, asyncResult.Errors);
+        Assert.Equal(0, holderValidator.CallCount);
+    }
+
+    [Fact]
+    public void Should_AcceptCanonicalLegacyConfirmationKeyWithInjectedHolderValidator()
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var confirmationJson = JsonSerializer.Serialize(new
+        {
+            jwk = Convert.ToBase64String(holder.ExportSubjectPublicKeyInfo())
+        });
+        var presentation = CreateSignedPresentation(confirmationJson, holder);
+        var holderValidator = new AcceptingKeyBindingValidator();
+
+        var result = CreateVerifier(holderValidator).TryVerifyPresentation(presentation, _issuerKey);
+
+        Assert.True(result.IsValid, result.ErrorDetails);
+        Assert.Equal(1, holderValidator.CallCount);
+    }
+
+    private static SdJwtVerifier CreateVerifier(IKeyBindingValidator validator) =>
+        SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .WithExpectedAudience(AUDIENCE)
+            .WithExpectedNonce(NONCE)
+            .RequireKeyBinding()
+            .WithKeyBindingValidator(validator)
+            .Build();
+
+    private sealed class AcceptingKeyBindingValidator : IKeyBindingValidator
+    {
+        public int CallCount { get; private set; }
+
+        public bool ValidateKeyBinding(
+            string keyBindingJwt,
+            byte[] holderPublicKey,
+            string expectedSdJwtHash,
+            IReadOnlyCollection<string> expectedAudiences,
+            string? expectedNonce = null)
+        {
+            CallCount++;
+            return true;
+        }
+    }
+
     private static SdJwtVerifier CreateVerifier() =>
         TestHelpers.CreateVerifier(new SdJwtVerificationOptions
         {
