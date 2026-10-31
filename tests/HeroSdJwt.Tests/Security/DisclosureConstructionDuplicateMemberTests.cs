@@ -13,7 +13,7 @@ public sealed class DisclosureConstructionDuplicateMemberTests
 {
     [Theory]
     [InlineData(/*lang=json,strict*/ """{"role":"reader","role":"admin"}""")]
-    [InlineData(/*lang=json,strict*/ """{"role":"reader","\\u0072ole":"admin"}""")]
+    [InlineData(/*lang=json,strict*/ """{"role":"reader","\u0072ole":"admin"}""")]
     [InlineData(/*lang=json,strict*/ """{"profile":[{"role":"reader","role":"admin"}]}""")]
     public void Should_RejectDuplicateJsonMembersInDirectDisclosureConstructors(string json)
     {
@@ -26,7 +26,7 @@ public sealed class DisclosureConstructionDuplicateMemberTests
 
     [Theory]
     [InlineData(/*lang=json,strict*/ """{"role":"reader","role":"admin"}""")]
-    [InlineData(/*lang=json,strict*/ """{"role":"reader","\\u0072ole":"admin"}""")]
+    [InlineData(/*lang=json,strict*/ """{"role":"reader","\u0072ole":"admin"}""")]
     [InlineData(/*lang=json,strict*/ """{"profile":[{"role":"reader","role":"admin"}]}""")]
     public void Should_RejectDuplicateJsonMembersInGeneratedDisclosures(string json)
     {
