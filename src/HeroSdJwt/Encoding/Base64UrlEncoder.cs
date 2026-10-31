@@ -82,11 +82,26 @@ public static class Base64UrlEncoder
     /// <exception cref="ArgumentNullException">Thrown when base64Url is null.</exception>
     /// <exception cref="ArgumentException">Thrown when input exceeds maximum length.</exception>
     /// <exception cref="SdJwtException">Thrown when input is not valid base64url.</exception>
-    public static byte[] DecodeBytes(string base64Url)
+    public static byte[] DecodeBytes(string base64Url) =>
+        DecodeBytesCore(base64Url, requireJoseCanonical: true);
+
+    // Digest equality intentionally compares decoded bytes, including padded
+    // aliases, while externally supplied JOSE components must be canonical.
+    internal static byte[] DecodeBytesForDigestComparison(string base64Url) =>
+        DecodeBytesCore(base64Url, requireJoseCanonical: false);
+
+    private static byte[] DecodeBytesCore(string base64Url, bool requireJoseCanonical)
     {
         ArgumentNullException.ThrowIfNull(base64Url);
 
         ArgumentOutOfRangeException.ThrowIfGreaterThan(base64Url.Length, MAX_INPUT_LENGTH, nameof(base64Url));
+
+        // RFC 7515 compact JWS components omit base64url padding and must
+        // contain no whitespace. The general-purpose BCL decoder accepts both.
+        if (requireJoseCanonical && base64Url.AsSpan().IndexOfAny("= \t\r\n") >= 0)
+        {
+            throw new SdJwtException("Invalid base64url encoding", ErrorCode.InvalidInput);
+        }
 
         try
         {
