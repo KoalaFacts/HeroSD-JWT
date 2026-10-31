@@ -19,7 +19,7 @@ public class NegativeDecoyCountAdmissionTests
     [InlineData(int.MinValue, true)]
     public void Should_RejectNegativeDecoyCount_AtLowLevelIssuer(int decoyCount, bool discloseEmail)
     {
-        var selected = discloseEmail ? new[] { "email" } : Array.Empty<string>();
+        string[] selected = discloseEmail ? ["email"] : [];
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             TestHelpers.CreateIssuer().CreateSdJwt(
                 new Dictionary<string, object>
