@@ -189,13 +189,14 @@ public class SdJwtPresenterClaimSelectionTests
     [Fact]
     public void Should_RejectAmbiguousShortName_InsteadOfDisclosingArbitraryClaim()
     {
-        var credential = CreateCredential(
-            ["billing", "shipping"],
-            new Dictionary<string, int>
-            {
-                ["billing.email"] = 0,
-                ["shipping.email"] = 1
-            });
+        // Short-name ambiguity must be proven by signed nested references,
+        // not by trusting an arbitrary cached map on a synthetic JWT.
+        var credential = SdJwtIssuerBuilder.Create()
+            .WithClaim("billing", new { email = "billing" })
+            .WithClaim("shipping", new { email = "shipping" })
+            .MakeSelective("billing.email", "shipping.email")
+            .SignWithHmac(KeyGenerator.Instance.GenerateHmacKey())
+            .Build();
 
         var exception = Assert.Throws<ArgumentException>(() =>
             new SdJwtPresenter().CreatePresentation(credential, ["email"]));
@@ -241,17 +242,22 @@ public class SdJwtPresenterClaimSelectionTests
     [Fact]
     public void Should_KeepUniqueShortNameConvenience_When_OnlyOnePathMatches()
     {
-        var credential = CreateCredential(
-            ["name", "email"],
-            new Dictionary<string, int>
-            {
-                ["billing.name"] = 0,
-                ["shipping.email"] = 1
-            });
+        // Resolve the suffix against a real signed object tree, rather than
+        // claiming that a caller-controlled map proves a nested structure.
+        var credential = SdJwtIssuerBuilder.Create()
+            .WithClaim("billing", new { name = "name" })
+            .WithClaim("shipping", new { email = "email" })
+            .MakeSelective("billing.name", "shipping.email")
+            .SignWithHmac(KeyGenerator.Instance.GenerateHmacKey())
+            .Build();
 
         var presentation = new SdJwtPresenter().CreatePresentation(credential, ["email"]);
 
-        string[] expected = ["email"];
+        string[] expected =
+        [
+            Assert.Single(credential.Disclosures,
+                disclosure => new DisclosureParser().GetClaimName(disclosure) == "email")
+        ];
         Assert.Equal(expected, presentation.SelectedDisclosures);
     }
 
