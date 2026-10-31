@@ -141,7 +141,7 @@ public class Base64UrlEncoderTests
     public void DecodeBytes_WithVeryLargeInput_ThrowsArgumentOutOfRangeException()
     {
         // Arrange - Create string larger than 10MB limit
-        var largeString = new string('A', 11 * 1024 * 1024); // 11MB
+        var largeString = new string('A', 14 * 1024 * 1024); // 14 MiB encoded would decode to 10.5 MiB
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() => Base64UrlEncoder.DecodeBytes(largeString));
@@ -198,6 +198,23 @@ public class Base64UrlEncoderTests
 
         // Act & Assert
         _ = Assert.Throws<SdJwtException>(() => Base64UrlEncoder.DecodeBytes(withPlus));
+    }
+
+    [Fact]
+    public void EncodeAndDecode_AcceptLargeValuesBelowTheDocumentedTenMiBLimit()
+    {
+        // Eight MiB of binary data is accepted by Encode, but its base64url
+        // representation exceeds ten MiB. Decode must not reject our own output.
+        var bytes = new byte[8 * 1024 * 1024];
+        for (var i = 0; i < bytes.Length; i++)
+        {
+            bytes[i] = (byte)(i * 37);
+        }
+
+        var encoded = Base64UrlEncoder.Encode(bytes);
+        var decoded = Base64UrlEncoder.DecodeBytes(encoded);
+
+        Assert.Equal(bytes, decoded);
     }
 
     [Fact]
