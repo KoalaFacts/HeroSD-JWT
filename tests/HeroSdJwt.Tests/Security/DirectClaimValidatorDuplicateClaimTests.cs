@@ -13,10 +13,10 @@ public sealed class DirectClaimValidatorDuplicateClaimTests
     private static readonly DateTimeOffset _now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
 
     [Theory]
-    [InlineData("""{"exp":0,"exp":1900000000}""")]
-    [InlineData("""{"\u0065xp":0,"exp":1900000000}""")]
-    [InlineData("""{"exp":1900000000,"nbf":1900000100,"nbf":1700000000}""")]
-    [InlineData("""{"exp":1900000000,"iat":1900000100,"iat":1700000000}""")]
+    [InlineData(/*lang=json*/ """{"exp":0,"exp":1900000000}""")]
+    [InlineData(/*lang=json*/ """{"\u0065xp":0,"exp":1900000000}""")]
+    [InlineData(/*lang=json*/ """{"exp":1900000000,"nbf":1900000100,"nbf":1700000000}""")]
+    [InlineData(/*lang=json*/ """{"exp":1900000000,"iat":1900000100,"iat":1700000000}""")]
     public void Should_RejectDuplicateTemporalNames_WhenValidatingDirectly(string json)
     {
         using var document = JsonDocument.Parse(json);
@@ -28,8 +28,8 @@ public sealed class DirectClaimValidatorDuplicateClaimTests
     }
 
     [Theory]
-    [InlineData("""{"iss":"untrusted","iss":"trusted"}""")]
-    [InlineData("""{"\u0069ss":"untrusted","iss":"trusted"}""")]
+    [InlineData(/*lang=json*/ """{"iss":"untrusted","iss":"trusted"}""")]
+    [InlineData(/*lang=json*/ """{"\u0069ss":"untrusted","iss":"trusted"}""")]
     public void Should_RejectDuplicateIssuerNames_WhenValidatingDirectly(string json)
     {
         using var document = JsonDocument.Parse(json);
@@ -38,8 +38,8 @@ public sealed class DirectClaimValidatorDuplicateClaimTests
     }
 
     [Theory]
-    [InlineData("""{"aud":"untrusted","aud":"trusted"}""")]
-    [InlineData("""{"\u0061ud":"untrusted","aud":"trusted"}""")]
+    [InlineData(/*lang=json*/ """{"aud":"untrusted","aud":"trusted"}""")]
+    [InlineData(/*lang=json*/ """{"\u0061ud":"untrusted","aud":"trusted"}""")]
     public void Should_RejectDuplicateAudienceNames_WhenValidatingDirectly(string json)
     {
         using var document = JsonDocument.Parse(json);
