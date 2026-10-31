@@ -64,8 +64,8 @@ public readonly struct Digest : IEquatable<Digest>
         // Use constant-time comparison for digest values to prevent timing attacks
         try
         {
-            var valueBytes = Base64UrlEncoder.DecodeBytes(Value);
-            var otherBytes = Base64UrlEncoder.DecodeBytes(other.Value);
+            var valueBytes = Base64UrlEncoder.DecodeBytesForDigestComparison(Value);
+            var otherBytes = Base64UrlEncoder.DecodeBytesForDigestComparison(other.Value);
 
             // CryptographicOperations.FixedTimeEquals requires same length
             return valueBytes.Length == otherBytes.Length &&
@@ -100,7 +100,7 @@ public readonly struct Digest : IEquatable<Digest>
         {
             // Equals compares decoded bytes, not encoded spelling. Padded and
             // unpadded forms must therefore have the same hash for collections.
-            var bytes = Base64UrlEncoder.DecodeBytes(Value);
+            var bytes = Base64UrlEncoder.DecodeBytesForDigestComparison(Value);
             var hash = new HashCode();
             hash.Add(Algorithm);
             foreach (var valueByte in bytes)
