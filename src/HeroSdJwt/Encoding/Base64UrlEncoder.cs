@@ -17,6 +17,10 @@ public static class Base64UrlEncoder
     /// </summary>
     private const int MAX_INPUT_LENGTH = 10 * 1024 * 1024; // 10MB
 
+    // Base64url expands binary input by up to 4/3. The decode limit is
+    // measured in resulting bytes, not encoded characters.
+    private const int MAX_ENCODED_INPUT_LENGTH = ((MAX_INPUT_LENGTH + 2) / 3) * 4;
+
     // Reject non-UTF-8 JSON rather than silently replacing invalid bytes with U+FFFD.
     private static readonly System.Text.UTF8Encoding _strictUtf8 = new(false, true);
 
@@ -94,7 +98,26 @@ public static class Base64UrlEncoder
     {
         ArgumentNullException.ThrowIfNull(base64Url);
 
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(base64Url.Length, MAX_INPUT_LENGTH, nameof(base64Url));
+        if (requireJoseCanonical)
+        {
+            // Encode accepts up to 10 MiB of bytes, which may require almost
+            // 14 MiB of base64url characters. Bound the decoded size before
+            // allowing the framework decoder to allocate its output buffer.
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(
+                base64Url.Length, MAX_ENCODED_INPUT_LENGTH, nameof(base64Url));
+
+            var completeGroups = base64Url.Length / 4;
+            var remainder = base64Url.Length % 4;
+            var decodedLength = completeGroups * 3 + (remainder == 2 ? 1 : remainder == 3 ? 2 : 0);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(
+                decodedLength, MAX_INPUT_LENGTH, nameof(base64Url));
+        }
+        else
+        {
+            // Digest equality's permissive legacy aliases are not JOSE input.
+            // Keep its existing bounded-string behavior unchanged.
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(base64Url.Length, MAX_INPUT_LENGTH, nameof(base64Url));
+        }
 
         // RFC 7515 compact JWS components omit base64url padding and must
         // contain no whitespace. The general-purpose BCL decoder accepts both.
