@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using HeroSdJwt.Primitives;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Models;
@@ -84,8 +85,30 @@ public sealed class SdJwt
     /// Format: {JWT}~{disclosure1}~{disclosure2}~...~{keyBindingJwt}
     /// </summary>
     /// <returns>The combined SD-JWT presentation string.</returns>
+    /// <exception cref="ArgumentException">The combined presentation exceeds the verifier's size or disclosure count limit.</exception>
     public string ToCombinedFormat()
     {
+        // Issuance and holder serialization must honor the same 64-KiB and
+        // 100-disclosure limits as the verifier, rather than emitting a value
+        // that cannot pass its admission checks.
+        if (Disclosures.Count > Constants.MAX_DISCLOSURES)
+        {
+            throw new ArgumentException(
+                $"Presentation exceeds the maximum of {Constants.MAX_DISCLOSURES} disclosures.");
+        }
+
+        long combinedLength = (long)Jwt.Length + 1 + (KeyBindingJwt?.Length ?? 0);
+        foreach (var disclosure in Disclosures)
+        {
+            combinedLength += (disclosure?.Length ?? 0) + 1;
+        }
+
+        if (combinedLength > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new ArgumentException(
+                $"Presentation exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.");
+        }
+
         var parts = new List<string> { Jwt };
         parts.AddRange(Disclosures);
 
