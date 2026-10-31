@@ -32,8 +32,12 @@ public interface IRevocationStore
     /// The unique JWT ID from the 'jti' claim. Must not be null or empty.
     /// </param>
     /// <param name="expiresAt">
-    /// The token's expiration time. Used for automatic cleanup. JTI entries
-    /// are automatically removed after this time to prevent unbounded growth.
+    /// The token's original expiration time. Revocations must remain effective
+    /// for the entire period in which a verifier can still accept the token,
+    /// including its configured expiration clock skew (up to five minutes).
+    /// Built-in stores extend retention by that maximum skew and remove markers
+    /// only once the extended expiration has passed. Custom stores should apply
+    /// the same policy to prevent revoked but still-valid tokens from being accepted.
     /// </param>
     /// <param name="cancellationToken">
     /// Cancellation token to abort the operation.
@@ -300,7 +304,8 @@ public interface IRevocationStore
     /// revocations persist until manually removed via UnrevokeKeyAsync/UnrevokeUserAsync.
     /// </para>
     /// <para>
-    /// Implementations SHOULD remove all JTI entries where ExpiresAt ≤ current time.
+    /// Implementations SHOULD remove JTI entries only after the effective revocation
+    /// retention deadline (original token expiration plus acceptable clock skew).
     /// </para>
     /// <para>
     /// **Success Criteria**: 100% of expired entries removed within 1 hour (SC-003).

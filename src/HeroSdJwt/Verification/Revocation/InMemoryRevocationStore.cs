@@ -71,8 +71,18 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         // A repeated revocation must never shorten an existing live marker.
         // Otherwise an earlier expiry supplied by a concurrent caller could
         // cause cleanup to re-admit a credential that is still revoked.
-        _ = _revokedJtis.AddOrUpdate(jti, expiresAt,
-            (_, previousExpiry) => previousExpiry >= expiresAt ? previousExpiry : expiresAt);
+        // The verifier may accept exp for up to five minutes of clock skew.
+        // A revoked token must remain blocked throughout that same window.
+        // Convert to UTC and saturate to avoid overflowing the timestamp.
+        var utcExpiration = expiresAt.ToUniversalTime();
+        var maximumSkew = TimeSpan.FromMinutes(5);
+        var latestSafeExpiration = DateTimeOffset.MaxValue - maximumSkew;
+        var retentionExpiresAt = utcExpiration > latestSafeExpiration
+            ? DateTimeOffset.MaxValue
+            : utcExpiration + maximumSkew;
+
+        _ = _revokedJtis.AddOrUpdate(jti, retentionExpiresAt,
+            (_, previousExpiry) => previousExpiry >= retentionExpiresAt ? previousExpiry : retentionExpiresAt);
 
         return Task.CompletedTask;
     }

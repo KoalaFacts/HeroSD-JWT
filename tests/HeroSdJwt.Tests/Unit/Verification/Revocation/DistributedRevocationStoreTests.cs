@@ -20,7 +20,7 @@ public class DistributedRevocationStoreTests : IDisposable
 
         Assert.True(await store.IsJtiRevokedAsync("jti-1", TestContext.Current.CancellationToken));
 
-        backend.Advance(TimeSpan.FromMinutes(2));
+        backend.Advance(TimeSpan.FromMinutes(7));
 
         Assert.False(await store.IsJtiRevokedAsync("jti-1", TestContext.Current.CancellationToken));
     }

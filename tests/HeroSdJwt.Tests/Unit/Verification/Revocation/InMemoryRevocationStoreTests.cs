@@ -118,7 +118,7 @@ public class InMemoryRevocationStoreTests
         using var store = new InMemoryRevocationStore();
         const string jti = "expired-without-cleanup";
 
-        await store.RevokeJtiAsync(jti, DateTimeOffset.UtcNow.AddMinutes(-1), _ct);
+        await store.RevokeJtiAsync(jti, DateTimeOffset.UtcNow.AddMinutes(-6), _ct);
 
         // A stored expired marker must not block verification until the periodic
         // five-minute cleanup runs. The previous ContainsKey implementation did.
@@ -288,7 +288,7 @@ public class InMemoryRevocationStoreTests
         var store = new InMemoryRevocationStore();
         var expiredJti = "expired-jti";
         var activeJti = "active-jti";
-        var expiredTime = DateTimeOffset.UtcNow.AddSeconds(-1);
+        var expiredTime = DateTimeOffset.UtcNow.AddMinutes(-6);
         var futureTime = DateTimeOffset.UtcNow.AddHours(1);
 
         await store.RevokeJtiAsync(expiredJti, expiredTime, _ct);
@@ -319,7 +319,7 @@ public class InMemoryRevocationStoreTests
 
         for (var i = 0; i < 20_000; i++)
         {
-            var expiration = i % 2 == 0 ? now.AddMinutes(-1) : now.AddHours(1);
+            var expiration = i % 2 == 0 ? now.AddMinutes(-6) : now.AddHours(1);
             await store.RevokeJtiAsync($"cleanup-{i}", expiration, token);
         }
 

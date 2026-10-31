@@ -18,10 +18,19 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
         ValidateId(jti, nameof(jti));
         cancellationToken.ThrowIfCancellationRequested();
 
-        var ttl = expiresAt - DateTimeOffset.UtcNow;
-        if (ttl <= TimeSpan.Zero)
+        // The verifier may accept exp for up to five minutes of clock skew.
+        // A revoked token must remain blocked throughout that same window.
+        // Convert to UTC and saturate to avoid overflowing the timestamp.
+        var utcExpiration = expiresAt.ToUniversalTime();
+        var maximumSkew = TimeSpan.FromMinutes(5);
+        var latestSafeExpiration = DateTimeOffset.MaxValue - maximumSkew;
+        var retentionExpiresAt = utcExpiration > latestSafeExpiration
+            ? DateTimeOffset.MaxValue
+            : utcExpiration + maximumSkew;
+
+        if (retentionExpiresAt <= DateTimeOffset.UtcNow)
         {
-            // Already expired; nothing to store.
+            // The token is no longer acceptable, even with maximum clock skew.
             return;
         }
 
@@ -38,7 +47,7 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
 
         var key = BuildJtiKey(jti);
         await atomicCache.SetOrExtendAsync(
-            key, MarkerBytes(), expiresAt, cancellationToken).ConfigureAwait(false);
+            key, MarkerBytes(), retentionExpiresAt, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
