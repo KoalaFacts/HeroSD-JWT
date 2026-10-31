@@ -201,6 +201,23 @@ public class Base64UrlEncoderTests
     }
 
     [Fact]
+    public void EncodeAndDecode_AcceptLargeValuesBelowTheDocumentedTenMiBLimit()
+    {
+        // Eight MiB of binary data is accepted by Encode, but its base64url
+        // representation exceeds ten MiB. Decode must not reject our own output.
+        var bytes = new byte[8 * 1024 * 1024];
+        for (var i = 0; i < bytes.Length; i++)
+        {
+            bytes[i] = (byte)(i * 37);
+        }
+
+        var encoded = Base64UrlEncoder.Encode(bytes);
+        var decoded = Base64UrlEncoder.DecodeBytes(encoded);
+
+        Assert.Equal(bytes, decoded);
+    }
+
+    [Fact]
     public void DecodeBytes_LargePayload_DoesNotAllocateRedundantInputAndCopyBuffers()
     {
         // The hot-path decoder should only need its binary result, not an
