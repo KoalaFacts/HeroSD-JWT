@@ -1,3 +1,4 @@
+using HeroSdJwt.Verification;
 using System.Buffers;
 using System.Text.Json;
 
@@ -70,7 +71,7 @@ public readonly struct Disclosure : IEquatable<Disclosure>
 
         Salt = salt;
         ClaimName = claimName;
-        ClaimValue = claimValue.Clone();
+        ClaimValue = CloneValidatedClaimValue(claimValue);
     }
 
     /// <summary>
@@ -91,7 +92,21 @@ public readonly struct Disclosure : IEquatable<Disclosure>
 
         Salt = salt;
         ClaimName = null;
-        ClaimValue = claimValue.Clone();
+        ClaimValue = CloneValidatedClaimValue(claimValue);
+    }
+
+    private static JsonElement CloneValidatedClaimValue(JsonElement claimValue)
+    {
+        // The parser and verifier reject ambiguous member names. Keep direct
+        // constructors and generators from producing unusable disclosures.
+        if (JsonObjectMemberGuard.HasInvalidOrDuplicateNamesRecursively(claimValue))
+        {
+            throw new ArgumentException(
+                "Disclosure claim value contains duplicate or invalid JSON object member names.",
+                nameof(claimValue));
+        }
+
+        return claimValue.Clone();
     }
 
     /// <summary>
