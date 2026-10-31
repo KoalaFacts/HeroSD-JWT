@@ -49,8 +49,8 @@ public class StrictJoseBase64UrlTests
         // Altering only those bits must not produce a second accepted JWT spelling.
         const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
         var key = Enumerable.Range(1, 32).Select(i => (byte)i).ToArray();
-        var input = Base64UrlEncoder.Encode("""{"alg":"HS256"}""") + "." +
-            Base64UrlEncoder.Encode("""{"sub":"user-123"}""");
+        var input = Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256"}""") + "." +
+            Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"sub":"user-123"}""");
         var signature = Base64UrlEncoder.Encode(
             HMACSHA256.HashData(key, System.Text.Encoding.UTF8.GetBytes(input)));
         var lastValue = alphabet.IndexOf(signature[^1]);
