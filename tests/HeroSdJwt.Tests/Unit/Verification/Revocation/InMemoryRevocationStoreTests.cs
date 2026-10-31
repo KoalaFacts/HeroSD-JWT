@@ -58,6 +58,21 @@ public class InMemoryRevocationStoreTests
     }
 
     [Fact]
+    public async Task RevokeJtiAsync_TokenStillValidWithinClockSkew_RemainsRevoked()
+    {
+        using var store = new InMemoryRevocationStore();
+        const string jti = "revoked-within-clock-skew";
+
+        // The verifier permits up to five minutes of expiration tolerance.
+        // Revocation must not disappear merely because the raw exp has passed.
+        await store.RevokeJtiAsync(jti, DateTimeOffset.UtcNow.AddSeconds(-30), _ct);
+
+        Assert.True(await store.IsJtiRevokedAsync(jti, _ct));
+        await store.CleanupExpiredEntriesAsync(_ct);
+        Assert.True(await store.IsJtiRevokedAsync(jti, _ct));
+    }
+
+    [Fact]
     public async Task RevokeJtiAsync_ShorterSecondExpiration_DoesNotUnrevokeActiveToken()
     {
         using var store = new InMemoryRevocationStore();

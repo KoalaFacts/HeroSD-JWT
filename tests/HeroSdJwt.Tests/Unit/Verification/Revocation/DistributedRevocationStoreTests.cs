@@ -26,6 +26,22 @@ public class DistributedRevocationStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task RevokeJtiAsync_TokenStillValidWithinClockSkew_RemainsRevoked()
+    {
+        var backend = new AtomicRevocationCacheFixture();
+        var store = new DistributedRevocationStore(backend);
+        var token = TestContext.Current.CancellationToken;
+
+        // A JWT with exp 30 seconds ago is still acceptable with verifier
+        // clock skew, and must remain revoked on every node.
+        await store.RevokeJtiAsync("clock-skew-jti", DateTimeOffset.UtcNow.AddSeconds(-30), token);
+
+        Assert.True(await store.IsJtiRevokedAsync("clock-skew-jti", token));
+        backend.Advance(TimeSpan.FromMinutes(4));
+        Assert.True(await store.IsJtiRevokedAsync("clock-skew-jti", token));
+    }
+
+    [Fact]
     public async Task RevokeJtiAsync_OrdinaryDistributedCache_FailsClosedBeforeWriting()
     {
         var store = new DistributedRevocationStore(_cache);
