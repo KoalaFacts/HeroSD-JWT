@@ -157,9 +157,12 @@ public class IssuerNestedSdAlgShapeTests
     [Fact]
     public void Should_AllowLargeNonSelectiveStringClaim()
     {
+        // Exercise the nested-control-member scan with a substantial value,
+        // while keeping the resulting compact JWT within the verifier's
+        // existing 64-KiB wire limit.
         var claims = new Dictionary<string, object>
         {
-            ["description"] = new string('a', 64 * 1024)
+            ["description"] = new string('a', 32 * 1024)
         };
 
         var result = TestHelpers.CreateIssuer().CreateSdJwt(
@@ -167,6 +170,23 @@ public class IssuerNestedSdAlgShapeTests
 
         Assert.NotEmpty(result.Jwt);
         Assert.Empty(result.Disclosures);
+    }
+
+    [Fact]
+    public void Should_RejectNonSelectiveStringClaimThatCannotFitInCompactJwt()
+    {
+        // A 64-KiB plaintext value becomes much larger after base64url
+        // encoding, so signing it would produce an unverifiable SD-JWT.
+        var claims = new Dictionary<string, object>
+        {
+            ["description"] = new string('a', 64 * 1024)
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            TestHelpers.CreateIssuer().CreateSdJwt(
+                claims, [], _signingKey, HashAlgorithm.Sha256));
+
+        Assert.Contains("maximum allowed size", exception.Message);
     }
 
     private static void AssertRejected(Dictionary<string, object> claims)
