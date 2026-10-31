@@ -59,18 +59,20 @@ public class DigestValidator(IDigestCalculator digestCalculator) : IDigestValida
         ArgumentNullException.ThrowIfNull(disclosures);
         ArgumentNullException.ThrowIfNull(expectedDigests);
 
-        // RFC 9901 forbids repeating the same Disclosure. Enforce this also
-        // for callers using the digest validator directly, rather than only
-        // when the full presentation verifier is used.
         // Each Disclosure may be compared with hundreds of signed decoy digests.
         // For larger lists, index expected digests once instead of repeatedly
         // decoding every base64url digest for every disclosed value. Digest's
         // equality and hash code preserve decoded-byte and algorithm semantics,
         // including padded aliases; keep the small-list path unchanged.
-        HashSet<Digest>? expectedLookup = disclosures.Count >= 8 && expectedDigests.Count >= 32
-            ? new HashSet<Digest>(expectedDigests)
-            : null;
+        HashSet<Digest>? expectedLookup = null;
+        if (disclosures.Count >= 8 && expectedDigests.Count >= 32)
+        {
+            expectedLookup = [.. expectedDigests];
+        }
 
+        // RFC 9901 forbids repeating the same Disclosure. Enforce this also
+        // for callers using the digest validator directly, rather than only
+        // when the full presentation verifier is used.
         HashSet<string>? seenDisclosures = null;
 
         for (var i = 0; i < disclosures.Count; i++)
