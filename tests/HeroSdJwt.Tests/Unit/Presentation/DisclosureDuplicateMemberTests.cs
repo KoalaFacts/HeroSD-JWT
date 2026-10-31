@@ -11,11 +11,11 @@ namespace HeroSdJwt.Tests.Unit.Presentation;
 public class DisclosureDuplicateMemberTests
 {
     [Theory]
-    [InlineData("""["salt","profile",{"role":"user","role":"admin"}]""")]
-    [InlineData("""["salt","profile",{"role":"user","\u0072ole":"admin"}]""")]
-    [InlineData("""["salt","profile",{"address":{"zip":"1","zip":"2"}}]""")]
-    [InlineData("""["salt","profile",[{"role":"user","role":"admin"}]]""")]
-    [InlineData("""["salt",{"role":"user","role":"admin"}]""")]
+    [InlineData(/*lang=json,strict*/ """["salt","profile",{"role":"user","role":"admin"}]""")]
+    [InlineData(/*lang=json,strict*/ """["salt","profile",{"role":"user","\u0072ole":"admin"}]""")]
+    [InlineData(/*lang=json,strict*/ """["salt","profile",{"address":{"zip":"1","zip":"2"}}]""")]
+    [InlineData(/*lang=json,strict*/ """["salt","profile",[{"role":"user","role":"admin"}]]""")]
+    [InlineData(/*lang=json,strict*/ """["salt",{"role":"user","role":"admin"}]""")]
     public void Should_RejectDuplicateObjectNamesInsideDisclosedValues(string json)
     {
         var disclosure = Base64UrlEncoder.Encode(json);
@@ -27,7 +27,7 @@ public class DisclosureDuplicateMemberTests
     [Fact]
     public void Should_AllowMatchingNamesInDifferentNestedObjects()
     {
-        const string json = """["salt","profile",{"primary":{"role":"admin"},"secondary":{"role":"user"}}]""";
+        const string json = /*lang=json,strict*/ """["salt","profile",{"primary":{"role":"admin"},"secondary":{"role":"user"}}]""";
         var parser = new DisclosureParser();
 
         var disclosure = parser.Parse(Base64UrlEncoder.Encode(json));

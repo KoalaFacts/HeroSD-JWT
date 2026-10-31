@@ -17,11 +17,11 @@ public class SignedDisclosureDuplicateMemberTests
     private static readonly byte[] _key = [.. Enumerable.Range(1, 32).Select(i => (byte)i)];
 
     [Theory]
-    [InlineData("""["salt","profile",{"role":"reader","role":"admin"}]""")]
-    [InlineData("""["salt","profile",{"role":"reader","\u0072ole":"admin"}]""")]
-    [InlineData("""["salt","profile",{"team":{"role":"reader","role":"admin"}}]""")]
-    [InlineData("""["salt","profile",[{"role":"reader","role":"admin"}]]""")]
-    [InlineData("""["salt",{"role":"reader","role":"admin"}]""")]
+    [InlineData(/*lang=json,strict*/ """["salt","profile",{"role":"reader","role":"admin"}]""")]
+    [InlineData(/*lang=json,strict*/ """["salt","profile",{"role":"reader","\u0072ole":"admin"}]""")]
+    [InlineData(/*lang=json,strict*/ """["salt","profile",{"team":{"role":"reader","role":"admin"}}]""")]
+    [InlineData(/*lang=json,strict*/ """["salt","profile",[{"role":"reader","role":"admin"}]]""")]
+    [InlineData(/*lang=json,strict*/ """["salt",{"role":"reader","role":"admin"}]""")]
     public async Task Should_RejectSignedDisclosureWithAmbiguousNestedNames(string json)
     {
         var presentation = CreateSignedPresentation(json);
@@ -38,7 +38,7 @@ public class SignedDisclosureDuplicateMemberTests
     [Fact]
     public void Should_AllowDistinctNestedObjectsWithMatchingMemberNames()
     {
-        const string json = """["salt","profile",{"primary":{"role":"admin"},"secondary":{"role":"reader"}}]""";
+        const string json = /*lang=json,strict*/ """["salt","profile",{"primary":{"role":"admin"},"secondary":{"role":"reader"}}]""";
         var presentation = CreateSignedPresentation(json);
         var result = CreateVerifier().TryVerifyPresentation(presentation, _key);
 
