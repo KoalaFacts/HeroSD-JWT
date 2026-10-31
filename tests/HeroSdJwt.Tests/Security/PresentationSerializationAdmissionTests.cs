@@ -1,0 +1,69 @@
+using HeroSdJwt.Models;
+using HeroSdJwt.Presentation;
+using HeroSdJwt.Primitives;
+
+namespace HeroSdJwt.Tests.Security;
+
+/// <summary>
+/// Presentation serialization must not emit a combined value that the library's
+/// verifier rejects before cryptographic verification for size or slot count.
+/// </summary>
+public class PresentationSerializationAdmissionTests
+{
+    [Fact]
+    public void Should_RejectOversizedCombinedPresentation_When_Formatting()
+    {
+        // JWT alone fits the verifier's size gate, but the separator and
+        // selected disclosure put the combined presentation over the limit.
+        var presentation = new SdJwtPresentation(
+            new string('a', Constants.MAX_JWT_SIZE_BYTES - 1),
+            ["W10"]);
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresenter().FormatPresentation(presentation));
+    }
+
+    [Fact]
+    public void Should_RejectExcessDisclosureSlots_When_Formatting()
+    {
+        var presentation = new SdJwtPresentation(
+            "header.payload.signature",
+            Enumerable.Repeat("W10", Constants.MAX_DISCLOSURES + 1));
+
+        _ = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresenter().FormatPresentation(presentation));
+    }
+
+    [Fact]
+    public void Should_RejectOversizedCombinedPresentation_When_SerializingSdJwt()
+    {
+        var sdJwt = new SdJwt(
+            new string('a', Constants.MAX_JWT_SIZE_BYTES - 1),
+            ["W10"],
+            HashAlgorithm.Sha256);
+
+        _ = Assert.Throws<ArgumentException>(sdJwt.ToCombinedFormat);
+    }
+
+    [Fact]
+    public void Should_RejectExcessDisclosureSlots_When_SerializingSdJwt()
+    {
+        var sdJwt = new SdJwt(
+            "header.payload.signature",
+            Enumerable.Repeat("W10", Constants.MAX_DISCLOSURES + 1),
+            HashAlgorithm.Sha256);
+
+        _ = Assert.Throws<ArgumentException>(sdJwt.ToCombinedFormat);
+    }
+
+    [Fact]
+    public void Should_AllowExactCombinedSizeLimit_When_Serializing()
+    {
+        var jwt = new string('a', Constants.MAX_JWT_SIZE_BYTES - 1);
+        var sdJwt = new SdJwt(jwt, [], HashAlgorithm.Sha256);
+        var presentation = new SdJwtPresentation(jwt, []);
+
+        Assert.Equal(Constants.MAX_JWT_SIZE_BYTES, sdJwt.ToCombinedFormat().Length);
+        Assert.Equal(Constants.MAX_JWT_SIZE_BYTES, new SdJwtPresenter().FormatPresentation(presentation).Length);
+    }
+}

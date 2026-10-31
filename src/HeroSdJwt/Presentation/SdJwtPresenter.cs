@@ -1,6 +1,7 @@
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
+using HeroSdJwt.Primitives;
 using System.Text.Json;
 
 namespace HeroSdJwt.Presentation;
@@ -183,6 +184,7 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
     /// </summary>
     /// <param name="presentation">The presentation to format.</param>
     /// <returns>The formatted presentation string.</returns>
+    /// <exception cref="ArgumentException">The presentation exceeds the verifier's size or disclosure count limit.</exception>
     public string FormatPresentation(SdJwtPresentation presentation)
     {
         ArgumentNullException.ThrowIfNull(presentation);
@@ -194,16 +196,32 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
         var disclosures = presentation.SelectedDisclosures;
         var keyBinding = presentation.KeyBindingJwt ?? string.Empty;
 
-        // Calculate total length: JWT + separators + disclosures + keyBinding
-        int totalLength = jwt.Length + 1; // JWT + separator
+        // Match the verifier's existing admission policy before allocating the
+        // combined output. It counts both empty slots and disclosed values.
+        if (disclosures.Count > Constants.MAX_DISCLOSURES)
+        {
+            throw new ArgumentException(
+                $"Presentation exceeds the maximum of {Constants.MAX_DISCLOSURES} disclosures.",
+                nameof(presentation));
+        }
+
+        // Use long to prevent an overflowing int length from reaching
+        // string.Create, including when a caller supplies very large parts.
+        long totalLength = (long)jwt.Length + 1 + keyBinding.Length;
         foreach (var disclosure in disclosures)
         {
-            totalLength += disclosure.Length + 1; // disclosure + separator
+            totalLength += disclosure.Length + 1;
         }
-        totalLength += keyBinding.Length; // final keyBinding (no trailing separator)
 
-        // Build string using string.Create for zero intermediate allocations
-        return string.Create(totalLength, (jwt, disclosures, keyBinding), (span, state) =>
+        if (totalLength > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new ArgumentException(
+                $"Presentation exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.",
+                nameof(presentation));
+        }
+
+        // Build string using string.Create for zero intermediate allocations.
+        return string.Create((int)totalLength, (jwt, disclosures, keyBinding), (span, state) =>
         {
             int pos = 0;
 
