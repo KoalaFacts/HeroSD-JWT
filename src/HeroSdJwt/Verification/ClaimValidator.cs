@@ -27,6 +27,14 @@ public class ClaimValidator : IClaimValidator
             return false;
         }
 
+        // Direct consumers of IClaimValidator may not have constructed a verifier,
+        // so enforce the same 0–5 minute skew policy here as at the verifier boundary.
+        // An excessive skew could otherwise accept a token long after expiration.
+        if (options.ClockSkew < TimeSpan.Zero || options.ClockSkew > TimeSpan.FromMinutes(5))
+        {
+            return false;
+        }
+
         var nowTicks = NumericDateParser.GetCurrentUnixTicks(currentTime ?? DateTimeOffset.UtcNow);
         var clockSkewTicks = options.ClockSkew.Ticks;
 
