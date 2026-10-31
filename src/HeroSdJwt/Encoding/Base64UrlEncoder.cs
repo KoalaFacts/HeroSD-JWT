@@ -88,6 +88,13 @@ public static class Base64UrlEncoder
 
         ArgumentOutOfRangeException.ThrowIfGreaterThan(base64Url.Length, MAX_INPUT_LENGTH, nameof(base64Url));
 
+        // RFC 7515 compact JWS components omit base64url padding and must
+        // contain no whitespace. The general-purpose BCL decoder accepts both.
+        if (base64Url.AsSpan().IndexOfAny("= \t\r\n") >= 0)
+        {
+            throw new SdJwtException("Invalid base64url encoding", ErrorCode.InvalidInput);
+        }
+
         try
         {
             // Decode the existing UTF-16 input directly. Encoding it into a
