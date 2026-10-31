@@ -49,6 +49,16 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
         using var payloadDocument = JsonDocument.Parse(payloadJson);
         var payload = payloadDocument.RootElement;
 
+        // The holder must not derive claim paths from ambiguous issuer JSON.
+        // Apply the verifier's duplicate-name policy even for standalone mapping.
+        if (payload.ValueKind != JsonValueKind.Object ||
+            JsonObjectMemberGuard.HasInvalidOrDuplicateNamesRecursively(payload))
+        {
+            throw new ArgumentException(
+                "JWT payload must be an object with unique, valid JSON member names.",
+                nameof(sdJwt));
+        }
+
         // Build digest-to-disclosure-index map
         var digestToIndex = new Dictionary<string, int>();
         for (int i = 0; i < sdJwt.Disclosures.Count; i++)
