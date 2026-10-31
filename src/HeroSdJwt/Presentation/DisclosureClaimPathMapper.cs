@@ -212,10 +212,9 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                     // Array element path: "claimName[index]"
                     var arrayPath = $"{currentPath}[{index}]";
                     AddUnambiguousMapping(mapping, arrayPath, disclosureIndex);
-                    if (nestedPaths is not null)
-                    {
-                        nestedPaths[arrayPath] = disclosureIndex;
-                    }
+                    // The main mapping already rejects ambiguous collisions.
+                    // Repeated identical references need no second entry.
+                    _ = nestedPaths?.TryAdd(arrayPath, disclosureIndex);
 
                     // Recursively process the array element value
                     var disclosure = _disclosureParser.Parse(disclosures[disclosureIndex]);
