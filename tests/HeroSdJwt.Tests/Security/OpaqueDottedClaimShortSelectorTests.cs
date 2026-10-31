@@ -1,7 +1,9 @@
 using HeroSdJwt.Cryptography;
+using HeroSdJwt.Encoding;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
 using HeroSdJwt.Presentation;
+using HeroSdJwt.Primitives;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -60,5 +62,45 @@ public class OpaqueDottedClaimShortSelectorTests
             presenter.FormatPresentation(presentation), key);
         Assert.True(verified.IsValid);
         Assert.DoesNotContain("contact.email", verified.DisclosedClaims.Keys);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Should_NotShortSelect_DottedMemberNestedWithinProfile(bool selectivelyDisclosedParent)
+    {
+        // The nested object's actual member name is "contact.email", not "email".
+        // A dotted member is opaque even when its containing object is nested.
+        var child = Base64UrlEncoder.Encode("[\"child-salt\",\"contact.email\",\"private-value\"]");
+        var calculator = new DigestCalculator();
+        var childDigest = calculator.ComputeDigest(child, HashAlgorithm.Sha256);
+        var payload = new Dictionary<string, object> { ["exp"] = 4102444800L };
+        string[] disclosures;
+
+        if (selectivelyDisclosedParent)
+        {
+            var parent = Base64UrlEncoder.Encode(
+                $"[\"parent-salt\",\"profile\",{{\"_sd\":[\"{childDigest}\"]}}]");
+            payload["_sd"] = new[] { calculator.ComputeDigest(parent, HashAlgorithm.Sha256) };
+            disclosures = [parent, child];
+        }
+        else
+        {
+            payload["profile"] = new Dictionary<string, object> { ["_sd"] = new[] { childDigest } };
+            disclosures = [child];
+        }
+
+        var jwt = new JwtSigner().CreateJwt(
+            payload, KeyGenerator.Instance.GenerateHmacKey(), SignatureAlgorithm.HS256);
+        var credential = new SdJwt(jwt, disclosures, HashAlgorithm.Sha256);
+        var presenter = new SdJwtPresenter();
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            presenter.CreatePresentation(credential, ["email"]));
+        Assert.Equal("selectedClaimNames", exception.ParamName);
+
+        // Full-path selection remains supported, including its true parent disclosure.
+        var selected = presenter.CreatePresentation(credential, ["profile.contact.email"]);
+        Assert.Equal(selectivelyDisclosedParent ? 2 : 1, selected.SelectedDisclosures.Count);
     }
 }
