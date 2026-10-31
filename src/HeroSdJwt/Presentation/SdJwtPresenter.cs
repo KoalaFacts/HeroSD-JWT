@@ -53,6 +53,7 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
             // Select disclosures based on requested claim paths
             // Also include parent disclosures for nested paths (e.g., for "address.geo.lat", include "address.geo")
             var selectedDisclosureIndices = new HashSet<int>();
+            IReadOnlyDictionary<string, int>? trustedNestedPaths = null;
 
             foreach (var requestedPath in selectedClaimsList)
             {
@@ -68,10 +69,14 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
                     {
                         foreach (var kvp in claimPathToIndex)
                         {
-                            // Absolute URI claim names are opaque top-level members,
-                            // not nested paths. Never disclose one via short-name fallback.
+                            // A top-level claim can literally contain dots. Suffix
+                            // matching alone can disclose an unrelated opaque claim.
+                            // Trust only paths proven by the signed nested structure.
                             if (kvp.Key.EndsWith($".{claimPath}", StringComparison.Ordinal) &&
-                                !Uri.TryCreate(kvp.Key, UriKind.Absolute, out _))
+                                (trustedNestedPaths ??= new DisclosureClaimPathMapper()
+                                    .BuildNestedClaimPathMapping(sdJwt))
+                                .TryGetValue(kvp.Key, out var trustedIndex) &&
+                                trustedIndex == kvp.Value)
                             {
                                 if (matchedKey != null)
                                 {

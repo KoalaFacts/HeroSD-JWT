@@ -34,7 +34,22 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
     /// </summary>
     /// <param name="sdJwt">The SD-JWT containing JWT and disclosures.</param>
     /// <returns>Dictionary mapping claim paths to disclosure indices.</returns>
-    public Dictionary<string, int> BuildClaimPathMapping(SdJwt sdJwt)
+    public Dictionary<string, int> BuildClaimPathMapping(SdJwt sdJwt) =>
+        BuildClaimPathMapping(sdJwt, nestedPaths: null);
+
+    // A dotted top-level claim name is opaque, even if it ends in a familiar
+    // short suffix. Record only paths reached through real nested structure.
+    // Recompute this provenance only when the holder uses short-name fallback.
+    internal IReadOnlyDictionary<string, int> BuildNestedClaimPathMapping(SdJwt sdJwt)
+    {
+        var nestedPaths = new Dictionary<string, int>(StringComparer.Ordinal);
+        _ = BuildClaimPathMapping(sdJwt, nestedPaths);
+        return nestedPaths;
+    }
+
+    private Dictionary<string, int> BuildClaimPathMapping(
+        SdJwt sdJwt,
+        Dictionary<string, int>? nestedPaths)
     {
         ArgumentNullException.ThrowIfNull(sdJwt);
 
@@ -68,7 +83,7 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
         }
 
         // Recursively process payload to find all _sd arrays and map them
-        ProcessElement(payload, "", digestToIndex, sdJwt.Disclosures, mapping);
+        ProcessElement(payload, "", digestToIndex, sdJwt.Disclosures, mapping, nestedPaths);
 
         return mapping;
     }
@@ -81,15 +96,16 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
         string currentPath,
         Dictionary<string, int> digestToIndex,
         IReadOnlyList<string> disclosures,
-        Dictionary<string, int> mapping)
+        Dictionary<string, int> mapping,
+        Dictionary<string, int>? nestedPaths)
     {
         if (element.ValueKind == JsonValueKind.Object)
         {
-            ProcessObject(element, currentPath, digestToIndex, disclosures, mapping);
+            ProcessObject(element, currentPath, digestToIndex, disclosures, mapping, nestedPaths);
         }
         else if (element.ValueKind == JsonValueKind.Array)
         {
-            ProcessArray(element, currentPath, digestToIndex, disclosures, mapping);
+            ProcessArray(element, currentPath, digestToIndex, disclosures, mapping, nestedPaths);
         }
     }
 
@@ -101,7 +117,8 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
         string currentPath,
         Dictionary<string, int> digestToIndex,
         IReadOnlyList<string> disclosures,
-        Dictionary<string, int> mapping)
+        Dictionary<string, int> mapping,
+        Dictionary<string, int>? nestedPaths)
     {
         List<string>? sdDigests = null;
 
@@ -125,7 +142,7 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                 var newPath = string.IsNullOrEmpty(currentPath)
                     ? property.Name
                     : $"{currentPath}.{property.Name}";
-                ProcessElement(property.Value, newPath, digestToIndex, disclosures, mapping);
+                ProcessElement(property.Value, newPath, digestToIndex, disclosures, mapping, nestedPaths);
             }
         }
 
@@ -155,10 +172,14 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
 
                         // Add to mapping (including intermediate objects - they're needed for presentations)
                         AddUnambiguousMapping(mapping, fullPath, disclosureIndex);
+                        if (nestedPaths is not null && currentPath.Length > 0)
+                        {
+                            nestedPaths[fullPath] = disclosureIndex;
+                        }
 
                         // Recursively process the disclosure value if it's an object or array
                         // This handles nested _sd arrays within selectively disclosable claims
-                        ProcessElement(disclosure.ClaimValue, fullPath, digestToIndex, disclosures, mapping);
+                        ProcessElement(disclosure.ClaimValue, fullPath, digestToIndex, disclosures, mapping, nestedPaths);
                     }
                 }
             }
@@ -173,7 +194,8 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
         string currentPath,
         Dictionary<string, int> digestToIndex,
         IReadOnlyList<string> disclosures,
-        Dictionary<string, int> mapping)
+        Dictionary<string, int> mapping,
+        Dictionary<string, int>? nestedPaths)
     {
         var index = 0;
         foreach (var item in array.EnumerateArray())
@@ -190,6 +212,10 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                     // Array element path: "claimName[index]"
                     var arrayPath = $"{currentPath}[{index}]";
                     AddUnambiguousMapping(mapping, arrayPath, disclosureIndex);
+                    if (nestedPaths is not null)
+                    {
+                        nestedPaths[arrayPath] = disclosureIndex;
+                    }
 
                     // Recursively process the array element value
                     var disclosure = _disclosureParser.Parse(disclosures[disclosureIndex]);
@@ -199,14 +225,14 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                             "An array digest must reference a two-element Disclosure.");
                     }
 
-                    ProcessElement(disclosure.ClaimValue, arrayPath, digestToIndex, disclosures, mapping);
+                    ProcessElement(disclosure.ClaimValue, arrayPath, digestToIndex, disclosures, mapping, nestedPaths);
                 }
             }
             else
             {
                 // Recursively process nested elements
                 var newPath = $"{currentPath}[{index}]";
-                ProcessElement(item, newPath, digestToIndex, disclosures, mapping);
+                ProcessElement(item, newPath, digestToIndex, disclosures, mapping, nestedPaths);
             }
 
             index++;
