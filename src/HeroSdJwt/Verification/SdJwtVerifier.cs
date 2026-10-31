@@ -468,7 +468,8 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             }
 
             var headerJson = Base64UrlEncoder.DecodeString(jwtParts[0]);
-            var header = JsonDocument.Parse(headerJson).RootElement;
+            using var headerDocument = JsonDocument.Parse(headerJson);
+            var header = headerDocument.RootElement;
 
             if (JoseHeaderGuard.HasInvalidOrUnsupportedParameters(header))
             {
@@ -618,6 +619,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         var errors = new List<ErrorCode>();
         var errorDetails = new List<string>();
         var expectedAudiences = _options.GetExpectedAudiences();
+        // Retain documents while the verifier borrows JsonElements; release their
+        // pooled buffers on every success, rejection, cancellation, or exception.
+        JsonDocument? headerDocument = null;
+        JsonDocument? payloadDocument = null;
 
         try
         {
@@ -710,7 +715,8 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             try
             {
                 var headerJson = Base64UrlEncoder.DecodeString(jwtParts[0]);
-                header = JsonDocument.Parse(headerJson).RootElement;
+                headerDocument = JsonDocument.Parse(headerJson);
+                header = headerDocument.RootElement;
             }
             catch (Exception ex)
             {
@@ -798,7 +804,8 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             try
             {
                 var payloadJson = Base64UrlEncoder.DecodeString(jwtParts[1]);
-                payload = JsonDocument.Parse(payloadJson).RootElement;
+                payloadDocument = JsonDocument.Parse(payloadJson);
+                payload = payloadDocument.RootElement;
             }
             catch (Exception ex)
             {
@@ -1222,9 +1229,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
 
             return new VerificationResult(disclosedClaims);
         }
-        catch
+        finally
         {
-            throw;
+            payloadDocument?.Dispose();
+            headerDocument?.Dispose();
         }
     }
 
