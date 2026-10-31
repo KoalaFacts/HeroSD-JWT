@@ -204,7 +204,8 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
                 if (jwtParts.Length == 3)
                 {
                     var payloadJson = Base64UrlEncoder.DecodeString(jwtParts[1]);
-                    var payload = JsonDocument.Parse(payloadJson).RootElement;
+                    using var payloadDocument = JsonDocument.Parse(payloadJson);
+                    var payload = payloadDocument.RootElement;
 
                     foreach (var property in payload.EnumerateObject())
                     {
