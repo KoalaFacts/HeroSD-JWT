@@ -1,5 +1,6 @@
 using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
+using HeroSdJwt.Primitives;
 using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -79,6 +80,17 @@ public class KeyBindingGenerator : IKeyBindingGenerator
 
         var headerBase64 = Base64UrlEncoder.Encode(headerJson);
         var payloadBase64 = Base64UrlEncoder.Encode(payloadJson);
+
+        // ES256 emits a 64-byte IEEE P1363 signature (86 unpadded base64url
+        // characters). Reject proofs that cannot pass the verifier's existing
+        // compact-JWT size gate before importing the holder key or signing.
+        const int Es256SignatureBase64UrlLength = 86;
+        if ((long)headerBase64.Length + payloadBase64.Length + 2 + Es256SignatureBase64UrlLength >
+            Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new ArgumentException(
+                $"Key binding JWT exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.");
+        }
 
         // Sign with holder's private key
         var signingInput = $"{headerBase64}.{payloadBase64}";
