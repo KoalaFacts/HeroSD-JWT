@@ -660,13 +660,6 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
 
             var jwt = parts[0];
 
-            // Validate JWT size
-            if (jwt.Length > Constants.MAX_JWT_SIZE_BYTES / 2)
-            {
-                errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add("JWT component exceeds reasonable size limit");
-                return new VerificationResult(errors, string.Join("; ", errorDetails));
-            }
             var disclosures = new List<string>();
             HashSet<string>? seenDisclosures = null;
             var keyBindingJwt = parts.Length > 1 ? parts[^1] : null;
