@@ -15,7 +15,7 @@ public class ClaimPathMapperDuplicatePayloadMemberTests
     [Theory]
     [InlineData(/*lang=json,strict*/ """{"_sd":[],"_sd":[]}""")]
     [InlineData(/*lang=json,strict*/ """{"profile":{"role":"reader","role":"admin"},"_sd":[]}""")]
-    [InlineData(/*lang=json,strict*/ """{"profile":[{"role":"reader","\\u0072ole":"admin"}],"_sd":[]}""")]
+    [InlineData(/*lang=json,strict*/ """{"profile":[{"role":"reader","\u0072ole":"admin"}],"_sd":[]}""")]
     public void Should_RejectDuplicatePayloadMembersBeforeMappingDisclosures(string payload)
     {
         var sdJwt = CreateSdJwt(payload, []);
