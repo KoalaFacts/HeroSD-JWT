@@ -82,7 +82,8 @@ public static class ExtensionsToVerificationResult
 
         // Convert JsonArray to JsonElement
         var jsonString = jsonArray.ToJsonString();
-        return JsonDocument.Parse(jsonString).RootElement.Clone();
+        using var document = JsonDocument.Parse(jsonString);
+        return document.RootElement.Clone();
     }
 
     /// <summary>
@@ -183,7 +184,8 @@ public static class ExtensionsToVerificationResult
 
         // Convert JsonObject to JsonElement
         var jsonString = rootObject.ToJsonString();
-        return JsonDocument.Parse(jsonString).RootElement.Clone();
+        using var document = JsonDocument.Parse(jsonString);
+        return document.RootElement.Clone();
     }
 
     /// <summary>
