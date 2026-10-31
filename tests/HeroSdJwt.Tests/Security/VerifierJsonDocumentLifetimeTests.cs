@@ -40,7 +40,7 @@ public sealed class VerifierJsonDocumentLifetimeTests
 
         Assert.True(result.IsValid);
         Assert.Equal("alice@example.com", result.DisclosedClaims["email"].GetString());
-        Assert.Equal(JsonValueKind.Object, capturingValidator.BorrowedPayload.ValueKind);
+        Assert.True(capturingValidator.SawObjectPayload);
 
         // The validator must clone a JsonElement if it needs to retain it.
         // The public VerificationResult owns its verified values separately.
@@ -57,12 +57,15 @@ public sealed class VerifierJsonDocumentLifetimeTests
 
         public JsonElement BorrowedPayload { get; private set; }
 
+        public bool SawObjectPayload { get; private set; }
+
         public bool ValidateTemporalClaims(
             JsonElement payload,
             SdJwtVerificationOptions options,
             DateTimeOffset? currentTime = null)
         {
             BorrowedPayload = payload;
+            SawObjectPayload = payload.ValueKind == JsonValueKind.Object;
             return _inner.ValidateTemporalClaims(payload, options, currentTime);
         }
 
