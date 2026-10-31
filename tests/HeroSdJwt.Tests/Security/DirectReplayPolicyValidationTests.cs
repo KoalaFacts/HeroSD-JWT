@@ -34,6 +34,8 @@ public sealed class DirectReplayPolicyValidationTests
             case "zero-capacity":
                 options.MaxCacheEntries = 0;
                 break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(invalidSetting));
         }
 
         // Unlike InMemoryJtiCache, an injected provider need not inspect
