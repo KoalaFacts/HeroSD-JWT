@@ -172,7 +172,11 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
 
                         // Add to mapping (including intermediate objects - they're needed for presentations)
                         AddUnambiguousMapping(mapping, fullPath, disclosureIndex);
-                        if (nestedPaths is not null && currentPath.Length > 0)
+                        // A member literally named "contact.email" is opaque even
+                        // beneath "profile": "email" is not its final member name.
+                        if (nestedPaths is not null &&
+                            currentPath.Length > 0 &&
+                            !disclosure.ClaimName.Contains('.'))
                         {
                             nestedPaths[fullPath] = disclosureIndex;
                         }
