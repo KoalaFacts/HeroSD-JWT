@@ -22,7 +22,8 @@ public class ClaimValidator : IClaimValidator
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (payload.ValueKind != JsonValueKind.Object)
+        if (payload.ValueKind != JsonValueKind.Object ||
+            JsonObjectMemberGuard.HasInvalidOrDuplicateNames(payload))
         {
             return false;
         }
@@ -99,7 +100,8 @@ public class ClaimValidator : IClaimValidator
     /// <returns>True if the present issuer is a string and matches the configured issuer, or no matching policy is configured; otherwise, false.</returns>
     public bool ValidateIssuer(JsonElement payload, string? expectedIssuer)
     {
-        if (payload.ValueKind != JsonValueKind.Object)
+        if (payload.ValueKind != JsonValueKind.Object ||
+            JsonObjectMemberGuard.HasInvalidOrDuplicateNames(payload))
         {
             return false;
         }
@@ -144,7 +146,8 @@ public class ClaimValidator : IClaimValidator
     /// <returns>True if any present audience is well-formed and matches a configured audience, or no matching policy is configured; otherwise, false.</returns>
     public bool ValidateAudience(JsonElement payload, IReadOnlyCollection<string>? expectedAudiences)
     {
-        if (payload.ValueKind != JsonValueKind.Object)
+        if (payload.ValueKind != JsonValueKind.Object ||
+            JsonObjectMemberGuard.HasInvalidOrDuplicateNames(payload))
         {
             return false;
         }
