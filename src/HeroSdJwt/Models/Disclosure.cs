@@ -44,7 +44,7 @@ public readonly struct Disclosure : IEquatable<Disclosure>
     /// <param name="claimName">The claim name.</param>
     /// <param name="claimValue">The claim value.</param>
     /// <exception cref="ArgumentNullException">Thrown when salt or claimName is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when salt or claimName is empty or whitespace.</exception>
+    /// <exception cref="ArgumentException">Thrown when salt or claimName is empty or whitespace, or claimName is reserved.</exception>
     public Disclosure(string salt, string claimName, JsonElement claimValue)
     {
         ArgumentNullException.ThrowIfNull(salt);
@@ -58,6 +58,14 @@ public readonly struct Disclosure : IEquatable<Disclosure>
         if (string.IsNullOrWhiteSpace(claimName))
         {
             throw new ArgumentException("Claim name cannot be empty or whitespace.", nameof(claimName));
+        }
+
+        // Protocol controls are never object-property disclosure names.
+        // Guard the shared model constructor so public generators and direct
+        // callers cannot create disclosures the parser must reject.
+        if (claimName is "_sd" or "_sd_alg" or "...")
+        {
+            throw new ArgumentException("Claim name is reserved for SD-JWT protocol controls.", nameof(claimName));
         }
 
         Salt = salt;
