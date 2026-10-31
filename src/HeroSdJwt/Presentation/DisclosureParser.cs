@@ -1,6 +1,7 @@
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Models;
+using HeroSdJwt.Verification;
 using System.Text.Json;
 
 namespace HeroSdJwt.Presentation;
@@ -62,6 +63,16 @@ public class DisclosureParser : IDisclosureParser
         if (string.IsNullOrWhiteSpace(salt))
         {
             throw new MalformedDisclosureException("Disclosure salt cannot be empty or whitespace");
+        }
+
+        // A signed disclosure digest does not resolve ambiguity when JSON
+        // consumers disagree on the first/last duplicate member value.
+        // Apply the verifier's name policy also to standalone parser callers.
+        if (JsonObjectMemberGuard.HasInvalidOrDuplicateNamesRecursively(
+            jsonArray[arrayLength == 2 ? 1 : 2]))
+        {
+            throw new MalformedDisclosureException(
+                "Disclosure claim value contains duplicate or invalid JSON object member names");
         }
 
         if (arrayLength == 2)
