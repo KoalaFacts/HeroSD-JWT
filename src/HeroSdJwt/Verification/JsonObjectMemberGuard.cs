@@ -10,6 +10,40 @@ internal static class JsonObjectMemberGuard
 {
     private const int MAX_SMALL_OBJECT_MEMBERS = 8;
 
+    // Disclosure values may contain objects at any nesting level. Reuse the
+    // same unambiguous-name check as the JWT verifier without allocating a
+    // collection for primitive values or arrays without object members.
+    internal static bool HasInvalidOrDuplicateNamesRecursively(JsonElement value)
+    {
+        if (value.ValueKind == JsonValueKind.Object)
+        {
+            if (HasInvalidOrDuplicateNames(value))
+            {
+                return true;
+            }
+
+            foreach (var property in value.EnumerateObject())
+            {
+                if (HasInvalidOrDuplicateNamesRecursively(property.Value))
+                {
+                    return true;
+                }
+            }
+        }
+        else if (value.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var element in value.EnumerateArray())
+            {
+                if (HasInvalidOrDuplicateNamesRecursively(element))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     internal static bool HasInvalidOrDuplicateNames(JsonElement value)
     {
         if (value.ValueKind != JsonValueKind.Object)
