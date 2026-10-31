@@ -1,6 +1,7 @@
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Internal.Ed25519;
 using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
 using System.Buffers;
 using System.Formats.Asn1;
 using System.Security.Cryptography;
@@ -427,6 +428,15 @@ public class JwtSigner : IJwtSigner
                 writer.WriteBooleanValue(b);
                 break;
             case JsonElement je:
+                // A valid signature must not sign ambiguous claim values that
+                // the verifier will reject (including escaped-name aliases).
+                if (JsonObjectMemberGuard.HasInvalidOrDuplicateNamesRecursively(je))
+                {
+                    throw new ArgumentException(
+                        "JWT claim value contains duplicate or invalid JSON object member names.",
+                        nameof(value));
+                }
+
                 je.WriteTo(writer);
                 break;
             case null:
@@ -488,6 +498,13 @@ public class JwtSigner : IJwtSigner
 #pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement fallback
                 var element = JsonSerializer.SerializeToElement(value);
 #pragma warning restore IL2026, IL3050
+                if (JsonObjectMemberGuard.HasInvalidOrDuplicateNamesRecursively(element))
+                {
+                    throw new ArgumentException(
+                        "JWT claim value contains duplicate or invalid JSON object member names.",
+                        nameof(value));
+                }
+
                 element.WriteTo(writer);
                 break;
         }
