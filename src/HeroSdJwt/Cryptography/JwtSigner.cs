@@ -97,6 +97,19 @@ public class JwtSigner : IJwtSigner
         var payloadJson = SerializeDictionary(payload);
         var payloadBase64 = Base64UrlEncoder.Encode(payloadJson);
 
+        // The standalone verifier accepts compact JWTs up to 64 KiB. Every
+        // supported signature is at least 32 bytes (43 base64url characters);
+        // reject an impossible-to-verify token before allocating the signing
+        // input or performing cryptographic operations.
+        var encodedWireLengthWithoutSignature = (long)headerBase64.Length + payloadBase64.Length + 2;
+        const int MinimumSignatureBase64UrlLength = 43;
+        if (encodedWireLengthWithoutSignature + MinimumSignatureBase64UrlLength > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new ArgumentException(
+                $"JWT exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.",
+                nameof(payload));
+        }
+
         // Create signing input
         var signingInput = $"{headerBase64}.{payloadBase64}";
         var signingInputBytes = System.Text.Encoding.UTF8.GetBytes(signingInput);
@@ -121,6 +134,16 @@ public class JwtSigner : IJwtSigner
         };
 
         var signatureBase64 = Base64UrlEncoder.Encode(signatureBytes);
+
+        // RSA key sizes and algorithm-specific signature lengths vary. Apply
+        // the exact final wire limit as well, without weakening the verifier
+        // to accommodate a token which cannot be consumed.
+        if (encodedWireLengthWithoutSignature + signatureBase64.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new ArgumentException(
+                $"JWT exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.",
+                nameof(payload));
+        }
 
         return $"{headerBase64}.{payloadBase64}.{signatureBase64}";
     }
