@@ -1052,7 +1052,15 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
 
                     // Validate the public key format and curve
                     using var ecdsa = ECDsa.Create();
-                    ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out _);
+                    ecdsa.ImportSubjectPublicKeyInfo(holderPublicKey, out var bytesRead);
+                    // ASN.1 SPKI import accepts a valid prefix. Do not let trailing
+                    // untrusted bytes reach a custom key binding validator.
+                    if (bytesRead != holderPublicKey.Length)
+                    {
+                        errors.Add(ErrorCode.InvalidInput);
+                        errorDetails.Add("Invalid cnf claim: holder public key contains trailing data");
+                        return new VerificationResult(errors, string.Join("; ", errorDetails));
+                    }
 
                     // Only P-256 (ES256) is supported
                     if (!EcCurveGuard.IsP256(ecdsa))
