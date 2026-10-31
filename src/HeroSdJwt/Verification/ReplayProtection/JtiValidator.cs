@@ -42,6 +42,9 @@ public class JtiValidator
             ClockSkewTolerance = options.ClockSkewTolerance,
             RequireJtiClaim = options.RequireJtiClaim
         };
+        // Custom IJtiCache implementations do not necessarily validate replay options.
+        // Validate the owned snapshot, not mutable caller state, before accepting tokens.
+        _options.Validate();
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
