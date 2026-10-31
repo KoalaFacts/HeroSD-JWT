@@ -141,7 +141,7 @@ public class Base64UrlEncoderTests
     public void DecodeBytes_WithVeryLargeInput_ThrowsArgumentOutOfRangeException()
     {
         // Arrange - Create string larger than 10MB limit
-        var largeString = new string('A', 11 * 1024 * 1024); // 11MB
+        var largeString = new string('A', 14 * 1024 * 1024); // 14 MiB encoded would decode to 10.5 MiB
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() => Base64UrlEncoder.DecodeBytes(largeString));
