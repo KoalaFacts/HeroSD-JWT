@@ -3,7 +3,6 @@ using HeroSdJwt.Internal.Ed25519;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Buffers;
-using System.Formats.Asn1;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -218,8 +217,9 @@ public class JwtSigner : IJwtSigner
                     nameof(privateKeyBytes));
             }
 
-            var derSignature = ecdsa.SignData(data, HashAlgorithmName.SHA256);
-            return ConvertDerToJose(derSignature, coordinateSize: 32);
+            // .NET emits the JOSE-required IEEE P1363 signature directly.
+            // Do not copy or DER-convert the signing result.
+            return ecdsa.SignData(data, HashAlgorithmName.SHA256);
         }
         catch (CryptographicException ex)
         {
@@ -327,8 +327,9 @@ public class JwtSigner : IJwtSigner
                     nameof(privateKeyBytes));
             }
 
-            var derSignature = ecdsa.SignData(data, HashAlgorithmName.SHA384);
-            return ConvertDerToJose(derSignature, coordinateSize: 48);
+            // .NET emits the JOSE-required IEEE P1363 signature directly.
+            // Do not copy or DER-convert the signing result.
+            return ecdsa.SignData(data, HashAlgorithmName.SHA384);
         }
         catch (CryptographicException ex)
         {
@@ -367,8 +368,9 @@ public class JwtSigner : IJwtSigner
                     nameof(privateKeyBytes));
             }
 
-            var derSignature = ecdsa.SignData(data, HashAlgorithmName.SHA512);
-            return ConvertDerToJose(derSignature, coordinateSize: 66); // P-521 outputs 132 bytes (66x2)
+            // .NET emits the JOSE-required IEEE P1363 signature directly.
+            // Do not copy or DER-convert the signing result.
+            return ecdsa.SignData(data, HashAlgorithmName.SHA512);
         }
         catch (CryptographicException ex)
         {
@@ -531,53 +533,6 @@ public class JwtSigner : IJwtSigner
                 element.WriteTo(writer);
                 break;
         }
-    }
-
-    /// <summary>
-    /// Converts a DER-encoded ECDSA signature to JOSE (R||S) format. If the input is already R||S, it is returned as-is.
-    /// </summary>
-    /// <summary>
-    /// Converts a DER-encoded ECDSA signature to JOSE (R||S) format.
-    /// If the input is already raw R||S (e.g., some providers emit that), it is returned as-is based on length.
-    /// </summary>
-    private static byte[] ConvertDerToJose(ReadOnlySpan<byte> signature, int coordinateSize)
-    {
-        // If already in raw R||S format, accept it based on expected length.
-        // Some valid signatures begin with 0x30; length check avoids misclassifying them as DER (test flake guard).
-        if (signature.Length == coordinateSize * 2 && signature.Length > 0)
-        {
-            return signature.ToArray();
-        }
-
-        var reader = new AsnReader(signature.ToArray(), AsnEncodingRules.DER);
-        var sequence = reader.ReadSequence();
-        var rBytes = sequence.ReadIntegerBytes().ToArray();
-        var sBytes = sequence.ReadIntegerBytes().ToArray();
-
-        if (sequence.HasData || reader.HasData)
-        {
-            throw new CryptographicException("Invalid ECDSA signature format.");
-        }
-
-        var output = new byte[coordinateSize * 2];
-        CopyUnsignedBigInteger(rBytes, output.AsSpan(0, coordinateSize));
-        CopyUnsignedBigInteger(sBytes, output.AsSpan(coordinateSize, coordinateSize));
-        return output;
-    }
-
-    private static void CopyUnsignedBigInteger(ReadOnlySpan<byte> value, Span<byte> destination)
-    {
-        if (value.Length > 0 && value[0] == 0x00)
-        {
-            value = value[1..];
-        }
-
-        if (value.Length > destination.Length)
-        {
-            throw new CryptographicException("ECDSA signature integer is too large for the target coordinate size.");
-        }
-
-        value.CopyTo(destination[(destination.Length - value.Length)..]);
     }
 
 #if NET10_0_OR_GREATER
