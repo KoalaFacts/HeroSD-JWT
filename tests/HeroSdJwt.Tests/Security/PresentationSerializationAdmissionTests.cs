@@ -52,6 +52,37 @@ public class PresentationSerializationAdmissionTests
     }
 
     [Fact]
+    public void Should_StopEnumeratingExcessDisclosures_When_ConstructingSdJwt()
+    {
+        // An untrusted lazy source must not be consumed beyond the 101st item.
+        // The combined serializer already refuses more than MAX_DISCLOSURES.
+        static IEnumerable<string> AdversarialStream()
+        {
+            for (var i = 0; i < Constants.MAX_DISCLOSURES + 1; i++)
+            {
+                yield return "W10";
+            }
+
+            throw new InvalidOperationException("The disclosure source was consumed after the limit.");
+        }
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwt("header.payload.signature", AdversarialStream(), HashAlgorithm.Sha256));
+        Assert.Equal("disclosures", error.ParamName);
+    }
+
+    [Fact]
+    public void Should_AllowMaximumDisclosureCount_When_ConstructingSdJwt()
+    {
+        var sdJwt = new SdJwt(
+            "header.payload.signature",
+            Enumerable.Repeat("W10", Constants.MAX_DISCLOSURES),
+            HashAlgorithm.Sha256);
+
+        Assert.Equal(Constants.MAX_DISCLOSURES, sdJwt.Disclosures.Count);
+    }
+
+    [Fact]
     public void Should_RejectOversizedCombinedPresentation_When_SerializingSdJwt()
     {
         var sdJwt = new SdJwt(
