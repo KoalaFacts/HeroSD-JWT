@@ -196,27 +196,29 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
         // Extract JWT payload claims (always visible claims like sub, iss, aud, name, role, etc.)
         try
         {
-            var parts = presentation.Split('~');
-            if (parts.Length > 0)
+            // Only the issuer JWT payload is needed. Splitting the complete
+            // presentation copies every Disclosure into a new string after
+            // verification, even though those components are never used here.
+            var jwtEnd = presentation.IndexOf('~');
+            var jwt = presentation.AsSpan(0, jwtEnd >= 0 ? jwtEnd : presentation.Length);
+            var firstDot = jwt.IndexOf('.');
+            var lastDot = jwt.LastIndexOf('.');
+            if (firstDot >= 0 && lastDot > firstDot &&
+                jwt[(firstDot + 1)..lastDot].IndexOf('.') < 0)
             {
-                var jwt = parts[0];
-                var jwtParts = jwt.Split('.');
-                if (jwtParts.Length == 3)
+                var payloadJson = Base64UrlEncoder.DecodeString(jwt[(firstDot + 1)..lastDot].ToString());
+                using var payloadDocument = JsonDocument.Parse(payloadJson);
+                var payload = payloadDocument.RootElement;
+
+                foreach (var property in payload.EnumerateObject())
                 {
-                    var payloadJson = Base64UrlEncoder.DecodeString(jwtParts[1]);
-                    using var payloadDocument = JsonDocument.Parse(payloadJson);
-                    var payload = payloadDocument.RootElement;
-
-                    foreach (var property in payload.EnumerateObject())
+                    // Skip SD-JWT-specific claims
+                    if (property.Name is "_sd" or "_sd_alg" or "cnf")
                     {
-                        // Skip SD-JWT-specific claims
-                        if (property.Name is "_sd" or "_sd_alg" or "cnf")
-                        {
-                            continue;
-                        }
-
-                        AddClaimFromJsonElement(claims, property.Name, property.Value);
+                        continue;
                     }
+
+                    AddClaimFromJsonElement(claims, property.Name, property.Value);
                 }
             }
         }
