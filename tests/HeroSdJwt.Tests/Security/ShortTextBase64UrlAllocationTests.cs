@@ -1,6 +1,5 @@
 using HeroSdJwt.Encoding;
 using System.Buffers.Text;
-using System.Text;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -21,7 +20,7 @@ public class ShortTextBase64UrlAllocationTests
         foreach (var value in new[] { 'A', 'é', '界' })
         {
             var text = new string(value, length);
-            var expected = Base64Url.EncodeToString(Encoding.UTF8.GetBytes(text));
+            var expected = Base64Url.EncodeToString(global::System.Text.Encoding.UTF8.GetBytes(text));
 
             Assert.Equal(expected, Base64UrlEncoder.Encode(text));
         }
@@ -31,7 +30,7 @@ public class ShortTextBase64UrlAllocationTests
     public void Should_PreserveUtf8Encoding_ForSurrogatePairsAtStackLimit()
     {
         var text = string.Concat(Enumerable.Repeat("🦘", 128));
-        var expected = Base64Url.EncodeToString(Encoding.UTF8.GetBytes(text));
+        var expected = Base64Url.EncodeToString(global::System.Text.Encoding.UTF8.GetBytes(text));
 
         Assert.Equal(256, text.Length);
         Assert.Equal(expected, Base64UrlEncoder.Encode(text));
@@ -43,7 +42,7 @@ public class ShortTextBase64UrlAllocationTests
     {
         const int iterations = 256;
         var text = new string('Z', 240);
-        var preEncodedUtf8 = Encoding.UTF8.GetBytes(text);
+        var preEncodedUtf8 = global::System.Text.Encoding.UTF8.GetBytes(text);
 
         // Both paths create the same encoded output string. The reference
         // uses caller-owned bytes so it never allocates a UTF-8 input array.
