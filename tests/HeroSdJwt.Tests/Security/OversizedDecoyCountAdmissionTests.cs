@@ -19,7 +19,7 @@ public class OversizedDecoyCountAdmissionTests
     [Theory]
     [InlineData(IMPOSSIBLE_DECOY_COUNT)]
     [InlineData(int.MaxValue)]
-    public void Should_RejectIMPOSSIBLE_DECOY_COUNT_BeforeGeneratorAllocates(int count)
+    public void Should_RejectImpossibleDecoyCount_BeforeGeneratorAllocates(int count)
     {
         var generator = new DecoyDigestGenerator(new DigestCalculator());
 
@@ -32,7 +32,7 @@ public class OversizedDecoyCountAdmissionTests
     [Theory]
     [InlineData(IMPOSSIBLE_DECOY_COUNT)]
     [InlineData(int.MaxValue)]
-    public void Should_RejectIMPOSSIBLE_DECOY_COUNT_AtLowLevelIssuer(int count)
+    public void Should_RejectImpossibleDecoyCount_AtLowLevelIssuer(int count)
     {
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             TestHelpers.CreateIssuer().CreateSdJwt(
@@ -48,7 +48,7 @@ public class OversizedDecoyCountAdmissionTests
     [Theory]
     [InlineData(IMPOSSIBLE_DECOY_COUNT)]
     [InlineData(int.MaxValue)]
-    public void Should_RejectIMPOSSIBLE_DECOY_COUNT_AtBuilderConfiguration(int count)
+    public void Should_RejectImpossibleDecoyCount_AtBuilderConfiguration(int count)
     {
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             SdJwtIssuerBuilder.Create().WithDecoys(count));
