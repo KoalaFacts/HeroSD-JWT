@@ -26,8 +26,14 @@ public class DigestCalculator : IDigestCalculator
             throw new ArgumentException("Disclosure cannot be empty or whitespace.", nameof(disclosure));
         }
 
-        // Convert disclosure to bytes (it's already UTF-8 string)
-        var disclosureBytes = System.Text.Encoding.UTF8.GetBytes(disclosure);
+        // Typical base64url disclosures are short. Avoid a new UTF-8 byte[] for
+        // every digest while preserving UTF-8 semantics for direct Unicode callers.
+        // Up to three UTF-8 bytes per UTF-16 code unit fits this bounded buffer.
+        const int StackDisclosureLimit = 256;
+        Span<byte> disclosureScratch = stackalloc byte[StackDisclosureLimit * 3];
+        ReadOnlySpan<byte> disclosureBytes = disclosure.Length <= StackDisclosureLimit
+            ? disclosureScratch[..System.Text.Encoding.UTF8.GetBytes(disclosure.AsSpan(), disclosureScratch)]
+            : System.Text.Encoding.UTF8.GetBytes(disclosure);
 
         // Hash directly into a fixed stack buffer. Every disclosure digest is
         // computed during issuance and verification; avoid a heap byte[] per
