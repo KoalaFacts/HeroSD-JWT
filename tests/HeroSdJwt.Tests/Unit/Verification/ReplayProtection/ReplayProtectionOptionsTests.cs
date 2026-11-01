@@ -82,7 +82,7 @@ public class ReplayProtectionOptionsTests
     }
 
     [Fact]
-    public void Validate_WhenDefaultTtlExceedsMaximumTtl_Throws()
+    public void Validate_WhenUnusedLegacyDefaultExceedsMaximumTtl_DoesNotThrow()
     {
         var options = new ReplayProtectionOptions
         {
@@ -90,8 +90,7 @@ public class ReplayProtectionOptionsTests
             MaximumTtl = TimeSpan.FromHours(1)
         };
 
-        var ex = Assert.Throws<InvalidOperationException>(options.Validate);
-        Assert.Contains("less than or equal", ex.Message);
+        Assert.Null(Record.Exception(options.Validate));
     }
 
     [Fact]

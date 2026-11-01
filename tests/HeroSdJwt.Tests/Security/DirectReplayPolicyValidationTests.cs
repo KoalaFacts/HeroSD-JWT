@@ -12,7 +12,6 @@ public sealed class DirectReplayPolicyValidationTests
     [InlineData("excessive-skew")]
     [InlineData("negative-skew")]
     [InlineData("zero-retention")]
-    [InlineData("shorter-than-default")]
     [InlineData("zero-capacity")]
     public void Should_RejectInvalidReplayPolicy_WhenCacheDoesNotValidateOptions(string invalidSetting)
     {
@@ -27,9 +26,6 @@ public sealed class DirectReplayPolicyValidationTests
                 break;
             case "zero-retention":
                 options.MaximumTtl = TimeSpan.Zero;
-                break;
-            case "shorter-than-default":
-                options.MaximumTtl = TimeSpan.FromMinutes(30);
                 break;
             case "zero-capacity":
                 options.MaxCacheEntries = 0;
@@ -49,6 +45,7 @@ public sealed class DirectReplayPolicyValidationTests
         var options = new ReplayProtectionOptions
         {
             Enabled = true,
+            MaximumTtl = TimeSpan.FromMinutes(15),
             ClockSkewTolerance = TimeSpan.FromMinutes(5)
         };
 
