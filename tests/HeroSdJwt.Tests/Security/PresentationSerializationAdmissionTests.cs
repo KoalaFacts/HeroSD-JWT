@@ -24,14 +24,31 @@ public class PresentationSerializationAdmissionTests
     }
 
     [Fact]
-    public void Should_RejectExcessDisclosureSlots_When_Formatting()
+    public void Should_RejectExcessDisclosureSlots_When_ConstructingPresentation()
     {
-        var presentation = new SdJwtPresentation(
+        _ = Assert.Throws<ArgumentException>(() => new SdJwtPresentation(
             "header.payload.signature",
-            Enumerable.Repeat("W10", Constants.MAX_DISCLOSURES + 1));
+            Enumerable.Repeat("W10", Constants.MAX_DISCLOSURES + 1)));
+    }
 
-        _ = Assert.Throws<ArgumentException>(() =>
-            new SdJwtPresenter().FormatPresentation(presentation));
+    [Fact]
+    public void Should_StopEnumeratingUnboundedDisclosures_AfterTheFirstExcessElement()
+    {
+        // A presentation cannot serialize more than MAX_DISCLOSURES. An untrusted
+        // lazy IEnumerable must not be drained past that known-invalid count.
+        static IEnumerable<string> AdversarialStream()
+        {
+            for (var i = 0; i < Constants.MAX_DISCLOSURES + 1; i++)
+            {
+                yield return "W10";
+            }
+
+            throw new InvalidOperationException("The stream was consumed past its admission limit.");
+        }
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresentation("header.payload.signature", AdversarialStream()));
+        Assert.Equal("selectedDisclosures", error.ParamName);
     }
 
     [Fact]
