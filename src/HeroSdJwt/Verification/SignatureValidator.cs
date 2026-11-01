@@ -2,7 +2,6 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Internal.Ed25519;
 using System.Security.Cryptography;
-using System.Formats.Asn1;
 using System.Text.Json;
 using Constants = HeroSdJwt.Primitives.Constants;
 using ErrorCode = HeroSdJwt.Primitives.ErrorCode;
@@ -11,7 +10,7 @@ namespace HeroSdJwt.Verification;
 
 /// <summary>
 /// Validates JWT signatures using cryptographic verification.
-/// ECDSA signatures (ES256/ES384/ES512) accept JOSE raw R||S and convert to DER for verification per JWS spec.
+/// ECDSA signatures (ES256/ES384/ES512) verify JOSE raw R||S using IEEE P1363 encoding.
 /// </summary>
 public class SignatureValidator : ISignatureValidator
 {
@@ -266,18 +265,11 @@ public class SignatureValidator : ISignatureValidator
                     ErrorCode.InvalidInput);
             }
 
-            if (ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA256))
-            {
-                return true;
-            }
-
-            if (signature.Length == 32 * 2)
-            {
-                var derSignature = ConvertJoseToDerSignature(signature, coordinateSize: 32);
-                return ecdsa.VerifyData(data, derSignature, HashAlgorithmName.SHA256);
-            }
-
-            return false;
+            // JOSE ECDSA signatures use fixed-width R||S (IEEE P1363), not DER.
+            // Reject invalid signatures without a second cryptographic attempt.
+            return signature.Length == 64 &&
+                ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA256,
+                    DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
         }
         catch (SdJwtException)
         {
@@ -326,18 +318,11 @@ public class SignatureValidator : ISignatureValidator
                     ErrorCode.InvalidInput);
             }
 
-            if (ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA384))
-            {
-                return true;
-            }
-
-            if (signature.Length == 48 * 2)
-            {
-                var derSignature = ConvertJoseToDerSignature(signature, coordinateSize: 48);
-                return ecdsa.VerifyData(data, derSignature, HashAlgorithmName.SHA384);
-            }
-
-            return false;
+            // JOSE ECDSA signatures use fixed-width R||S (IEEE P1363), not DER.
+            // Reject invalid signatures without a second cryptographic attempt.
+            return signature.Length == 96 &&
+                ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA384,
+                    DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
         }
         catch (SdJwtException)
         {
@@ -386,18 +371,11 @@ public class SignatureValidator : ISignatureValidator
                     ErrorCode.InvalidInput);
             }
 
-            if (ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA512))
-            {
-                return true;
-            }
-
-            if (signature.Length == 66 * 2)
-            {
-                var derSignature = ConvertJoseToDerSignature(signature, coordinateSize: 66); // P-521 coordinate size in bytes
-                return ecdsa.VerifyData(data, derSignature, HashAlgorithmName.SHA512);
-            }
-
-            return false;
+            // JOSE ECDSA signatures use fixed-width R||S (IEEE P1363), not DER.
+            // Reject invalid signatures without a second cryptographic attempt.
+            return signature.Length == 132 &&
+                ecdsa.VerifyData(data, signature, HashAlgorithmName.SHA512,
+                    DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
         }
         catch (SdJwtException)
         {
@@ -612,59 +590,6 @@ public class SignatureValidator : ISignatureValidator
             "EdDSA" => true,
             _ => false
         };
-    }
-
-    /// <summary>
-    /// Converts a JOSE (R||S) ECDSA signature into DER format expected by ECDsa.VerifyData.
-    /// Accepts raw R||S; if already DER, returns the input.
-    /// </summary>
-    private static byte[] ConvertJoseToDerSignature(ReadOnlySpan<byte> joseSignature, int coordinateSize)
-    {
-        // If already DER (starts with SEQUENCE tag) and not a fixed-length raw signature, return as-is.
-        if (joseSignature.Length > 0 && joseSignature[0] == 0x30 && joseSignature.Length != coordinateSize * 2)
-        {
-            return joseSignature.ToArray();
-        }
-
-        if (joseSignature.Length != coordinateSize * 2)
-        {
-            throw new SdJwtException("Invalid ECDSA signature length.", ErrorCode.InvalidInput);
-        }
-
-        var r = joseSignature[..coordinateSize];
-        var s = joseSignature[coordinateSize..];
-
-        var writer = new AsnWriter(AsnEncodingRules.DER);
-        using (writer.PushSequence())
-        {
-            WriteInteger(writer, r);
-            WriteInteger(writer, s);
-        }
-
-        return writer.Encode();
-    }
-
-    private static void WriteInteger(AsnWriter writer, ReadOnlySpan<byte> value)
-    {
-        int offset = 0;
-        while (offset < value.Length && value[offset] == 0x00)
-        {
-            offset++;
-        }
-
-        var trimmed = value[offset..];
-
-        // Ensure positive integer by prefixing 0x00 when needed
-        if (trimmed.Length == 0 || (trimmed[0] & 0x80) != 0)
-        {
-            Span<byte> padded = stackalloc byte[trimmed.Length + 1];
-            trimmed.CopyTo(padded[1..]);
-            writer.WriteInteger(padded);
-        }
-        else
-        {
-            writer.WriteInteger(trimmed);
-        }
     }
 
 #if NET10_0_OR_GREATER
