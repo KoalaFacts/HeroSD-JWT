@@ -1,7 +1,6 @@
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Issuance;
 using System.Security.Cryptography;
-using System.Text;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Security;
@@ -48,7 +47,7 @@ public class DisclosureDigestAllocationTests
     public void Should_PreserveUtf8Digest_ForShortNonAsciiDisclosure(HashAlgorithm algorithm)
     {
         var disclosure = new string('é', 240);
-        var bytes = Encoding.UTF8.GetBytes(disclosure);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(disclosure);
         var hash = algorithm switch
         {
             HashAlgorithm.Sha256 => SHA256.HashData(bytes),
