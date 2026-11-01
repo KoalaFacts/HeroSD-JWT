@@ -199,6 +199,7 @@ public class KeyBindingGeneratorTests
         Assert.True(header.RootElement.TryGetProperty("typ", out var typElement));
         Assert.Equal("kb+jwt", typElement.GetString());
     }
+
     [Theory]
     [InlineData(8)]
     [InlineData(700)]
@@ -224,5 +225,4 @@ public class KeyBindingGeneratorTests
             jwt, holder.ExportSubjectPublicKeyInfo(),
             "test-hash", "https://verifier.example", nonce));
     }
-
 }
