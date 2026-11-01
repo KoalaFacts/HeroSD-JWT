@@ -93,15 +93,27 @@ public class SdJwtIssuer(
                 ex);
         }
 
-        var selectiveClaimsList = selectivelyDisclosableClaims.ToList();
-
-        // Repeating the same selective path must not create multiple salted
-        // Disclosures: that would make claim-path mapping ambiguous at issuance.
-        // Keep the first occurrence and preserve ordinal (case-sensitive) paths.
-        if (selectiveClaimsList.Count > 1)
+        // Repeated selectors should not be retained just to remove them later.
+        // Enumerate the caller's sequence once and keep only first occurrences
+        // in ordinal order. Issuance deliberately supports more than 100
+        // distinct disclosures: that limit applies to a single presentation.
+        var selectiveClaimsList = new List<string>();
+        HashSet<string>? seenPaths = null;
+        foreach (var path in selectivelyDisclosableClaims)
         {
-            var seenPaths = new HashSet<string>(StringComparer.Ordinal);
-            selectiveClaimsList.RemoveAll(path => !seenPaths.Add(path));
+            ArgumentNullException.ThrowIfNull(path);
+
+            if (selectiveClaimsList.Count == 0)
+            {
+                selectiveClaimsList.Add(path);
+                continue;
+            }
+
+            seenPaths ??= new HashSet<string>([selectiveClaimsList[0]], StringComparer.Ordinal);
+            if (seenPaths.Add(path))
+            {
+                selectiveClaimsList.Add(path);
+            }
         }
 
         try
