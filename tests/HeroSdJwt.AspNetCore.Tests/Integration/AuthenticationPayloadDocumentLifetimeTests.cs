@@ -48,6 +48,47 @@ public sealed class AuthenticationPayloadDocumentLifetimeTests
         Assert.Equal(poolEvents.Rented, poolEvents.Returned);
     }
 
+
+    [Fact]
+    public void Should_AvoidDisclosureProportionalAllocations_WhenMappingAuthenticatedClaims()
+    {
+        // Claim projection runs after verification. Only the issuer JWT payload
+        // and verified claims are needed; disclosure strings must not be copied.
+        var handler = new SdJwtAuthenticationHandler(
+            new StaticOptionsMonitor(),
+            NullLoggerFactory.Instance,
+            UrlEncoder.Default,
+            SdJwtVerifierBuilder.Create().Build());
+        var payload = Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"sub":"holder-1","name":"Alice"}""");
+        var value = new string('a', 256);
+        var disclosures = Enumerable.Range(0, 100)
+            .Select(index => Base64UrlEncoder.Encode($"[\"salt-{index}\",\"claim-{index}\",\"{value}\"]"));
+        var presentation = $"e30.{payload}.e30~{string.Join("~", disclosures)}~";
+        Assert.True(presentation.Length < 64 * 1024);
+
+        var verified = new VerificationResult(new Dictionary<string, JsonElement>());
+        var projection = typeof(SdJwtAuthenticationHandler).GetMethod(
+            "MapAllClaimsToPrincipal",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(projection);
+
+        // Warm reflection, JIT, JSON parser and pooling before measuring the
+        // current thread. A Split('~') of 100 long disclosures allocates >75 KiB.
+        for (var i = 0; i < 4; i++)
+        {
+            _ = projection.Invoke(handler, [presentation, verified]);
+        }
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var mapped = (List<Claim>)projection.Invoke(handler, [presentation, verified])!;
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Contains(mapped, claim => claim.Type == "name" && claim.Value == "Alice");
+        Assert.Contains(mapped, claim => claim.Type == "sub" && claim.Value == "holder-1");
+        Assert.True(allocated < 16 * 1024,
+            $"Claim projection allocated {allocated} bytes for 100 disclosures; expected under 16 KiB.");
+    }
+
     private sealed class CurrentThreadPoolEvents : EventListener
     {
         private readonly int _threadId = Environment.CurrentManagedThreadId;
