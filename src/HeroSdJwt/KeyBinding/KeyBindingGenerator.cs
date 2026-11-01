@@ -93,7 +93,6 @@ public class KeyBindingGenerator : IKeyBindingGenerator
         }
 
         // Sign with holder's private key
-        var signingInput = $"{headerBase64}.{payloadBase64}";
         using var ecdsa = ECDsa.Create();
         try
         {
@@ -137,13 +136,26 @@ public class KeyBindingGenerator : IKeyBindingGenerator
                 nameof(holderPrivateKey));
         }
 
+        // Base64url segments contain ASCII only. Encode the signed bytes
+        // directly, without allocating an intermediate JWT signing-input string
+        // or a UTF-8 byte[] for the common short holder proof.
+        var signingInputLength = headerBase64.Length + 1 + payloadBase64.Length;
+        const int StackSigningInputLimit = 1024;
+        Span<byte> signingInputBytes = signingInputLength <= StackSigningInputLimit
+            ? stackalloc byte[signingInputLength]
+            : new byte[signingInputLength];
+        var headerByteCount = System.Text.Encoding.ASCII.GetBytes(
+            headerBase64.AsSpan(), signingInputBytes);
+        signingInputBytes[headerByteCount] = (byte)'.';
+        var payloadByteCount = System.Text.Encoding.ASCII.GetBytes(
+            payloadBase64.AsSpan(), signingInputBytes[(headerByteCount + 1)..]);
+
         var signature = ecdsa.SignData(
-            System.Text.Encoding.UTF8.GetBytes(signingInput),
-            HashAlgorithmName.SHA256
-        );
+            signingInputBytes[..(headerByteCount + 1 + payloadByteCount)],
+            HashAlgorithmName.SHA256);
 
         var signatureBase64 = Base64UrlEncoder.Encode(signature);
-        return $"{signingInput}.{signatureBase64}";
+        return $"{headerBase64}.{payloadBase64}.{signatureBase64}";
     }
 
     /// <summary>
