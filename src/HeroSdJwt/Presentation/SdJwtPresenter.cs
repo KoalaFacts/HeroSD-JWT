@@ -40,7 +40,20 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
         ArgumentNullException.ThrowIfNull(sdJwt);
         ArgumentNullException.ThrowIfNull(selectedClaimNames);
 
-        var selectedClaimsList = selectedClaimNames.ToList();
+        // Stop lazy request streams at the first element beyond the
+        // presentation disclosure limit, before resolving any claim paths.
+        var selectedClaimsList = new List<string>();
+        foreach (var claimName in selectedClaimNames)
+        {
+            if (selectedClaimsList.Count >= Constants.MAX_DISCLOSURES)
+            {
+                throw new ArgumentException(
+                    $"Presentation exceeds the maximum of {Constants.MAX_DISCLOSURES} claim selectors.",
+                    nameof(selectedClaimNames));
+            }
+
+            selectedClaimsList.Add(claimName);
+        }
 
         try
         {
