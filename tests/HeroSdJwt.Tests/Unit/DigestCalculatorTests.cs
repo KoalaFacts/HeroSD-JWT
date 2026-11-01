@@ -352,6 +352,27 @@ public class DigestCalculatorTests
         Assert.Equal(digest1, digest2);
     }
 
+    [Theory]
+    [InlineData(HashAlgorithm.Sha256)]
+    [InlineData(HashAlgorithm.Sha384)]
+    [InlineData(HashAlgorithm.Sha512)]
+    public void ComputeDigest_AllAlgorithms_MatchReferenceForLargeUnicodeInput(HashAlgorithm algorithm)
+    {
+        // A direct destination-span hash must use the algorithm's exact output
+        // length, not the entire 64-byte temporary buffer.
+        var disclosure = new string('A', 2048) + "föö 🦘";
+        var input = System.Text.Encoding.UTF8.GetBytes(disclosure);
+        var hash = algorithm switch
+        {
+            HashAlgorithm.Sha256 => SHA256.HashData(input),
+            HashAlgorithm.Sha384 => SHA384.HashData(input),
+            HashAlgorithm.Sha512 => SHA512.HashData(input),
+            _ => throw new ArgumentOutOfRangeException(nameof(algorithm))
+        };
+
+        Assert.Equal(Base64UrlEncoder.Encode(hash), new DigestCalculator().ComputeDigest(disclosure, algorithm));
+    }
+
     // Helper methods
     private static byte[] ConvertFromBase64Url(string base64Url)
     {
