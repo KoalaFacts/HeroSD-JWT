@@ -1,3 +1,4 @@
+using HeroSdJwt.Encoding;
 using HeroSdJwt.KeyBinding;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -198,4 +199,30 @@ public class KeyBindingGeneratorTests
         Assert.True(header.RootElement.TryGetProperty("typ", out var typElement));
         Assert.Equal("kb+jwt", typElement.GetString());
     }
+    [Theory]
+    [InlineData(8)]
+    [InlineData(700)]
+    [InlineData(1300)]
+    public void Should_SignCanonicalJwsInput_WithShortAndLongUnicodeNonce(int asciiLength)
+    {
+        // Exercise both the bounded stack path and the long-input fallback.
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var nonce = new string('n', asciiLength) + "✓😀";
+        var generator = new KeyBindingGenerator();
+
+        var jwt = generator.CreateKeyBindingJwt(
+            holder.ExportPkcs8PrivateKey(), "test-hash", "https://verifier.example", nonce);
+
+        var parts = jwt.Split('.');
+        Assert.Equal(3, parts.Length);
+        var signature = Base64UrlEncoder.DecodeBytes(parts[2]);
+        var signedBytes = System.Text.Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}");
+
+        Assert.Equal(64, signature.Length);
+        Assert.True(holder.VerifyData(signedBytes, signature, HashAlgorithmName.SHA256));
+        Assert.True(new KeyBindingValidator().ValidateKeyBinding(
+            jwt, holder.ExportSubjectPublicKeyInfo(),
+            "test-hash", "https://verifier.example", nonce));
+    }
+
 }
