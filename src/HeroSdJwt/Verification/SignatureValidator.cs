@@ -62,14 +62,37 @@ public class SignatureValidator : ISignatureValidator
         // Reject unsupported or unsafe algorithms before signature work.
         var algorithm = ValidateSupportedAlgorithm(header);
 
-        // Construct the signing input (header.payload)
-        var signingInput = $"{headerBase64}.{payloadBase64}";
-        var signingInputBytes = System.Text.Encoding.UTF8.GetBytes(signingInput);
-
-        // Decode signature
+        // Verify the exact compact header.payload prefix, without allocating
+        // an interpolated input string for every signature check.
         var signatureBytes = Base64UrlEncoder.DecodeBytes(signatureBase64);
+        var signingInputLength = jwt.Length - signatureBase64.Length - 1;
 
-        // Verify signature based on algorithm
+        // HMAC is the hot path for symmetric deployments. Encode directly
+        // into bounded stack storage rather than allocating a UTF-8 byte[].
+        // Keep UTF-8 semantics for standalone callers even if a payload
+        // contains non-ASCII characters (the claim verifier validates JSON).
+        const int StackSigningInputLimit = 1024;
+        if (signingInputLength <= StackSigningInputLimit &&
+            (algorithm is "HS256" or "HS384" or "HS512"))
+        {
+            Span<byte> signingInputScratch = stackalloc byte[StackSigningInputLimit * 3];
+            var written = System.Text.Encoding.UTF8.GetBytes(
+                jwt.AsSpan(0, signingInputLength), signingInputScratch);
+            var input = signingInputScratch[..written];
+
+            return algorithm switch
+            {
+                "HS256" => VerifyHmacSha256(input, signatureBytes, publicKey),
+                "HS384" => VerifyHmacSha384(input, signatureBytes, publicKey),
+                _ => VerifyHmacSha512(input, signatureBytes, publicKey)
+            };
+        }
+
+        // Public-key algorithms still use a managed input buffer; all paths
+        // avoid concatenating duplicate header and payload strings.
+        var signingInputBytes = System.Text.Encoding.UTF8.GetBytes(
+            jwt.AsSpan(0, signingInputLength));
+
         return algorithm switch
         {
             "HS256" => VerifyHmacSha256(signingInputBytes, signatureBytes, publicKey),
@@ -92,7 +115,7 @@ public class SignatureValidator : ISignatureValidator
     /// <summary>
     /// Verifies an HMAC-SHA256 signature using constant-time comparison.
     /// </summary>
-    private static bool VerifyHmacSha256(byte[] data, byte[] signature, byte[] key)
+    private static bool VerifyHmacSha256(ReadOnlySpan<byte> data, byte[] signature, byte[] key)
     {
         // RFC 7518 Section 3.2 forbids authenticating HMAC JWTs with
         // keys shorter than the algorithm's digest, even when the MAC matches.
@@ -112,7 +135,7 @@ public class SignatureValidator : ISignatureValidator
     /// <summary>
     /// Verifies an HMAC-SHA384 signature using constant-time comparison.
     /// </summary>
-    private static bool VerifyHmacSha384(byte[] data, byte[] signature, byte[] key)
+    private static bool VerifyHmacSha384(ReadOnlySpan<byte> data, byte[] signature, byte[] key)
     {
         // RFC 7518 Section 3.2 forbids authenticating HMAC JWTs with
         // keys shorter than the algorithm's digest, even when the MAC matches.
@@ -131,7 +154,7 @@ public class SignatureValidator : ISignatureValidator
     /// <summary>
     /// Verifies an HMAC-SHA512 signature using constant-time comparison.
     /// </summary>
-    private static bool VerifyHmacSha512(byte[] data, byte[] signature, byte[] key)
+    private static bool VerifyHmacSha512(ReadOnlySpan<byte> data, byte[] signature, byte[] key)
     {
         // RFC 7518 Section 3.2 forbids authenticating HMAC JWTs with
         // keys shorter than the algorithm's digest, even when the MAC matches.
