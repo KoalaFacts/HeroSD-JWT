@@ -1,4 +1,4 @@
-using HeroSdJwt.Encoding;
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
@@ -29,16 +29,18 @@ public class DigestCalculator : IDigestCalculator
         // Convert disclosure to bytes (it's already UTF-8 string)
         var disclosureBytes = System.Text.Encoding.UTF8.GetBytes(disclosure);
 
-        // Compute hash based on algorithm
-        byte[] hashBytes = algorithm switch
+        // Hash directly into a fixed stack buffer. Every disclosure digest is
+        // computed during issuance and verification; avoid a heap byte[] per
+        // SHA-256/384/512 result without changing the encoded digest.
+        Span<byte> hashBytes = stackalloc byte[64];
+        int hashLength = algorithm switch
         {
-            HashAlgorithm.Sha256 => SHA256.HashData(disclosureBytes),
-            HashAlgorithm.Sha384 => SHA384.HashData(disclosureBytes),
-            HashAlgorithm.Sha512 => SHA512.HashData(disclosureBytes),
+            HashAlgorithm.Sha256 => SHA256.HashData(disclosureBytes, hashBytes),
+            HashAlgorithm.Sha384 => SHA384.HashData(disclosureBytes, hashBytes),
+            HashAlgorithm.Sha512 => SHA512.HashData(disclosureBytes, hashBytes),
             _ => throw new ArgumentException($"Unsupported hash algorithm: {algorithm}", nameof(algorithm))
         };
 
-        // Convert hash to base64url
-        return Base64UrlEncoder.Encode(hashBytes);
+        return Base64Url.EncodeToString(hashBytes[..hashLength]);
     }
 }
