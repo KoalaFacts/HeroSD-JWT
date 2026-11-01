@@ -109,20 +109,27 @@ public sealed class SdJwt
                 $"Presentation exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.");
         }
 
-        var parts = new List<string> { Jwt };
-        parts.AddRange(Disclosures);
-
-        if (!string.IsNullOrEmpty(KeyBindingJwt))
+        // Write directly into the final string. Avoid allocating a list and
+        // intermediate arrays for each holder presentation.
+        var keyBinding = KeyBindingJwt ?? string.Empty;
+        return string.Create((int)combinedLength, (jwt: Jwt, disclosures: Disclosures, keyBinding), (span, state) =>
         {
-            parts.Add(KeyBindingJwt);
-        }
-        else
-        {
-            // Add empty string for key binding JWT if not present
-            parts.Add(string.Empty);
-        }
+            var position = 0;
+            state.jwt.AsSpan().CopyTo(span);
+            position += state.jwt.Length;
+            span[position++] = Constants.COMBINED_FORMAT_SEPARATOR;
 
-        return string.Join("~", parts);
+            foreach (var disclosure in state.disclosures)
+            {
+                // Preserve string.Join's treatment of null entries as empty.
+                var value = disclosure ?? string.Empty;
+                value.AsSpan().CopyTo(span[position..]);
+                position += value.Length;
+                span[position++] = Constants.COMBINED_FORMAT_SEPARATOR;
+            }
+
+            state.keyBinding.AsSpan().CopyTo(span[position..]);
+        });
     }
 
     /// <summary>
