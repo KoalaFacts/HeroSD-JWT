@@ -82,11 +82,8 @@ public class ReplayProtectionOptions
                 $"MaximumTtl must be greater than zero. Got: {MaximumTtl}");
         }
 
-        if (DefaultTtl > MaximumTtl)
-        {
-            throw new InvalidOperationException(
-                $"DefaultTtl ({DefaultTtl}) must be less than or equal to MaximumTtl ({MaximumTtl})");
-        }
+        // DefaultTtl is retained for compatibility, but replay markers use
+        // the signed exp claim. Only MaximumTtl bounds their actual retention.
 
         if (ClockSkewTolerance < TimeSpan.Zero)
         {
