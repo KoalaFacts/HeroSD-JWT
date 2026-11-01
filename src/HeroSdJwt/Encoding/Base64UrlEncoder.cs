@@ -59,6 +59,19 @@ public static class Base64UrlEncoder
         // checked for multi-byte expansion before allocating the buffer.
         try
         {
+            // Header, payload and Disclosure JSON is usually short. Encode
+            // directly from strict UTF-16 into bounded stack storage, avoiding
+            // a temporary UTF-8 byte[] on every signing operation.
+            const int StackTextLimit = 256;
+            if (text.Length <= StackTextLimit)
+            {
+                // Each UTF-16 code unit requires at most three UTF-8 bytes.
+                // A surrogate pair occupies two units but encodes to four bytes.
+                Span<byte> utf8Bytes = stackalloc byte[text.Length * 3];
+                var bytesWritten = _strictUtf8.GetBytes(text.AsSpan(), utf8Bytes);
+                return Base64Url.EncodeToString(utf8Bytes[..bytesWritten]);
+            }
+
             if (text.Length > MAX_INPUT_LENGTH / 3)
             {
                 var byteCount = _strictUtf8.GetByteCount(text);
