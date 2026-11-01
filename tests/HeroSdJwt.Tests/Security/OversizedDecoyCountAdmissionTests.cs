@@ -12,23 +12,27 @@ public class OversizedDecoyCountAdmissionTests
 {
     // Even SHA-256's shortest possible digest occupies 43 characters before
     // JSON quoting, separators, and JWT base64url expansion.
-    private const int ImpossibleDecoyCount = Constants.MAX_JWT_SIZE_BYTES / 43 + 1;
+    private const int IMPOSSIBLE_DECOY_COUNT = Constants.MAX_JWT_SIZE_BYTES / 43 + 1;
 
     private static readonly byte[] _signingKey = [.. Enumerable.Range(1, 32).Select(i => (byte)i)];
 
-    [Fact]
-    public void Should_RejectImpossibleDecoyCount_BeforeGeneratorAllocates()
+    [Theory]
+    [InlineData(IMPOSSIBLE_DECOY_COUNT)]
+    [InlineData(int.MaxValue)]
+    public void Should_RejectIMPOSSIBLE_DECOY_COUNT_BeforeGeneratorAllocates(int count)
     {
         var generator = new DecoyDigestGenerator(new DigestCalculator());
 
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            generator.GenerateDecoyDigests(ImpossibleDecoyCount, HashAlgorithm.Sha256));
+            generator.GenerateDecoyDigests(count, HashAlgorithm.Sha256));
 
         Assert.Equal("count", exception.ParamName);
     }
 
-    [Fact]
-    public void Should_RejectImpossibleDecoyCount_AtLowLevelIssuer()
+    [Theory]
+    [InlineData(IMPOSSIBLE_DECOY_COUNT)]
+    [InlineData(int.MaxValue)]
+    public void Should_RejectIMPOSSIBLE_DECOY_COUNT_AtLowLevelIssuer(int count)
     {
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             TestHelpers.CreateIssuer().CreateSdJwt(
@@ -36,16 +40,18 @@ public class OversizedDecoyCountAdmissionTests
                 ["email"],
                 _signingKey,
                 HashAlgorithm.Sha256,
-                decoyDigestCount: ImpossibleDecoyCount));
+                decoyDigestCount: count));
 
         Assert.Equal("decoyDigestCount", exception.ParamName);
     }
 
-    [Fact]
-    public void Should_RejectImpossibleDecoyCount_AtBuilderConfiguration()
+    [Theory]
+    [InlineData(IMPOSSIBLE_DECOY_COUNT)]
+    [InlineData(int.MaxValue)]
+    public void Should_RejectIMPOSSIBLE_DECOY_COUNT_AtBuilderConfiguration(int count)
     {
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            SdJwtIssuerBuilder.Create().WithDecoys(ImpossibleDecoyCount));
+            SdJwtIssuerBuilder.Create().WithDecoys(count));
 
         Assert.Equal("count", exception.ParamName);
     }

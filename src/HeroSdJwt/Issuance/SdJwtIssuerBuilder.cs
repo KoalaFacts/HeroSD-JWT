@@ -194,13 +194,15 @@ public class SdJwtIssuerBuilder
     /// Decoy digests prevent enumeration of the number of selectively disclosable claims.
     /// Per SD-JWT spec section 4.2.5.
     /// </summary>
-    /// <param name="count">Number of decoy digests to add (0-50 recommended).</param>
+    /// <param name="count">Number of decoy digests to add (0-50 recommended; constrained by the JWT size limit).</param>
     public SdJwtIssuerBuilder WithDecoys(int count)
     {
         if (count < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(count), "Decoy count cannot be negative");
         }
+
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(count, DecoyDigestGenerator.MAXIMUM_DECOY_DIGESTS, nameof(count));
 
         _decoyDigestCount = count;
         return this;
