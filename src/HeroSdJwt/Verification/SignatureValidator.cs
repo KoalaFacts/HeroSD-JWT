@@ -97,15 +97,15 @@ public class SignatureValidator : ISignatureValidator
     {
         // RFC 7518 Section 3.2 forbids authenticating HMAC JWTs with
         // keys shorter than the algorithm's digest, even when the MAC matches.
-        if (key.Length < 32)
+        if (key.Length < 32 || signature.Length != 32)
         {
             return false;
         }
 
-        using var hmac = new HMACSHA256(key);
-        var computedSignature = hmac.ComputeHash(data);
-
-        // Use constant-time comparison to prevent timing attacks
+        // Compute into stack memory: neither an HMAC instance nor a digest
+        // byte array is needed for this high-frequency verification path.
+        Span<byte> computedSignature = stackalloc byte[32];
+        _ = HMACSHA256.HashData(key, data, computedSignature);
         return CryptographicOperations.FixedTimeEquals(computedSignature, signature);
     }
 
@@ -117,15 +117,15 @@ public class SignatureValidator : ISignatureValidator
     {
         // RFC 7518 Section 3.2 forbids authenticating HMAC JWTs with
         // keys shorter than the algorithm's digest, even when the MAC matches.
-        if (key.Length < 48)
+        if (key.Length < 48 || signature.Length != 48)
         {
             return false;
         }
 
-        using var hmac = new HMACSHA384(key);
-        var computedSignature = hmac.ComputeHash(data);
-
-        // Use constant-time comparison to prevent timing attacks
+        // Compute into stack memory: neither an HMAC instance nor a digest
+        // byte array is needed for this high-frequency verification path.
+        Span<byte> computedSignature = stackalloc byte[48];
+        _ = HMACSHA384.HashData(key, data, computedSignature);
         return CryptographicOperations.FixedTimeEquals(computedSignature, signature);
     }
 
@@ -136,15 +136,15 @@ public class SignatureValidator : ISignatureValidator
     {
         // RFC 7518 Section 3.2 forbids authenticating HMAC JWTs with
         // keys shorter than the algorithm's digest, even when the MAC matches.
-        if (key.Length < 64)
+        if (key.Length < 64 || signature.Length != 64)
         {
             return false;
         }
 
-        using var hmac = new HMACSHA512(key);
-        var computedSignature = hmac.ComputeHash(data);
-
-        // Use constant-time comparison to prevent timing attacks
+        // Compute into stack memory: neither an HMAC instance nor a digest
+        // byte array is needed for this high-frequency verification path.
+        Span<byte> computedSignature = stackalloc byte[64];
+        _ = HMACSHA512.HashData(key, data, computedSignature);
         return CryptographicOperations.FixedTimeEquals(computedSignature, signature);
     }
 
