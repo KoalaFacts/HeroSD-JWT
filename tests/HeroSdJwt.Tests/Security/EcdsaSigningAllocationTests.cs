@@ -37,8 +37,15 @@ public class EcdsaSigningAllocationTests
         var method = typeof(JwtSigner).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException($"Missing signing method: {methodName}");
         var sign = method.CreateDelegate<Func<byte[], byte[], byte[]>>();
-        byte[] DirectSign() => SignP1363(signingInput, privateKey, hash, curveOid);
-        byte[] ProductSign() => sign(signingInput, privateKey);
+        byte[] DirectSign()
+        {
+            return SignP1363(signingInput, privateKey, hash, curveOid);
+        }
+
+        byte[] ProductSign()
+        {
+            return sign(signingInput, privateKey);
+        }
 
         var signature = ProductSign();
         Assert.Equal(expectedSignatureSize, signature.Length);
@@ -79,8 +86,9 @@ public class EcdsaSigningAllocationTests
             throw new ArgumentException("Wrong ECDSA curve", nameof(privateKey));
         }
 
-        return ecdsa.SignData(
-            data, hash, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+        // Match the product's exact .NET overload. Its documented default
+        // output is already IEEE P1363 on .NET 8/9/10.
+        return ecdsa.SignData(data, hash);
     }
 
     private static long MeasureAllocations(Func<byte[]> sign)
