@@ -65,9 +65,11 @@ public class SignatureValidator : ISignatureValidator
         // Verify the exact compact header.payload prefix, without allocating
         // an interpolated input string for every signature check.
         var signatureBytes = Base64UrlEncoder.DecodeBytes(signatureBase64);
-        // JOSE MACs and raw ECDSA / EdDSA signatures have fixed lengths.
-        // Reject impossible values before UTF-8 allocation or key import.
-        if (HasUnexpectedFixedSignatureLength(algorithm, signatureBytes.Length))
+        // Reject impossible HMAC / EdDSA lengths before UTF-8 allocation.
+        // ECDSA must first validate the supplied curve, preserving its
+        // existing wrong-curve error contract.
+        if (algorithm is not ("ES256" or "ES384" or "ES512") &&
+            HasUnexpectedFixedSignatureLength(algorithm, signatureBytes.Length))
         {
             return false;
         }
@@ -474,15 +476,6 @@ public class SignatureValidator : ISignatureValidator
         // unsafe/malformed algorithm before it is allowed to run.
         var algorithm = ValidateSupportedAlgorithm(header);
 
-        // A malformed signature must not trigger application key resolution,
-        // which may involve a remote service. Preserve decoder errors for
-        // non-canonical input even when the length is already impossible.
-        if (HasImpossibleEncodedSignatureLength(algorithm, parts[2].Length))
-        {
-            _ = Base64UrlEncoder.DecodeBytes(parts[2]);
-            return false;
-        }
-
         // Check if kid is present in header
         byte[] verificationKey;
         if (header.TryGetProperty("kid", out var kidElement) && kidElement.ValueKind == JsonValueKind.String)
@@ -498,6 +491,15 @@ public class SignatureValidator : ISignatureValidator
                 throw new SdJwtException(
                     "JWT contains 'kid' parameter but no key resolver was provided",
                     ErrorCode.KeyResolverMissing);
+            }
+
+            // Keep malformed-kid and missing-resolver errors authoritative.
+            // Only structurally valid key IDs may reach a remote resolver,
+            // and impossible fixed-width signatures must never trigger it.
+            if (HasImpossibleEncodedSignatureLength(algorithm, parts[2].Length))
+            {
+                _ = Base64UrlEncoder.DecodeBytes(parts[2]);
+                return false;
             }
 
             // Resolve key ID to verification key. Backend exceptions can contain

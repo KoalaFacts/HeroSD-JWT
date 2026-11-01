@@ -1,4 +1,5 @@
 using HeroSdJwt.Encoding;
+using HeroSdJwt.Exceptions;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
@@ -41,19 +42,21 @@ public sealed class SignatureLengthPreflightTests
     [InlineData("ES384", 97)]
     [InlineData("ES512", 131)]
     [InlineData("ES512", 133)]
-    public void Should_RejectImpossibleEcdsaSignatureLength_BeforeImportingKey(
+    public void Should_PreserveWrongCurveError_WhenEcdsaSignatureLengthIsInvalid(
         string algorithm, int invalidSignatureLength)
     {
-        // A wrong-curve SPKI normally raises an invalid-input exception after
-        // import. The impossible signature must be rejected before that work.
+        // A wrong-curve SPKI remains a distinct invalid-input configuration
+        // failure, even when the supplied signature has an impossible size.
         var wrongCurve = algorithm == "ES256"
             ? ECCurve.NamedCurves.nistP384
             : ECCurve.NamedCurves.nistP256;
         using var key = ECDsa.Create(wrongCurve);
         var jwt = CreateJwt(algorithm, invalidSignatureLength, includeKeyId: false);
 
-        Assert.False(new SignatureValidator().VerifyJwtSignature(
-            jwt, key.ExportSubjectPublicKeyInfo()));
+        var exception = Assert.Throws<SdJwtException>(() =>
+            new SignatureValidator().VerifyJwtSignature(
+                jwt, key.ExportSubjectPublicKeyInfo()));
+        Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
     }
 
     [Fact]
