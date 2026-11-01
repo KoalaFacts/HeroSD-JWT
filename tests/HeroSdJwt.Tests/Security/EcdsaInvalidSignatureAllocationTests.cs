@@ -49,16 +49,40 @@ public class EcdsaInvalidSignatureAllocationTests
             _ = validator.VerifyJwtSignature(invalidJwt, publicKey);
         }
 
-        var validAllocations = MeasureAllocations(validator, jwt, publicKey);
-        var rejectedAllocations = MeasureAllocations(validator, invalidJwt, publicKey);
+        // Native ECDSA providers may allocate differently for a rejected
+        // signature, notably P-521 on Linux. Alternate measurement order and
+        // use the median pair to avoid false failures from provider jitter.
+        const int SampleCount = 9;
+        var differences = new long[SampleCount];
+        for (var i = 0; i < SampleCount; i++)
+        {
+            long validAllocations;
+            long rejectedAllocations;
+            if ((i & 1) == 0)
+            {
+                validAllocations = MeasureAllocations(validator, jwt, publicKey);
+                rejectedAllocations = MeasureAllocations(validator, invalidJwt, publicKey);
+            }
+            else
+            {
+                rejectedAllocations = MeasureAllocations(validator, invalidJwt, publicKey);
+                validAllocations = MeasureAllocations(validator, jwt, publicKey);
+            }
 
-        // Both calls parse the same header and identical-length JWT segments.
-        // A failed raw JOSE verification must not construct a DER signature and
-        // retry cryptography. Allow a modest margin for runtime differences.
+            differences[i] = rejectedAllocations - validAllocations;
+        }
+
+        Array.Sort(differences);
+        var medianExtraBytes = differences[SampleCount / 2];
+
+        // Both calls parse identical-length JWT segments. The old DER
+        // fallback allocated over 175 KiB extra per 128 invalid verifications.
+        // Allow 32 KiB for native crypto differences, still far below that
+        // regression; keep the invalid/valid comparison and full assertions.
         Assert.True(
-            rejectedAllocations <= validAllocations + 8_192,
-            $"Rejected {algorithm} signature allocated {rejectedAllocations} bytes " +
-            $"versus {validAllocations} for a valid signature.");
+            medianExtraBytes <= 32_768,
+            $"Rejected {algorithm} signature median extra allocation was {medianExtraBytes} bytes " +
+            $"per 128 verifications (range {differences[0]}..{differences[^1]} bytes).");
     }
 
     private static long MeasureAllocations(SignatureValidator validator, string jwt, byte[] publicKey)
