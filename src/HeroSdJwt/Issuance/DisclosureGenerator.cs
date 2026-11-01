@@ -1,4 +1,5 @@
 using HeroSdJwt.Encoding;
+using System.Buffers.Text;
 using HeroSdJwt.Models;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -31,11 +32,12 @@ public class DisclosureGenerator : IDisclosureGenerator
         }
 
         // Generate cryptographically secure random salt (128 bits = 16 bytes minimum)
-        var saltBytes = new byte[Constants.MINIMUM_SALT_LENGTH_BYTES];
+        // Keep the fixed 128-bit random salt off the managed heap. The BCL
+        // base64url encoder accepts the span directly, without a byte[] copy.
+        Span<byte> saltBytes = stackalloc byte[Constants.MINIMUM_SALT_LENGTH_BYTES];
         RandomNumberGenerator.Fill(saltBytes);
 
-        // Convert salt to base64url
-        var salt = Base64UrlEncoder.Encode(saltBytes);
+        var salt = Base64Url.EncodeToString(saltBytes);
 
         // Create disclosure and serialize to JSON using AOT-compatible method
         var disclosure = new Disclosure(salt, claimName, claimValue);
@@ -56,11 +58,12 @@ public class DisclosureGenerator : IDisclosureGenerator
     public string GenerateArrayElementDisclosure(JsonElement claimValue)
     {
         // Generate cryptographically secure random salt (128 bits = 16 bytes minimum)
-        var saltBytes = new byte[Constants.MINIMUM_SALT_LENGTH_BYTES];
+        // Keep the fixed 128-bit random salt off the managed heap. The BCL
+        // base64url encoder accepts the span directly, without a byte[] copy.
+        Span<byte> saltBytes = stackalloc byte[Constants.MINIMUM_SALT_LENGTH_BYTES];
         RandomNumberGenerator.Fill(saltBytes);
 
-        // Convert salt to base64url
-        var salt = Base64UrlEncoder.Encode(saltBytes);
+        var salt = Base64Url.EncodeToString(saltBytes);
 
         // Create disclosure and serialize to JSON using AOT-compatible method
         var disclosure = new Disclosure(salt, claimValue);
