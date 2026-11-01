@@ -166,8 +166,13 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             // Authenticate the holder proof before parsing claims or consulting
             // the clock. An invalid signature must not consume application
             // services or cause errors from untrusted payload data.
-            var signingInput = $"{headerBase64}.{payloadBase64}";
             var signature = Base64UrlEncoder.DecodeBytes(signatureBase64);
+            // ES256 uses exactly 64 bytes of JOSE R||S. Reject malformed
+            // signatures before the more expensive public-key import.
+            if (signature.Length != 64)
+            {
+                return false;
+            }
 
             using var ecdsa = ECDsa.Create();
             try
@@ -190,10 +195,23 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
                 return false; // Only P-256 (ES256) is supported
             }
 
+            // The compact protected header and payload are canonical
+            // base64url (ASCII), validated by DecodeString above. Signatures
+            // authenticate the exact header.payload bytes, including the dot.
+            // Decode directly from the original input instead of allocating
+            // both an interpolated string and a UTF-8 byte[] per verification.
+            const int StackSigningInputLimit = 1024;
+            Span<byte> signingInputBytes = secondSeparator <= StackSigningInputLimit
+                ? stackalloc byte[secondSeparator]
+                : new byte[secondSeparator];
+            var byteCount = System.Text.Encoding.ASCII.GetBytes(
+                keyBindingJwt.AsSpan(0, secondSeparator), signingInputBytes);
+
             if (!ecdsa.VerifyData(
-                System.Text.Encoding.UTF8.GetBytes(signingInput),
+                signingInputBytes[..byteCount],
                 signature,
-                HashAlgorithmName.SHA256))
+                HashAlgorithmName.SHA256,
+                DSASignatureFormat.IeeeP1363FixedFieldConcatenation))
             {
                 return false;
             }
