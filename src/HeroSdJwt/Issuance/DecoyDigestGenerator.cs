@@ -1,5 +1,5 @@
-using HeroSdJwt.Encoding;
 using HeroSdJwt.Primitives;
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
@@ -48,16 +48,16 @@ public class DecoyDigestGenerator(IDigestCalculator digestCalculator) : IDecoyDi
         }
 
         var decoys = new List<string>(count);
+        // Reuse fixed stack storage: a fresh 256-bit cryptographic value is
+        // generated for each decoy without allocating a temporary byte[].
+        Span<byte> randomBytes = stackalloc byte[32];
 
         for (int i = 0; i < count; i++)
         {
-            // Generate cryptographically secure random bytes
-            // Use 32 bytes (256 bits) for good entropy
-            var randomBytes = new byte[32];
             RandomNumberGenerator.Fill(randomBytes);
 
-            // Convert to base64url (simulating a disclosure format)
-            var randomDisclosure = Base64UrlEncoder.Encode(randomBytes);
+            // Encode a fresh random disclosure without allocating a byte[].
+            var randomDisclosure = Base64Url.EncodeToString(randomBytes);
 
             // Compute digest of the random data
             var decoyDigest = _digestCalculator.ComputeDigest(randomDisclosure, hashAlgorithm);
