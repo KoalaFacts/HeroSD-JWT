@@ -90,8 +90,9 @@ public class SignatureValidator : ISignatureValidator
 
         // Public-key algorithms still use a managed input buffer; all paths
         // avoid concatenating duplicate header and payload strings.
-        var signingInputBytes = System.Text.Encoding.UTF8.GetBytes(
-            jwt.AsSpan(0, signingInputLength));
+        var signingInputText = jwt.AsSpan(0, signingInputLength);
+        var signingInputBytes = new byte[System.Text.Encoding.UTF8.GetByteCount(signingInputText)];
+        _ = System.Text.Encoding.UTF8.GetBytes(signingInputText, signingInputBytes);
 
         return algorithm switch
         {

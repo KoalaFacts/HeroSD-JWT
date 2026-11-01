@@ -64,7 +64,7 @@ public sealed class SignatureValidatorHmacSpanTests
 
         var separator = jwt.LastIndexOf('.');
         Assert.Equal(usesManagedInput, separator > 1024);
-        var signedBytes = System.Text.Encoding.UTF8.GetBytes(jwt.AsSpan(0, separator));
+        var signedBytes = System.Text.Encoding.UTF8.GetBytes(jwt[..separator]);
         var expectedSignature = HMACSHA256.HashData(key, signedBytes);
         Assert.Equal(expectedSignature, Base64UrlEncoder.DecodeBytes(jwt[(separator + 1)..]));
 
