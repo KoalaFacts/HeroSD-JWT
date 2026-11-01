@@ -51,7 +51,7 @@ public sealed class SdJwt
     /// <param name="keyBindingJwt">Optional key binding JWT.</param>
     /// <param name="claimPathMapping">Optional cached claim path to disclosure index mapping.</param>
     /// <exception cref="ArgumentNullException">Thrown when jwt or disclosures is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when jwt is empty or whitespace, or when the disclosure count exceeds the supported limit.</exception>
+    /// <exception cref="ArgumentException">Thrown when jwt is empty or whitespace.</exception>
     public SdJwt(string jwt, IEnumerable<string> disclosures, HashAlgorithm hashAlgorithm, string? keyBindingJwt = null, IReadOnlyDictionary<string, int>? claimPathMapping = null)
     {
         ArgumentNullException.ThrowIfNull(jwt);
@@ -62,23 +62,8 @@ public sealed class SdJwt
             throw new ArgumentException("JWT cannot be empty or whitespace.", nameof(jwt));
         }
 
-        // A holder cannot serialize more than the verifier's disclosure limit.
-        // Stop on the first excess element instead of draining a lazy source.
-        var ownedDisclosures = new List<string>();
-        foreach (var disclosure in disclosures)
-        {
-            if (ownedDisclosures.Count >= Constants.MAX_DISCLOSURES)
-            {
-                throw new ArgumentException(
-                    $"SD-JWT exceeds the maximum of {Constants.MAX_DISCLOSURES} disclosures.",
-                    nameof(disclosures));
-            }
-
-            ownedDisclosures.Add(disclosure);
-        }
-
         Jwt = jwt;
-        Disclosures = new ReadOnlyCollection<string>(ownedDisclosures);
+        Disclosures = new ReadOnlyCollection<string>([.. disclosures]);
         HashAlgorithm = hashAlgorithm;
         KeyBindingJwt = keyBindingJwt;
         if (claimPathMapping is not null)
