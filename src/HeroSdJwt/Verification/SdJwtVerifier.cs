@@ -501,6 +501,16 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             if (_signatureValidator.GetType() == typeof(SignatureValidator))
             {
                 _ = SignatureValidator.ValidateSupportedAlgorithm(header);
+
+                // Reject impossible fixed-width JOSE signatures before
+                // contacting a potentially remote key resolver.
+                if (SignatureValidator.HasImpossibleEncodedSignatureLength(algorithm, jwtParts[2].Length))
+                {
+                    _ = Base64UrlEncoder.DecodeBytes(jwtParts[2]);
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add("JWT signature has invalid length for its algorithm");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
             }
 
             try

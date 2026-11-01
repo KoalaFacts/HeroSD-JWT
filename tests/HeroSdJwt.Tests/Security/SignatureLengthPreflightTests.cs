@@ -56,6 +56,33 @@ public sealed class SignatureLengthPreflightTests
             jwt, key.ExportSubjectPublicKeyInfo()));
     }
 
+    [Fact]
+    public async Task Should_RejectImpossibleSignatureLength_BeforeHighLevelKeyResolution()
+    {
+        var resolverCalls = 0;
+        KeyResolver resolver = _ =>
+        {
+            resolverCalls++;
+            return new byte[64];
+        };
+
+        var presentation = CreateJwt("ES256", 63, includeKeyId: true) + "~";
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Asymmetric)
+            .Build();
+
+        var result = verifier.TryVerifyPresentation(presentation, resolver);
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.Equal(0, resolverCalls);
+
+        var asyncResult = await verifier.TryVerifyPresentationAsync(
+            presentation, resolver, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.False(asyncResult.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, asyncResult.Errors);
+        Assert.Equal(0, resolverCalls);
+    }
+
     private static string CreateJwt(string algorithm, int signatureLength, bool includeKeyId)
     {
         var header = includeKeyId
