@@ -64,9 +64,12 @@ public class EcdsaSigningAllocationTests
         // Both paths import the same PKCS#8 key, check the curve and sign
         // with the same framework API. The old DER-to-JOSE fallback always
         // copied an already-P1363 signature (64/96/132 bytes) on every call.
-        // Permit minor runtime differences, not a signature-sized copy per call.
+        // Native ECDSA providers allocate slightly different amounts across
+        // independent signatures, even with identical inputs and overloads.
+        // Allow up to 64 bytes per operation of variance; an unnecessary
+        // P1363 array copy costs at least 88 bytes per ES256 signature.
         Assert.True(
-            productBytes <= directBytes + 2_048,
+            productBytes <= directBytes + 8_192,
             $"{algorithm}: signer allocated {productBytes} bytes versus " +
             $"{directBytes} bytes for direct P1363 signing over 128 operations.");
     }
