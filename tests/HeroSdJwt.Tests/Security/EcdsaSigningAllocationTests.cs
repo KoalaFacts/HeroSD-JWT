@@ -58,20 +58,41 @@ public class EcdsaSigningAllocationTests
             _ = ProductSign();
         }
 
-        var directBytes = MeasureAllocations(DirectSign);
-        var productBytes = MeasureAllocations(ProductSign);
+        // Native ECDSA signing can have uneven allocation outliers across
+        // independent signatures, especially with P-521 on Windows. Measure
+        // adjacent direct/product calls in alternating order and compare the
+        // median pair, rather than two long batches skewed by provider state.
+        const int SampleCount = 129;
+        var differences = new long[SampleCount];
+        for (var i = 0; i < SampleCount; i++)
+        {
+            long directBytes;
+            long productBytes;
+            if ((i & 1) == 0)
+            {
+                directBytes = MeasureAllocations(DirectSign);
+                productBytes = MeasureAllocations(ProductSign);
+            }
+            else
+            {
+                productBytes = MeasureAllocations(ProductSign);
+                directBytes = MeasureAllocations(DirectSign);
+            }
 
-        // Both paths import the same PKCS#8 key, check the curve and sign
-        // with the same framework API. The old DER-to-JOSE fallback always
-        // copied an already-P1363 signature (64/96/132 bytes) on every call.
-        // Native ECDSA providers allocate slightly different amounts across
-        // independent signatures, even with identical inputs and overloads.
-        // Allow up to 64 bytes per operation of variance; an unnecessary
-        // P1363 array copy costs at least 88 bytes per ES256 signature.
+            differences[i] = productBytes - directBytes;
+        }
+
+        Array.Sort(differences);
+        var medianExtraBytes = differences[SampleCount / 2];
+
+        // Both paths import the same PKCS#8 key, check the curve and use
+        // the same .NET signing overload. The old DER-to-JOSE fallback copied
+        // every P1363 signature (at least 88 managed bytes for ES256).
+        // The 64-byte allowance is smaller than that extra array allocation.
         Assert.True(
-            productBytes <= directBytes + 8_192,
-            $"{algorithm}: signer allocated {productBytes} bytes versus " +
-            $"{directBytes} bytes for direct P1363 signing over 128 operations.");
+            medianExtraBytes <= 64,
+            $"{algorithm}: median extra allocation was {medianExtraBytes} bytes " +
+            $"per signature (range {differences[0]}..{differences[^1]} bytes).");
     }
 
     private static byte[] SignP1363(
@@ -97,12 +118,8 @@ public class EcdsaSigningAllocationTests
     private static long MeasureAllocations(Func<byte[]> sign)
     {
         var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < 128; i++)
-        {
-            var signature = sign();
-            GC.KeepAlive(signature);
-        }
-
+        var signature = sign();
+        GC.KeepAlive(signature);
         return GC.GetAllocatedBytesForCurrentThread() - before;
     }
 }
