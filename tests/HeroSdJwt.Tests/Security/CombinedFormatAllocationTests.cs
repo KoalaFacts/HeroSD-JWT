@@ -24,7 +24,10 @@ public class CombinedFormatAllocationTests
         var presenter = new SdJwtPresenter();
 
         Func<string> serializeSdJwt = sdJwt.ToCombinedFormat;
-        string SerializePresentation() => presenter.FormatPresentation(presentation);
+        string SerializePresentation()
+        {
+            return presenter.FormatPresentation(presentation);
+        }
 
         // Preserve the exact wire format, including the final key binding JWT.
         Assert.Equal(SerializePresentation(), serializeSdJwt());
