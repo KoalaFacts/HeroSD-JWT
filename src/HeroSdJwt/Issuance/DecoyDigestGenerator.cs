@@ -1,4 +1,5 @@
 using HeroSdJwt.Encoding;
+using HeroSdJwt.Primitives;
 using System.Security.Cryptography;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
@@ -16,6 +17,11 @@ namespace HeroSdJwt.Issuance;
 /// <param name="digestCalculator">The digest calculator to use.</param>
 public class DecoyDigestGenerator(IDigestCalculator digestCalculator) : IDecoyDigestGenerator
 {
+    // SHA-256 produces at least 43 base64url characters per digest. More
+    // than this many decoys cannot fit in even an otherwise empty 64-KiB JWT.
+    // Leave tighter serialized-size admission to the existing JWT signer.
+    internal const int MAXIMUM_DECOY_DIGESTS = Constants.MAX_JWT_SIZE_BYTES / 43;
+
     private readonly IDigestCalculator _digestCalculator = digestCalculator ?? throw new ArgumentNullException(nameof(digestCalculator));
 
     /// <summary>
@@ -25,12 +31,16 @@ public class DecoyDigestGenerator(IDigestCalculator digestCalculator) : IDecoyDi
     /// <param name="count">Number of decoy digests to generate.</param>
     /// <param name="hashAlgorithm">Hash algorithm to use (must match real disclosures).</param>
     /// <returns>List of decoy digest strings.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The requested count cannot fit within the JWT size limit.</exception>
     public List<string> GenerateDecoyDigests(int count, HashAlgorithm hashAlgorithm)
     {
         if (count < 0)
         {
             throw new ArgumentException("Count cannot be negative", nameof(count));
         }
+
+        // Reject impossible counts before the capacity allocation and hash loop.
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(count, MAXIMUM_DECOY_DIGESTS, nameof(count));
 
         if (count == 0)
         {

@@ -43,7 +43,7 @@ public class SdJwtIssuer(
     /// <param name="decoyDigestCount">Number of decoy digests to add for privacy protection (default: 0). Per SD-JWT spec section 4.2.5, decoy digests prevent claim enumeration.</param>
     /// <param name="keyId">Optional key identifier (kid) to include in JWT header for key rotation support (RFC 7515 Section 4.1.4).</param>
     /// <returns>The created SD-JWT.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="decoyDigestCount"/> is negative.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="decoyDigestCount"/> is negative or cannot fit in a JWT.</exception>
     public SdJwt CreateSdJwt(
         Dictionary<string, object> claims,
         IEnumerable<string> selectivelyDisclosableClaims,
@@ -58,6 +58,8 @@ public class SdJwtIssuer(
         ArgumentNullException.ThrowIfNull(selectivelyDisclosableClaims);
         ArgumentNullException.ThrowIfNull(signingKey);
         ArgumentOutOfRangeException.ThrowIfNegative(decoyDigestCount, nameof(decoyDigestCount));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(
+            decoyDigestCount, DecoyDigestGenerator.MAXIMUM_DECOY_DIGESTS, nameof(decoyDigestCount));
 
         // Normalize to case-sensitive JSON names even if the caller supplied
         // a dictionary with a case-insensitive comparer. Registered JWT claim
