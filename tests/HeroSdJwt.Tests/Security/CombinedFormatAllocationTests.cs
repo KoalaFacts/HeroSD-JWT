@@ -24,20 +24,20 @@ public class CombinedFormatAllocationTests
         var presenter = new SdJwtPresenter();
 
         Func<string> serializeSdJwt = sdJwt.ToCombinedFormat;
-        Func<string> serializePresentation = () => presenter.FormatPresentation(presentation);
+        string SerializePresentation() => presenter.FormatPresentation(presentation);
 
         // Preserve the exact wire format, including the final key binding JWT.
-        Assert.Equal(serializePresentation(), serializeSdJwt());
+        Assert.Equal(SerializePresentation(), serializeSdJwt());
 
         // Warm up both code paths before measuring per-thread allocations.
         for (var i = 0; i < 128; i++)
         {
             _ = serializeSdJwt();
-            _ = serializePresentation();
+            _ = SerializePresentation();
         }
 
         const int iterations = 512;
-        var outputOnlyBytes = MeasureAllocatedBytes(serializePresentation, iterations);
+        var outputOnlyBytes = MeasureAllocatedBytes(SerializePresentation, iterations);
         var sdJwtBytes = MeasureAllocatedBytes(serializeSdJwt, iterations);
 
         // The presenter already writes directly into the output string. The
