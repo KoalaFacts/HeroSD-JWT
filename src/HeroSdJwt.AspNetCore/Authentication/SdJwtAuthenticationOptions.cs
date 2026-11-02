@@ -80,10 +80,23 @@ public class SdJwtAuthenticationOptions : AuthenticationSchemeOptions
     {
         base.Validate();
 
-        // Validate core verification options
-        VerificationOptions?.Validate();
+        // Reject an absent verification policy during configuration, before
+        // the authentication handler tries to use it for a live request.
+        if (VerificationOptions is null)
+        {
+            throw new InvalidOperationException("VerificationOptions must be configured.");
+        }
 
-        if (VerificationOptions?.RequireKeyBinding == true)
+        VerificationOptions.Validate();
+
+        // This value is both an Authorization scheme and part of a
+        // WWW-Authenticate header. HTTP auth-scheme uses RFC 9110 token syntax.
+        if (!IsValidHttpToken(TokenScheme))
+        {
+            throw new InvalidOperationException("TokenScheme must be a valid HTTP authentication token.");
+        }
+
+        if (VerificationOptions.RequireKeyBinding)
         {
             var hasAudience = !string.IsNullOrWhiteSpace(VerificationOptions.ExpectedKeyBindingAudience) ||
                 !string.IsNullOrWhiteSpace(VerificationOptions.ExpectedAudience) ||
@@ -103,5 +116,26 @@ public class SdJwtAuthenticationOptions : AuthenticationSchemeOptions
                 "Either KeyResolver or FallbackKey must be configured. " +
                 "Provide a KeyResolver for key rotation support, or FallbackKey for simple scenarios.");
         }
+    }
+
+    private static bool IsValidHttpToken(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return false;
+        }
+
+        foreach (var character in value)
+        {
+            var isLetterOrDigit =
+                character is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9';
+
+            if (!isLetterOrDigit && !"!#$%&'*+-.^_`|~".Contains(character))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
