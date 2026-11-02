@@ -62,7 +62,11 @@ public class InMemoryJtiCache : IJtiCache, IDisposable
             ThrowIfDisposed();
             cancellationToken.ThrowIfCancellationRequested();
             var now = _timeProvider.GetUtcNow();
-            var expiration = now.Add(ttl);
+            // A valid TTL can extend past DateTimeOffset's representable
+            // maximum. Saturate rather than rejecting admission: the marker
+            // must remain live for every representable instant of its TTL.
+            var remaining = DateTimeOffset.MaxValue - now;
+            var expiration = ttl >= remaining ? DateTimeOffset.MaxValue : now.Add(ttl);
 
             if (_cache.TryGetValue(cacheKey, out var existingExpiration) && existingExpiration > now)
             {

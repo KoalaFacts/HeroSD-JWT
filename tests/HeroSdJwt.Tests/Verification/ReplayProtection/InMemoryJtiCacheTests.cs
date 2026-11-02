@@ -84,6 +84,18 @@ public class InMemoryJtiCacheTests : IJtiCacheContractTests
     }
 
     [Fact]
+    public async Task Should_RetainReplayMarker_WhenTtlExceedsCalendarMaximum()
+    {
+        var clock = new ManualTimeProvider(DateTimeOffset.MaxValue - TimeSpan.FromMinutes(1));
+        using var cache = new InMemoryJtiCache(new ReplayProtectionOptions { MaxCacheEntries = 1 }, clock);
+        var token = TestContext.Current.CancellationToken;
+
+        Assert.True(await cache.TryAddAsync("issuer", "long-lived", TimeSpan.FromHours(1), token));
+        Assert.True(await cache.ExistsAsync("issuer", "long-lived", token));
+        Assert.False(await cache.TryAddAsync("issuer", "long-lived", TimeSpan.FromHours(1), token));
+    }
+
+    [Fact]
     public async Task Should_AdmitAtMostCapacity_WhenDistinctJtisRace()
     {
         const int capacity = 4;
