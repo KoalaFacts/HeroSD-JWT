@@ -24,6 +24,7 @@ namespace HeroSdJwt.Verification;
 public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifierFactory
 {
     private readonly SdJwtVerificationOptions _options;
+    private readonly IReadOnlyList<string> _expectedAudiences;
     private readonly IEcPublicKeyConverter _ecPublicKeyConverter;
     private readonly ISignatureValidator _signatureValidator;
     private readonly IDigestValidator _digestValidator;
@@ -80,6 +81,9 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             }
         };
         _options.Validate();
+        // Normalize the owned audience policy once. In particular, unauthenticated
+        // malformed presentations must not rebuild a large allowlist per request.
+        _expectedAudiences = _options.GetExpectedAudiences();
         _ecPublicKeyConverter = ecPublicKeyConverter;
         _signatureValidator = signatureValidator;
         _digestValidator = digestValidator;
@@ -632,7 +636,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
     {
         var errors = new List<ErrorCode>();
         var errorDetails = new List<string>();
-        var expectedAudiences = _options.GetExpectedAudiences();
+        var expectedAudiences = _expectedAudiences;
         // Retain documents while the verifier borrows JsonElements; release their
         // pooled buffers on every success, rejection, cancellation, or exception.
         JsonDocument? headerDocument = null;
