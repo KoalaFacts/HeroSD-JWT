@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace HeroSdJwt.Primitives;
 
 /// <summary>
@@ -74,7 +76,7 @@ public static class Constants
         "jti",   // JWT ID - important for deduplication/tracking
         "_sd",   // Selective Disclosure array - internal SD-JWT claim
         "_sd_alg" // Hash algorithm - internal SD-JWT claim
-    };
+    }.ToFrozenSet(StringComparer.Ordinal);
 
     /// <summary>
     /// Maximum age of key binding JWT in seconds (default: 5 minutes).
@@ -101,7 +103,7 @@ public static class Constants
             { HashAlgorithm.Sha256, "sha-256" },
             { HashAlgorithm.Sha384, "sha-384" },
             { HashAlgorithm.Sha512, "sha-512" }
-        };
+        }.ToFrozenDictionary();
 
     /// <summary>
     /// Reverse mapping of hash algorithm string to enum.
@@ -112,5 +114,5 @@ public static class Constants
             { "sha-256", HashAlgorithm.Sha256 },
             { "sha-384", HashAlgorithm.Sha384 },
             { "sha-512", HashAlgorithm.Sha512 }
-        };
+        }.ToFrozenDictionary(StringComparer.Ordinal);
 }
