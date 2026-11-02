@@ -1,6 +1,7 @@
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Models;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Text.Json;
 
@@ -23,6 +24,15 @@ public class DisclosureParser : IDisclosureParser
     public Disclosure Parse(string base64UrlDisclosure)
     {
         ArgumentNullException.ThrowIfNull(base64UrlDisclosure);
+
+        // A disclosure in a verifiable combined presentation cannot exceed
+        // the presentation's 64-KiB encoded wire limit. Direct parser callers
+        // must reject oversized input before decoding or allocating JSON.
+        if (base64UrlDisclosure.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new MalformedDisclosureException(
+                $"Disclosure exceeds the maximum encoded length of {Constants.MAX_JWT_SIZE_BYTES} bytes.");
+        }
 
         // Decode from base64url to JSON
         var json = Base64UrlEncoder.DecodeString(base64UrlDisclosure);
