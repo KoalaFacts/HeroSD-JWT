@@ -10,7 +10,7 @@ namespace HeroSdJwt.Tests.Security;
 /// </summary>
 public class CombinedFormatComponentAdmissionTests
 {
-    private const string ValidJwt = "header.payload.signature";
+    private const string VALID_JWT = "header.payload.signature";
 
     [Theory]
     [InlineData(null)]
@@ -22,7 +22,7 @@ public class CombinedFormatComponentAdmissionTests
     {
         // The presentation model is a permissive container; formatting is the
         // boundary at which invalid wire components must be rejected.
-        var presentation = new SdJwtPresentation(ValidJwt, [disclosure!]);
+        var presentation = new SdJwtPresentation(VALID_JWT, [disclosure!]);
 
         var error = Assert.Throws<ArgumentException>(() =>
             new SdJwtPresenter().FormatPresentation(presentation));
@@ -47,7 +47,7 @@ public class CombinedFormatComponentAdmissionTests
     public void Should_RejectEmbeddedDelimiter_InCredentialKeyBinding(string keyBindingJwt)
     {
         var error = Assert.Throws<ArgumentException>(() =>
-            new SdJwt(ValidJwt, [], HashAlgorithm.Sha256, keyBindingJwt));
+            new SdJwt(VALID_JWT, [], HashAlgorithm.Sha256, keyBindingJwt));
 
         Assert.Equal("keyBindingJwt", error.ParamName);
     }
@@ -70,7 +70,43 @@ public class CombinedFormatComponentAdmissionTests
     [InlineData("kb.jwt.signature~extra")]
     public void Should_RejectEmbeddedDelimiter_InPresentationKeyBinding(string keyBindingJwt)
     {
-        var presentation = new SdJwtPresentation(ValidJwt, [], keyBindingJwt);
+        var presentation = new SdJwtPresentation(VALID_JWT, [], keyBindingJwt);
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresenter().FormatPresentation(presentation));
+
+        Assert.Equal("presentation", error.ParamName);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" \t")]
+    public void Should_RejectBlankIssuerJwt_WhenFormatting(string jwt)
+    {
+        var presentation = new SdJwtPresentation(jwt, []);
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresenter().FormatPresentation(presentation));
+
+        Assert.Equal("presentation", error.ParamName);
+    }
+
+    [Theory]
+    [InlineData(" \t")]
+    [InlineData("kb~extra")]
+    public void Should_RejectInvalidNonemptyCredentialKeyBinding(string keyBindingJwt)
+    {
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwt(VALID_JWT, [], HashAlgorithm.Sha256, keyBindingJwt));
+
+        Assert.Equal("keyBindingJwt", error.ParamName);
+    }
+
+    [Theory]
+    [InlineData(" \t")]
+    public void Should_RejectWhitespaceKeyBinding_WhenFormatting(string keyBindingJwt)
+    {
+        var presentation = new SdJwtPresentation(VALID_JWT, [], keyBindingJwt);
 
         var error = Assert.Throws<ArgumentException>(() =>
             new SdJwtPresenter().FormatPresentation(presentation));
@@ -81,13 +117,13 @@ public class CombinedFormatComponentAdmissionTests
     [Fact]
     public void Should_PreserveValidComponentSlots_InBothSerializers()
     {
-        var sdJwt = new SdJwt(ValidJwt, ["W10", "W11"], HashAlgorithm.Sha256, "kb.jwt.signature");
-        var presentation = new SdJwtPresentation(ValidJwt, ["W10", "W11"], "kb.jwt.signature");
+        var sdJwt = new SdJwt(VALID_JWT, ["W10", "W11"], HashAlgorithm.Sha256, "kb.jwt.signature");
+        var presentation = new SdJwtPresentation(VALID_JWT, ["W10", "W11"], "kb.jwt.signature");
         const string expected = "header.payload.signature~W10~W11~kb.jwt.signature";
 
         Assert.Equal(expected, sdJwt.ToCombinedFormat());
         Assert.Equal(expected, new SdJwtPresenter().FormatPresentation(presentation));
-        Assert.Equal(ValidJwt + "~W10~W11~", new SdJwtPresenter().FormatPresentation(
-            new SdJwtPresentation(ValidJwt, ["W10", "W11"], string.Empty)));
+        Assert.Equal(VALID_JWT + "~W10~W11~", new SdJwtPresenter().FormatPresentation(
+            new SdJwtPresentation(VALID_JWT, ["W10", "W11"], string.Empty)));
     }
 }
