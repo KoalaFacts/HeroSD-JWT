@@ -152,6 +152,42 @@ public class ClaimValidator : IClaimValidator
             return false;
         }
 
+        // Reject missing or malformed signed audiences before allocating a
+        // lookup set for an application with many configured audiences.
+        if (!payload.TryGetProperty("aud", out var audElement))
+        {
+            // A whitespace-only policy is intentionally unconstrained.
+            if (expectedAudiences is not null)
+            {
+                foreach (var expectedAudience in expectedAudiences)
+                {
+                    if (!string.IsNullOrWhiteSpace(expectedAudience))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        if (audElement.ValueKind == JsonValueKind.Array)
+        {
+            // The entire array must be well-formed, even if an earlier entry
+            // matches. Check before allocating the expected audience set.
+            foreach (var audience in audElement.EnumerateArray())
+            {
+                if (audience.ValueKind != JsonValueKind.String)
+                {
+                    return false;
+                }
+            }
+        }
+        else if (audElement.ValueKind != JsonValueKind.String)
+        {
+            return false;
+        }
+
         // The common no-audience-policy path should not allocate a set.
         // Create one only when at least one non-empty expected audience exists.
         HashSet<string>? expectedSet = null;
@@ -167,14 +203,8 @@ public class ClaimValidator : IClaimValidator
             }
         }
 
-        if (!payload.TryGetProperty("aud", out var audElement))
-        {
-            return expectedSet is null;
-        }
-
-        // RFC 7519 requires an audience string or an array containing only
-        // strings whenever the claim is present. Skipping audience matching
-        // must not skip validating the signed claim's representation.
+        // RFC 7519 requires a string or an array containing only strings
+        // whenever the audience is present, independent of matching policy.
         if (audElement.ValueKind == JsonValueKind.String)
         {
             var actualAudience = audElement.GetString();
@@ -189,11 +219,6 @@ public class ClaimValidator : IClaimValidator
             var matched = false;
             foreach (var aud in audElement.EnumerateArray())
             {
-                if (aud.ValueKind != JsonValueKind.String)
-                {
-                    return false;
-                }
-
                 if (aud.GetString() is string value && expectedSet?.Contains(value) == true)
                 {
                     matched = true;
