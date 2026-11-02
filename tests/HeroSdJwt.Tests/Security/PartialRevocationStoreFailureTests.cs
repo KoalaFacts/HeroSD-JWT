@@ -11,10 +11,10 @@ namespace HeroSdJwt.Tests.Security;
 /// </summary>
 public sealed class PartialRevocationStoreFailureTests
 {
-    private const string KeyId = "partial-revocation-key";
-    private const string Jti = "partial-revocation-jti";
-    private const string Subject = "partial-revocation-subject";
-    private const string BackendSecret = "private-revocation-store-diagnostic";
+    private const string KEY_ID = "partial-revocation-key";
+    private const string JTI = "partial-revocation-jti";
+    private const string SUBJECT = "partial-revocation-subject";
+    private const string BACKEND_SECRET = "private-revocation-store-diagnostic";
     private static readonly byte[] _signingKey = [.. Enumerable.Range(1, 32).Select(i => (byte)i)];
 
     [Theory]
@@ -31,13 +31,13 @@ public sealed class PartialRevocationStoreFailureTests
         var direct = verifier.TryVerifyPresentation(presentation, _signingKey);
         Assert.False(direct.IsValid);
         Assert.Contains(expectedError, direct.Errors);
-        Assert.DoesNotContain(BackendSecret, direct.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain(BACKEND_SECRET, direct.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
 
         var resolved = await verifier.TryVerifyPresentationAsync(
             presentation, ResolveKey, cancellationToken: TestContext.Current.CancellationToken);
         Assert.False(resolved.IsValid);
         Assert.Contains(expectedError, resolved.Errors);
-        Assert.DoesNotContain(BackendSecret, resolved.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain(BACKEND_SECRET, resolved.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
 
         Assert.Equal(2, store.GetLookupCount(revokedLookup));
     }
@@ -68,15 +68,15 @@ public sealed class PartialRevocationStoreFailureTests
 
     private static string CreatePresentation() =>
         SdJwtIssuerBuilder.Create()
-            .WithKeyId(KeyId)
-            .WithClaim("jti", Jti)
-            .WithClaim("sub", Subject)
+            .WithKeyId(KEY_ID)
+            .WithClaim("jti", JTI)
+            .WithClaim("sub", SUBJECT)
             .SignWithHmac(_signingKey)
             .Build()
             .ToCombinedFormat();
 
     private static byte[]? ResolveKey(string keyId) =>
-        keyId == KeyId ? _signingKey : null;
+        keyId == KEY_ID ? _signingKey : null;
 
     private sealed class PartialFailureStore(string failingLookup, string? revokedLookup) : IRevocationStore
     {
@@ -96,7 +96,7 @@ public sealed class PartialRevocationStoreFailureTests
         {
             if (lookup == failingLookup)
             {
-                return Task.FromException<bool>(new IOException(BackendSecret));
+                return Task.FromException<bool>(new IOException(BACKEND_SECRET));
             }
 
             return Task.FromResult(lookup == revokedLookup);
