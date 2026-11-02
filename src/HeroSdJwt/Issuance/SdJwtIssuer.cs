@@ -26,6 +26,11 @@ public class SdJwtIssuer(
     IEcPublicKeyConverter ecPublicKeyConverter,
     IJwtSigner _jwtSigner) : ISdJwtIssuer
 {
+    // A lazy source can repeat the same selector forever without increasing
+    // the deduplicated list. Bound total enumeration independently of the
+    // number of distinct disclosures or the 100-disclosure presentation limit.
+    private const int MAX_SELECTOR_ENTRIES = 1_000_000;
+
     private readonly IDisclosureGenerator _disclosureGenerator = _disclosureGenerator ?? throw new ArgumentNullException(nameof(_disclosureGenerator));
     private readonly IDigestCalculator _digestCalculator = _digestCalculator ?? throw new ArgumentNullException(nameof(_digestCalculator));
     private readonly IEcPublicKeyConverter _ecPublicKeyConverter = ecPublicKeyConverter ?? throw new ArgumentNullException(nameof(ecPublicKeyConverter));
@@ -35,7 +40,7 @@ public class SdJwtIssuer(
     /// Creates an SD-JWT with the specified claims and selective disclosure settings.
     /// </summary>
     /// <param name="claims">All claims to include in the JWT.</param>
-    /// <param name="selectivelyDisclosableClaims">Claims that should be selectively disclosable.</param>
+    /// <param name="selectivelyDisclosableClaims">Claims that should be selectively disclosable. At most one million input entries are accepted, including duplicates.</param>
     /// <param name="signingKey">The signing key for JWT signature (format depends on algorithm).</param>
     /// <param name="hashAlgorithm">The hash algorithm for disclosure digests.</param>
     /// <param name="signatureAlgorithm">The signature algorithm for JWT signing (default: HS256).</param>
@@ -101,8 +106,16 @@ public class SdJwtIssuer(
         // distinct disclosures: that limit applies to a single presentation.
         var selectiveClaimsList = new List<string>();
         HashSet<string>? seenPaths = null;
+        var selectorEntryCount = 0;
         foreach (var path in selectivelyDisclosableClaims)
         {
+            if (++selectorEntryCount > MAX_SELECTOR_ENTRIES)
+            {
+                throw new ArgumentException(
+                    $"Selectively disclosable claim sequence exceeds {MAX_SELECTOR_ENTRIES} entries.",
+                    nameof(selectivelyDisclosableClaims));
+            }
+
             ArgumentNullException.ThrowIfNull(path);
 
             if (selectiveClaimsList.Count == 0)
