@@ -533,6 +533,19 @@ public class JwtSigner : IJwtSigner
                 element.WriteTo(writer);
                 break;
         }
+
+        // Each recursive WriteValue completes after writing one claim value.
+        // Check the actual UTF-8 writer budget here so a lazy or unbounded
+        // nested IEnumerable cannot allocate arbitrarily large JSON before
+        // CreateJwt gets a chance to enforce the compact-token size limit.
+        // Any verifiable compact JWT is at most this size, and base64url
+        // encoding only makes it larger.
+        if (writer.BytesCommitted + writer.BytesPending > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new ArgumentException(
+                $"JWT claim JSON exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.",
+                nameof(value));
+        }
     }
 
 #if NET10_0_OR_GREATER
