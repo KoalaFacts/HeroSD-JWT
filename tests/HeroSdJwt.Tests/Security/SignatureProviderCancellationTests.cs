@@ -29,14 +29,16 @@ public sealed class SignatureProviderCancellationTests
             Assert.ThrowsAny<OperationCanceledException>(() =>
                 verifier.VerifyPresentation(presentation, ResolveKey));
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-                verifier.VerifyPresentationAsync(presentation, ResolveKey));
+                verifier.VerifyPresentationAsync(
+                    presentation, ResolveKey, cancellationToken: TestContext.Current.CancellationToken));
         }
         else
         {
             Assert.ThrowsAny<OperationCanceledException>(() =>
                 verifier.VerifyPresentation(presentation, _signingKey));
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-                verifier.VerifyPresentationAsync(presentation, _signingKey));
+                verifier.VerifyPresentationAsync(
+                    presentation, _signingKey, cancellationToken: TestContext.Current.CancellationToken));
         }
     }
 
@@ -56,8 +58,10 @@ public sealed class SignatureProviderCancellationTests
         Assert.DoesNotContain(BACKEND_DIAGNOSTIC, synchronous.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
 
         var asynchronous = resolveKey
-            ? await verifier.TryVerifyPresentationAsync(presentation, ResolveKey)
-            : await verifier.TryVerifyPresentationAsync(presentation, _signingKey);
+            ? await verifier.TryVerifyPresentationAsync(
+                presentation, ResolveKey, cancellationToken: TestContext.Current.CancellationToken)
+            : await verifier.TryVerifyPresentationAsync(
+                presentation, _signingKey, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(asynchronous.IsValid);
         Assert.DoesNotContain(BACKEND_DIAGNOSTIC, asynchronous.ErrorDetails ?? string.Empty, StringComparison.Ordinal);

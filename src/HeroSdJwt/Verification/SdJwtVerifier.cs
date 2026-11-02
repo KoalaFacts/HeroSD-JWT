@@ -792,6 +792,12 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             {
                 throw; // Preserve the built-in validator's existing exception contract.
             }
+            catch (OperationCanceledException)
+            {
+                // Cancellation from an external signature provider is not an invalid signature.
+                // Preserve it for the throwing API; Try APIs still fail closed.
+                throw;
+            }
             catch (Exception)
             {
                 // Application-supplied signature validators may wrap KMS or database errors.
