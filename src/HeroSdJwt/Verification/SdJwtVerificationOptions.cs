@@ -96,6 +96,16 @@ public class SdJwtVerificationOptions
                 nameof(ClockSkew));
         }
 
+        // An undefined numeric enum value must not silently behave like Either.
+        // This setting is a security boundary between HS* and asymmetric keys.
+        if (ExpectedKeyType is not (VerificationKeyType.Either or VerificationKeyType.Symmetric or VerificationKeyType.Asymmetric))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ExpectedKeyType),
+                ExpectedKeyType,
+                "Expected key type must be Either, Symmetric, or Asymmetric.");
+        }
+
         var audiences = GetExpectedAudiences();
 
         if (RequireKeyBinding)
