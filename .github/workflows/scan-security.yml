@@ -117,7 +117,7 @@ jobs:
         run: dotnet build src/HeroSdJwt/HeroSdJwt.csproj --configuration Release --no-restore --framework ${{ matrix.framework }}
 
       - name: Run Microsoft Security DevOps
-        uses: microsoft/security-devops-action@08976cb623803b1b36d7112d4ff9f59eae704de0 # v1.12.0
+        uses: microsoft/security-devops-action@cf28f87c67770dbaa208cce3665fafc849f77507 # v1.12.1
         id: msdo
         with:
           # Available tools: antimalware, binskim, credscan, eslint, templateanalyzer, terrascan, trivy
