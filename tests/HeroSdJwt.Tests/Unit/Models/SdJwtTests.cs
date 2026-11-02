@@ -141,6 +141,22 @@ public class SdJwtTests
         Assert.Equal("disclosure1", sdJwt.Disclosures[0]);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" \t")]
+    [InlineData("~")]
+    [InlineData("first~second")]
+    public void Constructor_RejectsDisclosureThatCannotOccupyOnePresentationSlot(string? disclosure)
+    {
+        // The constructor must not allow one disclosure to introduce additional
+        // '~' slots, or turn null/blank input into an empty disclosure slot.
+        var exception = Assert.Throws<ArgumentException>(() =>
+            new SdJwt(VALID_JWT, [disclosure!], HashAlgorithm.Sha256));
+
+        Assert.Equal("disclosures", exception.ParamName);
+    }
+
     #endregion
 
     #region ToCombinedFormat Tests
