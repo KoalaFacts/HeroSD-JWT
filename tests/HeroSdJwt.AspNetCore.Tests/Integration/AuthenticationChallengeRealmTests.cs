@@ -1,4 +1,5 @@
 using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,7 +20,10 @@ public sealed class AuthenticationChallengeRealmTests
         services.AddAuthentication().AddSdJwt(options =>
         {
             options.FallbackKey = new byte[32];
-            options.VerificationOptions.ExpectedKeyType = VerificationKeyType.Symmetric;
+            options.VerificationOptions = new SdJwtVerificationOptions
+            {
+                ExpectedKeyType = VerificationKeyType.Symmetric
+            };
         });
 
         await using var provider = services.BuildServiceProvider();
