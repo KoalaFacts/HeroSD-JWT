@@ -1,4 +1,5 @@
 using HeroSdJwt.Verification;
+using HeroSdJwt.Primitives;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -43,13 +44,13 @@ public sealed class VerifierAudiencePolicyAllocationTests
             new Dictionary<string, object> { ["aud"] = "service-9999", ["sub"] = "holder" },
             [],
             key,
-            HeroSdJwt.Primitives.HashAlgorithm.Sha256,
-            HeroSdJwt.Primitives.SignatureAlgorithm.HS256);
+            HashAlgorithm.Sha256,
+            SignatureAlgorithm.HS256);
         var presentation = issued.ToCombinedFormat();
         var verifier = TestHelpers.CreateVerifier(new SdJwtVerificationOptions
         {
             ExpectedAudiences = audiences,
-            ExpectedKeyType = HeroSdJwt.Primitives.VerificationKeyType.Symmetric
+            ExpectedKeyType = VerificationKeyType.Symmetric
         });
 
         // A valid signature and audience take the complete no-key-binding path.
