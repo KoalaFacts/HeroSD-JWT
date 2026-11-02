@@ -121,12 +121,25 @@ public class JtiValidator
         // Never shorten a live token's marker to a default or maximum TTL.
         var ttl = CalculateTtl(claims, verifierClockSkew);
 
-        // Try to add jti to cache (atomic operation)
-        var wasAdded = await _cache.TryAddAsync(issuer, jti, ttl, cancellationToken).ConfigureAwait(false);
+        // Only the explicitly configured availability-first mode may ignore a
+        // storage failure. A canceled operation or a real replay is never an outage.
+        bool wasAdded;
+        try
+        {
+            wasAdded = await _cache.TryAddAsync(issuer, jti, ttl, cancellationToken).ConfigureAwait(false);
 
-        // Some cache adapters finish an atomic admission despite caller cancellation.
-        // Never report that canceled work successfully verified a credential.
-        cancellationToken.ThrowIfCancellationRequested();
+            // An atomic adapter can finish admission despite caller cancellation.
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception) when (_options.FailureMode == CacheFailureMode.FailOpen)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return;
+        }
 
         if (!wasAdded)
         {

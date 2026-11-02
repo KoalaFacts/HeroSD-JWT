@@ -58,6 +58,13 @@ public class ReplayProtectionOptions
     /// <exception cref="InvalidOperationException">Thrown when configuration is invalid.</exception>
     public void Validate()
     {
+        // Undefined enum values must not implicitly choose a security policy.
+        if (FailureMode is not (CacheFailureMode.FailClosed or CacheFailureMode.FailOpen))
+        {
+            throw new InvalidOperationException(
+                $"FailureMode must be FailClosed or FailOpen. Got: {FailureMode}");
+        }
+
         if (MaxCacheEntries <= 0)
         {
             throw new InvalidOperationException(
