@@ -29,7 +29,8 @@ public sealed class AuthenticationChallengeRealmTests
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
-        context.Request.Host = new HostString(host);
+        // Keep the malformed Host value raw; HostString's setter normalises IDNs.
+        context.Request.Headers.Host = host;
 
         await context.ChallengeAsync("SdJwt");
 
