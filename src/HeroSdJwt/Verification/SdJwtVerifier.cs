@@ -1556,97 +1556,104 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         List<string> errorDetails,
         CancellationToken cancellationToken)
     {
-        // Skip if no revocation store provided
         if (_revocationStore == null)
         {
             return;
         }
 
-        // Validate the signed key identifier outside the storage-failure handler.
-        // This keeps local policy errors distinct while allowing *all* exceptions
-        // from an injected store (including SdJwtException) to be sanitized.
+        // Validate local key policy independently of any remote store failure.
         if (header.TryGetProperty("kid", out var revocationKeyId) &&
             revocationKeyId.ValueKind == JsonValueKind.String)
         {
             KeyIdGuard.EnsureValid(revocationKeyId.GetString()!);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // A fail-open lookup is unavailable, not evidence that a separate
+        // key or user revocation is absent. Check every remaining dimension.
+        if (payload.TryGetProperty("jti", out var jtiElement) &&
+            jtiElement.ValueKind == JsonValueKind.String)
+        {
+            var jti = jtiElement.GetString()!;
+            var isRevoked = await ReadRevocationAsync(
+                jti, static (store, id, ct) => store.IsJtiRevokedAsync(id, ct),
+                errors, errorDetails, cancellationToken).ConfigureAwait(false);
+            if (isRevoked)
+            {
+                errors.Add(ErrorCode.TokenRevoked);
+                errorDetails.Add($"Token with JTI '{jti}' has been revoked");
+                throw new TokenRevokedException(jti);
+            }
+        }
+
+        if (header.TryGetProperty("kid", out var kidElement) &&
+            kidElement.ValueKind == JsonValueKind.String)
+        {
+            var keyId = kidElement.GetString()!;
+            var isRevoked = await ReadRevocationAsync(
+                keyId, static (store, id, ct) => store.IsKeyRevokedAsync(id, ct),
+                errors, errorDetails, cancellationToken).ConfigureAwait(false);
+            if (isRevoked)
+            {
+                errors.Add(ErrorCode.TokenRevokedByKey);
+                errorDetails.Add($"Signing key '{keyId}' has been revoked");
+                throw new TokenRevokedException(keyId, RevocationReason.KeyRevoked);
+            }
+        }
+
+        if (payload.TryGetProperty("sub", out var subElement) &&
+            subElement.ValueKind == JsonValueKind.String)
+        {
+            var userId = subElement.GetString()!;
+            var isRevoked = await ReadRevocationAsync(
+                userId, static (store, id, ct) => store.IsUserRevokedAsync(id, ct),
+                errors, errorDetails, cancellationToken).ConfigureAwait(false);
+            if (isRevoked)
+            {
+                errors.Add(ErrorCode.TokenRevokedByUser);
+                var jti = payload.TryGetProperty("jti", out var j) && j.ValueKind == JsonValueKind.String
+                    ? j.GetString()
+                    : null;
+                errorDetails.Add($"User '{userId}' tokens have been revoked");
+                throw new TokenRevokedException(userId, RevocationReason.UserRevoked, jti);
+            }
+        }
+    }
+
+    private async Task<bool> ReadRevocationAsync(
+        string identifier,
+        Func<IRevocationStore, string, CancellationToken, Task<bool>> lookup,
+        List<ErrorCode> errors,
+        List<string> errorDetails,
+        CancellationToken cancellationToken)
+    {
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            // Check 1: JTI revocation (individual token blacklisting)
-            if (payload.TryGetProperty("jti", out var jtiElement) && jtiElement.ValueKind == JsonValueKind.String)
-            {
-                var jti = jtiElement.GetString()!;
-                var isRevoked = await _revocationStore.IsJtiRevokedAsync(jti, cancellationToken).ConfigureAwait(false);
-                // Some stores return false even when cancellation arrives during the read.
-                // Never admit the credential or consult subsequent backends after cancellation.
-                cancellationToken.ThrowIfCancellationRequested();
-                if (isRevoked)
-                {
-                    errors.Add(ErrorCode.TokenRevoked);
-                    errorDetails.Add($"Token with JTI '{jti}' has been revoked");
-                    throw new TokenRevokedException(jti);
-                }
-            }
-
-            // Check 2: Key ID revocation (all tokens from signing key)
-            if (header.TryGetProperty("kid", out var kidElement) && kidElement.ValueKind == JsonValueKind.String)
-            {
-                var keyId = kidElement.GetString()!;
-                var isRevoked = await _revocationStore.IsKeyRevokedAsync(keyId, cancellationToken).ConfigureAwait(false);
-                // Some stores return false even when cancellation arrives during the read.
-                // Never admit the credential or consult subsequent backends after cancellation.
-                cancellationToken.ThrowIfCancellationRequested();
-                if (isRevoked)
-                {
-                    errors.Add(ErrorCode.TokenRevokedByKey);
-                    errorDetails.Add($"Signing key '{keyId}' has been revoked");
-                    throw new TokenRevokedException(keyId, RevocationReason.KeyRevoked);
-                }
-            }
-
-            // Check 3: User ID revocation (all tokens for user)
-            if (payload.TryGetProperty("sub", out var subElement) && subElement.ValueKind == JsonValueKind.String)
-            {
-                var userId = subElement.GetString()!;
-                var isRevoked = await _revocationStore.IsUserRevokedAsync(userId, cancellationToken).ConfigureAwait(false);
-                // Some stores return false even when cancellation arrives during the read.
-                // Never admit the credential or consult subsequent backends after cancellation.
-                cancellationToken.ThrowIfCancellationRequested();
-                if (isRevoked)
-                {
-                    errors.Add(ErrorCode.TokenRevokedByUser);
-                    var jti = payload.TryGetProperty("jti", out var j) && j.ValueKind == JsonValueKind.String
-                        ? j.GetString()
-                        : null;
-                    errorDetails.Add($"User '{userId}' tokens have been revoked");
-                    throw new TokenRevokedException(userId, RevocationReason.UserRevoked, jti);
-                }
-            }
+            var isRevoked = await lookup(_revocationStore!, identifier, cancellationToken).ConfigureAwait(false);
+            // An adapter may return despite request cancellation.
+            cancellationToken.ThrowIfCancellationRequested();
+            return isRevoked;
         }
         catch (TokenRevokedException)
         {
-            // Re-throw revocation exceptions
             throw;
         }
         catch (OperationCanceledException)
         {
-            // Cancellation (including a revoked request or backend timeout) is
-            // not a revocation-store outage to be admitted by fail-open policy.
+            // Cancellation is not a store outage that fail-open may admit.
             throw;
         }
         catch (Exception) when (_options.Revocation.FailureMode == RevocationFailureMode.FailOpen)
         {
-            // Fail-open remains an explicit availability policy, but backend
-            // diagnostics must not enter publicly observable verification state.
+            cancellationToken.ThrowIfCancellationRequested();
+            // Never expose secrets from backend exception messages.
             errorDetails.Add("Revocation check failed but allowing token (fail-open mode)");
+            return false;
         }
         catch (Exception)
         {
-            // Fail-closed (default): reject without retaining any backend
-            // exception or diagnostic text in the publicly thrown exception.
             errors.Add(ErrorCode.InvalidInput);
             errorDetails.Add("Revocation check failed");
             throw new SdJwtException("Revocation check failed (fail-closed mode)", ErrorCode.InvalidInput);
