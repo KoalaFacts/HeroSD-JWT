@@ -10,6 +10,11 @@ namespace HeroSdJwt.Models;
 /// </summary>
 public sealed class SdJwt
 {
+    // The 100-disclosure limit applies to presentations, not credentials:
+    // holders may select a subset from a much larger issued credential.
+    // Use an intentionally conservative, independent safety ceiling so a
+    // hostile or non-terminating IEnumerable cannot grow this list forever.
+    internal const int MaximumCredentialDisclosures = Constants.MAX_JWT_SIZE_BYTES;
     /// <summary>
     /// Gets the JWT portion (header + payload + signature).
     /// This is the base JWT containing digests in the '_sd' array.
@@ -62,16 +67,16 @@ public sealed class SdJwt
             throw new ArgumentException("JWT cannot be empty or whitespace.", nameof(jwt));
         }
 
-        // Do not eagerly materialize an unbounded lazy source. The resulting
-        // SD-JWT cannot be presented when it exceeds the verifier's disclosure
-        // limit, so stop at the first count that cannot be serialized.
+        // Do not eagerly materialize an unbounded lazy source. The
+        // constructor must preserve the larger credential use case, but an
+        // unbounded source still needs an independent admission ceiling.
         var ownedDisclosures = new List<string>();
         foreach (var disclosure in disclosures)
         {
-            if (ownedDisclosures.Count >= Constants.MAX_DISCLOSURES)
+            if (ownedDisclosures.Count >= MaximumCredentialDisclosures)
             {
                 throw new ArgumentException(
-                    $"SD-JWT exceeds the maximum of {Constants.MAX_DISCLOSURES} disclosures.",
+                    $"SD-JWT exceeds the maximum of {MaximumCredentialDisclosures} disclosures.",
                     nameof(disclosures));
             }
 

@@ -63,14 +63,14 @@ public class PresentationSerializationAdmissionTests
     }
 
     [Fact]
-    public void Should_RejectExcessDisclosureSlots_When_ConstructingSdJwt()
+    public void Should_RejectExcessDisclosureSlots_When_SerializingSdJwt()
     {
-        var error = Assert.Throws<ArgumentException>(() => new SdJwt(
+        var sdJwt = new SdJwt(
             "header.payload.signature",
             Enumerable.Repeat("W10", Constants.MAX_DISCLOSURES + 1),
-            HashAlgorithm.Sha256));
+            HashAlgorithm.Sha256);
 
-        Assert.Equal("disclosures", error.ParamName);
+        _ = Assert.Throws<ArgumentException>(sdJwt.ToCombinedFormat);
     }
 
     [Fact]
