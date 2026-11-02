@@ -281,7 +281,20 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
     /// <returns>A task representing the asynchronous operation.</returns>
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
     {
-        Response.Headers.WWWAuthenticate = $"{Options.TokenScheme} realm=\"{Request.Host}\"";
+        // Request.Host can originate from an untrusted header. Encode it as a
+        // quoted-string so it cannot add a second authentication parameter.
+        var host = Request.Host.Value ?? string.Empty;
+        if (host.Any(char.IsControl))
+        {
+            // realm is optional; omit it rather than emit an invalid header.
+            Response.Headers.WWWAuthenticate = Options.TokenScheme;
+        }
+        else
+        {
+            var escapedRealm = host.Replace("\\", "\\\\", StringComparison.Ordinal)
+                .Replace("\"", "\\\"", StringComparison.Ordinal);
+            Response.Headers.WWWAuthenticate = $"{Options.TokenScheme} realm=\"{escapedRealm}\"";
+        }
         Response.StatusCode = 401;
         return Task.CompletedTask;
     }
