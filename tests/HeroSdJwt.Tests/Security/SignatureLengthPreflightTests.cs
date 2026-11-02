@@ -92,7 +92,7 @@ public sealed class SignatureLengthPreflightTests
             ? "{\"alg\":\"" + algorithm + "\",\"kid\":\"kid-1\"}"
             : "{\"alg\":\"" + algorithm + "\"}";
         return Base64UrlEncoder.Encode(header) + "." +
-            Base64UrlEncoder.Encode("""{"sub":"user"}""") + "." +
+            Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"sub":"user"}""") + "." +
             Base64UrlEncoder.Encode(new byte[signatureLength]);
     }
 }
