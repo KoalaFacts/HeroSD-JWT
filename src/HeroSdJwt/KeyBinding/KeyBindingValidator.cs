@@ -96,20 +96,6 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             return false; // Spec requires audience binding
         }
 
-        var expectedAudienceSet = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var audience in expectedAudiences)
-        {
-            if (!string.IsNullOrWhiteSpace(audience))
-            {
-                _ = expectedAudienceSet.Add(audience);
-            }
-        }
-
-        if (expectedAudienceSet.Count == 0)
-        {
-            return false; // Spec requires at least one non-empty audience
-        }
-
         if (string.IsNullOrWhiteSpace(expectedNonce))
         {
             return false; // Spec requires nonce binding
@@ -263,7 +249,27 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             }
 
             var audience = audElement.GetString();
-            if (string.IsNullOrEmpty(audience) || !expectedAudienceSet.Contains(audience))
+            if (string.IsNullOrEmpty(audience))
+            {
+                return false; // Audience mismatch
+            }
+
+            // A forged proof must not force enumeration/allocation of the
+            // application's expected-audience policy. The signed KB-JWT
+            // contains one audience, so compare directly after signature
+            // verification instead of building a temporary HashSet per call.
+            var audienceMatches = false;
+            foreach (var expectedAudience in expectedAudiences)
+            {
+                if (!string.IsNullOrWhiteSpace(expectedAudience) &&
+                    string.Equals(audience, expectedAudience, StringComparison.Ordinal))
+                {
+                    audienceMatches = true;
+                    break;
+                }
+            }
+
+            if (!audienceMatches)
             {
                 return false; // Audience mismatch
             }
