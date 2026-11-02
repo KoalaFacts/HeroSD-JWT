@@ -81,6 +81,16 @@ public sealed class SdJwt
                     nameof(disclosures));
             }
 
+            // Null/blank entries create empty disclosure slots, and '~' adds
+            // extra slots to the combined format. Reject malformed components
+            // before this credential can be turned into an invalid presentation.
+            if (string.IsNullOrWhiteSpace(disclosure) || disclosure.Contains('~'))
+            {
+                throw new ArgumentException(
+                    "Disclosures must be non-empty components without '~' separators.",
+                    nameof(disclosures));
+            }
+
             ownedDisclosures.Add(disclosure);
         }
 
