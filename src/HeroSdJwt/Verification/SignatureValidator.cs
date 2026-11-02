@@ -65,6 +65,15 @@ public class SignatureValidator : ISignatureValidator
         // Verify the exact compact header.payload prefix, without allocating
         // an interpolated input string for every signature check.
         var signatureBytes = Base64UrlEncoder.DecodeBytes(signatureBase64);
+        // Reject impossible HMAC / EdDSA lengths before UTF-8 allocation.
+        // ECDSA must first validate the supplied curve, preserving its
+        // existing wrong-curve error contract.
+        if (algorithm is not ("ES256" or "ES384" or "ES512") &&
+            HasUnexpectedFixedSignatureLength(algorithm, signatureBytes.Length))
+        {
+            return false;
+        }
+
         var signingInputLength = jwt.Length - signatureBase64.Length - 1;
 
         // HMAC is the hot path for symmetric deployments. Encode directly
@@ -465,7 +474,7 @@ public class SignatureValidator : ISignatureValidator
 
         // The resolver may be backed by an external service. Reject an
         // unsafe/malformed algorithm before it is allowed to run.
-        _ = ValidateSupportedAlgorithm(header);
+        var algorithm = ValidateSupportedAlgorithm(header);
 
         // Check if kid is present in header
         byte[] verificationKey;
@@ -482,6 +491,15 @@ public class SignatureValidator : ISignatureValidator
                 throw new SdJwtException(
                     "JWT contains 'kid' parameter but no key resolver was provided",
                     ErrorCode.KeyResolverMissing);
+            }
+
+            // Keep malformed-kid and missing-resolver errors authoritative.
+            // Only structurally valid key IDs may reach a remote resolver,
+            // and impossible fixed-width signatures must never trigger it.
+            if (HasImpossibleEncodedSignatureLength(algorithm, parts[2].Length))
+            {
+                _ = Base64UrlEncoder.DecodeBytes(parts[2]);
+                return false;
             }
 
             // Resolve key ID to verification key. Backend exceptions can contain
@@ -595,6 +613,31 @@ public class SignatureValidator : ISignatureValidator
 
         return algorithm;
     }
+
+    // Length-only admission protects remote key resolution without allocating
+    // a signature buffer on the valid path. An unknown size (e.g. RSA) is
+    // intentionally left to the cryptographic verifier.
+    internal static bool HasImpossibleEncodedSignatureLength(string algorithm, int encodedLength)
+    {
+        var expectedBytes = FixedSignatureLengthInBytes(algorithm);
+        return expectedBytes > 0 && encodedLength != (expectedBytes * 8 + 5) / 6;
+    }
+
+    private static bool HasUnexpectedFixedSignatureLength(string algorithm, int byteLength)
+    {
+        var expectedBytes = FixedSignatureLengthInBytes(algorithm);
+        return expectedBytes > 0 && byteLength != expectedBytes;
+    }
+
+    private static int FixedSignatureLengthInBytes(string algorithm) => algorithm switch
+    {
+        "HS256" => 32,
+        "HS384" => 48,
+        "HS512" or "ES256" or "EdDSA" => 64,
+        "ES384" => 96,
+        "ES512" => 132,
+        _ => 0
+    };
 
     /// <summary>
     /// Checks if an algorithm is supported for signature verification.

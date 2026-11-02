@@ -501,6 +501,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             if (_signatureValidator.GetType() == typeof(SignatureValidator))
             {
                 _ = SignatureValidator.ValidateSupportedAlgorithm(header);
+
             }
 
             try
@@ -528,6 +529,19 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     throw new SdJwtException(
                         "JWT contains 'kid' parameter but no key resolver was provided",
                         ErrorCode.KeyResolverMissing);
+                }
+
+                // Preserve algorithm/key-type, kid and resolver configuration
+                // diagnostics before checking impossible JOSE signature sizes.
+                // Avoid external key resolution for a signature that cannot
+                // authenticate a JWT under the built-in validator.
+                if (_signatureValidator.GetType() == typeof(SignatureValidator) &&
+                    SignatureValidator.HasImpossibleEncodedSignatureLength(algorithm, jwtParts[2].Length))
+                {
+                    _ = Base64UrlEncoder.DecodeBytes(jwtParts[2]);
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add("JWT signature has invalid length for its algorithm");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
 
                 byte[]? resolvedKey;
