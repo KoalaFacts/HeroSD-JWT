@@ -36,6 +36,6 @@ public sealed class DirectAudienceShapePreflightTests
         using var document = JsonDocument.Parse("""{"sub":"holder"}""");
 
         Assert.True(new ClaimValidator().ValidateAudience(
-            document.RootElement, new[] { "", " ", "\t" }));
+            document.RootElement, ["", " ", "\t"]));
     }
 }
