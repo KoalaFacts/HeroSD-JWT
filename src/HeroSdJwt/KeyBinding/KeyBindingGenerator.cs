@@ -70,6 +70,30 @@ public class KeyBindingGenerator : IKeyBindingGenerator
             throw new ArgumentException("Nonce cannot be empty or whitespace.", nameof(nonce));
         }
 
+        // Every holder binding claim contributes at least one UTF-8 byte per
+        // UTF-16 code unit to the signed JSON. Reject values that cannot
+        // possibly fit the verifier's 64-KiB compact JWT size limit before
+        // reading the clock, serializing JSON, or allocating base64 text.
+        if (sdJwtHash.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new ArgumentException("SD-JWT hash is too large for a key-binding JWT.", nameof(sdJwtHash));
+        }
+
+        if (audience.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new ArgumentException("Audience is too large for a key-binding JWT.", nameof(audience));
+        }
+
+        if (nonce.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new ArgumentException("Nonce is too large for a key-binding JWT.", nameof(nonce));
+        }
+
+        if ((long)sdJwtHash.Length + audience.Length + nonce.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new ArgumentException("Holder binding claims cannot fit within the maximum key-binding JWT size.");
+        }
+
         // Encode header and payload using AOT-compatible serialization
         var headerJson = SerializeKeyBindingHeader();
         var payloadJson = SerializeKeyBindingPayload(
