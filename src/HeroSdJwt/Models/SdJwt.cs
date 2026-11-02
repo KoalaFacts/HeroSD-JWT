@@ -57,7 +57,7 @@ public sealed class SdJwt
     /// <param name="keyBindingJwt">Optional key binding JWT.</param>
     /// <param name="claimPathMapping">Optional cached claim path to disclosure index mapping.</param>
     /// <exception cref="ArgumentNullException">Thrown when jwt or disclosures is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when jwt is empty or whitespace, or the disclosure count exceeds the supported limit.</exception>
+    /// <exception cref="ArgumentException">Thrown for invalid wire components or if the disclosure count exceeds the supported limit.</exception>
     public SdJwt(string jwt, IEnumerable<string> disclosures, HashAlgorithm hashAlgorithm, string? keyBindingJwt = null, IReadOnlyDictionary<string, int>? claimPathMapping = null)
     {
         ArgumentNullException.ThrowIfNull(jwt);
@@ -66,6 +66,20 @@ public sealed class SdJwt
         if (string.IsNullOrWhiteSpace(jwt))
         {
             throw new ArgumentException("JWT cannot be empty or whitespace.", nameof(jwt));
+        }
+
+        // The combined wire format reserves '~' as its component delimiter.
+        // A caller-supplied compact JWT or KB-JWT must not inject new slots.
+        if (jwt.Contains(Constants.COMBINED_FORMAT_SEPARATOR))
+        {
+            throw new ArgumentException("JWT cannot contain presentation separators.", nameof(jwt));
+        }
+
+        if (keyBindingJwt is { Length: > 0 } &&
+            (string.IsNullOrWhiteSpace(keyBindingJwt) ||
+             keyBindingJwt.Contains(Constants.COMBINED_FORMAT_SEPARATOR)))
+        {
+            throw new ArgumentException("Key binding JWT contains an invalid component.", nameof(keyBindingJwt));
         }
 
         // Do not eagerly materialize an unbounded lazy source. The

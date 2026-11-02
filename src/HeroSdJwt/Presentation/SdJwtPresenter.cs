@@ -202,14 +202,14 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
     /// </summary>
     /// <param name="presentation">The presentation to format.</param>
     /// <returns>The formatted presentation string.</returns>
-    /// <exception cref="ArgumentException">The presentation exceeds the verifier's size or disclosure count limit.</exception>
+    /// <exception cref="ArgumentException">The presentation exceeds the verifier's limits or contains invalid wire components.</exception>
     public string FormatPresentation(SdJwtPresentation presentation)
     {
         ArgumentNullException.ThrowIfNull(presentation);
 
         // Build the combined format: JWT~disclosure1~disclosure2~...~keyBinding
         // Calculate total length to pre-allocate and avoid List<string> allocation
-        const char separator = '~';
+        const char separator = Constants.COMBINED_FORMAT_SEPARATOR;
         var jwt = presentation.Jwt;
         var disclosures = presentation.SelectedDisclosures;
         var keyBinding = presentation.KeyBindingJwt ?? string.Empty;
@@ -228,6 +228,15 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
         long totalLength = (long)jwt.Length + 1 + keyBinding.Length;
         foreach (var disclosure in disclosures)
         {
+            // A permissive SdJwtPresentation may hold a null component.
+            // Report invalid input rather than exposing a NullReferenceException.
+            if (disclosure is null)
+            {
+                throw new ArgumentException(
+                    "Presentation contains a null disclosure component.",
+                    nameof(presentation));
+            }
+
             totalLength += disclosure.Length + 1;
         }
 
@@ -236,6 +245,28 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
             throw new ArgumentException(
                 $"Presentation exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.",
                 nameof(presentation));
+        }
+
+        // Enforce component shape only after the cheap size gate, avoiding
+        // scans of unbounded caller strings. The verifier rejects extra or
+        // blank tilde-delimited slots; holder serialization must not emit them.
+        if (string.IsNullOrWhiteSpace(jwt) || jwt.Contains(separator) ||
+            (keyBinding.Length > 0 &&
+             (string.IsNullOrWhiteSpace(keyBinding) || keyBinding.Contains(separator))))
+        {
+            throw new ArgumentException(
+                "Presentation contains an invalid JWT or key binding component.",
+                nameof(presentation));
+        }
+
+        foreach (var disclosure in disclosures)
+        {
+            if (string.IsNullOrWhiteSpace(disclosure) || disclosure.Contains(separator))
+            {
+                throw new ArgumentException(
+                    "Presentation contains an invalid disclosure component.",
+                    nameof(presentation));
+            }
         }
 
         // Build string using string.Create for zero intermediate allocations.
