@@ -36,26 +36,28 @@ public sealed class JwtSignerLazyClaimSerializationTests
         };
         var signingKey = new byte[32];
 
-        Action createCredential = useBuilder
-            ? () =>
-            {
-                _ = SdJwtIssuerBuilder.Create()
-                    .WithClaim("sub", "holder")
-                    .WithClaim("profile", nestedClaim)
-                    .SignWithHmac(signingKey)
-                    .Build();
-            }
-            : () =>
-            {
-                _ = new JwtSigner().CreateJwt(
-                    new Dictionary<string, object>
-                    {
-                        ["sub"] = "holder",
-                        ["profile"] = nestedClaim
-                    },
-                    signingKey,
-                    SignatureAlgorithm.HS256);
-            };
+        void CreateWithBuilder()
+        {
+            _ = SdJwtIssuerBuilder.Create()
+                .WithClaim("sub", "holder")
+                .WithClaim("profile", nestedClaim)
+                .SignWithHmac(signingKey)
+                .Build();
+        }
+
+        void CreateWithSigner()
+        {
+            _ = new JwtSigner().CreateJwt(
+                new Dictionary<string, object>
+                {
+                    ["sub"] = "holder",
+                    ["profile"] = nestedClaim
+                },
+                signingKey,
+                SignatureAlgorithm.HS256);
+        }
+
+        Action createCredential = useBuilder ? CreateWithBuilder : CreateWithSigner;
 
         var exception = Assert.Throws<ArgumentException>(createCredential);
         Assert.Contains("maximum allowed size", exception.Message);
