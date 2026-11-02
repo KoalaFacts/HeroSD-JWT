@@ -396,6 +396,7 @@ public class JwtSigner : IJwtSigner
 
             foreach (var kvp in dict)
             {
+                EnsureClaimStringFits(kvp.Key);
                 writer.WritePropertyName(kvp.Key);
                 WriteValue(writer, kvp.Value);
             }
@@ -425,6 +426,21 @@ public class JwtSigner : IJwtSigner
         return JsonDocument.Parse(buffer.WrittenMemory);
     }
 
+    // A UTF-8 JSON string cannot use fewer bytes than its UTF-16 code units.
+    // Escaping can only increase its size. Reject an impossible individual
+    // property name or value before Utf8JsonWriter grows its backing buffer;
+    // retain the existing actual writer-byte and compact-wire limits for all
+    // other inputs.
+    private static void EnsureClaimStringFits(string? text)
+    {
+        if (text is not null && text.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            throw new ArgumentException(
+                $"JWT claim JSON exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.",
+                nameof(text));
+        }
+    }
+
     /// <summary>
     /// Writes a value of unknown type to Utf8JsonWriter.
     /// Supports primitives, JsonElement, dictionaries, and collections for AOT compatibility.
@@ -434,6 +450,7 @@ public class JwtSigner : IJwtSigner
         switch (value)
         {
             case string s:
+                EnsureClaimStringFits(s);
                 writer.WriteStringValue(s);
                 break;
             case int i:
@@ -473,6 +490,7 @@ public class JwtSigner : IJwtSigner
                 writer.WriteStartObject();
                 foreach (var kvp in nestedDict)
                 {
+                    EnsureClaimStringFits(kvp.Key);
                     writer.WritePropertyName(kvp.Key);
                     WriteValue(writer, kvp.Value);
                 }
@@ -482,7 +500,9 @@ public class JwtSigner : IJwtSigner
                 writer.WriteStartObject();
                 foreach (var kvp in stringDict)
                 {
+                    EnsureClaimStringFits(kvp.Key);
                     writer.WritePropertyName(kvp.Key);
+                    EnsureClaimStringFits(kvp.Value);
                     writer.WriteStringValue(kvp.Value);
                 }
                 writer.WriteEndObject();
@@ -498,6 +518,8 @@ public class JwtSigner : IJwtSigner
                     {
                         throw new ArgumentException("JSON claim dictionary keys must be strings.", nameof(value));
                     }
+
+                    EnsureClaimStringFits(name);
 
                     writer.WritePropertyName(name);
                     WriteValue(writer, entry.Value!);
