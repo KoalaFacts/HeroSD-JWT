@@ -14,7 +14,8 @@ public sealed class SdJwt
     // holders may select a subset from a much larger issued credential.
     // Use an intentionally conservative, independent safety ceiling so a
     // hostile or non-terminating IEnumerable cannot grow this list forever.
-    internal const int MaximumCredentialDisclosures = Constants.MAX_JWT_SIZE_BYTES;
+    internal const int MAX_CREDENTIAL_DISCLOSURES = Constants.MAX_JWT_SIZE_BYTES;
+
     /// <summary>
     /// Gets the JWT portion (header + payload + signature).
     /// This is the base JWT containing digests in the '_sd' array.
@@ -73,10 +74,10 @@ public sealed class SdJwt
         var ownedDisclosures = new List<string>();
         foreach (var disclosure in disclosures)
         {
-            if (ownedDisclosures.Count >= MaximumCredentialDisclosures)
+            if (ownedDisclosures.Count >= MAX_CREDENTIAL_DISCLOSURES)
             {
                 throw new ArgumentException(
-                    $"SD-JWT exceeds the maximum of {MaximumCredentialDisclosures} disclosures.",
+                    $"SD-JWT exceeds the maximum of {MAX_CREDENTIAL_DISCLOSURES} disclosures.",
                     nameof(disclosures));
             }
 

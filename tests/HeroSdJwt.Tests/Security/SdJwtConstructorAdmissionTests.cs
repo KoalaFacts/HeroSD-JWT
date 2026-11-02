@@ -26,7 +26,7 @@ public class SdJwtConstructorAdmissionTests
         var error = Assert.Throws<ArgumentException>(() =>
             new SdJwt(
                 "header.payload.signature",
-                Enumerable.Repeat("W10", SdJwt.MaximumCredentialDisclosures + 1),
+                Enumerable.Repeat("W10", SdJwt.MAX_CREDENTIAL_DISCLOSURES + 1),
                 HashAlgorithm.Sha256));
 
         Assert.Equal("disclosures", error.ParamName);
@@ -37,7 +37,7 @@ public class SdJwtConstructorAdmissionTests
     {
         static IEnumerable<string> AdversarialStream()
         {
-            for (var i = 0; i < SdJwt.MaximumCredentialDisclosures + 1; i++)
+            for (var i = 0; i < SdJwt.MAX_CREDENTIAL_DISCLOSURES + 1; i++)
             {
                 yield return "W10";
             }
@@ -55,9 +55,9 @@ public class SdJwtConstructorAdmissionTests
     {
         var sdJwt = new SdJwt(
             "header.payload.signature",
-            Enumerable.Repeat("W10", SdJwt.MaximumCredentialDisclosures),
+            Enumerable.Repeat("W10", SdJwt.MAX_CREDENTIAL_DISCLOSURES),
             HashAlgorithm.Sha256);
 
-        Assert.Equal(SdJwt.MaximumCredentialDisclosures, sdJwt.Disclosures.Count);
+        Assert.Equal(SdJwt.MAX_CREDENTIAL_DISCLOSURES, sdJwt.Disclosures.Count);
     }
 }
