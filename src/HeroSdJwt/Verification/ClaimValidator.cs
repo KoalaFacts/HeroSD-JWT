@@ -188,47 +188,88 @@ public class ClaimValidator : IClaimValidator
             return false;
         }
 
-        // The common no-audience-policy path should not allocate a set.
-        // Create one only when at least one non-empty expected audience exists.
-        HashSet<string>? expectedSet = null;
-        if (expectedAudiences != null)
-        {
-            foreach (var expectedAudience in expectedAudiences)
-            {
-                if (!string.IsNullOrWhiteSpace(expectedAudience))
-                {
-                    expectedSet ??= new HashSet<string>(StringComparer.Ordinal);
-                    _ = expectedSet.Add(expectedAudience);
-                }
-            }
-        }
-
-        // RFC 7519 requires a string or an array containing only strings
-        // whenever the audience is present, independent of matching policy.
+        // A signed JWT commonly contains a single audience. Scan the
+        // configured allowlist directly rather than allocating a HashSet of
+        // thousands of configured audiences for each verification.
         if (audElement.ValueKind == JsonValueKind.String)
         {
             var actualAudience = audElement.GetString();
-            return expectedSet is null ||
-                   (actualAudience != null && expectedSet.Contains(actualAudience));
-        }
-
-        if (audElement.ValueKind == JsonValueKind.Array)
-        {
-            // Check every entry even after a match, so a malicious non-string
-            // member cannot be hidden elsewhere in the array.
-            var matched = false;
-            foreach (var aud in audElement.EnumerateArray())
+            var hasExpectedAudience = false;
+            if (expectedAudiences is not null)
             {
-                if (aud.GetString() is string value && expectedSet?.Contains(value) == true)
+                foreach (var expectedAudience in expectedAudiences)
                 {
-                    matched = true;
+                    if (string.IsNullOrWhiteSpace(expectedAudience))
+                    {
+                        continue;
+                    }
+
+                    hasExpectedAudience = true;
+                    if (string.Equals(actualAudience, expectedAudience, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
                 }
             }
 
-            return expectedSet is null || matched;
+            return !hasExpectedAudience;
         }
 
-        return false;
+        if (expectedAudiences is null || expectedAudiences.Count == 0)
+        {
+            return true;
+        }
+
+        // Small signed audience arrays should cost memory proportional to
+        // the signed input, not the size of an application's allowlist.
+        // Switch to the old expected-set lookup only for larger arrays,
+        // where repeated comparisons would cost more than the allocation.
+        if (audElement.GetArrayLength() <= 8)
+        {
+            var actualAudiences = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var audience in audElement.EnumerateArray())
+            {
+                _ = actualAudiences.Add(audience.GetString()!);
+            }
+
+            var hasExpectedAudience = false;
+            foreach (var expectedAudience in expectedAudiences)
+            {
+                if (string.IsNullOrWhiteSpace(expectedAudience))
+                {
+                    continue;
+                }
+
+                hasExpectedAudience = true;
+                if (actualAudiences.Contains(expectedAudience))
+                {
+                    return true;
+                }
+            }
+
+            return !hasExpectedAudience;
+        }
+
+        HashSet<string>? expectedSet = null;
+        foreach (var expectedAudience in expectedAudiences)
+        {
+            if (!string.IsNullOrWhiteSpace(expectedAudience))
+            {
+                expectedSet ??= new HashSet<string>(StringComparer.Ordinal);
+                _ = expectedSet.Add(expectedAudience);
+            }
+        }
+
+        var matched = false;
+        foreach (var audience in audElement.EnumerateArray())
+        {
+            if (audience.GetString() is string value && expectedSet?.Contains(value) == true)
+            {
+                matched = true;
+            }
+        }
+
+        return expectedSet is null || matched;
     }
 
 }

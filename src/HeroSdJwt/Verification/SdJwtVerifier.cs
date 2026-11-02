@@ -867,8 +867,6 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
-            var payloadAudiences = ExtractAudiences(payload);
-
             // Step 3: Validate temporal claims (exp, nbf, iat), issuer and audience.
             // Injected claim validators may call remote policy services. Treat
             // failures as invalid credentials without exposing backend diagnostics.
@@ -1022,13 +1020,6 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
-            // The KB-JWT audience identifies the verifier and is independent of
-            // any issuer-JWT audience. Preserve the legacy coupled policy when
-            // a separate verifier audience has not been configured.
-            IReadOnlyList<string> keyBindingAudiences = string.IsNullOrWhiteSpace(_options.ExpectedKeyBindingAudience)
-                ? GetMatchingAudiences(expectedAudiences, payloadAudiences)
-                : [_options.ExpectedKeyBindingAudience];
-
             // Step 5: Validate key binding if present or required
             if (!string.IsNullOrWhiteSpace(keyBindingJwt))
             {
@@ -1154,6 +1145,13 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     errorDetails.Add($"Failed to compute SD-JWT hash: {ex.Message}");
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
+
+                // Only derive issuer/verifier audience intersections when
+                // a holder-signed proof actually exists. Ordinary presentations
+                // must not rebuild expected-audience sets for unused KB policy.
+                IReadOnlyList<string> keyBindingAudiences = string.IsNullOrWhiteSpace(_options.ExpectedKeyBindingAudience)
+                    ? GetMatchingAudiences(expectedAudiences, ExtractAudiences(payload))
+                    : [_options.ExpectedKeyBindingAudience];
 
                 // Application-provided holder-proof validators may consult KMS
                 // or policy services. Fail closed without exposing diagnostics.
