@@ -16,6 +16,8 @@ namespace HeroSdJwt.Cryptography;
 /// </summary>
 public class JwtSigner : IJwtSigner
 {
+    // JsonDocument.Parse in SdJwtVerifier accepts at most 64 nested JSON levels.
+    private const int MAX_VERIFIER_JSON_DEPTH = 64;
 
     /// <summary>
     /// Creates a signed JWT with the specified payload and algorithm.
@@ -388,7 +390,7 @@ public class JwtSigner : IJwtSigner
     private static string SerializeDictionary(Dictionary<string, object> dict)
     {
         var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer))
+        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { MaxDepth = MAX_VERIFIER_JSON_DEPTH }))
         {
             writer.WriteStartObject();
 
@@ -414,7 +416,7 @@ public class JwtSigner : IJwtSigner
     internal static JsonDocument SerializeClaimValueDocument(object? value)
     {
         var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer))
+        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { MaxDepth = MAX_VERIFIER_JSON_DEPTH }))
         {
             WriteValue(writer, value!);
             writer.Flush();
