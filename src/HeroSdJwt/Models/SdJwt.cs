@@ -10,6 +10,12 @@ namespace HeroSdJwt.Models;
 /// </summary>
 public sealed class SdJwt
 {
+    // The 100-disclosure limit applies to presentations, not credentials:
+    // holders may select a subset from a much larger issued credential.
+    // Use an intentionally conservative, independent safety ceiling so a
+    // hostile or non-terminating IEnumerable cannot grow this list forever.
+    internal const int MAX_CREDENTIAL_DISCLOSURES = Constants.MAX_JWT_SIZE_BYTES;
+
     /// <summary>
     /// Gets the JWT portion (header + payload + signature).
     /// This is the base JWT containing digests in the '_sd' array.
@@ -51,7 +57,7 @@ public sealed class SdJwt
     /// <param name="keyBindingJwt">Optional key binding JWT.</param>
     /// <param name="claimPathMapping">Optional cached claim path to disclosure index mapping.</param>
     /// <exception cref="ArgumentNullException">Thrown when jwt or disclosures is null.</exception>
-    /// <exception cref="ArgumentException">Thrown when jwt is empty or whitespace.</exception>
+    /// <exception cref="ArgumentException">Thrown when jwt is empty or whitespace, or the disclosure count exceeds the supported limit.</exception>
     public SdJwt(string jwt, IEnumerable<string> disclosures, HashAlgorithm hashAlgorithm, string? keyBindingJwt = null, IReadOnlyDictionary<string, int>? claimPathMapping = null)
     {
         ArgumentNullException.ThrowIfNull(jwt);
@@ -62,8 +68,24 @@ public sealed class SdJwt
             throw new ArgumentException("JWT cannot be empty or whitespace.", nameof(jwt));
         }
 
+        // Do not eagerly materialize an unbounded lazy source. The
+        // constructor must preserve the larger credential use case, but an
+        // unbounded source still needs an independent admission ceiling.
+        var ownedDisclosures = new List<string>();
+        foreach (var disclosure in disclosures)
+        {
+            if (ownedDisclosures.Count >= MAX_CREDENTIAL_DISCLOSURES)
+            {
+                throw new ArgumentException(
+                    $"SD-JWT exceeds the maximum of {MAX_CREDENTIAL_DISCLOSURES} disclosures.",
+                    nameof(disclosures));
+            }
+
+            ownedDisclosures.Add(disclosure);
+        }
+
         Jwt = jwt;
-        Disclosures = new ReadOnlyCollection<string>([.. disclosures]);
+        Disclosures = new ReadOnlyCollection<string>(ownedDisclosures);
         HashAlgorithm = hashAlgorithm;
         KeyBindingJwt = keyBindingJwt;
         if (claimPathMapping is not null)
