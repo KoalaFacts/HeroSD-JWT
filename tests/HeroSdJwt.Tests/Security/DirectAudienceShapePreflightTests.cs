@@ -38,4 +38,27 @@ public sealed class DirectAudienceShapePreflightTests
         Assert.True(new ClaimValidator().ValidateAudience(
             document.RootElement, ["", " ", "\t"]));
     }
+
+    [Theory]
+    [InlineData(/*lang=json,strict*/ """{"aud":"tenant-24999"}""")]
+    [InlineData(/*lang=json,strict*/ """{"aud":["not-authorized","tenant-24999"]}""")]
+    public void Should_MatchValidAudience_WithoutAllocatingLargeExpectedSet(string payloadJson)
+    {
+        var expectedAudiences = Enumerable.Range(0, 25_000)
+            .Select(index => $"tenant-{index}")
+            .ToArray();
+        using var document = JsonDocument.Parse(payloadJson);
+        var validator = new ClaimValidator();
+
+        // Warm up before measuring allocations on the valid signed-audience path.
+        Assert.True(validator.ValidateAudience(document.RootElement, expectedAudiences));
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var accepted = validator.ValidateAudience(document.RootElement, expectedAudiences);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(accepted);
+        Assert.True(allocated < 64 * 1024,
+            $"Matching a valid audience rebuilt {allocated} bytes of expected-audience policy.");
+    }
 }
