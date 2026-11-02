@@ -12,7 +12,7 @@ namespace HeroSdJwt.Tests.Security;
 /// </summary>
 public sealed class JwtSignerJsonDepthTests
 {
-    private static readonly byte[] SigningKey = new byte[32];
+    private static readonly byte[] _signingKey = new byte[32];
 
     [Theory]
     [InlineData(64)]
@@ -25,7 +25,7 @@ public sealed class JwtSignerJsonDepthTests
         };
 
         Assert.Throws<InvalidOperationException>(() =>
-            new JwtSigner().CreateJwt(payload, SigningKey, SignatureAlgorithm.HS256));
+            new JwtSigner().CreateJwt(payload, _signingKey, SignatureAlgorithm.HS256));
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public sealed class JwtSignerJsonDepthTests
         };
 
         Assert.Throws<InvalidOperationException>(() =>
-            new JwtSigner().CreateJwt(payload, SigningKey, SignatureAlgorithm.HS256));
+            new JwtSigner().CreateJwt(payload, _signingKey, SignatureAlgorithm.HS256));
     }
 
     [Fact]
@@ -51,9 +51,9 @@ public sealed class JwtSignerJsonDepthTests
             ["nested"] = NestArrays(63)
         };
 
-        var jwt = new JwtSigner().CreateJwt(payload, SigningKey, SignatureAlgorithm.HS256);
+        var jwt = new JwtSigner().CreateJwt(payload, _signingKey, SignatureAlgorithm.HS256);
 
-        Assert.True(new SignatureValidator().VerifyJwtSignature(jwt, SigningKey));
+        Assert.True(new SignatureValidator().VerifyJwtSignature(jwt, _signingKey));
         using var decoded = JsonDocument.Parse(Base64UrlEncoder.DecodeString(jwt.Split('.')[1]));
         Assert.Equal(JsonValueKind.Array, decoded.RootElement.GetProperty("nested").ValueKind);
     }
