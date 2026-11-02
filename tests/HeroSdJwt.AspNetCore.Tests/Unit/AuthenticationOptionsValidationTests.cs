@@ -13,7 +13,7 @@ public sealed class AuthenticationOptionsValidationTests
             VerificationOptions = null!
         };
 
-        var exception = Assert.Throws<InvalidOperationException>(() => options.Validate());
+        var exception = Assert.Throws<InvalidOperationException>(options.Validate);
 
         Assert.Contains(nameof(SdJwtAuthenticationOptions.VerificationOptions), exception.Message);
     }
@@ -34,7 +34,7 @@ public sealed class AuthenticationOptionsValidationTests
             TokenScheme = tokenScheme
         };
 
-        var exception = Assert.Throws<InvalidOperationException>(() => options.Validate());
+        var exception = Assert.Throws<InvalidOperationException>(options.Validate);
 
         Assert.Contains(nameof(SdJwtAuthenticationOptions.TokenScheme), exception.Message);
     }
