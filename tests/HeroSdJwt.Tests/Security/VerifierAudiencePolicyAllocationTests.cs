@@ -1,5 +1,5 @@
-using HeroSdJwt.Verification;
 using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
 
 namespace HeroSdJwt.Tests.Security;
 
