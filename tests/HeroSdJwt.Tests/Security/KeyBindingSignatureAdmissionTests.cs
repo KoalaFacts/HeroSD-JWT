@@ -85,6 +85,51 @@ public class KeyBindingSignatureAdmissionTests
         Assert.InRange(allocatedBytes, 0, 256_000);
     }
 
+    [Fact]
+    public void Should_NotEnumerateExpectedAudiencesForUnauthenticatedHolderProof()
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var proof = new KeyBindingGenerator().CreateKeyBindingJwt(
+            holder.ExportECPrivateKey(), SD_HASH, AUDIENCE, NONCE);
+        var parts = proof.Split('.');
+        var signature = Base64UrlEncoder.DecodeBytes(parts[2]);
+        signature[0] ^= 0x01;
+        var forgedProof = parts[0] + "." + parts[1] + "." + Base64UrlEncoder.Encode(signature);
+        var audiences = new CountingAudiences();
+
+        Assert.False(new KeyBindingValidator().ValidateKeyBinding(
+            forgedProof, holder.ExportSubjectPublicKeyInfo(), SD_HASH, audiences, NONCE));
+        Assert.Equal(0, audiences.EnumerationCount);
+    }
+
+    [Fact]
+    public void Should_EnumerateExpectedAudiencesOnceForAuthenticatedHolderProof()
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var proof = new KeyBindingGenerator().CreateKeyBindingJwt(
+            holder.ExportECPrivateKey(), SD_HASH, AUDIENCE, NONCE);
+        var audiences = new CountingAudiences();
+
+        Assert.True(new KeyBindingValidator().ValidateKeyBinding(
+            proof, holder.ExportSubjectPublicKeyInfo(), SD_HASH, audiences, NONCE));
+        Assert.Equal(1, audiences.EnumerationCount);
+    }
+
+    private sealed class CountingAudiences : IReadOnlyCollection<string>
+    {
+        public int Count => 1;
+
+        public int EnumerationCount { get; private set; }
+
+        public IEnumerator<string> GetEnumerator()
+        {
+            EnumerationCount++;
+            yield return AUDIENCE;
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
     private sealed class RejectingTimeProvider : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() =>
