@@ -20,7 +20,7 @@ public class DisclosureParserSizeAdmissionTests
     public void Should_RejectOversizedValidDisclosureBeforeJsonParsing()
     {
         var parser = new DisclosureParser();
-        var json = $"[\\\"salt\\\",\\\"claim\\\",\\\"{new string('a', Constants.MAX_JWT_SIZE_BYTES)}\\\"]";
+        var json = $"[\"salt\",\"claim\",\"{new string('a', Constants.MAX_JWT_SIZE_BYTES)}\"]";
         var encoded = Base64UrlEncoder.Encode(json);
         Assert.True(encoded.Length > Constants.MAX_JWT_SIZE_BYTES);
 
@@ -32,7 +32,7 @@ public class DisclosureParserSizeAdmissionTests
     public void Should_AcceptLargeDisclosureWithinCombinedFormatLimit()
     {
         const int payloadLength = 40_000;
-        var json = $"[\\\"salt\\\",\\\"claim\\\",\\\"{new string('a', payloadLength)}\\\"]";
+        var json = $"[\"salt\",\"claim\",\"{new string('a', payloadLength)}\"]";
         var encoded = Base64UrlEncoder.Encode(json);
         Assert.True(encoded.Length < Constants.MAX_JWT_SIZE_BYTES);
 
