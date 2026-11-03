@@ -61,6 +61,29 @@ public class JwtSignerDictionarySerializationTests
         Assert.Equal("Sydney", records[1].GetProperty("city").GetString());
     }
 
+    [Fact]
+    public void Should_PreserveUnicodePayloadAndSignedInputBytes_WhenSigningHmacJwt()
+    {
+        var payload = new Dictionary<string, object>
+        {
+            ["name"] = "Māori 🌿",
+            ["address"] = new Dictionary<string, string> { ["city"] = "München" }
+        };
+
+        var jwt = new JwtSigner().CreateJwt(payload, _signingKey, SignatureAlgorithm.HS256);
+        var parts = jwt.Split('.');
+
+        Assert.Equal(3, parts.Length);
+        var signingInput = System.Text.Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}");
+        var expectedSignature = System.Security.Cryptography.HMACSHA256.HashData(_signingKey, signingInput);
+        Assert.Equal(expectedSignature, Base64UrlEncoder.DecodeBytes(parts[2]));
+
+        using var document = ReadPayload(jwt);
+        Assert.Equal("Māori 🌿", document.RootElement.GetProperty("name").GetString());
+        Assert.Equal("München", document.RootElement.GetProperty("address").GetProperty("city").GetString());
+        Assert.True(new SignatureValidator().VerifyJwtSignature(jwt, _signingKey));
+    }
+
     private static JsonDocument ReadPayload(string jwt)
     {
         var firstDot = jwt.IndexOf('.');
