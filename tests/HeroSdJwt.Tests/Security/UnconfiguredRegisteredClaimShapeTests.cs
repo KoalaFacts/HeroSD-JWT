@@ -38,10 +38,10 @@ public class UnconfiguredRegisteredClaimShapeTests
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"jti":true}""")]
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"jti":[]}""")]
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"jti":{}}""")]
-    [InlineData(/*lang=json*/ """{"exp":4102444800,"sub":"\\uD800"}""")]
-    [InlineData(/*lang=json*/ """{"exp":4102444800,"sub":"\\uDC00"}""")]
-    [InlineData(/*lang=json*/ """{"exp":4102444800,"jti":"\\uD800"}""")]
-    [InlineData(/*lang=json*/ """{"exp":4102444800,"jti":"\\uDC00"}""")]
+    [InlineData(/*lang=json*/ """{"exp":4102444800,"sub":"\uD800"}""")]
+    [InlineData(/*lang=json*/ """{"exp":4102444800,"sub":"\uDC00"}""")]
+    [InlineData(/*lang=json*/ """{"exp":4102444800,"jti":"\uD800"}""")]
+    [InlineData(/*lang=json*/ """{"exp":4102444800,"jti":"\uDC00"}""")]
     public async Task Should_RejectMalformedRegisteredClaim_WhenNoIssuerOrAudienceConfigured(string payloadJson)
     {
         var presentation = SignPayload(payloadJson) + "~";
