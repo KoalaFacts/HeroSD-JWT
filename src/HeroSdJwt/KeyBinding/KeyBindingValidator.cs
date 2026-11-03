@@ -129,22 +129,14 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             using var headerDocument = JsonDocument.Parse(headerJson);
             var header = headerDocument.RootElement;
 
-            // Only ES256 key-binding JWTs are supported. Reject a missing or
-            // contradictory JOSE algorithm even if the bytes verify as ES256.
-            if (header.ValueKind != JsonValueKind.Object ||
+            // Validate protected JOSE string types and Unicode before reading
+            // alg/typ. GetString throws for a signed lone surrogate.
+            // Only ES256 key-binding JWTs with typ=kb+jwt are supported.
+            if (JoseHeaderGuard.HasInvalidOrUnsupportedParameters(header) ||
                 !header.TryGetProperty("alg", out var algElement) ||
-                algElement.ValueKind != JsonValueKind.String ||
                 algElement.GetString() != "ES256" ||
                 !header.TryGetProperty("typ", out var typElement) ||
-                typElement.ValueKind != JsonValueKind.String ||
                 typElement.GetString() != "kb+jwt")
-            {
-                return false;
-            }
-
-            // Apply the same registered JOSE header type and critical-extension
-            // checks as issuer-token verification before accepting a holder proof.
-            if (JoseHeaderGuard.HasInvalidOrUnsupportedParameters(header))
             {
                 return false;
             }
@@ -228,12 +220,10 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
 
             // Validate sd_hash claim exists and matches expected value
             if (!payload.TryGetProperty("sd_hash", out var sdHashElement) ||
-                sdHashElement.ValueKind != JsonValueKind.String)
+                !TryGetValidatedString(sdHashElement, out var sdHashClaim))
             {
                 return false;
             }
-
-            var sdHashClaim = sdHashElement.GetString();
             if (sdHashClaim != expectedSdJwtHash)
             {
                 return false; // SD-JWT hash mismatch
@@ -243,12 +233,10 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             // The verifier may be configured with multiple acceptable audiences,
             // but the holder proof itself must not contain an audience array.
             if (!payload.TryGetProperty("aud", out var audElement) ||
-                audElement.ValueKind != JsonValueKind.String)
+                !TryGetValidatedString(audElement, out var audience))
             {
                 return false;
             }
-
-            var audience = audElement.GetString();
             if (string.IsNullOrEmpty(audience))
             {
                 return false; // Audience mismatch
@@ -276,12 +264,10 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
 
             // Validate nonce (required)
             if (!payload.TryGetProperty("nonce", out var nonceElement) ||
-                nonceElement.ValueKind != JsonValueKind.String)
+                !TryGetValidatedString(nonceElement, out var nonceClaim))
             {
                 return false;
             }
-
-            var nonceClaim = nonceElement.GetString();
             if (string.IsNullOrWhiteSpace(nonceClaim) ||
                 !string.Equals(nonceClaim, expectedNonce, StringComparison.Ordinal))
             {
@@ -361,8 +347,12 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
     }
     // A JSON String token can still contain an invalid escaped surrogate.
     // Reject malformed signed registered claims, even when no matching policy uses them.
-    private static bool HasValidRegisteredString(JsonElement claim)
+    private static bool HasValidRegisteredString(JsonElement claim) =>
+        TryGetValidatedString(claim, out _);
+
+    private static bool TryGetValidatedString(JsonElement claim, out string? value)
     {
+        value = null;
         if (claim.ValueKind != JsonValueKind.String)
         {
             return false;
@@ -370,10 +360,13 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
 
         try
         {
-            return claim.GetString() is not null;
+            value = claim.GetString();
+            return value is not null;
         }
         catch (InvalidOperationException)
         {
+            // JSON parsing accepts an escaped lone surrogate, but a signed
+            // string must decode cleanly before its contents can be trusted.
             return false;
         }
     }
