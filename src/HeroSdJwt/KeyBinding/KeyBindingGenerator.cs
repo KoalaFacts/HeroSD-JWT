@@ -13,9 +13,9 @@ namespace HeroSdJwt.KeyBinding;
 /// </summary>
 public class KeyBindingGenerator : IKeyBindingGenerator
 {
-    // Fixed KB-JWT protected header: {"alg":"ES256","typ":"kb+jwt"}.
-    // Reuse the canonical base64url form rather than reserializing it for each proof.
-    private const string KeyBindingHeaderBase64Url = "eyJhbGciOiJFUzI1NiIsInR5cCI6ImtiK2p3dCJ9";
+    // Serialize the fixed protected header just once. In particular, retain
+    // Utf8JsonWriter's exact escaping of "kb+jwt" for byte-compatible proofs.
+    private static readonly string KeyBindingHeaderBase64Url = SerializeKeyBindingHeaderBase64Url();
 
     private readonly TimeProvider _timeProvider;
 
@@ -182,6 +182,22 @@ public class KeyBindingGenerator : IKeyBindingGenerator
 
         var signatureBase64 = Base64UrlEncoder.Encode(signature);
         return $"{headerBase64}.{payloadBase64}.{signatureBase64}";
+    }
+
+    // Preserve the original protected-header bytes across all target frameworks.
+    private static string SerializeKeyBindingHeaderBase64Url()
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("alg", "ES256");
+            writer.WriteString("typ", "kb+jwt");
+            writer.WriteEndObject();
+            writer.Flush();
+        }
+
+        return Base64Url.EncodeToString(buffer.WrittenSpan);
     }
 
     /// <summary>
