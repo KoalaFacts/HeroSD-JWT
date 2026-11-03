@@ -99,6 +99,13 @@ public class KeyBindingGenerator : IKeyBindingGenerator
             throw new ArgumentException("Holder binding claims cannot fit within the maximum key-binding JWT size.");
         }
 
+        // Utf8JsonWriter silently replaces unpaired UTF-16 surrogates.
+        // Reject them rather than sign a different audience, nonce or hash
+        // from what the holder supplied.
+        ValidateUtf16(sdJwtHash, nameof(sdJwtHash));
+        ValidateUtf16(audience, nameof(audience));
+        ValidateUtf16(nonce, nameof(nonce));
+
         // Serialize the variable payload to UTF-8 once, without a temporary
         // JSON string followed by an additional UTF-8 conversion.
         var headerBase64 = _keyBindingHeaderBase64Url;
@@ -183,6 +190,29 @@ public class KeyBindingGenerator : IKeyBindingGenerator
 
         var signatureBase64 = Base64UrlEncoder.Encode(signature);
         return $"{headerBase64}.{payloadBase64}.{signatureBase64}";
+    }
+
+    private static void ValidateUtf16(string value, string parameterName)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            var codeUnit = value[i];
+            if (!char.IsSurrogate(codeUnit))
+            {
+                continue;
+            }
+
+            if (!char.IsHighSurrogate(codeUnit) ||
+                i + 1 == value.Length ||
+                !char.IsLowSurrogate(value[i + 1]))
+            {
+                throw new ArgumentException(
+                    "Holder binding input contains invalid UTF-16.",
+                    parameterName);
+            }
+
+            i++; // A well-formed high/low pair represents one Unicode scalar.
+        }
     }
 
     // Preserve the original protected-header bytes across all target frameworks.
