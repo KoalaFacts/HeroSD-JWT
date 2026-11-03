@@ -55,6 +55,17 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
             selectedClaimsList.Add(claimName);
         }
 
+        // Revealing no claims needs no claim-path discovery. In particular,
+        // imported credentials should not hash and parse every disclosure or
+        // invoke application-provided mapping services just to select none.
+        if (selectedClaimsList.Count == 0)
+        {
+            return new SdJwtPresentation(
+                sdJwt.Jwt,
+                [],
+                keyBindingJwt ?? sdJwt.KeyBindingJwt);
+        }
+
         try
         {
 
