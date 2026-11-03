@@ -856,14 +856,27 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
-            // RFC 7519 Sections 4.1.2 and 4.1.7 require sub and jti to
-            // be strings when present, regardless of optional policy. Reject
-            // malformed signed values before string-only revocation lookups.
-            if ((payload.TryGetProperty("sub", out var subject) && subject.ValueKind != JsonValueKind.String) ||
-                (payload.TryGetProperty("jti", out var jwtId) && jwtId.ValueKind != JsonValueKind.String))
+            // RFC 7519 Sections 4.1.2 and 4.1.7 require decodable
+            // strings for sub and jti even without revocation/replay policy.
+            // ValueKind alone does not reject malformed escaped surrogates.
+            bool malformedRegisteredIdentifier;
+            try
+            {
+                malformedRegisteredIdentifier =
+                    (payload.TryGetProperty("sub", out var subject) &&
+                     (subject.ValueKind != JsonValueKind.String || subject.GetString() is null)) ||
+                    (payload.TryGetProperty("jti", out var jwtId) &&
+                     (jwtId.ValueKind != JsonValueKind.String || jwtId.GetString() is null));
+            }
+            catch (InvalidOperationException)
+            {
+                malformedRegisteredIdentifier = true;
+            }
+
+            if (malformedRegisteredIdentifier)
             {
                 errors.Add(ErrorCode.InvalidInput);
-                errorDetails.Add("JWT subject (sub) and ID (jti) must be strings when present");
+                errorDetails.Add("JWT subject (sub) and ID (jti) must be valid strings when present");
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 

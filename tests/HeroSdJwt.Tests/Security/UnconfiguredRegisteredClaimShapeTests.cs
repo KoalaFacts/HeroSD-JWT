@@ -81,6 +81,8 @@ public class UnconfiguredRegisteredClaimShapeTests
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"aud":["service-a","service-b"]}""")]
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"iss":"https://issuer.example.test","aud":["service-a"]}""")]
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"sub":"subject-a"}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"sub":"\uD83D\uDE00"}""")]
+    [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"jti":"\uD83D\uDE00"}""")]
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"jti":"token-123"}""")]
     [InlineData(/*lang=json,strict*/ """{"exp":4102444800,"sub":"https://example.test/subject","jti":"token-456"}""")]
     public async Task Should_KeepAcceptingWellFormedOptionalClaims_WithoutMatchingPolicy(string payloadJson)
