@@ -1,4 +1,3 @@
-using HeroSdJwt.Encoding;
 using System.Buffers.Text;
 using HeroSdJwt.Models;
 using System.Security.Cryptography;
@@ -41,10 +40,8 @@ public class DisclosureGenerator : IDisclosureGenerator
 
         // Create disclosure and serialize to JSON using AOT-compatible method
         var disclosure = new Disclosure(salt, claimName, claimValue);
-        var json = disclosure.ToJson();
-
-        // Convert to base64url
-        return Base64UrlEncoder.Encode(json);
+        // Encode the serialized UTF-8 directly without re-encoding a JSON string.
+        return disclosure.ToBase64Url();
     }
 
     /// <summary>
@@ -67,9 +64,7 @@ public class DisclosureGenerator : IDisclosureGenerator
 
         // Create disclosure and serialize to JSON using AOT-compatible method
         var disclosure = new Disclosure(salt, claimValue);
-        var json = disclosure.ToJson();
-
-        // Convert to base64url
-        return Base64UrlEncoder.Encode(json);
+        // Encode the serialized UTF-8 directly without re-encoding a JSON string.
+        return disclosure.ToBase64Url();
     }
 }

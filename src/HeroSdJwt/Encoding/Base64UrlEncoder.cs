@@ -42,6 +42,14 @@ public static class Base64UrlEncoder
         return Base64Url.EncodeToString(bytes);
     }
 
+    // Encode existing UTF-8 bytes without copying them to a byte[].
+    // Preserve the public encoder's 10-MiB admission limit for all callers.
+    internal static string Encode(ReadOnlySpan<byte> bytes)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(bytes.Length, MAX_INPUT_LENGTH, nameof(bytes));
+        return Base64Url.EncodeToString(bytes);
+    }
+
     /// <summary>
     /// Converts a UTF-8 string to a base64url-encoded string.
     /// </summary>

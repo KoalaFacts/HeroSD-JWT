@@ -1,3 +1,4 @@
+using HeroSdJwt.Encoding;
 using HeroSdJwt.Verification;
 using System.Buffers;
 using System.Text.Json;
@@ -116,7 +117,15 @@ public readonly struct Disclosure : IEquatable<Disclosure>
     /// AOT-compatible: Uses Utf8JsonWriter instead of reflection-based serialization.
     /// </summary>
     /// <returns>JSON string representation.</returns>
-    public string ToJson()
+    public string ToJson() =>
+        System.Text.Encoding.UTF8.GetString(SerializeUtf8().WrittenSpan);
+
+    // The issuer needs the encoded disclosure, not an intermediate JSON string.
+    // Encode the writer's UTF-8 bytes directly to avoid a string/byte[] round trip.
+    internal string ToBase64Url() =>
+        Base64UrlEncoder.Encode(SerializeUtf8().WrittenSpan);
+
+    private ArrayBufferWriter<byte> SerializeUtf8()
     {
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer))
@@ -137,7 +146,7 @@ public readonly struct Disclosure : IEquatable<Disclosure>
             writer.Flush();
         }
 
-        return System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
+        return buffer;
     }
 
     /// <inheritdoc/>
