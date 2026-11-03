@@ -4,7 +4,6 @@ using HeroSdJwt.Presentation;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Security;
@@ -40,7 +39,7 @@ public sealed class KeyBindingAudienceIntersectionAllocationTests
 
         var presenter = new SdJwtPresenter();
         var unsigned = presenter.FormatPresentation(presenter.CreatePresentationWithAllClaims(issued));
-        var sdHash = Base64UrlEncoder.Encode(SHA256.HashData(Encoding.UTF8.GetBytes(unsigned)));
+        var sdHash = Base64UrlEncoder.Encode(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(unsigned)));
         var keyBinding = new KeyBindingGenerator().CreateKeyBindingJwt(
             holder.ExportECPrivateKey(), sdHash, expectedAudience, expectedNonce);
         var presentation = presenter.FormatPresentation(
