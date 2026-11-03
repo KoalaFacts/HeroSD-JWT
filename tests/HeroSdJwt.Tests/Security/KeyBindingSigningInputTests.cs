@@ -67,7 +67,21 @@ public class KeyBindingSigningInputTests
             holder.ExportECPrivateKey(), SD_HASH, audience, nonce);
 
         var segments = proof.Split('.');
-        Assert.Equal("eyJhbGciOiJFUzI1NiIsInR5cCI6ImtiK2p3dCJ9", segments[0]);
+        // Match the original Utf8JsonWriter encoding of the protected header
+        // byte-for-byte, including default escaping of the '+' in kb+jwt.
+        var headerBytes = new System.Buffers.ArrayBufferWriter<byte>();
+        using (var writer = new System.Text.Json.Utf8JsonWriter(headerBytes))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("alg", "ES256");
+            writer.WriteString("typ", "kb+jwt");
+            writer.WriteEndObject();
+            writer.Flush();
+        }
+
+        var legacyHeader = Base64UrlEncoder.Encode(
+            System.Text.Encoding.UTF8.GetString(headerBytes.WrittenSpan));
+        Assert.Equal(legacyHeader, segments[0]);
 
         using var payload = System.Text.Json.JsonDocument.Parse(
             Base64UrlEncoder.DecodeBytes(segments[1]));
