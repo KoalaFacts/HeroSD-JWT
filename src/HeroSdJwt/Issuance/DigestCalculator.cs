@@ -48,17 +48,9 @@ public class DigestCalculator : IDigestCalculator
         // Up to three UTF-8 bytes per UTF-16 code unit fits this bounded buffer.
         const int StackDisclosureLimit = 256;
         Span<byte> disclosureScratch = stackalloc byte[StackDisclosureLimit * 3];
-        ReadOnlySpan<byte> disclosureBytes;
-        try
-        {
-            disclosureBytes = disclosure.Length <= StackDisclosureLimit
-                ? disclosureScratch[.._strictUtf8.GetBytes(disclosure.AsSpan(), disclosureScratch)]
-                : _strictUtf8.GetBytes(disclosure);
-        }
-        catch (System.Text.EncoderFallbackException ex)
-        {
-            throw new ArgumentException("Disclosure contains invalid UTF-16 text.", nameof(disclosure), ex);
-        }
+        ReadOnlySpan<byte> disclosureBytes = disclosure.Length <= StackDisclosureLimit
+            ? disclosureScratch[..GetStrictUtf8Bytes(disclosure.AsSpan(), disclosureScratch)]
+            : GetStrictUtf8Bytes(disclosure);
 
         // Hash directly into a fixed stack buffer. Every disclosure digest is
         // computed during issuance and verification; avoid a heap byte[] per
@@ -73,6 +65,30 @@ public class DigestCalculator : IDigestCalculator
         };
 
         return Base64Url.EncodeToString(hashBytes[..hashLength]);
+    }
+
+    private static int GetStrictUtf8Bytes(ReadOnlySpan<char> disclosure, Span<byte> destination)
+    {
+        try
+        {
+            return _strictUtf8.GetBytes(disclosure, destination);
+        }
+        catch (System.Text.EncoderFallbackException ex)
+        {
+            throw new ArgumentException("Disclosure contains invalid UTF-16 text.", nameof(disclosure), ex);
+        }
+    }
+
+    private static byte[] GetStrictUtf8Bytes(string disclosure)
+    {
+        try
+        {
+            return _strictUtf8.GetBytes(disclosure);
+        }
+        catch (System.Text.EncoderFallbackException ex)
+        {
+            throw new ArgumentException("Disclosure contains invalid UTF-16 text.", nameof(disclosure), ex);
+        }
     }
 
     private static int GetStrictUtf8ByteCount(string disclosure)
