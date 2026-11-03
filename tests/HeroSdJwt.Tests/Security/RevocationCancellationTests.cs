@@ -140,6 +140,41 @@ public class RevocationCancellationTests
         Assert.Equal(cancelAt == "jti" ? 1 : cancelAt == "key" ? 2 : 3, store.LookupCount);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Should_KeepRevocation_WhenUnrevokeIsCanceled(bool keyRevocation)
+    {
+        using var store = new InMemoryRevocationStore();
+        const string revokedId = "canceled-unrevoke-id";
+        var activeToken = TestContext.Current.CancellationToken;
+
+        if (keyRevocation)
+        {
+            await store.RevokeKeyAsync(revokedId, activeToken);
+        }
+        else
+        {
+            await store.RevokeUserAsync(revokedId, activeToken);
+        }
+
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        if (keyRevocation)
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => store.UnrevokeKeyAsync(revokedId, canceled.Token));
+            Assert.True(await store.IsKeyRevokedAsync(revokedId, activeToken));
+        }
+        else
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => store.UnrevokeUserAsync(revokedId, canceled.Token));
+            Assert.True(await store.IsUserRevokedAsync(revokedId, activeToken));
+        }
+    }
+
     private static SdJwtVerifier CreateVerifier(IRevocationStore store) =>
         TestHelpers.CreateVerifierWithRevocation(
             new SdJwtVerificationOptions
