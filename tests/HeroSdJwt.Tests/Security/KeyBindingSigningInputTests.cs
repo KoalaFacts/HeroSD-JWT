@@ -56,6 +56,41 @@ public class KeyBindingSigningInputTests
             malformed, key, SD_HASH, "https://verifier.example", NONCE));
     }
 
+    [Theory]
+    [InlineData("https://verifier.example/雪?mode=one", "nonce-☕")]
+    [InlineData("https://verifier.example/?a=1&b=2", "nonce-🦄")]
+    public void Should_PreserveCanonicalHeaderAndUtf8HolderClaims(
+        string audience, string nonce)
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var proof = new KeyBindingGenerator().CreateKeyBindingJwt(
+            holder.ExportECPrivateKey(), SD_HASH, audience, nonce);
+
+        var segments = proof.Split('.');
+        // Match the original Utf8JsonWriter encoding of the protected header
+        // byte-for-byte, including default escaping of the '+' in kb+jwt.
+        var headerBytes = new System.Buffers.ArrayBufferWriter<byte>();
+        using (var writer = new System.Text.Json.Utf8JsonWriter(headerBytes))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("alg", "ES256");
+            writer.WriteString("typ", "kb+jwt");
+            writer.WriteEndObject();
+            writer.Flush();
+        }
+
+        var legacyHeader = Base64UrlEncoder.Encode(
+            System.Text.Encoding.UTF8.GetString(headerBytes.WrittenSpan));
+        Assert.Equal(legacyHeader, segments[0]);
+
+        using var payload = System.Text.Json.JsonDocument.Parse(
+            Base64UrlEncoder.DecodeBytes(segments[1]));
+        Assert.Equal(audience, payload.RootElement.GetProperty("aud").GetString());
+        Assert.Equal(nonce, payload.RootElement.GetProperty("nonce").GetString());
+        Assert.True(new KeyBindingValidator().ValidateKeyBinding(
+            proof, holder.ExportSubjectPublicKeyInfo(), SD_HASH, audience, nonce));
+    }
+
     private sealed class RejectingClock : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() =>
