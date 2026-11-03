@@ -241,7 +241,7 @@ public class ClaimValidator : IClaimValidator
             foreach (var expectedAudience in expectedAudiences)
             {
                 var unconstrained = string.IsNullOrWhiteSpace(expectedAudience);
-                var matched = false;
+                var singleAudienceMatched = false;
                 foreach (var audience in audElement.EnumerateArray())
                 {
                     if (!TryGetAudienceString(audience, out var actualAudience))
@@ -254,11 +254,11 @@ public class ClaimValidator : IClaimValidator
                     if (!unconstrained &&
                         string.Equals(actualAudience, expectedAudience, StringComparison.Ordinal))
                     {
-                        matched = true;
+                        singleAudienceMatched = true;
                     }
                 }
 
-                return unconstrained || matched;
+                return unconstrained || singleAudienceMatched;
             }
 
             return true;
