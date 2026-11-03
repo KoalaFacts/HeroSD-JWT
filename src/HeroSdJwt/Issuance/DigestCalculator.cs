@@ -11,6 +11,9 @@ namespace HeroSdJwt.Issuance;
 /// </summary>
 public class DigestCalculator : IDigestCalculator
 {
+    // Disclosure hashing must not silently turn malformed UTF-16 into the
+    // replacement character: two different caller inputs could then hash alike.
+    private static readonly System.Text.UTF8Encoding _strictUtf8 = new(false, true);
 
     /// <summary>
     /// Computes the digest of a disclosure using the specified hash algorithm.
@@ -28,7 +31,7 @@ public class DigestCalculator : IDigestCalculator
         // short disclosures avoid an extra GetByteCount scan.
         if (disclosure.Length > Constants.MAX_JWT_SIZE_BYTES ||
             (disclosure.Length > Constants.MAX_JWT_SIZE_BYTES / 3 &&
-             System.Text.Encoding.UTF8.GetByteCount(disclosure) > Constants.MAX_JWT_SIZE_BYTES))
+             GetStrictUtf8ByteCount(disclosure) > Constants.MAX_JWT_SIZE_BYTES))
         {
             throw new ArgumentException(
                 $"Disclosure exceeds the maximum of {Constants.MAX_JWT_SIZE_BYTES} UTF-8 bytes.",
@@ -45,9 +48,17 @@ public class DigestCalculator : IDigestCalculator
         // Up to three UTF-8 bytes per UTF-16 code unit fits this bounded buffer.
         const int StackDisclosureLimit = 256;
         Span<byte> disclosureScratch = stackalloc byte[StackDisclosureLimit * 3];
-        ReadOnlySpan<byte> disclosureBytes = disclosure.Length <= StackDisclosureLimit
-            ? disclosureScratch[..System.Text.Encoding.UTF8.GetBytes(disclosure.AsSpan(), disclosureScratch)]
-            : System.Text.Encoding.UTF8.GetBytes(disclosure);
+        ReadOnlySpan<byte> disclosureBytes;
+        try
+        {
+            disclosureBytes = disclosure.Length <= StackDisclosureLimit
+                ? disclosureScratch[.._strictUtf8.GetBytes(disclosure.AsSpan(), disclosureScratch)]
+                : _strictUtf8.GetBytes(disclosure);
+        }
+        catch (System.Text.EncoderFallbackException ex)
+        {
+            throw new ArgumentException("Disclosure contains invalid UTF-16 text.", nameof(disclosure), ex);
+        }
 
         // Hash directly into a fixed stack buffer. Every disclosure digest is
         // computed during issuance and verification; avoid a heap byte[] per
@@ -62,5 +73,17 @@ public class DigestCalculator : IDigestCalculator
         };
 
         return Base64Url.EncodeToString(hashBytes[..hashLength]);
+    }
+
+    private static int GetStrictUtf8ByteCount(string disclosure)
+    {
+        try
+        {
+            return _strictUtf8.GetByteCount(disclosure);
+        }
+        catch (System.Text.EncoderFallbackException ex)
+        {
+            throw new ArgumentException("Disclosure contains invalid UTF-16 text.", nameof(disclosure), ex);
+        }
     }
 }
