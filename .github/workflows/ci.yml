@@ -151,7 +151,12 @@ jobs:
       run: dotnet build --configuration Release --no-restore /p:TreatWarningsAsErrors=true
 
     - name: Check formatting
-      run: dotnet format --verify-no-changes --verbosity diagnostic
+      run: |
+        if ! dotnet format --verify-no-changes --verbosity diagnostic; then
+          dotnet format --include tests/HeroSdJwt.Tests/Security/DirectDigestSizeAdmissionTests.cs --verbosity quiet
+          git diff -- tests/HeroSdJwt.Tests/Security/DirectDigestSizeAdmissionTests.cs
+          exit 1
+        fi
 
     - name: Reject swapped or missing release assets
       shell: bash
