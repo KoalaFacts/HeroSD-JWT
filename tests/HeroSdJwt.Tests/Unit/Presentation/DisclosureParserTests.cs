@@ -317,6 +317,28 @@ public class DisclosureParserTests
         Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(disclosure));
     }
 
+    [Theory]
+    [InlineData(/*lang=json*/ """["\uD800","name","value"]""")]
+    [InlineData(/*lang=json*/ """["\uDC00","name","value"]""")]
+    [InlineData(/*lang=json*/ """["salt","\uD800","value"]""")]
+    [InlineData(/*lang=json*/ """["salt","\uDC00","value"]""")]
+    [InlineData(/*lang=json*/ """["\uD800","value"]""")]
+    public void Should_RejectMalformedEscapedUnicodeInDisclosureMetadata(string json)
+    {
+        var encoded = Base64UrlEncoder.Encode(json);
+        _ = Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(encoded));
+    }
+
+    [Fact]
+    public void Should_PreserveValidEscapedSurrogatePairsInDisclosureMetadata()
+    {
+        const string json = /*lang=json,strict*/ """["\uD83D\uDE00","\uD83D\uDE00","value"]""";
+        var disclosure = _parser.Parse(Base64UrlEncoder.Encode(json));
+
+        Assert.Equal("😀", disclosure.Salt);
+        Assert.Equal("😀", disclosure.ClaimName);
+    }
+
     #endregion
 
     #region GetClaimName Tests

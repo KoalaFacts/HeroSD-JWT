@@ -69,7 +69,7 @@ public class DisclosureParser : IDisclosureParser
             throw new MalformedDisclosureException("Disclosure salt must be a string");
         }
 
-        var salt = saltElement.GetString();
+        var salt = ReadMetadataString(saltElement, "salt");
         if (string.IsNullOrWhiteSpace(salt))
         {
             throw new MalformedDisclosureException("Disclosure salt cannot be empty or whitespace");
@@ -105,7 +105,7 @@ public class DisclosureParser : IDisclosureParser
                 throw new MalformedDisclosureException("Disclosure claim name must be a string");
             }
 
-            var claimName = claimNameElement.GetString();
+            var claimName = ReadMetadataString(claimNameElement, "claim name");
             if (string.IsNullOrWhiteSpace(claimName))
             {
                 throw new MalformedDisclosureException("Disclosure claim name cannot be empty or whitespace");
@@ -120,6 +120,22 @@ public class DisclosureParser : IDisclosureParser
 
             var claimValue = jsonArray[2];
             return new Disclosure(salt, claimName, claimValue.Clone());
+        }
+    }
+
+    private static string? ReadMetadataString(JsonElement element, string fieldName)
+    {
+        try
+        {
+            return element.GetString();
+        }
+        catch (InvalidOperationException)
+        {
+            // System.Text.Json accepts escaped lone surrogates at parse time,
+            // but GetString throws on them. Keep untrusted disclosures within
+            // the domain's explicit malformed-input error contract.
+            throw new MalformedDisclosureException(
+                $"Disclosure {fieldName} contains invalid Unicode");
         }
     }
 
