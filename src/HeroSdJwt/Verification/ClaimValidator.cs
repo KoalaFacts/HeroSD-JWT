@@ -119,8 +119,15 @@ public class ClaimValidator : IClaimValidator
             return false;
         }
 
+        // Decode even when there is no matching policy. A signed issuer with
+        // a lone escaped surrogate is malformed, and GetString can throw.
+        if (!TryGetRegisteredString(issElement, out var actualIssuer))
+        {
+            return false;
+        }
+
         return !requiresIssuer ||
-               string.Equals(issElement.GetString(), expectedIssuer, StringComparison.Ordinal);
+               string.Equals(actualIssuer, expectedIssuer, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -193,7 +200,7 @@ public class ClaimValidator : IClaimValidator
         // thousands of configured audiences for each verification.
         if (audElement.ValueKind == JsonValueKind.String)
         {
-            if (!TryGetAudienceString(audElement, out var actualAudience))
+            if (!TryGetRegisteredString(audElement, out var actualAudience))
             {
                 return false;
             }
@@ -224,7 +231,7 @@ public class ClaimValidator : IClaimValidator
             // StringOrURI entries acceptable. Decode every array member.
             foreach (var audience in audElement.EnumerateArray())
             {
-                if (!TryGetAudienceString(audience, out _))
+                if (!TryGetRegisteredString(audience, out _))
                 {
                     return false;
                 }
@@ -244,7 +251,7 @@ public class ClaimValidator : IClaimValidator
                 var singleAudienceMatched = false;
                 foreach (var audience in audElement.EnumerateArray())
                 {
-                    if (!TryGetAudienceString(audience, out var actualAudience))
+                    if (!TryGetRegisteredString(audience, out var actualAudience))
                     {
                         return false;
                     }
@@ -282,7 +289,7 @@ public class ClaimValidator : IClaimValidator
             var smallArrayMatched = false;
             foreach (var audience in audElement.EnumerateArray())
             {
-                if (!TryGetAudienceString(audience, out var actualAudience))
+                if (!TryGetRegisteredString(audience, out var actualAudience))
                 {
                     return false;
                 }
@@ -307,7 +314,7 @@ public class ClaimValidator : IClaimValidator
             var actualAudiences = new HashSet<string>(StringComparer.Ordinal);
             foreach (var audience in audElement.EnumerateArray())
             {
-                if (!TryGetAudienceString(audience, out var actualAudience))
+                if (!TryGetRegisteredString(audience, out var actualAudience))
                 {
                     return false;
                 }
@@ -346,7 +353,7 @@ public class ClaimValidator : IClaimValidator
         var matched = false;
         foreach (var audience in audElement.EnumerateArray())
         {
-            if (!TryGetAudienceString(audience, out var actualAudience))
+            if (!TryGetRegisteredString(audience, out var actualAudience))
             {
                 return false;
             }
@@ -360,7 +367,7 @@ public class ClaimValidator : IClaimValidator
         return expectedSet is null || matched;
     }
 
-    private static bool TryGetAudienceString(JsonElement audience, out string? value)
+    private static bool TryGetRegisteredString(JsonElement audience, out string? value)
     {
         try
         {
