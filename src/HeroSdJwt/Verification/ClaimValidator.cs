@@ -246,10 +246,40 @@ public class ClaimValidator : IClaimValidator
             return true;
         }
 
-        // Small signed audience arrays should cost memory proportional to
-        // the signed input, not the size of an application's allowlist.
-        // Switch to the old expected-set lookup only for larger arrays,
-        // where repeated comparisons would cost more than the allocation.
+        // For a few configured audiences and signed array entries, bounded
+        // comparisons avoid a per-verification HashSet. Decode every signed
+        // entry before returning a match: a later JSON string with malformed
+        // escaped Unicode must not be bypassed by an earlier matching entry.
+        if (expectedAudiences.Count <= 4 && audElement.GetArrayLength() <= 4)
+        {
+            var hasExpectedAudience = false;
+            foreach (var expectedAudience in expectedAudiences)
+            {
+                if (!string.IsNullOrWhiteSpace(expectedAudience))
+                {
+                    hasExpectedAudience = true;
+                }
+            }
+
+            var smallArrayMatched = false;
+            foreach (var audience in audElement.EnumerateArray())
+            {
+                var actualAudience = audience.GetString();
+                foreach (var expectedAudience in expectedAudiences)
+                {
+                    if (!string.IsNullOrWhiteSpace(expectedAudience) &&
+                        string.Equals(actualAudience, expectedAudience, StringComparison.Ordinal))
+                    {
+                        smallArrayMatched = true;
+                    }
+                }
+            }
+
+            return !hasExpectedAudience || smallArrayMatched;
+        }
+
+        // For larger policy/array combinations, retain the lookup strategy
+        // so comparison costs do not scale as the product of both sizes.
         if (audElement.GetArrayLength() <= 8)
         {
             var actualAudiences = new HashSet<string>(StringComparer.Ordinal);
