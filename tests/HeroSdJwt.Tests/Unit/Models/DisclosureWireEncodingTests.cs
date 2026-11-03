@@ -38,6 +38,23 @@ public class DisclosureWireEncodingTests
         Assert.Equal(disclosure.ToJson(), Base64UrlEncoder.DecodeString(encoded));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Should_RejectOversizedDisclosureBytesWithoutEncoding(bool multibyte)
+    {
+        // The prior string-based encoder rejected at 10 MiB of UTF-8.
+        // A multibyte string also protects against checking UTF-16 length only.
+        var claimText = multibyte ? new string('界', 3_500_000) : new string('a', 10 * 1024 * 1024);
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(claimText));
+        var generator = new DisclosureGenerator();
+
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            generator.GenerateDisclosure("oversized", document.RootElement));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            generator.GenerateArrayElementDisclosure(document.RootElement));
+    }
+
     [Fact]
     public void Should_PreserveGeneratorWireBytesForObjectAndArrayDisclosures()
     {

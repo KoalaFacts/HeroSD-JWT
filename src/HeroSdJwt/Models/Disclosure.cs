@@ -1,6 +1,6 @@
+using HeroSdJwt.Encoding;
 using HeroSdJwt.Verification;
 using System.Buffers;
-using System.Buffers.Text;
 using System.Text.Json;
 
 namespace HeroSdJwt.Models;
@@ -123,7 +123,7 @@ public readonly struct Disclosure : IEquatable<Disclosure>
     // The issuer needs the encoded disclosure, not an intermediate JSON string.
     // Encode the writer's UTF-8 bytes directly to avoid a string/byte[] round trip.
     internal string ToBase64Url() =>
-        Base64Url.EncodeToString(SerializeUtf8().WrittenSpan);
+        Base64UrlEncoder.Encode(SerializeUtf8().WrittenSpan);
 
     private ArrayBufferWriter<byte> SerializeUtf8()
     {
