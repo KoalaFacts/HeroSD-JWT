@@ -1,5 +1,6 @@
 using System.Buffers.Text;
 using System.Security.Cryptography;
+using Constants = HeroSdJwt.Primitives.Constants;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Issuance;
@@ -20,6 +21,19 @@ public class DigestCalculator : IDigestCalculator
     public string ComputeDigest(string disclosure, HashAlgorithm algorithm)
     {
         ArgumentNullException.ThrowIfNull(disclosure);
+
+        // Direct callers can supply far more text than a verifier accepts on
+        // the wire. Bound UTF-8 size before allocating its proportional buffer.
+        // Each UTF-16 code unit needs at most three UTF-8 bytes, so ordinary
+        // short disclosures avoid an extra GetByteCount scan.
+        if (disclosure.Length > Constants.MAX_JWT_SIZE_BYTES ||
+            (disclosure.Length > Constants.MAX_JWT_SIZE_BYTES / 3 &&
+             System.Text.Encoding.UTF8.GetByteCount(disclosure) > Constants.MAX_JWT_SIZE_BYTES))
+        {
+            throw new ArgumentException(
+                $"Disclosure exceeds the maximum of {Constants.MAX_JWT_SIZE_BYTES} UTF-8 bytes.",
+                nameof(disclosure));
+        }
 
         if (string.IsNullOrWhiteSpace(disclosure))
         {
