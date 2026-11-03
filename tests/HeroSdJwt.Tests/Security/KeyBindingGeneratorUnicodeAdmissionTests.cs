@@ -10,16 +10,17 @@ namespace HeroSdJwt.Tests.Security;
 public sealed class KeyBindingGeneratorUnicodeAdmissionTests
 {
     [Theory]
-    [InlineData("sdJwtHash", "\uD800")]
-    [InlineData("sdJwtHash", "\uDC00")]
-    [InlineData("audience", "\uD800")]
-    [InlineData("audience", "\uDC00")]
-    [InlineData("nonce", "\uD800")]
-    [InlineData("nonce", "\uDC00")]
+    [InlineData("sdJwtHash", "high")]
+    [InlineData("sdJwtHash", "low")]
+    [InlineData("audience", "high")]
+    [InlineData("audience", "low")]
+    [InlineData("nonce", "high")]
+    [InlineData("nonce", "low")]
     public void Should_RejectUnpairedUtf16Surrogates_BeforeSigning(
-        string parameterName, string malformed)
+        string parameterName, string surrogateKind)
     {
         using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var malformed = surrogateKind == "high" ? "\uD800" : "\uDC00";
         var hash = parameterName == "sdJwtHash" ? malformed : "hash";
         var audience = parameterName == "audience" ? malformed : "aud";
         var nonce = parameterName == "nonce" ? malformed : "nonce";
