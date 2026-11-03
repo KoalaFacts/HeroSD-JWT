@@ -1,7 +1,6 @@
 using HeroSdJwt.Encoding;
 using HeroSdJwt.KeyBinding;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -38,7 +37,7 @@ public sealed class KeyBindingSupplementalClaimAdmissionTests
         var payload = "{\"sd_hash\":\"hash\",\"aud\":\"aud\",\"nonce\":\"nonce\",\"iat\":1700000000," +
             extraClaimJson + "}";
         var signingInput = header + "." + Base64UrlEncoder.Encode(payload);
-        var signedBytes = Encoding.ASCII.GetBytes(signingInput);
+        var signedBytes = System.Text.Encoding.ASCII.GetBytes(signingInput);
         var signature = holder.SignData(signedBytes, HashAlgorithmName.SHA256);
         Assert.True(holder.VerifyData(signedBytes, signature, HashAlgorithmName.SHA256));
 
