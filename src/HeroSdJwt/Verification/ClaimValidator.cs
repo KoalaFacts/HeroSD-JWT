@@ -246,10 +246,35 @@ public class ClaimValidator : IClaimValidator
             return true;
         }
 
-        // Small signed audience arrays should cost memory proportional to
-        // the signed input, not the size of an application's allowlist.
-        // Switch to the old expected-set lookup only for larger arrays,
-        // where repeated comparisons would cost more than the allocation.
+        // For a few configured audiences and signed array entries, a bounded
+        // direct scan avoids rebuilding a HashSet and decoding JSON strings
+        // on every verification. ValueEquals compares decoded StringOrURI
+        // values, including JSON escapes, without allocating a string.
+        if (expectedAudiences.Count <= 4 && audElement.GetArrayLength() <= 4)
+        {
+            var hasExpectedAudience = false;
+            foreach (var expectedAudience in expectedAudiences)
+            {
+                if (string.IsNullOrWhiteSpace(expectedAudience))
+                {
+                    continue;
+                }
+
+                hasExpectedAudience = true;
+                foreach (var audience in audElement.EnumerateArray())
+                {
+                    if (audience.ValueEquals(expectedAudience))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return !hasExpectedAudience;
+        }
+
+        // For larger policy/array combinations, retain the lookup strategy
+        // so comparison costs do not scale as the product of both sizes.
         if (audElement.GetArrayLength() <= 8)
         {
             var actualAudiences = new HashSet<string>(StringComparer.Ordinal);
