@@ -1,4 +1,5 @@
 using HeroSdJwt.Cryptography;
+using HeroSdJwt.Encoding;
 using HeroSdJwt.Primitives;
 using System.Buffers;
 using System.Buffers.Text;
@@ -15,7 +16,7 @@ public class KeyBindingGenerator : IKeyBindingGenerator
 {
     // Serialize the fixed protected header just once. In particular, retain
     // Utf8JsonWriter's exact escaping of "kb+jwt" for byte-compatible proofs.
-    private static readonly string KeyBindingHeaderBase64Url = SerializeKeyBindingHeaderBase64Url();
+    private static readonly string _keyBindingHeaderBase64Url = Serialize_keyBindingHeaderBase64Url();
 
     private readonly TimeProvider _timeProvider;
 
@@ -100,7 +101,7 @@ public class KeyBindingGenerator : IKeyBindingGenerator
 
         // Serialize the variable payload to UTF-8 once, without a temporary
         // JSON string followed by an additional UTF-8 conversion.
-        var headerBase64 = KeyBindingHeaderBase64Url;
+        var headerBase64 = _keyBindingHeaderBase64Url;
         var payloadBase64 = SerializeKeyBindingPayloadBase64Url(
             _timeProvider.GetUtcNow().ToUnixTimeSeconds(),
             audience,
@@ -185,7 +186,7 @@ public class KeyBindingGenerator : IKeyBindingGenerator
     }
 
     // Preserve the original protected-header bytes across all target frameworks.
-    private static string SerializeKeyBindingHeaderBase64Url()
+    private static string Serialize_keyBindingHeaderBase64Url()
     {
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer))
