@@ -22,7 +22,7 @@ public class MalformedJoseHeaderStringTests
     public async Task Should_RejectMalformedUnicodeInSignedIssuerHeader(string parameter)
     {
         var header = parameter == "typ"
-            ? "{\"alg\":\"HS256\",\"typ\":\"\\uD800\"}"
+            ? /*lang=json*/ "{\"alg\":\"HS256\",\"typ\":\"\\uD800\"}"
             : "{\"alg\":\"HS256\",\"typ\":\"JWT\",\"" + parameter + "\":\"\\uD800\"}";
         var jwt = SignIssuer(header);
 
@@ -65,11 +65,11 @@ public class MalformedJoseHeaderStringTests
     [Fact]
     public void Should_AcceptValidEscapedUnicodeInOptionalJoseStrings()
     {
-        const string issuerHeader = "{\"alg\":\"HS256\",\"typ\":\"JWT\",\"cty\":\"\\uD83D\\uDE00\",\"kid\":\"\\uD83D\\uDE00\"}";
+        const string issuerHeader = /*lang=json*/ "{\"alg\":\"HS256\",\"typ\":\"JWT\",\"cty\":\"\\uD83D\\uDE00\",\"kid\":\"\\uD83D\\uDE00\"}";
         Assert.True(new SignatureValidator().VerifyJwtSignature(SignIssuer(issuerHeader), _issuerKey));
 
         using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        const string holderHeader = "{\"alg\":\"ES256\",\"typ\":\"kb+jwt\",\"cty\":\"\\uD83D\\uDE00\",\"kid\":\"\\uD83D\\uDE00\"}";
+        const string holderHeader = /*lang=json*/ "{\"alg\":\"ES256\",\"typ\":\"kb+jwt\",\"cty\":\"\\uD83D\\uDE00\",\"kid\":\"\\uD83D\\uDE00\"}";
         Assert.True(new KeyBindingValidator().ValidateKeyBinding(
             SignHolder(holder, holderHeader),
             holder.ExportSubjectPublicKeyInfo(), "hash", "audience", "nonce"));
