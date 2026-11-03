@@ -1703,13 +1703,33 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
 
     private static IReadOnlyList<string> GetMatchingAudiences(
         IReadOnlyCollection<string> expectedAudiences,
-        IReadOnlyCollection<string> actualAudiences)
+        IReadOnlyList<string> actualAudiences)
     {
         if (expectedAudiences.Count == 0 || actualAudiences.Count == 0)
         {
             return [];
         }
 
+        // Most issuer JWTs contain one audience. Match it directly instead of
+        // rebuilding a potentially large expected-audience HashSet for each
+        // valid key-bound presentation. Keep ordinal matching on both paths.
+        if (actualAudiences.Count == 1)
+        {
+            var audience = actualAudiences[0];
+            foreach (var expected in expectedAudiences)
+            {
+                if (string.Equals(audience, expected, StringComparison.Ordinal))
+                {
+                    return [audience];
+                }
+            }
+
+            return [];
+        }
+
+        // For larger signed audience arrays, a lookup set avoids repeatedly
+        // scanning the application's expected-audience list. Preserve order
+        // and repeated matches from the signed JWT.
         var expectedSet = new HashSet<string>(expectedAudiences, StringComparer.Ordinal);
         var matches = new List<string>();
 
