@@ -193,7 +193,10 @@ public class ClaimValidator : IClaimValidator
         // thousands of configured audiences for each verification.
         if (audElement.ValueKind == JsonValueKind.String)
         {
-            var actualAudience = audElement.GetString();
+            if (!TryGetAudienceString(audElement, out var actualAudience))
+            {
+                return false;
+            }
             var hasExpectedAudience = false;
             if (expectedAudiences is not null)
             {
@@ -217,6 +220,16 @@ public class ClaimValidator : IClaimValidator
 
         if (expectedAudiences is null || expectedAudiences.Count == 0)
         {
+            // A missing audience policy must not make malformed signed
+            // StringOrURI entries acceptable. Decode every array member.
+            foreach (var audience in audElement.EnumerateArray())
+            {
+                if (!TryGetAudienceString(audience, out _))
+                {
+                    return false;
+                }
+            }
+
             return true;
         }
 
@@ -232,15 +245,23 @@ public class ClaimValidator : IClaimValidator
                     return true;
                 }
 
+                var matched = false;
                 foreach (var audience in audElement.EnumerateArray())
                 {
-                    if (string.Equals(audience.GetString(), expectedAudience, StringComparison.Ordinal))
+                    if (!TryGetAudienceString(audience, out var actualAudience))
                     {
-                        return true;
+                        return false;
+                    }
+
+                    // Do not short-circuit after a match: a later audience
+                    // can contain invalid escaped Unicode.
+                    if (string.Equals(actualAudience, expectedAudience, StringComparison.Ordinal))
+                    {
+                        matched = true;
                     }
                 }
 
-                return false;
+                return matched;
             }
 
             return true;
@@ -264,7 +285,11 @@ public class ClaimValidator : IClaimValidator
             var smallArrayMatched = false;
             foreach (var audience in audElement.EnumerateArray())
             {
-                var actualAudience = audience.GetString();
+                if (!TryGetAudienceString(audience, out var actualAudience))
+                {
+                    return false;
+                }
+
                 foreach (var expectedAudience in expectedAudiences)
                 {
                     if (!string.IsNullOrWhiteSpace(expectedAudience) &&
@@ -285,7 +310,12 @@ public class ClaimValidator : IClaimValidator
             var actualAudiences = new HashSet<string>(StringComparer.Ordinal);
             foreach (var audience in audElement.EnumerateArray())
             {
-                _ = actualAudiences.Add(audience.GetString()!);
+                if (!TryGetAudienceString(audience, out var actualAudience))
+                {
+                    return false;
+                }
+
+                _ = actualAudiences.Add(actualAudience!);
             }
 
             var hasExpectedAudience = false;
@@ -319,7 +349,12 @@ public class ClaimValidator : IClaimValidator
         var matched = false;
         foreach (var audience in audElement.EnumerateArray())
         {
-            if (audience.GetString() is string value && expectedSet?.Contains(value) == true)
+            if (!TryGetAudienceString(audience, out var actualAudience))
+            {
+                return false;
+            }
+
+            if (expectedSet?.Contains(actualAudience!) == true)
             {
                 matched = true;
             }
@@ -328,4 +363,20 @@ public class ClaimValidator : IClaimValidator
         return expectedSet is null || matched;
     }
 
+    private static bool TryGetAudienceString(JsonElement audience, out string? value)
+    {
+        try
+        {
+            value = audience.GetString();
+            return value is not null;
+        }
+        catch (InvalidOperationException)
+        {
+            // System.Text.Json can throw for invalid escaped surrogates.
+            // This public boolean validator must fail closed, not accept a
+            // partial audience array or leak a decoding exception.
+            value = null;
+            return false;
+        }
+    }
 }
