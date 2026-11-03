@@ -57,10 +57,14 @@ public readonly struct Disclosure : IEquatable<Disclosure>
             throw new ArgumentException("Salt cannot be empty or whitespace.", nameof(salt));
         }
 
+        ValidateUtf16(salt, nameof(salt));
+
         if (string.IsNullOrWhiteSpace(claimName))
         {
             throw new ArgumentException("Claim name cannot be empty or whitespace.", nameof(claimName));
         }
+
+        ValidateUtf16(claimName, nameof(claimName));
 
         // Protocol controls are never object-property disclosure names.
         // Guard the shared model constructor so public generators and direct
@@ -91,9 +95,37 @@ public readonly struct Disclosure : IEquatable<Disclosure>
             throw new ArgumentException("Salt cannot be empty or whitespace.", nameof(salt));
         }
 
+        ValidateUtf16(salt, nameof(salt));
+
         Salt = salt;
         ClaimName = null;
         ClaimValue = CloneValidatedClaimValue(claimValue);
+    }
+
+    // Utf8JsonWriter would replace an unpaired surrogate when signing a
+    // disclosure. Reject it so neither the salt nor the claim name changes
+    // between the caller's input and the authenticated JSON bytes.
+    private static void ValidateUtf16(string value, string parameterName)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            var codeUnit = value[i];
+            if (!char.IsSurrogate(codeUnit))
+            {
+                continue;
+            }
+
+            if (!char.IsHighSurrogate(codeUnit) ||
+                i + 1 == value.Length ||
+                !char.IsLowSurrogate(value[i + 1]))
+            {
+                throw new ArgumentException(
+                    "Disclosure metadata contains invalid UTF-16.",
+                    parameterName);
+            }
+
+            i++; // Skip the low surrogate of a valid Unicode scalar.
+        }
     }
 
     private static JsonElement CloneValidatedClaimValue(JsonElement claimValue)
