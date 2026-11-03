@@ -25,13 +25,18 @@ public sealed class SingleExpectedAudienceArrayAllocationTests
         }
 
         const int Iterations = 256;
+        var correctResults = 0;
         var before = GC.GetAllocatedBytesForCurrentThread();
         for (var i = 0; i < Iterations; i++)
         {
-            Assert.Equal(expectedMatch, validator.ValidateAudience(document.RootElement, expectedAudience));
+            if (validator.ValidateAudience(document.RootElement, expectedAudience) == expectedMatch)
+            {
+                correctResults++;
+            }
         }
 
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(Iterations, correctResults);
         Assert.True(allocated < Iterations * 256L,
             $"Validating a two-element signed audience array allocated {allocated / Iterations} bytes per call.");
     }
