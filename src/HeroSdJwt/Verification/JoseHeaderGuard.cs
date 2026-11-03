@@ -21,17 +21,25 @@ internal static class JoseHeaderGuard
                    // RFC 7515 requires registered alg, kid, typ and cty values to
                    // be strings when present. Never interpret a malformed header
                    // as a valid signed token or call a key resolver for it.
-                   (header.TryGetProperty("alg", out var alg) && alg.ValueKind != JsonValueKind.String) ||
-                   (header.TryGetProperty("kid", out var kid) && kid.ValueKind != JsonValueKind.String) ||
-                   (header.TryGetProperty("typ", out var typ) && typ.ValueKind != JsonValueKind.String) ||
-                   (header.TryGetProperty("cty", out var cty) && cty.ValueKind != JsonValueKind.String) ||
+                   (header.TryGetProperty("alg", out var alg) && !IsValidString(alg)) ||
+                   (header.TryGetProperty("kid", out var kid) && !IsValidString(kid)) ||
+                   (header.TryGetProperty("typ", out var typ) && !IsValidString(typ)) ||
+                   (header.TryGetProperty("cty", out var cty) && !IsValidString(cty)) ||
                    // Use the same unambiguous-name policy for JOSE headers and
                    // JWT claim sets, including escaped JSON member names.
                    JsonObjectMemberGuard.HasInvalidOrDuplicateNames(header);
         }
         catch (InvalidOperationException)
         {
-            return true; // Fail closed on invalid escaped JSON property names.
+            return true; // Fail closed on invalid escaped names or string values.
         }
+    }
+
+    private static bool IsValidString(JsonElement value)
+    {
+        // String shape is insufficient: JsonElement.GetString throws when a
+        // signed JOSE string contains an unpaired escaped UTF-16 surrogate.
+        // Validate even optional metadata that a caller does not consume.
+        return value.ValueKind == JsonValueKind.String && value.GetString() is not null;
     }
 }
