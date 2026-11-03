@@ -9,7 +9,7 @@ public class DisclosureWireEncodingTests
 {
     [Theory]
     [InlineData("\"Alice\"", "name")]
-    [InlineData("{\"greeting\":\"こんにちは 🦘\",\"items\":[1,true,null,\"line\\nbreak\"]}", "display.name")]
+    [InlineData(/*lang=json,strict*/ "{\"greeting\":\"こんにちは 🦘\",\"items\":[1,true,null,\"line\\nbreak\"]}", "display.name")]
     [InlineData("123.4500", "amount")]
     [InlineData("null", "空")]
     public void Should_PreserveExactObjectDisclosureWireBytes(string valueJson, string claimName)
@@ -25,7 +25,7 @@ public class DisclosureWireEncodingTests
 
     [Theory]
     [InlineData("\"text\"")]
-    [InlineData("[\"🏡\",{\"items\":[1,2]}]")]
+    [InlineData(/*lang=json,strict*/ "[\"🏡\",{\"items\":[1,2]}]")]
     [InlineData("false")]
     public void Should_PreserveExactArrayDisclosureWireBytes(string valueJson)
     {
