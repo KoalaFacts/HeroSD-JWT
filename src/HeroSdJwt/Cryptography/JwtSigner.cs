@@ -111,9 +111,15 @@ public class JwtSigner : IJwtSigner
                 nameof(payload));
         }
 
-        // Create signing input
-        var signingInput = $"{headerBase64}.{payloadBase64}";
-        var signingInputBytes = System.Text.Encoding.UTF8.GetBytes(signingInput);
+        // Both encoded segments contain only ASCII base64url characters.
+        // Write them into the signing buffer directly instead of allocating
+        // an intermediate concatenated string before encoding it to UTF-8.
+        var signingInputBytes = new byte[headerBase64.Length + 1 + payloadBase64.Length];
+        var headerBytesWritten = System.Text.Encoding.ASCII.GetBytes(
+            headerBase64.AsSpan(), signingInputBytes);
+        signingInputBytes[headerBytesWritten] = (byte)'.';
+        _ = System.Text.Encoding.ASCII.GetBytes(
+            payloadBase64.AsSpan(), signingInputBytes.AsSpan(headerBytesWritten + 1));
 
         // Sign based on algorithm
         byte[] signatureBytes = algorithm switch
