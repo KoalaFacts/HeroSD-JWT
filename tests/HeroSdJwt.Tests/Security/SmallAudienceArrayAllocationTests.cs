@@ -16,7 +16,7 @@ public sealed class SmallAudienceArrayAllocationTests
     {
         // The escaped spelling checks matching against the decoded signed
         // StringOrURI rather than comparing raw JSON escape sequences.
-        using var document = JsonDocument.Parse(/*lang=json,strict*/ """{"aud":["service-\\u0061","service-b"]}""");
+        using var document = JsonDocument.Parse(/*lang=json,strict*/ """{"aud":["service-\u0061","service-b"]}""");
         string[] expectedAudiences = expectedMatch
             ? ["service-a", "other-service"]
             : ["other-service", "third-service"];
