@@ -56,6 +56,30 @@ public sealed class SmallAudienceArrayAllocationTests
     }
 
     [Fact]
+    public void Should_RejectSignedAudienceWithInvalidEscapedSurrogate_AfterEarlierAudienceMatch()
+    {
+        // A valid signature cannot justify ignoring a later malformed aud entry.
+        // JsonDocument accepts the escaped lone surrogate into a JSON string;
+        // matching the first audience must not short-circuit full validation.
+        var key = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+        var header = Encoding.Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256","typ":"JWT"}""");
+        var exp = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
+        var payload = Encoding.Base64UrlEncoder.Encode(
+            $"""{"exp":{{exp}},"aud":["service-a","\\uD800"]}""");
+        var signingInput = $"{header}.{payload}";
+        var signature = System.Security.Cryptography.HMACSHA256.HashData(
+            key, System.Text.Encoding.ASCII.GetBytes(signingInput));
+        var signedPresentation = $"{signingInput}.{Encoding.Base64UrlEncoder.Encode(signature)}~";
+        var verifier = TestHelpers.CreateVerifier(new SdJwtVerificationOptions
+        {
+            ExpectedKeyType = Primitives.VerificationKeyType.Symmetric,
+            ExpectedAudiences = ["service-a", "other-service"]
+        });
+
+        Assert.False(verifier.TryVerifyPresentation(signedPresentation, key).IsValid);
+    }
+
+    [Fact]
     public void Should_TreatAllWhitespaceConfiguredAudiencesAsUnconstrained()
     {
         using var document = JsonDocument.Parse(/*lang=json,strict*/ """{"aud":["service-a","service-b"]}""");
