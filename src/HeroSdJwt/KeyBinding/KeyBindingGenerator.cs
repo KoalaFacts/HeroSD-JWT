@@ -16,7 +16,7 @@ public class KeyBindingGenerator : IKeyBindingGenerator
 {
     // Serialize the fixed protected header just once. In particular, retain
     // Utf8JsonWriter's exact escaping of "kb+jwt" for byte-compatible proofs.
-    private static readonly string _keyBindingHeaderBase64Url = Serialize_keyBindingHeaderBase64Url();
+    private static readonly string _keyBindingHeaderBase64Url = SerializeKeyBindingHeaderBase64Url();
 
     private readonly TimeProvider _timeProvider;
 
@@ -186,7 +186,7 @@ public class KeyBindingGenerator : IKeyBindingGenerator
     }
 
     // Preserve the original protected-header bytes across all target frameworks.
-    private static string Serialize_keyBindingHeaderBase64Url()
+    private static string SerializeKeyBindingHeaderBase64Url()
     {
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer))
