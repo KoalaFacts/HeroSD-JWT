@@ -220,6 +220,32 @@ public class ClaimValidator : IClaimValidator
             return true;
         }
 
+        // With a single configured audience, scan the already shape-checked
+        // signed array directly. The common one-audience policy should not
+        // allocate a HashSet (or its buckets) on every verification.
+        if (expectedAudiences.Count == 1)
+        {
+            foreach (var expectedAudience in expectedAudiences)
+            {
+                if (string.IsNullOrWhiteSpace(expectedAudience))
+                {
+                    return true;
+                }
+
+                foreach (var audience in audElement.EnumerateArray())
+                {
+                    if (string.Equals(audience.GetString(), expectedAudience, StringComparison.Ordinal))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            return true;
+        }
+
         // Small signed audience arrays should cost memory proportional to
         // the signed input, not the size of an application's allowlist.
         // Switch to the old expected-set lookup only for larger arrays,
