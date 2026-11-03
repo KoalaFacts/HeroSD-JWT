@@ -1,7 +1,7 @@
 using HeroSdJwt.Cryptography;
-using HeroSdJwt.Encoding;
 using HeroSdJwt.Primitives;
 using System.Buffers;
+using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -13,6 +13,10 @@ namespace HeroSdJwt.KeyBinding;
 /// </summary>
 public class KeyBindingGenerator : IKeyBindingGenerator
 {
+    // Fixed KB-JWT protected header: {"alg":"ES256","typ":"kb+jwt"}.
+    // Reuse the canonical base64url form rather than reserializing it for each proof.
+    private const string KeyBindingHeaderBase64Url = "eyJhbGciOiJFUzI1NiIsInR5cCI6ImtiK2p3dCJ9";
+
     private readonly TimeProvider _timeProvider;
 
     /// <summary>
@@ -94,16 +98,14 @@ public class KeyBindingGenerator : IKeyBindingGenerator
             throw new ArgumentException("Holder binding claims cannot fit within the maximum key-binding JWT size.");
         }
 
-        // Encode header and payload using AOT-compatible serialization
-        var headerJson = SerializeKeyBindingHeader();
-        var payloadJson = SerializeKeyBindingPayload(
+        // Serialize the variable payload to UTF-8 once, without a temporary
+        // JSON string followed by an additional UTF-8 conversion.
+        var headerBase64 = KeyBindingHeaderBase64Url;
+        var payloadBase64 = SerializeKeyBindingPayloadBase64Url(
             _timeProvider.GetUtcNow().ToUnixTimeSeconds(),
             audience,
             nonce,
             sdJwtHash);
-
-        var headerBase64 = Base64UrlEncoder.Encode(headerJson);
-        var payloadBase64 = Base64UrlEncoder.Encode(payloadJson);
 
         // ES256 emits a 64-byte IEEE P1363 signature (86 unpadded base64url
         // characters). Reject proofs that cannot pass the verifier's existing
@@ -183,29 +185,10 @@ public class KeyBindingGenerator : IKeyBindingGenerator
     }
 
     /// <summary>
-    /// Serializes the key binding JWT header using Utf8JsonWriter for AOT compatibility.
-    /// Format: {"alg":"ES256","typ":"kb+jwt"}
-    /// </summary>
-    private string SerializeKeyBindingHeader()
-    {
-        var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer))
-        {
-            writer.WriteStartObject();
-            writer.WriteString("alg", "ES256");
-            writer.WriteString("typ", "kb+jwt");
-            writer.WriteEndObject();
-            writer.Flush();
-        }
-
-        return System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
-    }
-
-    /// <summary>
     /// Serializes the key binding JWT payload using Utf8JsonWriter for AOT compatibility.
     /// Format: {"iat":timestamp,"aud":"...","nonce":"...","sd_hash":"..."}
     /// </summary>
-    private string SerializeKeyBindingPayload(long iat, string aud, string nonce, string sdHash)
+    private static string SerializeKeyBindingPayloadBase64Url(long iat, string aud, string nonce, string sdHash)
     {
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer))
@@ -219,6 +202,6 @@ public class KeyBindingGenerator : IKeyBindingGenerator
             writer.Flush();
         }
 
-        return System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
+        return Base64Url.EncodeToString(buffer.WrittenSpan);
     }
 }
