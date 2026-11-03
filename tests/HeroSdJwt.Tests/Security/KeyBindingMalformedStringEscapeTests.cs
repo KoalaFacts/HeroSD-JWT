@@ -57,12 +57,27 @@ public sealed class KeyBindingMalformedStringEscapeTests
 
     private static string SignProof(ECDsa holder, string field, string escapedValue)
     {
-        var headerJson = "{\\\"alg\\\":\\\"" + (field == "alg" ? escapedValue : "ES256") +
-            "\\\",\\\"typ\\\":\\\"" + (field == "typ" ? escapedValue : "kb+jwt") + "\\\"}";
-        var payloadJson = "{\\\"sd_hash\\\":\\\"" + (field == "sd_hash" ? escapedValue : "hash") +
-            "\\\",\\\"aud\\\":\\\"" + (field == "aud" ? escapedValue : "aud") +
-            "\\\",\\\"nonce\\\":\\\"" + (field == "nonce" ? escapedValue : "nonce") +
-            "\\\",\\\"iat\\\":1700000000}";
+        var headerJson = """{"alg":"ES256","typ":"kb+jwt"}""";
+        var payloadJson = """{"sd_hash":"hash","aud":"aud","nonce":"nonce","iat":1700000000}""";
+        var normalValue = field switch
+        {
+            "alg" => "ES256",
+            "typ" => "kb+jwt",
+            "sd_hash" => "hash",
+            "aud" => "aud",
+            "nonce" => "nonce",
+            _ => throw new ArgumentOutOfRangeException(nameof(field))
+        };
+        var originalMember = "\"" + field + "\":\"" + normalValue + "\"";
+        var replacementMember = "\"" + field + "\":\"" + escapedValue + "\"";
+        if (field is "alg" or "typ")
+        {
+            headerJson = headerJson.Replace(originalMember, replacementMember, StringComparison.Ordinal);
+        }
+        else
+        {
+            payloadJson = payloadJson.Replace(originalMember, replacementMember, StringComparison.Ordinal);
+        }
 
         var signingInput = Base64UrlEncoder.Encode(headerJson) + "." + Base64UrlEncoder.Encode(payloadJson);
         var signedBytes = System.Text.Encoding.ASCII.GetBytes(signingInput);
