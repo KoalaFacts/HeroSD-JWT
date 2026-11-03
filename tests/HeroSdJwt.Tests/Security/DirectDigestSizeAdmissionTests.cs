@@ -1,7 +1,6 @@
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
 using System.Security.Cryptography;
-using System.Text;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Tests.Security;
@@ -51,7 +50,7 @@ public class DirectDigestSizeAdmissionTests
     public void Should_AcceptAsciiDisclosureAtWireLimit(HashAlgorithm algorithm)
     {
         var disclosure = new string('A', Constants.MAX_JWT_SIZE_BYTES);
-        var input = Encoding.ASCII.GetBytes(disclosure);
+        var input = System.Text.Encoding.ASCII.GetBytes(disclosure);
         byte[] expected = algorithm switch
         {
             HashAlgorithm.Sha256 => SHA256.HashData(input),
