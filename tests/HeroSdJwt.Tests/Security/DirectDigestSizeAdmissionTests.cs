@@ -60,7 +60,7 @@ public class DirectDigestSizeAdmissionTests
         };
 
         Assert.Equal(
-            HeroSdJwt.Encoding.Base64UrlEncoder.Encode(expected),
+            Encoding.Base64UrlEncoder.Encode(expected),
             new DigestCalculator().ComputeDigest(disclosure, algorithm));
     }
 }
