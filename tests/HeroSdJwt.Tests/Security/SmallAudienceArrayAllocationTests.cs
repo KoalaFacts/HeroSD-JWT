@@ -65,7 +65,7 @@ public sealed class SmallAudienceArrayAllocationTests
         var header = Encoding.Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256","typ":"JWT"}""");
         var exp = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
         var payload = Encoding.Base64UrlEncoder.Encode(
-            $"""{"exp":{{exp}},"aud":["service-a","\\uD800"]}""");
+            $$"""{"exp":{{exp}},"aud":["service-a","\uD800"]}""");
         var signingInput = $"{header}.{payload}";
         var signature = System.Security.Cryptography.HMACSHA256.HashData(
             key, System.Text.Encoding.ASCII.GetBytes(signingInput));
