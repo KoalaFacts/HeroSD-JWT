@@ -198,7 +198,11 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             var payloadJson = Base64UrlEncoder.DecodeString(payloadBase64);
             using var payloadDocument = JsonDocument.Parse(payloadJson);
             var payload = payloadDocument.RootElement;
-            if (JsonObjectMemberGuard.HasInvalidOrDuplicateNames(payload))
+            // A signed KB-JWT may carry supplemental claims. Reject malformed
+            // Unicode and duplicate member names at every depth so downstream
+            // consumers cannot interpret the same holder proof differently.
+            if (payload.ValueKind != JsonValueKind.Object ||
+                JsonObjectMemberGuard.HasInvalidOrDuplicateNamesRecursively(payload))
             {
                 // RFC 7519 requires unique claim names. A valid ES256 signature
                 // cannot make ambiguous holder claims safe to consume.
