@@ -1563,6 +1563,21 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 }
             }
         }
+        else if (element.ValueKind == JsonValueKind.String)
+        {
+            try
+            {
+                // The digest traversal also covers ordinary signed JWT claims.
+                // Validate their values so malformed escaped surrogates cannot
+                // be accepted just because the application never reads them.
+                _ = element.GetString();
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+        }
+
         return true;
     }
     /// <summary>

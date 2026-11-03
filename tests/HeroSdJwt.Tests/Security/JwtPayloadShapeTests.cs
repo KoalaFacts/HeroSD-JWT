@@ -53,6 +53,32 @@ public class JwtPayloadShapeTests
         Assert.True(result.IsValid, result.ErrorDetails);
     }
 
+    [Theory]
+    [InlineData(/*lang=json,strict*/ """{"value":"\uD800"}""")]
+    [InlineData(/*lang=json,strict*/ """{"value":[{"label":"\uDC00"}]}""")]
+    [InlineData(/*lang=json,strict*/ """["valid","\uD800"]""")]
+    public async Task Should_RejectMalformedUnicodeInNestedNonRegisteredJwtClaims(string claimValueJson)
+    {
+        // These are signed, ordinary JWT claim values rather than Disclosures.
+        // Their invalid escaped surrogates must not reach downstream consumers.
+        var expires = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
+        var payloadJson = "{\"exp\":" + expires + ",\"profile\":" + claimValueJson + "}";
+
+        await AssertRejectedAsync(payloadJson);
+    }
+
+    [Fact]
+    public void Should_AcceptValidEscapedUnicodeInNestedJwtClaim()
+    {
+        var expires = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
+        var payloadJson = "{\"exp\":" + expires + ",\"profile\":{\"value\":\"\\uD83D\\uDE00\"}}";
+        var presentation = SignPayload(payloadJson) + "~";
+
+        var result = CreateVerifier().TryVerifyPresentation(presentation, _signingKey);
+
+        Assert.True(result.IsValid, result.ErrorDetails);
+    }
+
     private static async Task AssertRejectedAsync(string payloadJson)
     {
         var presentation = SignPayload(payloadJson) + "~";
