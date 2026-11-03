@@ -3,8 +3,8 @@ using System.Text.Json;
 namespace HeroSdJwt.Verification;
 
 /// <summary>
-/// Rejects duplicate JSON object member names without allocating for common
-/// small objects. Invalid escaped Unicode names also fail closed.
+/// Rejects duplicate JSON object member names and malformed Unicode strings
+/// without allocating for common small objects.
 /// </summary>
 internal static class JsonObjectMemberGuard
 {
@@ -38,6 +38,20 @@ internal static class JsonObjectMemberGuard
                 {
                     return true;
                 }
+            }
+        }
+        else if (value.ValueKind == JsonValueKind.String)
+        {
+            try
+            {
+                // JSON parsing accepts escaped unpaired surrogates but GetString
+                // cannot decode them. Reject these inside signed claim values,
+                // including nested strings that consumers may access later.
+                _ = value.GetString();
+            }
+            catch (InvalidOperationException)
+            {
+                return true;
             }
         }
 
