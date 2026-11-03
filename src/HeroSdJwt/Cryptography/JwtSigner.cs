@@ -439,11 +439,36 @@ public class JwtSigner : IJwtSigner
     // other inputs.
     private static void EnsureClaimStringFits(string? text)
     {
-        if (text is not null && text.Length > Constants.MAX_JWT_SIZE_BYTES)
+        if (text is null)
+        {
+            return;
+        }
+
+        if (text.Length > Constants.MAX_JWT_SIZE_BYTES)
         {
             throw new ArgumentException(
                 $"JWT claim JSON exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.",
                 nameof(text));
+        }
+
+        // Utf8JsonWriter replaces an unpaired UTF-16 surrogate with a
+        // replacement character. Never sign a claim name or value different
+        // from what a direct caller supplied.
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (char.IsHighSurrogate(text[i]))
+            {
+                if (i + 1 >= text.Length || !char.IsLowSurrogate(text[i + 1]))
+                {
+                    throw new ArgumentException("JWT claim contains invalid UTF-16.", nameof(text));
+                }
+
+                i++; // Skip the low surrogate in a valid pair.
+            }
+            else if (char.IsLowSurrogate(text[i]))
+            {
+                throw new ArgumentException("JWT claim contains invalid UTF-16.", nameof(text));
+            }
         }
     }
 
