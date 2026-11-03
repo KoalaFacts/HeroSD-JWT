@@ -4,7 +4,6 @@ using HeroSdJwt.KeyBinding;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -30,7 +29,7 @@ public class MalformedJoseHeaderStringTests
         // Prove that rejection is of a genuinely authenticated token, not a
         // signature failure: every mutation has the correct MAC.
         var parts = jwt.Split('.');
-        var input = Encoding.ASCII.GetBytes(parts[0] + "." + parts[1]);
+        var input = System.Text.Encoding.ASCII.GetBytes(parts[0] + "." + parts[1]);
         Assert.Equal(Base64UrlEncoder.Encode(HMACSHA256.HashData(_issuerKey, input)), parts[2]);
 
         var exception = Assert.Throws<SdJwtException>(() =>
@@ -81,7 +80,7 @@ public class MalformedJoseHeaderStringTests
         const string payload = /*lang=json,strict*/ """{"exp":4102444800,"_sd_alg":"sha-256","_sd":[]}""";
         var input = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payload);
         return input + "." + Base64UrlEncoder.Encode(
-            HMACSHA256.HashData(_issuerKey, Encoding.ASCII.GetBytes(input)));
+            HMACSHA256.HashData(_issuerKey, System.Text.Encoding.ASCII.GetBytes(input)));
     }
 
     private static string SignHolder(ECDsa holder, string header)
@@ -90,6 +89,6 @@ public class MalformedJoseHeaderStringTests
             DateTimeOffset.UtcNow.ToUnixTimeSeconds() + "}";
         var input = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payload);
         return input + "." + Base64UrlEncoder.Encode(
-            holder.SignData(Encoding.ASCII.GetBytes(input), HashAlgorithmName.SHA256));
+            holder.SignData(System.Text.Encoding.ASCII.GetBytes(input), HashAlgorithmName.SHA256));
     }
 }
