@@ -82,7 +82,7 @@ public class DisclosureParser : IDisclosureParser
             jsonArray[arrayLength == 2 ? 1 : 2]))
         {
             throw new MalformedDisclosureException(
-                "Disclosure claim value contains duplicate or invalid JSON object member names");
+                "Disclosure claim value contains duplicate JSON member names or invalid Unicode");
         }
 
         if (arrayLength == 2)

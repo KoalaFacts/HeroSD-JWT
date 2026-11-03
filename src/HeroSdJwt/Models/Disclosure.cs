@@ -135,7 +135,7 @@ public readonly struct Disclosure : IEquatable<Disclosure>
         if (JsonObjectMemberGuard.HasInvalidOrDuplicateNamesRecursively(claimValue))
         {
             throw new ArgumentException(
-                "Disclosure claim value contains duplicate or invalid JSON object member names.",
+                "Disclosure claim value contains duplicate JSON member names or invalid Unicode.",
                 nameof(claimValue));
         }
 
