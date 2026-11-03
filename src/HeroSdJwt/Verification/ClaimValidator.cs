@@ -246,31 +246,36 @@ public class ClaimValidator : IClaimValidator
             return true;
         }
 
-        // For a few configured audiences and signed array entries, a bounded
-        // direct scan avoids rebuilding a HashSet and decoding JSON strings
-        // on every verification. ValueEquals compares decoded StringOrURI
-        // values, including JSON escapes, without allocating a string.
+        // For a few configured audiences and signed array entries, bounded
+        // comparisons avoid a per-verification HashSet. Decode every signed
+        // entry before returning a match: a later JSON string with malformed
+        // escaped Unicode must not be bypassed by an earlier matching entry.
         if (expectedAudiences.Count <= 4 && audElement.GetArrayLength() <= 4)
         {
             var hasExpectedAudience = false;
             foreach (var expectedAudience in expectedAudiences)
             {
-                if (string.IsNullOrWhiteSpace(expectedAudience))
+                if (!string.IsNullOrWhiteSpace(expectedAudience))
                 {
-                    continue;
+                    hasExpectedAudience = true;
                 }
+            }
 
-                hasExpectedAudience = true;
-                foreach (var audience in audElement.EnumerateArray())
+            var matched = false;
+            foreach (var audience in audElement.EnumerateArray())
+            {
+                var actualAudience = audience.GetString();
+                foreach (var expectedAudience in expectedAudiences)
                 {
-                    if (audience.ValueEquals(expectedAudience))
+                    if (!string.IsNullOrWhiteSpace(expectedAudience) &&
+                        string.Equals(actualAudience, expectedAudience, StringComparison.Ordinal))
                     {
-                        return true;
+                        matched = true;
                     }
                 }
             }
 
-            return !hasExpectedAudience;
+            return !hasExpectedAudience || matched;
         }
 
         // For larger policy/array combinations, retain the lookup strategy
