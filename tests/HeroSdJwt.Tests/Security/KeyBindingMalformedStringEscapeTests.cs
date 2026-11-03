@@ -57,8 +57,8 @@ public sealed class KeyBindingMalformedStringEscapeTests
 
     private static string SignProof(ECDsa holder, string field, string escapedValue)
     {
-        var headerJson = """{"alg":"ES256","typ":"kb+jwt"}""";
-        var payloadJson = """{"sd_hash":"hash","aud":"aud","nonce":"nonce","iat":1700000000}""";
+        var headerJson = /*lang=json,strict*/ """{"alg":"ES256","typ":"kb+jwt"}""";
+        var payloadJson = /*lang=json,strict*/ """{"sd_hash":"hash","aud":"aud","nonce":"nonce","iat":1700000000}""";
         var normalValue = field switch
         {
             "alg" => "ES256",
