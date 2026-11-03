@@ -240,11 +240,7 @@ public class ClaimValidator : IClaimValidator
         {
             foreach (var expectedAudience in expectedAudiences)
             {
-                if (string.IsNullOrWhiteSpace(expectedAudience))
-                {
-                    return true;
-                }
-
+                var unconstrained = string.IsNullOrWhiteSpace(expectedAudience);
                 var matched = false;
                 foreach (var audience in audElement.EnumerateArray())
                 {
@@ -255,13 +251,14 @@ public class ClaimValidator : IClaimValidator
 
                     // Do not short-circuit after a match: a later audience
                     // can contain invalid escaped Unicode.
-                    if (string.Equals(actualAudience, expectedAudience, StringComparison.Ordinal))
+                    if (!unconstrained &&
+                        string.Equals(actualAudience, expectedAudience, StringComparison.Ordinal))
                     {
                         matched = true;
                     }
                 }
 
-                return matched;
+                return unconstrained || matched;
             }
 
             return true;

@@ -40,17 +40,18 @@ public sealed class SingleExpectedAudienceArrayAllocationTests
         Assert.True(allocated < Iterations * 256L,
             $"Validating a two-element signed audience array allocated {allocated / Iterations} bytes per call.");
     }
+
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void Should_RejectMalformedEscapedUnicodeInLaterAudience_WhenPolicyIsSingleOrAbsent(bool hasExpectedAudience)
+    [InlineData("service-a")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void Should_RejectMalformedEscapedUnicodeInLaterAudience_WhenPolicyIsSingleOrAbsent(string? expectedAudience)
     {
         // JSON accepts this escaped lone surrogate, but it is not a valid
         // StringOrURI audience. Earlier matches must not skip checking it.
         using var document = JsonDocument.Parse(/*lang=json,strict*/ """{"aud":["service-a","\uD800"]}""");
-        string[] expectedAudiences = hasExpectedAudience ? ["service-a"] : [];
+        string[] expectedAudiences = expectedAudience is null ? [] : [expectedAudience];
 
         Assert.False(new ClaimValidator().ValidateAudience(document.RootElement, expectedAudiences));
     }
-
 }
