@@ -15,6 +15,24 @@ public class DirectDigestSizeAdmissionTests
     [InlineData(HashAlgorithm.Sha256)]
     [InlineData(HashAlgorithm.Sha384)]
     [InlineData(HashAlgorithm.Sha512)]
+    public void Should_RejectMalformedUtf16InsteadOfHashingReplacementCharacters(HashAlgorithm algorithm)
+    {
+        var calculator = new DigestCalculator();
+
+        // An unpaired surrogate has no UTF-8 representation. Hashing with the
+        // replacement fallback would silently map distinct inputs to the same
+        // digest. Cover both the stack and heap UTF-8 conversion paths.
+        foreach (var disclosure in new[] { "\uD800", new string('A', 300) + "\uDC00" })
+        {
+            var error = Assert.Throws<ArgumentException>(() => calculator.ComputeDigest(disclosure, algorithm));
+            Assert.Equal("disclosure", error.ParamName);
+        }
+    }
+
+    [Theory]
+    [InlineData(HashAlgorithm.Sha256)]
+    [InlineData(HashAlgorithm.Sha384)]
+    [InlineData(HashAlgorithm.Sha512)]
     public void Should_RejectOversizedAsciiDisclosure_BeforeAllocatingUtf8Input(HashAlgorithm algorithm)
     {
         var calculator = new DigestCalculator();
