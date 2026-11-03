@@ -217,11 +217,11 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             // registered iss, sub and jti claims to be strings when present.
             // Their shape is mandatory even without a separate matching policy.
             if ((payload.TryGetProperty("iss", out var issuer) &&
-                 issuer.ValueKind != JsonValueKind.String) ||
+                 !HasValidRegisteredString(issuer)) ||
                 (payload.TryGetProperty("sub", out var subject) &&
-                 subject.ValueKind != JsonValueKind.String) ||
+                 !HasValidRegisteredString(subject)) ||
                 (payload.TryGetProperty("jti", out var jwtId) &&
-                 jwtId.ValueKind != JsonValueKind.String))
+                 !HasValidRegisteredString(jwtId)))
             {
                 return false;
             }
@@ -356,6 +356,24 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
         catch (SdJwtException)
         {
             // Base64UrlEncoder.DecodeBytes/DecodeString throws SdJwtException on invalid input
+            return false;
+        }
+    }
+    // A JSON String token can still contain an invalid escaped surrogate.
+    // Reject malformed signed registered claims, even when no matching policy uses them.
+    private static bool HasValidRegisteredString(JsonElement claim)
+    {
+        if (claim.ValueKind != JsonValueKind.String)
+        {
+            return false;
+        }
+
+        try
+        {
+            return claim.GetString() is not null;
+        }
+        catch (InvalidOperationException)
+        {
             return false;
         }
     }
