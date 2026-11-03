@@ -261,7 +261,7 @@ public class ClaimValidator : IClaimValidator
                 }
             }
 
-            var matched = false;
+            var smallArrayMatched = false;
             foreach (var audience in audElement.EnumerateArray())
             {
                 var actualAudience = audience.GetString();
@@ -270,12 +270,12 @@ public class ClaimValidator : IClaimValidator
                     if (!string.IsNullOrWhiteSpace(expectedAudience) &&
                         string.Equals(actualAudience, expectedAudience, StringComparison.Ordinal))
                     {
-                        matched = true;
+                        smallArrayMatched = true;
                     }
                 }
             }
 
-            return !hasExpectedAudience || matched;
+            return !hasExpectedAudience || smallArrayMatched;
         }
 
         // For larger policy/array combinations, retain the lookup strategy
