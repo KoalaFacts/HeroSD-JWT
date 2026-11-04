@@ -142,6 +142,11 @@ public class JtiValidator
         {
             throw;
         }
+        catch (ReplayAttackException)
+        {
+            // An atomic provider's affirmative replay report is not an outage.
+            throw;
+        }
         catch (Exception) when (_options.FailureMode == CacheFailureMode.FailOpen)
         {
             cancellationToken.ThrowIfCancellationRequested();
