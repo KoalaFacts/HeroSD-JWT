@@ -155,6 +155,25 @@ public sealed class SdJwt
                 $"Presentation exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.");
         }
 
+        // UTF-8 uses at most three bytes per UTF-16 code unit. Small combined
+        // values therefore need no second scan. Larger non-ASCII components
+        // must be measured in bytes, not string.Length, before serialization.
+        if (combinedLength > Constants.MAX_JWT_SIZE_BYTES / 3)
+        {
+            long utf8Length = (long)System.Text.Encoding.UTF8.GetByteCount(Jwt)
+                + 1 + System.Text.Encoding.UTF8.GetByteCount(KeyBindingJwt ?? string.Empty);
+            foreach (var disclosure in Disclosures)
+            {
+                utf8Length += System.Text.Encoding.UTF8.GetByteCount(disclosure) + 1;
+            }
+
+            if (utf8Length > Constants.MAX_JWT_SIZE_BYTES)
+            {
+                throw new ArgumentException(
+                    $"Presentation exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.");
+            }
+        }
+
         // Write directly into the final string. Avoid allocating a list and
         // intermediate arrays for each holder presentation.
         var keyBinding = KeyBindingJwt ?? string.Empty;
