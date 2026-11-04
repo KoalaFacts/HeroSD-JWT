@@ -73,4 +73,36 @@ public class StrictJoseBase64UrlTests
     {
         Assert.Equal(expected, Base64UrlEncoder.DecodeString(encoded));
     }
+
+    [Theory]
+    [InlineData("%%%")] // Not base64url
+    [InlineData("Zg==")] // JOSE components may not use padding
+    [InlineData("Zg ")] // Whitespace is not a base64url character
+    [InlineData("Zh")] // Nonzero unused bits
+    public void Should_RejectAuthenticatedJwtWithNonCanonicalPayloadSegment(string payloadSegment)
+    {
+        var key = Enumerable.Range(1, 32).Select(i => (byte)i).ToArray();
+        var input = Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256"}""") +
+            "." + payloadSegment;
+        var signature = Base64UrlEncoder.Encode(
+            HMACSHA256.HashData(key, System.Text.Encoding.ASCII.GetBytes(input)));
+
+        // A correct MAC does not make a malformed compact JWS payload valid.
+        var exception = Assert.Throws<SdJwtException>(() =>
+            new SignatureValidator().VerifyJwtSignature(input + "." + signature, key));
+        Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
+    }
+
+    [Fact]
+    public void Should_StillVerifyAuthenticatedJwtWithCanonicalPayloadSegment()
+    {
+        var key = Enumerable.Range(1, 32).Select(i => (byte)i).ToArray();
+        var input = Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256"}""") +
+            "." + Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"sub":"user-123"}""");
+        var signature = Base64UrlEncoder.Encode(
+            HMACSHA256.HashData(key, System.Text.Encoding.ASCII.GetBytes(input)));
+
+        Assert.True(new SignatureValidator().VerifyJwtSignature(input + "." + signature, key));
+    }
+
 }
