@@ -35,6 +35,7 @@ public sealed class DisclosureParserMalformedJsonBoundaryTests
 
         Assert.IsAssignableFrom<JsonException>(exception.InnerException);
     }
+
     [Theory]
     [InlineData("!")]
     [InlineData("abc=")]

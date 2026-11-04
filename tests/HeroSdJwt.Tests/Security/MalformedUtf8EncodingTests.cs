@@ -75,8 +75,10 @@ public class MalformedUtf8EncodingTests
         var malformedJson = InsertInvalidUtf8(/*lang=json,strict*/ "[\"salt\",\"name\",\"!\"]");
         var encoded = Base64UrlEncoder.Encode(malformedJson);
 
-        var exception = Assert.Throws<SdJwtException>(() => new DisclosureParser().Parse(encoded));
-        Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
+        var exception = Assert.Throws<MalformedDisclosureException>(() => new DisclosureParser().Parse(encoded));
+        Assert.Equal(ErrorCode.MalformedDisclosure, exception.ErrorCode);
+        var cause = Assert.IsAssignableFrom<SdJwtException>(exception.InnerException);
+        Assert.Equal(ErrorCode.InvalidInput, cause.ErrorCode);
     }
 
     [Theory]
