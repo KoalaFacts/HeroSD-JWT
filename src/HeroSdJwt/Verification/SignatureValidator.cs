@@ -43,6 +43,16 @@ public class SignatureValidator : ISignatureValidator
                 "Invalid JWT format: expected 3 parts separated by dots",
                 ErrorCode.InvalidInput);
 
+        // A correct signature over non-canonical payload text is still not a
+        // valid compact JWS. Validate the encoded segment without decoding or
+        // allocating a temporary payload, including before a remote key lookup.
+        if (!HasCanonicalPayloadEncoding(parts[1]))
+        {
+            throw new SdJwtException(
+                "JWT payload has invalid base64url encoding",
+                ErrorCode.InvalidInput);
+        }
+
         var headerBase64 = parts[0];
         var payloadBase64 = parts[1];
         var signatureBase64 = parts[2];
@@ -458,6 +468,16 @@ public class SignatureValidator : ISignatureValidator
                 "Invalid JWT format: expected 3 parts separated by dots",
                 ErrorCode.InvalidInput);
 
+        // A correct signature over non-canonical payload text is still not a
+        // valid compact JWS. Validate the encoded segment without decoding or
+        // allocating a temporary payload, including before a remote key lookup.
+        if (!HasCanonicalPayloadEncoding(parts[1]))
+        {
+            throw new SdJwtException(
+                "JWT payload has invalid base64url encoding",
+                ErrorCode.InvalidInput);
+        }
+
         var headerBase64 = parts[0];
 
         // Decode and parse header
@@ -716,6 +736,44 @@ public class SignatureValidator : ISignatureValidator
         // }
     }
 #endif
+
+
+    // The signed payload segment must be unpadded, ASCII base64url with
+    // zero unused bits. Check the original text, not decoded JSON: standalone
+    // signature validation must reject even a correctly MAC'd malformed JWS.
+    private static bool HasCanonicalPayloadEncoding(ReadOnlySpan<char> segment)
+    {
+        if (segment.Length % 4 == 1)
+        {
+            return false;
+        }
+
+        var lastSextet = 0;
+        foreach (var character in segment)
+        {
+            lastSextet = character switch
+            {
+                >= 'A' and <= 'Z' => character - 'A',
+                >= 'a' and <= 'z' => character - 'a' + 26,
+                >= '0' and <= '9' => character - '0' + 52,
+                '-' => 62,
+                '_' => 63,
+                _ => -1
+            };
+
+            if (lastSextet < 0)
+            {
+                return false;
+            }
+        }
+
+        return (segment.Length % 4) switch
+        {
+            2 => (lastSextet & 0x0F) == 0,
+            3 => (lastSextet & 0x03) == 0,
+            _ => true
+        };
+    }
 
 }
 
