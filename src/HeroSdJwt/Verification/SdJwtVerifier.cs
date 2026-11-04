@@ -420,7 +420,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         var errorDetails = new List<string>();
 
         // Validate presentation size to prevent DoS attacks
-        if (presentation.Length > Constants.MAX_JWT_SIZE_BYTES)
+        if (ExceedsPresentationByteLimit(presentation))
         {
             errors.Add(ErrorCode.InvalidInput);
             errorDetails.Add($"Presentation exceeds maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes");
@@ -610,6 +610,21 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             cancellationToken).ConfigureAwait(false);
     }
 
+    // Enforce the protocol's UTF-8 wire-byte ceiling on both direct-key and
+    // key-resolver entrypoints, before any external key lookup or crypto work.
+    // Every UTF-16 code unit produces at most three UTF-8 bytes, so most
+    // ordinary short presentations need no additional scan or allocation.
+    private static bool ExceedsPresentationByteLimit(string presentation)
+    {
+        if (presentation.Length > Constants.MAX_JWT_SIZE_BYTES)
+        {
+            return true;
+        }
+
+        return presentation.Length > Constants.MAX_JWT_SIZE_BYTES / 3 &&
+            System.Text.Encoding.UTF8.GetByteCount(presentation) > Constants.MAX_JWT_SIZE_BYTES;
+    }
+
     private static bool HasMalformedPresentationComponents(string[] parts)
     {
         // The final empty string denotes an SD-JWT without Key Binding.
@@ -647,7 +662,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             cancellationToken.ThrowIfCancellationRequested();
 
             // Validate presentation size to prevent DoS attacks
-            if (presentation.Length > Constants.MAX_JWT_SIZE_BYTES)
+            if (ExceedsPresentationByteLimit(presentation))
             {
                 errors.Add(ErrorCode.InvalidInput);
                 errorDetails.Add($"Presentation exceeds maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes");
