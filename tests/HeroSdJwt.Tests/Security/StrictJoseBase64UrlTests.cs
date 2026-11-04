@@ -105,4 +105,26 @@ public class StrictJoseBase64UrlTests
         Assert.True(new SignatureValidator().VerifyJwtSignature(input + "." + signature, key));
     }
 
+
+    [Fact]
+    public void Should_RejectNonCanonicalPayloadBeforeConsultingKeyResolver()
+    {
+        var key = Enumerable.Range(1, 32).Select(i => (byte)i).ToArray();
+        var input = Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256","kid":"key-1"}""") +
+            ".%%%";
+        var signature = Base64UrlEncoder.Encode(
+            HMACSHA256.HashData(key, System.Text.Encoding.ASCII.GetBytes(input)));
+        var resolverCalls = 0;
+
+        var exception = Assert.Throws<SdJwtException>(() =>
+            new SignatureValidator().VerifyJwtSignature(input + "." + signature, _ =>
+            {
+                resolverCalls++;
+                return key;
+            }));
+
+        Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
+        Assert.Equal(0, resolverCalls);
+    }
+
 }
