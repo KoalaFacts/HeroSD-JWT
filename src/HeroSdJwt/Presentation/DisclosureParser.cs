@@ -38,7 +38,7 @@ public class DisclosureParser : IDisclosureParser
         var json = Base64UrlEncoder.DecodeString(base64UrlDisclosure);
 
         // Parse JSON array
-        using var document = JsonDocument.Parse(json);
+        using var document = ParseJsonDocument(json);
         var jsonArray = document.RootElement;
 
         if (jsonArray.ValueKind != JsonValueKind.Array)
@@ -120,6 +120,18 @@ public class DisclosureParser : IDisclosureParser
 
             var claimValue = jsonArray[2];
             return new Disclosure(salt, claimName, claimValue.Clone());
+        }
+    }
+
+    private static JsonDocument ParseJsonDocument(string json)
+    {
+        try
+        {
+            return JsonDocument.Parse(json);
+        }
+        catch (JsonException ex)
+        {
+            throw new MalformedDisclosureException("Disclosure contains malformed JSON", ex);
         }
     }
 

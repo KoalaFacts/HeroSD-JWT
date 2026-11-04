@@ -275,14 +275,16 @@ public class DisclosureParserTests
     }
 
     [Fact]
-    public void Parse_WithInvalidJson_ThrowsJsonException()
+    public void Parse_WithInvalidJson_ThrowsMalformedDisclosureException()
     {
-        // Arrange - Malformed JSON
+        // Arrange - Malformed JSON remains a disclosure-domain error,
+        // while preserving the JSON parse failure as the inner exception.
         var json = "[\"salt\",\"name\" invalid json";
         var base64Url = Base64UrlEncoder.Encode(json);
 
         // Act & Assert
-        _ = Assert.ThrowsAny<JsonException>(() => _parser.Parse(base64Url));
+        var exception = Assert.Throws<MalformedDisclosureException>(() => _parser.Parse(base64Url));
+        Assert.IsAssignableFrom<JsonException>(exception.InnerException);
     }
 
 
