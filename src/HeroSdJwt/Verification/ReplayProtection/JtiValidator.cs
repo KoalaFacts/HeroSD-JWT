@@ -78,6 +78,13 @@ public class JtiValidator
 
         cancellationToken.ThrowIfCancellationRequested();
 
+        // With no canonical jti there is no replay marker to key or retain.
+        // Preserve the issuer/expiration requirements whenever jti is present.
+        if (!_options.RequireJtiClaim && !TryGetRegisteredClaim(claims, "jti", out _))
+        {
+            return;
+        }
+
         // Extract issuer (required for cache key)
         if (!TryGetRegisteredClaim(claims, "iss", out var issElement))
         {
