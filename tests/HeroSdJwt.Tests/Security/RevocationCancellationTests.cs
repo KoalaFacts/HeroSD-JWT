@@ -36,14 +36,27 @@ public class RevocationCancellationTests
 
         if (tryApi)
         {
-            var result = resolveKey
-                ? await verifier.TryVerifyPresentationAsync(
-                    presentation, ResolveKey, cancellationToken: cancellation.Token)
-                : await verifier.TryVerifyPresentationAsync(
-                    presentation, _signingKey, cancellationToken: cancellation.Token);
+            if (cancelCaller)
+            {
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => resolveKey
+                    ? verifier.TryVerifyPresentationAsync(
+                        presentation, ResolveKey, cancellationToken: cancellation.Token)
+                    : verifier.TryVerifyPresentationAsync(
+                        presentation, _signingKey, cancellationToken: cancellation.Token));
+            }
+            else
+            {
+                // A backend timeout without caller cancellation remains a
+                // redacted invalid result, never a valid credential.
+                var result = resolveKey
+                    ? await verifier.TryVerifyPresentationAsync(
+                        presentation, ResolveKey, cancellationToken: cancellation.Token)
+                    : await verifier.TryVerifyPresentationAsync(
+                        presentation, _signingKey, cancellationToken: cancellation.Token);
 
-            Assert.False(result.IsValid, "A canceled revocation check must not admit a credential.");
-            Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+                Assert.False(result.IsValid, "A canceled revocation check must not admit a credential.");
+                Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+            }
         }
         else
         {
@@ -118,14 +131,13 @@ public class RevocationCancellationTests
 
         if (tryApi)
         {
-            var result = resolveKey
-                ? await verifier.TryVerifyPresentationAsync(
+            // Even a store that ignores the token must not turn a canceled
+            // request into a successful Try* result.
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => resolveKey
+                ? verifier.TryVerifyPresentationAsync(
                     presentation, ResolveKey, cancellationToken: cancellation.Token)
-                : await verifier.TryVerifyPresentationAsync(
-                    presentation, _signingKey, cancellationToken: cancellation.Token);
-
-            Assert.False(result.IsValid, "A canceled revocation read must never accept the credential.");
-            Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+                : verifier.TryVerifyPresentationAsync(
+                    presentation, _signingKey, cancellationToken: cancellation.Token));
         }
         else
         {

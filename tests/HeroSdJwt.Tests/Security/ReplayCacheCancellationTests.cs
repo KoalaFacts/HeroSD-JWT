@@ -9,7 +9,8 @@ namespace HeroSdJwt.Tests.Security;
 /// <summary>
 /// A canceled replay-cache admission must propagate cancellation through the
 /// throwing async verification APIs, not masquerade as a malformed credential.
-/// The Try APIs must still fail closed rather than accept the presentation.
+/// The Try APIs must propagate canceled caller requests, and return a
+/// redacted failure for unrelated cache cancellations.
 /// </summary>
 public class ReplayCacheCancellationTests
 {
@@ -51,14 +52,28 @@ public class ReplayCacheCancellationTests
         var verifier = CreateVerifier(cache);
         var presentation = CreatePresentation();
 
-        var result = resolveKey
-            ? await verifier.TryVerifyPresentationAsync(
-                presentation, ResolveKey, cancellationToken: cancellation.Token)
-            : await verifier.TryVerifyPresentationAsync(
-                presentation, _signingKey, cancellationToken: cancellation.Token);
+        if (cancelCaller)
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => resolveKey
+                ? verifier.TryVerifyPresentationAsync(
+                    presentation, ResolveKey, cancellationToken: cancellation.Token)
+                : verifier.TryVerifyPresentationAsync(
+                    presentation, _signingKey, cancellationToken: cancellation.Token));
+        }
+        else
+        {
+            // An internal cache timeout without request cancellation remains
+            // a redacted invalid result in the Try* contract.
+            var result = resolveKey
+                ? await verifier.TryVerifyPresentationAsync(
+                    presentation, ResolveKey, cancellationToken: cancellation.Token)
+                : await verifier.TryVerifyPresentationAsync(
+                    presentation, _signingKey, cancellationToken: cancellation.Token);
 
-        Assert.False(result.IsValid);
-        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+            Assert.False(result.IsValid);
+            Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        }
+
         Assert.Equal(1, cache.AdmissionAttempts);
     }
 
@@ -79,14 +94,11 @@ public class ReplayCacheCancellationTests
 
         if (tryApi)
         {
-            var result = resolveKey
-                ? await verifier.TryVerifyPresentationAsync(
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => resolveKey
+                ? verifier.TryVerifyPresentationAsync(
                     presentation, ResolveKey, cancellationToken: cancellation.Token)
-                : await verifier.TryVerifyPresentationAsync(
-                    presentation, _signingKey, cancellationToken: cancellation.Token);
-
-            Assert.False(result.IsValid, "Canceled verification must never return a valid credential.");
-            Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+                : verifier.TryVerifyPresentationAsync(
+                    presentation, _signingKey, cancellationToken: cancellation.Token));
         }
         else
         {
