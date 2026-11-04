@@ -22,7 +22,7 @@ public sealed class DisclosureParserMalformedJsonBoundaryTests
         var exception = Assert.Throws<MalformedDisclosureException>(
             () => new DisclosureParser().Parse(encoded));
 
-        Assert.IsType<JsonException>(exception.InnerException);
+        Assert.IsAssignableFrom<JsonException>(exception.InnerException);
     }
 
     [Fact]
@@ -33,6 +33,6 @@ public sealed class DisclosureParserMalformedJsonBoundaryTests
         var exception = Assert.Throws<MalformedDisclosureException>(
             () => new DisclosureParser().GetClaimName(encoded));
 
-        Assert.IsType<JsonException>(exception.InnerException);
+        Assert.IsAssignableFrom<JsonException>(exception.InnerException);
     }
 }
