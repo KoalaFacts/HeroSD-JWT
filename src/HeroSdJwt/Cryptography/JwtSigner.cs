@@ -567,7 +567,9 @@ public class JwtSigner : IJwtSigner
                 writer.WriteEndArray();
                 break;
             case Models.Digest digest:
-                // Digest objects are serialized as simple strings
+                // A caller-supplied Digest is still an untrusted signed string:
+                // apply the same UTF-16 and size checks as other claim values.
+                EnsureClaimStringFits(digest.Value);
                 writer.WriteStartObject();
                 writer.WriteString("...", digest.Value);
                 writer.WriteEndObject();
