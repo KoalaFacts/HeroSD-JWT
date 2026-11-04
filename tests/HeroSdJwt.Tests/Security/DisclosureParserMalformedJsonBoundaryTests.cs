@@ -50,7 +50,8 @@ public sealed class DisclosureParserMalformedJsonBoundaryTests
     [Fact]
     public void GetClaimName_InvalidUtf8Disclosure_ThrowsMalformedDisclosureWithCause()
     {
-        var encoded = Base64UrlEncoder.Encode(new byte[] { 0xFF });
+        byte[] invalidUtf8 = [0xFF];
+        var encoded = Base64UrlEncoder.Encode(invalidUtf8);
 
         var exception = Assert.Throws<MalformedDisclosureException>(
             () => new DisclosureParser().GetClaimName(encoded));

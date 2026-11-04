@@ -34,8 +34,17 @@ public class DisclosureParser : IDisclosureParser
                 $"Disclosure exceeds the maximum encoded length of {Constants.MAX_JWT_SIZE_BYTES} bytes.");
         }
 
-        // Decode from base64url to JSON
-        var json = Base64UrlEncoder.DecodeString(base64UrlDisclosure);
+        // Decode from base64url to JSON. A malformed disclosure must use
+        // the same domain exception for invalid wire bytes and invalid JSON.
+        string json;
+        try
+        {
+            json = Base64UrlEncoder.DecodeString(base64UrlDisclosure);
+        }
+        catch (SdJwtException ex)
+        {
+            throw new MalformedDisclosureException("Disclosure contains invalid base64url or UTF-8 encoding", ex);
+        }
 
         // Parse JSON array
         using var document = ParseJsonDocument(json);
