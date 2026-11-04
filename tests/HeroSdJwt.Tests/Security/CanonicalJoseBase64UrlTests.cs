@@ -3,7 +3,6 @@ using HeroSdJwt.Exceptions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
-using System.Text;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -31,7 +30,7 @@ public sealed class CanonicalJoseBase64UrlTests
     [InlineData("Zm9v", "foo")]
     public void DecodeBytes_WithCanonicalTail_AcceptsEncoding(string encoded, string expected)
     {
-        Assert.Equal(Encoding.ASCII.GetBytes(expected), Base64UrlEncoder.DecodeBytes(encoded));
+        Assert.Equal(System.Text.Encoding.ASCII.GetBytes(expected), Base64UrlEncoder.DecodeBytes(encoded));
     }
 
     [Fact]
@@ -62,6 +61,6 @@ public sealed class CanonicalJoseBase64UrlTests
 
         var result = verifier.TryVerifyPresentation(aliased, _signingKey);
         Assert.False(result.IsValid);
-        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.Contains(ErrorCode.InvalidSignature, result.Errors);
     }
 }
