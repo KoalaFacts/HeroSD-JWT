@@ -255,6 +255,11 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         catch (AlgorithmConfusionException ex) { return new VerificationResult(ErrorCode.AlgorithmConfusion, ex.Message); }
         catch (AlgorithmNotSupportedException ex) { return new VerificationResult(ErrorCode.UnsupportedAlgorithm, ex.Message); }
         catch (SdJwtException ex) { return new VerificationResult(ex.ErrorCode, $"Verification failed: {ex.Message}"); }
+        catch (OperationCanceledException)
+        {
+            // Cancellation of verification is not an invalid credential.
+            throw;
+        }
         catch (Exception) { return new VerificationResult(ErrorCode.InvalidInput, "Verification failed"); }
     }
 
@@ -390,6 +395,11 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         catch (AlgorithmConfusionException ex) { return new VerificationResult(ErrorCode.AlgorithmConfusion, ex.Message); }
         catch (AlgorithmNotSupportedException ex) { return new VerificationResult(ErrorCode.UnsupportedAlgorithm, ex.Message); }
         catch (SdJwtException ex) { return new VerificationResult(ex.ErrorCode, $"Verification failed: {ex.Message}"); }
+        catch (OperationCanceledException)
+        {
+            // Cancellation of verification is not an invalid credential.
+            throw;
+        }
         catch (Exception) { return new VerificationResult(ErrorCode.InvalidInput, "Verification failed"); }
     }
 
