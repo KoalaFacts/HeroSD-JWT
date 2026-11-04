@@ -548,6 +548,17 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     return new VerificationResult(errors, string.Join("; ", errorDetails));
                 }
 
+                // A plausible signature length is not enough to justify a
+                // remote key lookup: padding, invalid characters and nonzero
+                // unused bits still make the compact JWS impossible to verify.
+                if (_signatureValidator.GetType() == typeof(SignatureValidator) &&
+                    !SignatureValidator.HasCanonicalBase64UrlEncoding(jwtParts[2]))
+                {
+                    errors.Add(ErrorCode.InvalidInput);
+                    errorDetails.Add("JWT signature has invalid base64url encoding");
+                    return new VerificationResult(errors, string.Join("; ", errorDetails));
+                }
+
                 byte[]? resolvedKey;
                 try
                 {

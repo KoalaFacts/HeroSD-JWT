@@ -46,7 +46,7 @@ public class SignatureValidator : ISignatureValidator
         // A correct signature over non-canonical payload text is still not a
         // valid compact JWS. Validate the encoded segment without decoding or
         // allocating a temporary payload, including before a remote key lookup.
-        if (!HasCanonicalPayloadEncoding(parts[1]))
+        if (!HasCanonicalBase64UrlEncoding(parts[1]))
         {
             throw new SdJwtException(
                 "JWT payload has invalid base64url encoding",
@@ -471,7 +471,7 @@ public class SignatureValidator : ISignatureValidator
         // A correct signature over non-canonical payload text is still not a
         // valid compact JWS. Validate the encoded segment without decoding or
         // allocating a temporary payload, including before a remote key lookup.
-        if (!HasCanonicalPayloadEncoding(parts[1]))
+        if (!HasCanonicalBase64UrlEncoding(parts[1]))
         {
             throw new SdJwtException(
                 "JWT payload has invalid base64url encoding",
@@ -520,6 +520,15 @@ public class SignatureValidator : ISignatureValidator
             {
                 _ = Base64UrlEncoder.DecodeBytes(parts[2]);
                 return false;
+            }
+
+            // Badly encoded signatures must not trigger external key-store or
+            // KMS lookups just because their encoded length is plausible.
+            if (!HasCanonicalBase64UrlEncoding(parts[2]))
+            {
+                throw new SdJwtException(
+                    "JWT signature has invalid base64url encoding",
+                    ErrorCode.InvalidInput);
             }
 
             // Resolve key ID to verification key. Backend exceptions can contain
@@ -738,10 +747,10 @@ public class SignatureValidator : ISignatureValidator
 #endif
 
 
-    // The signed payload segment must be unpadded, ASCII base64url with
-    // zero unused bits. Check the original text, not decoded JSON: standalone
-    // signature validation must reject even a correctly MAC'd malformed JWS.
-    private static bool HasCanonicalPayloadEncoding(ReadOnlySpan<char> segment)
+    // Compact JWS payload and signature segments must be unpadded ASCII
+    // base64url with zero unused bits. Validate their original text before
+    // resolving a key, not only the decoded bytes after resolution.
+    internal static bool HasCanonicalBase64UrlEncoding(ReadOnlySpan<char> segment)
     {
         if (segment.Length % 4 == 1)
         {
