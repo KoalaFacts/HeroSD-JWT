@@ -27,15 +27,18 @@ public sealed class AsyncTryVerifierCancellationContractTests
         using var request = new CancellationTokenSource();
         request.Cancel();
 
-        Task<VerificationResult> Verify() => useResolver
-            ? verifier.TryVerifyPresentationAsync(
-                presentation,
-                _ => _signingKey,
-                cancellationToken: request.Token)
-            : verifier.TryVerifyPresentationAsync(
-                presentation,
-                _signingKey,
-                cancellationToken: request.Token);
+        Task<VerificationResult> Verify()
+        {
+            return useResolver
+                ? verifier.TryVerifyPresentationAsync(
+                    presentation,
+                    _ => _signingKey,
+                    cancellationToken: request.Token)
+                : verifier.TryVerifyPresentationAsync(
+                    presentation,
+                    _signingKey,
+                    cancellationToken: request.Token);
+        }
 
         // A canceled request is not an invalid credential. ASP.NET Core must
         // observe cancellation even through the non-throwing Try* API.
