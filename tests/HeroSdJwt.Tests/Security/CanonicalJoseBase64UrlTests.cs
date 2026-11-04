@@ -17,6 +17,7 @@ public sealed class CanonicalJoseBase64UrlTests
 
     [Theory]
     [InlineData("Zh")]
+    [InlineData("_x")]
     [InlineData("Zm9")]
     public void DecodeBytes_WithNonZeroUnusedBits_RejectsNonCanonicalEncoding(string encoded)
     {
