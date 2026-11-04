@@ -89,7 +89,7 @@ public class JtiValidator
             throw new SdJwtException("Issuer claim (iss) must be a string", Primitives.ErrorCode.InvalidInput);
         }
 
-        var issuer = issElement.GetString();
+        var issuer = GetRegisteredClaimString(issElement, "iss");
         if (string.IsNullOrWhiteSpace(issuer))
         {
             throw new SdJwtException("Issuer claim (iss) cannot be empty", Primitives.ErrorCode.InvalidInput);
@@ -111,7 +111,7 @@ public class JtiValidator
             throw new SdJwtException("JWT ID claim (jti) must be a string", Primitives.ErrorCode.InvalidInput);
         }
 
-        var jti = jtiElement.GetString();
+        var jti = GetRegisteredClaimString(jtiElement, "jti");
         if (string.IsNullOrWhiteSpace(jti))
         {
             throw new SdJwtException("JWT ID claim (jti) cannot be empty", Primitives.ErrorCode.InvalidInput);
@@ -145,6 +145,22 @@ public class JtiValidator
         {
             // jti already exists in cache - replay detected
             throw new ReplayAttackException(jti, issuer);
+        }
+    }
+
+    // A parsed JSON string may still carry an escaped lone surrogate.
+    // The standalone replay API must reject it with its documented domain error.
+    private static string? GetRegisteredClaimString(JsonElement element, string claimName)
+    {
+        try
+        {
+            return element.GetString();
+        }
+        catch (InvalidOperationException)
+        {
+            throw new SdJwtException(
+                $"JWT {claimName} claim contains malformed Unicode",
+                Primitives.ErrorCode.InvalidInput);
         }
     }
 
