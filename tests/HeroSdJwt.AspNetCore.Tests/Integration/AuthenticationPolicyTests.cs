@@ -298,8 +298,15 @@ public sealed class AuthenticationPolicyTests : IDisposable
         }
         var context = NewContext(scope.ServiceProvider, CreateToken(ISSUER, AUDIENCE));
         context.RequestAborted = cancellation.Token;
-        var result = await context.AuthenticateAsync("test");
-        Assert.Equal(!canceled, result.Succeeded);
+        if (canceled)
+        {
+            // An aborted request is not an authentication failure; propagate cancellation.
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => context.AuthenticateAsync("test"));
+        }
+        else
+        {
+            Assert.True((await context.AuthenticateAsync("test")).Succeeded);
+        }
         Assert.Equal(canceled ? CancellationToken.None : cancellation.Token, cache.ObservedToken);
     }
 
