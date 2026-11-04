@@ -67,6 +67,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
 
         // A repeated revocation must never shorten an existing live marker.
         // Otherwise an earlier expiry supplied by a concurrent caller could
@@ -92,6 +93,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     {
         ValidateId(jti, nameof(jti));
         cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
 
         // Expiration is effective at read time, not only when the five-minute
         // background cleanup removes the dictionary entry. Match the semantics
@@ -109,6 +111,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     {
         KeyIdValidator.Validate(keyId);
         cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
 
         var revokedAt = DateTimeOffset.UtcNow;
         _ = _revokedKeys.AddOrUpdate(keyId, revokedAt, (_, __) => revokedAt);
@@ -121,6 +124,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     {
         KeyIdValidator.Validate(keyId);
         cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
 
         return Task.FromResult(_revokedKeys.ContainsKey(keyId));
     }
@@ -130,6 +134,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     {
         KeyIdValidator.Validate(keyId);
         cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
 
         // Idempotent: TryRemove returns false if key doesn't exist, which is fine
         _ = _revokedKeys.TryRemove(keyId, out _);
@@ -152,6 +157,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
 
         var revokedAt = DateTimeOffset.UtcNow;
         _ = _revokedUsers.AddOrUpdate(userId, revokedAt, (_, __) => revokedAt);
@@ -164,6 +170,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     {
         ValidateId(userId, nameof(userId));
         cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
 
         return Task.FromResult(_revokedUsers.ContainsKey(userId));
     }
@@ -173,6 +180,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     {
         ValidateId(userId, nameof(userId));
         cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
 
         // Idempotent: TryRemove returns false if user doesn't exist, which is fine
         _ = _revokedUsers.TryRemove(userId, out _);
@@ -188,6 +196,7 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
     public Task CleanupExpiredEntriesAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
 
         var now = DateTimeOffset.UtcNow;
 
@@ -205,6 +214,16 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         }
 
         return Task.CompletedTask;
+    }
+
+    // A disposed revocation store must not return a potentially stale allow
+    // decision or accept writes after its background maintenance has stopped.
+    private void ThrowIfDisposed()
+    {
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            throw new ObjectDisposedException(nameof(InMemoryRevocationStore));
+        }
     }
 
     private static void ValidateId(string value, string paramName)
@@ -258,6 +277,11 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
         catch (OperationCanceledException)
         {
             // graceful shutdown
+        }
+        catch (ObjectDisposedException) when (Volatile.Read(ref _disposed) != 0)
+        {
+            // Disposal can race a timer tick between its cancellation check
+            // and the public cleanup guard. Do not let Dispose fault.
         }
     }
 }

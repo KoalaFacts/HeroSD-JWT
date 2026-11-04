@@ -351,6 +351,31 @@ public class InMemoryRevocationStoreTests
     }
 
     [Fact]
+    public async Task Dispose_Should_RejectRevocationOperations_InsteadOfReadingStaleState()
+    {
+        var store = new InMemoryRevocationStore();
+        var token = TestContext.Current.CancellationToken;
+        await store.RevokeJtiAsync("disposed-jti", DateTimeOffset.UtcNow.AddHours(1), token);
+        await store.RevokeKeyAsync("disposed-key", token);
+        await store.RevokeUserAsync("disposed-user", token);
+        store.Dispose();
+
+        // A disposed store is no longer a revocation authority. Returning
+        // true/false from its stale local dictionary is unsafe for callers.
+        _ = await Assert.ThrowsAsync<ObjectDisposedException>(() => store.IsJtiRevokedAsync("disposed-jti", token));
+        _ = await Assert.ThrowsAsync<ObjectDisposedException>(() => store.IsKeyRevokedAsync("disposed-key", token));
+        _ = await Assert.ThrowsAsync<ObjectDisposedException>(() => store.IsUserRevokedAsync("disposed-user", token));
+
+        _ = await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+            store.RevokeJtiAsync("another-jti", DateTimeOffset.UtcNow.AddHours(1), token));
+        _ = await Assert.ThrowsAsync<ObjectDisposedException>(() => store.RevokeKeyAsync("another-key", token));
+        _ = await Assert.ThrowsAsync<ObjectDisposedException>(() => store.UnrevokeKeyAsync("disposed-key", token));
+        _ = await Assert.ThrowsAsync<ObjectDisposedException>(() => store.RevokeUserAsync("another-user", token));
+        _ = await Assert.ThrowsAsync<ObjectDisposedException>(() => store.UnrevokeUserAsync("disposed-user", token));
+        _ = await Assert.ThrowsAsync<ObjectDisposedException>(() => store.CleanupExpiredEntriesAsync(token));
+    }
+
+    [Fact]
     public void Dispose_WhenCalledTwice_DoesNotThrow()
     {
         var store = new InMemoryRevocationStore();
