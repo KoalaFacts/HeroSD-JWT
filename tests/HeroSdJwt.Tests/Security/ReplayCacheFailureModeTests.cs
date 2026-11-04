@@ -71,6 +71,23 @@ public sealed class ReplayCacheFailureModeTests
     }
 
     [Fact]
+    public async Task Should_PropagateCacheReportedReplay_WhenPolicyIsFailOpen()
+    {
+        // A custom atomic provider may report a known replay with the domain
+        // exception rather than a false result. This is not a backend outage.
+        var cache = new FaultingCache(
+            new ReplayAttackException("test-jti", "https://issuer.example.test"));
+        var validator = new JtiValidator(cache, NewOptions(CacheFailureMode.FailOpen));
+
+        var replay = await Assert.ThrowsAsync<ReplayAttackException>(() =>
+            validator.ValidateAsync(ValidClaims(), TestContext.Current.CancellationToken));
+
+        Assert.Equal("test-jti", replay.Jti);
+        Assert.Equal("https://issuer.example.test", replay.Issuer);
+        Assert.Equal(1, cache.Attempts);
+    }
+
+    [Fact]
     public async Task Should_RejectRealReplay_EvenWhenPolicyIsFailOpen()
     {
         var validator = new JtiValidator(new RejectingCache(), NewOptions(CacheFailureMode.FailOpen));
