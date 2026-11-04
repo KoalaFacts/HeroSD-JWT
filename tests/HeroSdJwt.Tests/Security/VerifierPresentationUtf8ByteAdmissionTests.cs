@@ -2,7 +2,6 @@ using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
-using System.Text;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -81,7 +80,7 @@ public class VerifierPresentationUtf8ByteAdmissionTests
         // several times larger in the actual UTF-8 request body.
         var presentation = jwt + "~" + new string('漢', 25_000) + "~";
         Assert.True(presentation.Length <= Constants.MAX_JWT_SIZE_BYTES);
-        Assert.True(Encoding.UTF8.GetByteCount(presentation) > Constants.MAX_JWT_SIZE_BYTES);
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(presentation) > Constants.MAX_JWT_SIZE_BYTES);
 
         return presentation;
     }
