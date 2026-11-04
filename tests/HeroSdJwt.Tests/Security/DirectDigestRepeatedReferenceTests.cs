@@ -17,7 +17,7 @@ public sealed class DirectDigestRepeatedReferenceTests
     [InlineData(true)]
     public void Should_RejectRepeatedExpectedDigest_WhenValidDisclosureIsPresent(bool paddedAlias)
     {
-        var disclosure = Base64UrlEncoder.Encode("[\\\"salt\\\",\\\"email\\\",\\\"alice@example.test\\\"]");
+        var disclosure = Base64UrlEncoder.Encode("""["salt","email","alice@example.test"]""");
         var digest = new Digest(
             new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256),
             HashAlgorithm.Sha256);
@@ -36,7 +36,7 @@ public sealed class DirectDigestRepeatedReferenceTests
     {
         var calculator = new DigestCalculator();
         var disclosures = Enumerable.Range(0, 8)
-            .Select(i => Base64UrlEncoder.Encode($"[\\\"salt-{i}\\\",\\\"claim-{i}\\\",\\\"value-{i}\\\"]"))
+            .Select(i => Base64UrlEncoder.Encode($"""["salt-{i}","claim-{i}","value-{i}"]"""))
             .ToArray();
 
         var expected = disclosures.Select(d => new Digest(
