@@ -147,6 +147,12 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
             return AuthenticateResult.Fail(
                 "Derived verifiers must override ISdJwtVerifierFactory.CreateVerifier to preserve custom verification behavior.");
         }
+        catch (OperationCanceledException) when (Context.RequestAborted.IsCancellationRequested)
+        {
+            // A client-disconnected request is not an invalid credential.
+            // Preserve cancellation rather than logging it as a provider error.
+            throw;
+        }
         catch (Exception ex)
         {
             // An exception from a custom verifier/factory may contain secrets
