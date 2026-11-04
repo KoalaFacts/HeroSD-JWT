@@ -767,7 +767,7 @@ public class SignatureValidator : ISignatureValidator
             }
         }
 
-        return segment.Length % 4 switch
+        return (segment.Length % 4) switch
         {
             2 => (lastSextet & 0x0F) == 0,
             3 => (lastSextet & 0x03) == 0,
