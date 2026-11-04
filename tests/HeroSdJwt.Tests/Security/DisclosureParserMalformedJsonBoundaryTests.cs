@@ -35,4 +35,26 @@ public sealed class DisclosureParserMalformedJsonBoundaryTests
 
         Assert.IsAssignableFrom<JsonException>(exception.InnerException);
     }
+    [Theory]
+    [InlineData("!")]
+    [InlineData("abc=")]
+    [InlineData("ab cd")]
+    public void Parse_MalformedBase64Url_ThrowsMalformedDisclosureWithCause(string encoded)
+    {
+        var exception = Assert.Throws<MalformedDisclosureException>(
+            () => new DisclosureParser().Parse(encoded));
+
+        Assert.IsAssignableFrom<SdJwtException>(exception.InnerException);
+    }
+
+    [Fact]
+    public void GetClaimName_InvalidUtf8Disclosure_ThrowsMalformedDisclosureWithCause()
+    {
+        var encoded = Base64UrlEncoder.Encode(new byte[] { 0xFF });
+
+        var exception = Assert.Throws<MalformedDisclosureException>(
+            () => new DisclosureParser().GetClaimName(encoded));
+
+        Assert.IsAssignableFrom<SdJwtException>(exception.InnerException);
+    }
 }
