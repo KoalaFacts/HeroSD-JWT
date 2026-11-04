@@ -61,4 +61,17 @@ public sealed class DirectAudienceShapePreflightTests
         Assert.True(allocated < 64 * 1024,
             $"Matching a valid audience rebuilt {allocated} bytes of expected-audience policy.");
     }
+
+    [Theory]
+    [InlineData(/*lang=json*/ """{"aud":["tenant-0","\uD800"]}""")]
+    [InlineData(/*lang=json*/ """{"aud":["tenant-0","\uDC00"]}""")]
+    public void Should_RejectMalformedUnicodeAfterMatchingAudience_WithFiveExpectedAudiences(string payloadJson)
+    {
+        // Five configured values and a short signed array exercise the
+        // direct allowlist lookup path, not the single-audience fast path.
+        string[] expectedAudiences = ["tenant-0", "tenant-1", "tenant-2", "tenant-3", "tenant-4"];
+        using var document = JsonDocument.Parse(payloadJson);
+
+        Assert.False(new ClaimValidator().ValidateAudience(document.RootElement, expectedAudiences));
+    }
 }
