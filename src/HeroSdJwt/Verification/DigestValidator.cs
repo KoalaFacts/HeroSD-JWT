@@ -66,7 +66,7 @@ public class DigestValidator(IDigestCalculator digestCalculator) : IDigestValida
         HashSet<Digest>? expectedLookup = null;
         if (expectedDigests.Count >= 8)
         {
-            expectedLookup = new HashSet<Digest>();
+            expectedLookup = [];
             foreach (var expectedDigest in expectedDigests)
             {
                 if (!expectedLookup.Add(expectedDigest))
