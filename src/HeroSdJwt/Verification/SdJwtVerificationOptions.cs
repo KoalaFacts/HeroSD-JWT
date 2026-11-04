@@ -106,6 +106,16 @@ public class SdJwtVerificationOptions
                 "Expected key type must be Either, Symmetric, or Asymmetric.");
         }
 
+        // Unknown numeric values must not silently select an outage policy.
+        // Reject them when constructing the verifier, before handling tokens.
+        if (Revocation is { FailureMode: not (RevocationFailureMode.FailClosed or RevocationFailureMode.FailOpen) })
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(RevocationOptions.FailureMode),
+                Revocation.FailureMode,
+                "Revocation failure mode must be FailClosed or FailOpen.");
+        }
+
         var audiences = GetExpectedAudiences();
 
         if (RequireKeyBinding)
