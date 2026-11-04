@@ -747,10 +747,10 @@ public class SignatureValidator : ISignatureValidator
 #endif
 
 
-    // The signed payload segment must be unpadded, ASCII base64url with
-    // zero unused bits. Check the original text, not decoded JSON: standalone
-    // signature validation must reject even a correctly MAC'd malformed JWS.
-    private static bool HasCanonicalBase64UrlEncoding(ReadOnlySpan<char> segment)
+    // Compact JWS payload and signature segments must be unpadded ASCII
+    // base64url with zero unused bits. Validate their original text before
+    // resolving a key, not only the decoded bytes after resolution.
+    internal static bool HasCanonicalBase64UrlEncoding(ReadOnlySpan<char> segment)
     {
         if (segment.Length % 4 == 1)
         {
