@@ -34,11 +34,11 @@ public class KeyResolverCancellationTests
                 presentation, resolver, cancellationToken: cancellation.Token));
         Assert.Equal(0, calls);
 
-        // Try APIs return an invalid result on cancellation, never a valid token.
-        var result = await verifier.TryVerifyPresentationAsync(
-            presentation, resolver, cancellationToken: cancellation.Token);
-        Assert.False(result.IsValid);
-        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        // A canceled request must not be classified as an invalid credential,
+        // and must not reach the resolver via either async entry point.
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            verifier.TryVerifyPresentationAsync(
+                presentation, resolver, cancellationToken: cancellation.Token));
         Assert.Equal(0, calls);
     }
 
@@ -70,10 +70,22 @@ public class KeyResolverCancellationTests
                 presentation, resolver, cancellationToken: cancellation.Token));
         Assert.Equal(1, calls);
 
-        var result = await verifier.TryVerifyPresentationAsync(
-            presentation, resolver, cancellationToken: cancellation.Token);
-        Assert.False(result.IsValid);
-        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        if (cancelCaller)
+        {
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                verifier.TryVerifyPresentationAsync(
+                    presentation, resolver, cancellationToken: cancellation.Token));
+            Assert.Equal(1, calls);
+        }
+        else
+        {
+            // Backend timeouts unrelated to the caller request must remain a
+            // redacted invalid result in Try* rather than leak an exception.
+            var result = await verifier.TryVerifyPresentationAsync(
+                presentation, resolver, cancellationToken: cancellation.Token);
+            Assert.False(result.IsValid);
+            Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        }
 
         // Without a CancellationToken the synchronous throwing overload still
         // must not disguise a resolver's OperationCanceledException.
