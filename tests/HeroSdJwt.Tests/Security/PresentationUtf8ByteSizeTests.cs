@@ -30,4 +30,17 @@ public class PresentationUtf8ByteSizeTests
         Assert.True(presentation.Jwt.Length + disclosure.Length + 2 < Constants.MAX_JWT_SIZE_BYTES);
         _ = Assert.Throws<ArgumentException>(() => new SdJwtPresenter().FormatPresentation(presentation));
     }
+    [Fact]
+    public void Should_AllowExactUtf8ByteLimit_WhenUnicodeCharacterCountIsSmaller()
+    {
+        const string jwt = "header.payload.signature";
+        var disclosureBytes = Constants.MAX_JWT_SIZE_BYTES - jwt.Length - 2;
+        var disclosure = new string('\u00E9', disclosureBytes / 2);
+        var sdJwt = new SdJwt(jwt, [disclosure], HashAlgorithm.Sha256);
+        var presentation = new SdJwtPresentation(jwt, [disclosure]);
+
+        var combined = sdJwt.ToCombinedFormat();
+        Assert.Equal(Constants.MAX_JWT_SIZE_BYTES, System.Text.Encoding.UTF8.GetByteCount(combined));
+        Assert.Equal(combined, new SdJwtPresenter().FormatPresentation(presentation));
+    }
 }

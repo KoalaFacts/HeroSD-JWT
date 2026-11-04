@@ -258,6 +258,26 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
                 nameof(presentation));
         }
 
+        // string.Length is a UTF-16 count, not a wire-byte count. Avoid a
+        // second scan for small values that cannot exceed the UTF-8 byte cap
+        // even with three bytes per UTF-16 code unit.
+        if (totalLength > Constants.MAX_JWT_SIZE_BYTES / 3)
+        {
+            long utf8Length = (long)System.Text.Encoding.UTF8.GetByteCount(jwt)
+                + 1 + System.Text.Encoding.UTF8.GetByteCount(keyBinding);
+            foreach (var disclosure in disclosures)
+            {
+                utf8Length += System.Text.Encoding.UTF8.GetByteCount(disclosure) + 1;
+            }
+
+            if (utf8Length > Constants.MAX_JWT_SIZE_BYTES)
+            {
+                throw new ArgumentException(
+                    $"Presentation exceeds the maximum allowed size of {Constants.MAX_JWT_SIZE_BYTES} bytes.",
+                    nameof(presentation));
+            }
+        }
+
         // Enforce component shape only after the cheap size gate, avoiding
         // scans of unbounded caller strings. The verifier rejects extra or
         // blank tilde-delimited slots; holder serialization must not emit them.
