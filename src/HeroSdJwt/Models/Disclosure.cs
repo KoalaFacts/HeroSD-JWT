@@ -130,6 +130,15 @@ public readonly struct Disclosure : IEquatable<Disclosure>
 
     private static JsonElement CloneValidatedClaimValue(JsonElement claimValue)
     {
+        // Undefined is not a JSON value. Reject it at the public API boundary
+        // instead of leaking JsonElement.Clone's InvalidOperationException.
+        if (claimValue.ValueKind == JsonValueKind.Undefined)
+        {
+            throw new ArgumentException(
+                "Disclosure claim value must be a defined JSON value.",
+                nameof(claimValue));
+        }
+
         // The parser and verifier reject ambiguous member names. Keep direct
         // constructors and generators from producing unusable disclosures.
         if (JsonObjectMemberGuard.HasInvalidOrDuplicateNamesRecursively(claimValue))
