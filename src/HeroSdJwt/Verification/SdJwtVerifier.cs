@@ -1193,8 +1193,13 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                     // prefix without reconstructing and copying every part
                     // into an additional large UTF-16 string.
                     var prefixLength = presentation.Length - keyBindingJwt.Length;
-                    var sdJwtBytes = System.Text.Encoding.UTF8.GetBytes(
-                        presentation.AsSpan(0, prefixLength));
+                    // Span-based encoding preserves the exact wire input without
+                    // allocating an intermediate UTF-16 substring. The two-argument
+                    // overload writes into the correctly sized UTF-8 destination.
+                    var sdJwtBytes = new byte[System.Text.Encoding.UTF8.GetByteCount(
+                        presentation.AsSpan(0, prefixLength))];
+                    System.Text.Encoding.UTF8.GetBytes(
+                        presentation.AsSpan(0, prefixLength), sdJwtBytes);
                     var hashBytes = algorithm switch
                     {
                         HashAlgorithm.Sha256 => SHA256.HashData(sdJwtBytes),
