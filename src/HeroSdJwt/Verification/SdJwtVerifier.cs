@@ -806,6 +806,18 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
+            // The built-in decoder already rejects noncanonical signatures,
+            // but the generic provider-error catch below would misclassify
+            // malformed JOSE text as an ordinary signature mismatch. Match
+            // the resolver preflight before invoking cryptographic verification.
+            if (_signatureValidator.GetType() == typeof(SignatureValidator) &&
+                !SignatureValidator.HasCanonicalBase64UrlEncoding(jwtParts[2]))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("JWT signature has invalid base64url encoding");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
             // Step 1: Verify JWT signature
             bool signatureValid = false;
             try
