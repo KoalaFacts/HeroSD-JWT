@@ -58,6 +58,9 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
 
         var key = BuildJtiKey(jti);
         var value = await _cache.GetAsync(key, cancellationToken).ConfigureAwait(false);
+        // A backend can return normally after the caller canceled its read.
+        // Never expose that stale result as a revocation decision.
+        cancellationToken.ThrowIfCancellationRequested();
         return value != null;
     }
 
@@ -79,6 +82,9 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
 
         var key = BuildKeyIdKey(keyId);
         var value = await _cache.GetAsync(key, cancellationToken).ConfigureAwait(false);
+        // A backend can return normally after the caller canceled its read.
+        // Never expose that stale result as a revocation decision.
+        cancellationToken.ThrowIfCancellationRequested();
         return value != null;
     }
 
@@ -110,6 +116,9 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
 
         var key = BuildUserIdKey(userId);
         var value = await _cache.GetAsync(key, cancellationToken).ConfigureAwait(false);
+        // A backend can return normally after the caller canceled its read.
+        // Never expose that stale result as a revocation decision.
+        cancellationToken.ThrowIfCancellationRequested();
         return value != null;
     }
 
