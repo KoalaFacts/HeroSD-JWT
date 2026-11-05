@@ -116,4 +116,56 @@ public class ReplayAdmissionRegressionTests
         Assert.True(await cache.ExistsAsync("issuer", "first", token));
     }
 
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_RejectUntrackedCredential_WhenInMemoryCacheIsFullDespiteFailOpen(bool asynchronous)
+    {
+        // FailOpen is an outage policy, not permission to bypass the cache's
+        // explicit limit on simultaneously protected replay identifiers.
+        var options = new ReplayProtectionOptions
+        {
+            Enabled = true,
+            MaxCacheEntries = 1,
+            FailureMode = CacheFailureMode.FailOpen
+        };
+        using var cache = new InMemoryJtiCache(options);
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .WithReplayProtection(new JtiValidator(cache, options))
+            .Build();
+
+        var key = RandomNumberGenerator.GetBytes(32);
+        var exp = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
+        var signer = new JwtSigner();
+        string CreateToken(string jti) => signer.CreateJwt(new Dictionary<string, object>
+        {
+            ["iss"] = "issuer",
+            ["jti"] = jti,
+            ["exp"] = exp
+        }, key, SignatureAlgorithm.HS256) + "~";
+        var original = CreateToken("first");
+        var newcomer = CreateToken("second");
+        var token = TestContext.Current.CancellationToken;
+
+        var first = asynchronous
+            ? await verifier.TryVerifyPresentationAsync(original, key, cancellationToken: token)
+            : verifier.TryVerifyPresentation(original, key);
+        Assert.True(first.IsValid, first.ErrorDetails);
+
+        var refused = asynchronous
+            ? await verifier.TryVerifyPresentationAsync(newcomer, key, cancellationToken: token)
+            : verifier.TryVerifyPresentation(newcomer, key);
+        Assert.False(refused.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, refused.Errors);
+        Assert.False(await cache.ExistsAsync("issuer", "second", token));
+
+        var replay = asynchronous
+            ? await verifier.TryVerifyPresentationAsync(original, key, cancellationToken: token)
+            : verifier.TryVerifyPresentation(original, key);
+        Assert.False(replay.IsValid);
+        Assert.Contains(ErrorCode.ReplayAttack, replay.Errors);
+        Assert.True(await cache.ExistsAsync("issuer", "first", token));
+    }
 }
