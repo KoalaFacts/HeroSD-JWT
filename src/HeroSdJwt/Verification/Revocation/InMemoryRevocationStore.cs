@@ -82,6 +82,14 @@ public sealed class InMemoryRevocationStore : IRevocationStore, IDisposable
             ? DateTimeOffset.MaxValue
             : utcExpiration + maximumSkew;
 
+        // A credential past its entire acceptance window cannot be revoked
+        // meaningfully. Do not retain its dead identifier until timer cleanup.
+        // An earlier live revocation, if any, remains unchanged.
+        if (retentionExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            return Task.CompletedTask;
+        }
+
         _ = _revokedJtis.AddOrUpdate(jti, retentionExpiresAt,
             (_, previousExpiry) => previousExpiry >= retentionExpiresAt ? previousExpiry : retentionExpiresAt);
 
