@@ -54,6 +54,34 @@ public class PresentationSelectionAdmissionTests
         Assert.Equal("header.payload.signature~W10~", new SdJwtPresenter().FormatPresentation(presentation));
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" \t ")]
+    public void Should_RejectInvalidSelectors_BeforeInvokingClaimPathMapper(string? selector)
+    {
+        var mapper = new CountingClaimPathMapper();
+        var credential = new SdJwt(
+            "header.payload.signature", ["W10"], HashAlgorithm.Sha256);
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresenter(mapper).CreatePresentation(credential, [selector!]));
+
+        Assert.Equal("selectedClaimNames", error.ParamName);
+        Assert.Equal(0, mapper.CallCount);
+    }
+
+    private sealed class CountingClaimPathMapper : IDisclosureClaimPathMapper
+    {
+        public int CallCount { get; private set; }
+
+        public Dictionary<string, int> BuildClaimPathMapping(SdJwt sdJwt)
+        {
+            CallCount++;
+            return new Dictionary<string, int>(StringComparer.Ordinal);
+        }
+    }
+
     private static SdJwt CreateCredential(int disclosureCount) =>
         new(
             "header.payload.signature",
