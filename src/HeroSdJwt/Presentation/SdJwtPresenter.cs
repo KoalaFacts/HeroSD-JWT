@@ -61,6 +61,18 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
                     nameof(selectedClaimNames));
             }
 
+            // A selector larger than the entire allowed presentation can
+            // never be valid. Reject it before costly or application-provided
+            // path mapping. UTF-8 can use up to 3 bytes per UTF-16 code unit.
+            if (claimName.Length > Constants.MAX_JWT_SIZE_BYTES ||
+                (claimName.Length > Constants.MAX_JWT_SIZE_BYTES / 3 &&
+                 System.Text.Encoding.UTF8.GetByteCount(claimName) > Constants.MAX_JWT_SIZE_BYTES))
+            {
+                throw new ArgumentException(
+                    "Claim selector exceeds the maximum presentation byte size.",
+                    nameof(selectedClaimNames));
+            }
+
             selectedClaimsList.Add(claimName);
         }
 

@@ -71,6 +71,28 @@ public class PresentationSelectionAdmissionTests
         Assert.Equal(0, mapper.CallCount);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Should_RejectSelectorsLargerThanPresentationByteLimit_BeforeMapping(bool useMultibyte)
+    {
+        // A single name cannot occur in a verifiable 64-KiB presentation.
+        // Reject both oversized ASCII and shorter UTF-16 text exceeding
+        // that budget when encoded as UTF-8.
+        var selector = useMultibyte
+            ? new string('é', Constants.MAX_JWT_SIZE_BYTES / 2 + 1)
+            : new string('x', Constants.MAX_JWT_SIZE_BYTES + 1);
+        var mapper = new CountingClaimPathMapper();
+        var credential = new SdJwt(
+            "header.payload.signature", ["W10"], HashAlgorithm.Sha256);
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresenter(mapper).CreatePresentation(credential, [selector]));
+
+        Assert.Equal("selectedClaimNames", error.ParamName);
+        Assert.Equal(0, mapper.CallCount);
+    }
+
     private sealed class CountingClaimPathMapper : IDisclosureClaimPathMapper
     {
         public int CallCount { get; private set; }
