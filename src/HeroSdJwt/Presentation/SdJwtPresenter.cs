@@ -73,6 +73,29 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
                     nameof(selectedClaimNames));
             }
 
+            // Issuance and disclosure metadata reject unpaired UTF-16 surrogates.
+            // Holder selectors must do the same before consulting even a caller-
+            // supplied cached mapping. A replacement-character encoding would
+            // change the identity of a requested claim path.
+            for (var i = 0; i < claimName.Length; i++)
+            {
+                if (!char.IsSurrogate(claimName[i]))
+                {
+                    continue;
+                }
+
+                if (!char.IsHighSurrogate(claimName[i]) ||
+                    i + 1 == claimName.Length ||
+                    !char.IsLowSurrogate(claimName[i + 1]))
+                {
+                    throw new ArgumentException(
+                        "Claim selector contains invalid UTF-16.",
+                        nameof(selectedClaimNames));
+                }
+
+                i++; // The next code unit completes a valid surrogate pair.
+            }
+
             selectedClaimsList.Add(claimName);
         }
 
