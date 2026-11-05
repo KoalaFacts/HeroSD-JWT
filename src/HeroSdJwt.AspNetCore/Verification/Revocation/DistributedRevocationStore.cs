@@ -48,6 +48,7 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
         var key = BuildJtiKey(jti);
         await atomicCache.SetOrExtendAsync(
             key, MarkerBytes(), retentionExpiresAt, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     /// <inheritdoc />
@@ -72,6 +73,8 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
 
         var key = BuildKeyIdKey(keyId);
         await _cache.SetAsync(key, MarkerBytes(), new DistributedCacheEntryOptions(), cancellationToken).ConfigureAwait(false);
+        // A backend can commit the revocation despite cancellation.
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     /// <inheritdoc />
@@ -89,13 +92,14 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
     }
 
     /// <inheritdoc />
-    public Task UnrevokeKeyAsync(string keyId, CancellationToken cancellationToken = default)
+    public async Task UnrevokeKeyAsync(string keyId, CancellationToken cancellationToken = default)
     {
         KeyIdValidator.Validate(keyId);
         cancellationToken.ThrowIfCancellationRequested();
 
         var key = BuildKeyIdKey(keyId);
-        return _cache.RemoveAsync(key, cancellationToken);
+        await _cache.RemoveAsync(key, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     /// <inheritdoc />
@@ -106,6 +110,8 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
 
         var key = BuildUserIdKey(userId);
         await _cache.SetAsync(key, MarkerBytes(), new DistributedCacheEntryOptions(), cancellationToken).ConfigureAwait(false);
+        // A backend can commit the revocation despite cancellation.
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     /// <inheritdoc />
@@ -123,13 +129,14 @@ public sealed class DistributedRevocationStore(IDistributedCache cache, string k
     }
 
     /// <inheritdoc />
-    public Task UnrevokeUserAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task UnrevokeUserAsync(string userId, CancellationToken cancellationToken = default)
     {
         ValidateId(userId, nameof(userId));
         cancellationToken.ThrowIfCancellationRequested();
 
         var key = BuildUserIdKey(userId);
-        return _cache.RemoveAsync(key, cancellationToken);
+        await _cache.RemoveAsync(key, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     /// <inheritdoc />
