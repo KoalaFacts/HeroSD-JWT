@@ -147,6 +147,15 @@ public class JtiValidator
             // An atomic provider's affirmative replay report is not an outage.
             throw;
         }
+        catch (InvalidOperationException) when (_cache is InMemoryJtiCache)
+        {
+            // The built-in cache deliberately rejects admission at capacity
+            // instead of evicting a live replay marker. This is a security
+            // boundary, not a transient remote-cache outage: even FailOpen
+            // must not authenticate a token that cannot be replay-protected.
+            // Also fail closed if this in-memory cache has been disposed.
+            throw;
+        }
         catch (Exception) when (_options.FailureMode == CacheFailureMode.FailOpen)
         {
             cancellationToken.ThrowIfCancellationRequested();
