@@ -91,14 +91,58 @@ public sealed class RevocationStoreErrorDisclosureTests
         Assert.DoesNotContain(BACKEND_SECRET, asyncResult.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
     }
 
+
+    [Theory]
+    [InlineData("jti", false)]
+    [InlineData("jti", true)]
+    [InlineData("key", false)]
+    [InlineData("key", true)]
+    [InlineData("user", false)]
+    [InlineData("user", true)]
+    public async Task Should_RejectProviderValidationFailures_EvenWhenRevocationFailsOpen(
+        string failAt, bool domainException)
+    {
+        // Invalid provider input or an explicit domain rejection is not an
+        // unavailable backend. Never accept an unverified revocation decision.
+        var store = new FaultingRevocationStore(
+            failAt, domainException, inputRejection: !domainException);
+        var verifier = TestHelpers.CreateVerifierWithRevocation(
+            new SdJwtVerificationOptions
+            {
+                ExpectedKeyType = VerificationKeyType.Symmetric,
+                Revocation = new RevocationOptions { FailureMode = RevocationFailureMode.FailOpen }
+            }, store);
+        var presentation = SdJwtIssuerBuilder.Create()
+            .WithKeyId(KEY_ID)
+            .WithClaim("jti", "invalid-revocation-input-token")
+            .WithClaim("sub", "invalid-revocation-input-user")
+            .SignWithHmac(_signingKey)
+            .Build()
+            .ToPresentation();
+
+        var direct = verifier.TryVerifyPresentation(presentation, _signingKey);
+        Assert.False(direct.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
+        Assert.DoesNotContain(BACKEND_SECRET, direct.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+
+        var resolved = await verifier.TryVerifyPresentationAsync(
+            presentation, ResolveKey, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.False(resolved.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
+        Assert.DoesNotContain(BACKEND_SECRET, resolved.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+    }
+
     private static byte[]? ResolveKey(string keyId) => keyId == KEY_ID ? _signingKey : null;
 
-    private sealed class FaultingRevocationStore(string failAt, bool domainException) : IRevocationStore
+    private sealed class FaultingRevocationStore(
+        string failAt, bool domainException, bool inputRejection = false) : IRevocationStore
     {
         private Task<bool> FailedLookup() =>
-            Task.FromException<bool>(domainException
-                ? new SdJwtException(BACKEND_SECRET, ErrorCode.InvalidInput)
-                : new IOException(BACKEND_SECRET));
+            Task.FromException<bool>(inputRejection
+                ? new ArgumentException(BACKEND_SECRET, "identifier")
+                : domainException
+                    ? new SdJwtException(BACKEND_SECRET, ErrorCode.InvalidInput)
+                    : new IOException(BACKEND_SECRET));
 
         public Task<bool> IsJtiRevokedAsync(
             string jti, CancellationToken cancellationToken = default) =>
