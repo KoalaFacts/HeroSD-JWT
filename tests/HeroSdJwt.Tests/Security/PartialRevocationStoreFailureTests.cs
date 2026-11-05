@@ -55,6 +55,28 @@ public sealed class PartialRevocationStoreFailureTests
         Assert.Equal(1, store.GetLookupCount("user"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_RejectCredential_WhenRevocationStoreIsDisposedDespiteFailOpen(bool useKeyResolver)
+    {
+        // A disposed built-in store throws ObjectDisposedException on every lookup.
+        // That is a broken service lifetime, not an availability-first backend outage.
+        using var store = new InMemoryRevocationStore();
+        var verifier = CreateVerifier(store);
+        var presentation = CreatePresentation();
+        store.Dispose();
+
+        var result = useKeyResolver
+            ? await verifier.TryVerifyPresentationAsync(
+                presentation, ResolveKey, cancellationToken: TestContext.Current.CancellationToken)
+            : verifier.TryVerifyPresentation(presentation, _signingKey);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.DoesNotContain(nameof(InMemoryRevocationStore), result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+    }
+
     private static SdJwtVerifier CreateVerifier(IRevocationStore store) =>
         TestHelpers.CreateVerifierWithRevocation(
             new SdJwtVerificationOptions
