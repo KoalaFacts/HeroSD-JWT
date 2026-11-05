@@ -52,6 +52,15 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
                     nameof(selectedClaimNames));
             }
 
+            // Reject malformed holder input before performing costly or
+            // application-provided claim-path discovery.
+            if (string.IsNullOrWhiteSpace(claimName))
+            {
+                throw new ArgumentException(
+                    "Claim selector cannot be null, empty or whitespace.",
+                    nameof(selectedClaimNames));
+            }
+
             selectedClaimsList.Add(claimName);
         }
 
