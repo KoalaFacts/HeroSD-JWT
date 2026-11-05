@@ -11,12 +11,16 @@ namespace HeroSdJwt.Tests.Security;
 public sealed class PresenterSelectorUnicodeAdmissionTests
 {
     [Theory]
-    [InlineData("\uD800")]
-    [InlineData("\uDC00")]
-    [InlineData("prefix\uD800suffix")]
-    [InlineData("prefix\uDC00suffix")]
-    public void Should_RejectUnpairedSurrogatesBeforeSelectingDisclosure(string selector)
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void Should_RejectUnpairedSurrogatesBeforeSelectingDisclosure(int caseId)
     {
+        // Build at runtime: attribute strings are serialized into metadata,
+        // where malformed UTF-16 may be normalized before the test runs.
+        var surrogate = new string((char)(caseId % 2 == 0 ? 0xD800 : 0xDC00), 1);
+        var selector = caseId < 2 ? surrogate : $"prefix{surrogate}suffix";
         var credential = CreateCredential(selector);
 
         var error = Assert.Throws<ArgumentException>(() =>
