@@ -1741,8 +1741,11 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         catch (Exception error) when (
             _options.Revocation.FailureMode == RevocationFailureMode.FailOpen &&
             error is not ArgumentException &&
-            error is not SdJwtException)
+            error is not SdJwtException &&
+            error is not ObjectDisposedException)
         {
+            // A disposed store is a broken application lifetime, not a transient
+            // backend outage. It must not let revoked credentials authenticate.
             cancellationToken.ThrowIfCancellationRequested();
             // Never expose secrets from backend exception messages.
             errorDetails.Add("Revocation check failed but allowing token (fail-open mode)");
