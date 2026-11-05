@@ -100,6 +100,41 @@ public sealed class ReplayCacheFailureModeTests
         Assert.Equal(1, cache.Attempts);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_RejectDisposedCustomReplayCache_DespiteFailOpen(bool resolveKey)
+    {
+        // A disposed custom cache cannot track replay admissions. This is a
+        // broken service lifetime, not an availability-first backend outage.
+        const string backendDiagnostic = "private-disposed-replay-cache-diagnostic";
+        const string keyId = "disposed-custom-cache-key";
+        var cache = new FaultingCache(new ObjectDisposedException("custom-replay-cache", backendDiagnostic));
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .WithReplayProtection(new JtiValidator(cache, NewOptions(CacheFailureMode.FailOpen)))
+            .Build();
+        var presentation = SdJwtIssuerBuilder.Create()
+            .WithKeyId(keyId)
+            .WithClaim("iss", "https://issuer.example.test")
+            .WithClaim("jti", "disposed-custom-cache-token")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds())
+            .SignWithHmac(_signingKey)
+            .Build()
+            .ToPresentation();
+
+        var result = resolveKey
+            ? await verifier.TryVerifyPresentationAsync(
+                presentation, id => id == keyId ? _signingKey : null,
+                cancellationToken: TestContext.Current.CancellationToken)
+            : verifier.TryVerifyPresentation(presentation, _signingKey);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.DoesNotContain(backendDiagnostic, result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(1, cache.Attempts);
+    }
+
     [Fact]
     public async Task Should_PropagateCacheReportedReplay_WhenPolicyIsFailOpen()
     {
