@@ -1,4 +1,6 @@
 using HeroSdJwt.Verification.Revocation;
+using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace HeroSdJwt.Tests.Unit.Verification.Revocation;
 
@@ -305,6 +307,21 @@ public class InMemoryRevocationStoreTests
     }
 
     [Fact]
+    public async Task RevokeJtiAsync_AlreadyExpiredCredential_DoesNotRetainDeadMarker()
+    {
+        using var store = new InMemoryRevocationStore();
+
+        await store.RevokeJtiAsync(
+            "already-expired",
+            DateTimeOffset.UtcNow.AddMinutes(-10),
+            TestContext.Current.CancellationToken);
+
+        // Read internal storage only to verify memory retention. IsJtiRevokedAsync
+        // already returns false for expired entries, even when they remain stored.
+        Assert.Empty(GetStoredJtiEntries(store));
+    }
+
+    [Fact]
     public async Task Should_ReclaimThousandsOfExpiredRevocations_WithoutProportionalTemporaryAllocations()
     {
         // A cleanup with 10,000 expired entries must not copy them into an
@@ -317,10 +334,20 @@ public class InMemoryRevocationStoreTests
         // Warm up the cleanup path before measuring (without seeded entries).
         await store.CleanupExpiredEntriesAsync(token);
 
+        // Seed intentionally expired entries directly: public revocation admission
+        // must not retain already-dead markers. The cleanup benchmark still needs
+        // a populated expired dictionary to measure removal costs.
+        var storage = GetStoredJtiEntries(store);
         for (var i = 0; i < 20_000; i++)
         {
-            var expiration = i % 2 == 0 ? now.AddMinutes(-6) : now.AddHours(1);
-            await store.RevokeJtiAsync($"cleanup-{i}", expiration, token);
+            if (i % 2 == 0)
+            {
+                Assert.True(storage.TryAdd($"cleanup-{i}", now.AddMinutes(-6)));
+            }
+            else
+            {
+                await store.RevokeJtiAsync($"cleanup-{i}", now.AddHours(1), token);
+            }
         }
 
         // The method synchronously returns a completed task. Measure only its
@@ -421,5 +448,13 @@ public class InMemoryRevocationStoreTests
             var isRevoked = await store.IsJtiRevokedAsync(jti, _ct);
             Assert.True(isRevoked);
         }
+    }
+
+    private static ConcurrentDictionary<string, DateTimeOffset> GetStoredJtiEntries(InMemoryRevocationStore store)
+    {
+        var field = typeof(InMemoryRevocationStore).GetField(
+            "_revokedJtis", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        return Assert.IsType<ConcurrentDictionary<string, DateTimeOffset>>(field.GetValue(store));
     }
 }
