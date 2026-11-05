@@ -23,15 +23,18 @@ public sealed class DistributedMutationCancellationTests
         var backend = new IgnoringCancellationCache(cancellation);
         var store = new DistributedRevocationStore(backend);
 
-        Task Execute() => operation switch
+        Task Execute()
         {
-            "RevokeJti" => store.RevokeJtiAsync("jti", DateTimeOffset.UtcNow.AddMinutes(10), cancellation.Token),
-            "RevokeKey" => store.RevokeKeyAsync("kid", cancellation.Token),
-            "UnrevokeKey" => store.UnrevokeKeyAsync("kid", cancellation.Token),
-            "RevokeUser" => store.RevokeUserAsync("subject", cancellation.Token),
-            "UnrevokeUser" => store.UnrevokeUserAsync("subject", cancellation.Token),
-            _ => throw new ArgumentOutOfRangeException(nameof(operation))
-        };
+            return operation switch
+            {
+                "RevokeJti" => store.RevokeJtiAsync("jti", DateTimeOffset.UtcNow.AddMinutes(10), cancellation.Token),
+                "RevokeKey" => store.RevokeKeyAsync("kid", cancellation.Token),
+                "UnrevokeKey" => store.UnrevokeKeyAsync("kid", cancellation.Token),
+                "RevokeUser" => store.RevokeUserAsync("subject", cancellation.Token),
+                "UnrevokeUser" => store.UnrevokeUserAsync("subject", cancellation.Token),
+                _ => throw new ArgumentOutOfRangeException(nameof(operation))
+            };
+        }
 
         _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(Execute);
         Assert.Equal(1, backend.MutationCalls);
