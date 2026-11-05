@@ -116,7 +116,6 @@ public class ReplayAdmissionRegressionTests
         Assert.True(await cache.ExistsAsync("issuer", "first", token));
     }
 
-
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -139,12 +138,15 @@ public class ReplayAdmissionRegressionTests
         var key = RandomNumberGenerator.GetBytes(32);
         var exp = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
         var signer = new JwtSigner();
-        string CreateToken(string jti) => signer.CreateJwt(new Dictionary<string, object>
+        string CreateToken(string jti)
         {
-            ["iss"] = "issuer",
-            ["jti"] = jti,
-            ["exp"] = exp
-        }, key, SignatureAlgorithm.HS256) + "~";
+            return signer.CreateJwt(new Dictionary<string, object>
+            {
+                ["iss"] = "issuer",
+                ["jti"] = jti,
+                ["exp"] = exp
+            }, key, SignatureAlgorithm.HS256) + "~";
+        }
         var original = CreateToken("first");
         var newcomer = CreateToken("second");
         var token = TestContext.Current.CancellationToken;
