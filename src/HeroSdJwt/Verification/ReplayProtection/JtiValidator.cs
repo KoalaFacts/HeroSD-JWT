@@ -156,8 +156,13 @@ public class JtiValidator
             // Also fail closed if this in-memory cache has been disposed.
             throw;
         }
-        catch (Exception) when (_options.FailureMode == CacheFailureMode.FailOpen)
+        catch (Exception error) when (
+            _options.FailureMode == CacheFailureMode.FailOpen &&
+            error is not ArgumentException &&
+            error is not SdJwtException)
         {
+            // Invalid provider inputs and explicit domain validation failures
+            // are not storage outages. Never accept an untracked credential.
             cancellationToken.ThrowIfCancellationRequested();
             return;
         }
