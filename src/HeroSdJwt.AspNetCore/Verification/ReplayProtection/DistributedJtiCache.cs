@@ -41,7 +41,11 @@ public sealed class DistributedJtiCache : IJtiCache
 
         var key = BuildKey(issuer, jti);
 
-        return await _cache.TryAddAsync(key, [1], ttl, cancellationToken).ConfigureAwait(false);
+        var added = await _cache.TryAddAsync(key, [1], ttl, cancellationToken).ConfigureAwait(false);
+        // A backend may commit the marker and then ignore caller cancellation.
+        // Never report a result from a canceled admission.
+        cancellationToken.ThrowIfCancellationRequested();
+        return added;
     }
 
     /// <inheritdoc />
@@ -55,6 +59,9 @@ public sealed class DistributedJtiCache : IJtiCache
 
         var key = BuildKey(issuer, jti);
         var value = await _cache.GetAsync(key, cancellationToken).ConfigureAwait(false);
+        // A backend may return normally after cancellation. Do not expose
+        // its stale answer as a valid replay-marker lookup.
+        cancellationToken.ThrowIfCancellationRequested();
         return value != null;
     }
 
