@@ -22,7 +22,7 @@ public sealed class DirectKeySignatureCanonicalizationTests
         var altered = WithNoncanonicalSignature(jwt);
 
         Assert.True(new SignatureValidator().VerifyJwtSignature(jwt, _key));
-        Assert.False(SignatureValidator.HasCanonicalBase64UrlEncoding(altered[(altered.LastIndexOf('.') + 1)..]));
+        Assert.False(SignatureValidator.HasCanonicalBase64UrlEncoding(altered.AsSpan(altered.LastIndexOf('.') + 1)));
 
         var exception = Assert.Throws<SdJwtException>(() =>
             new SignatureValidator().VerifyJwtSignature(altered, _key));
