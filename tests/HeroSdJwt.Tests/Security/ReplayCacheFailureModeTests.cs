@@ -71,6 +71,36 @@ public sealed class ReplayCacheFailureModeTests
     }
 
     [Fact]
+    public async Task Should_RejectInvalidCacheKey_WhenPolicyIsFailOpen()
+    {
+        // A provider refusing an invalid key is not a temporary storage outage.
+        // Accepting the credential would bypass replay-marker admission.
+        var failure = new ArgumentException("Replay cache key cannot be stored", "jti");
+        var cache = new FaultingCache(failure);
+        var validator = new JtiValidator(cache, NewOptions(CacheFailureMode.FailOpen));
+
+        var observed = await Assert.ThrowsAsync<ArgumentException>(() =>
+            validator.ValidateAsync(ValidClaims(), TestContext.Current.CancellationToken));
+
+        Assert.Same(failure, observed);
+        Assert.Equal(1, cache.Attempts);
+    }
+
+    [Fact]
+    public async Task Should_RejectProviderDomainValidation_WhenPolicyIsFailOpen()
+    {
+        var failure = new SdJwtException("Invalid replay marker", ErrorCode.InvalidInput);
+        var cache = new FaultingCache(failure);
+        var validator = new JtiValidator(cache, NewOptions(CacheFailureMode.FailOpen));
+
+        var observed = await Assert.ThrowsAsync<SdJwtException>(() =>
+            validator.ValidateAsync(ValidClaims(), TestContext.Current.CancellationToken));
+
+        Assert.Same(failure, observed);
+        Assert.Equal(1, cache.Attempts);
+    }
+
+    [Fact]
     public async Task Should_PropagateCacheReportedReplay_WhenPolicyIsFailOpen()
     {
         // A custom atomic provider may report a known replay with the domain
