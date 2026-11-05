@@ -1185,12 +1185,21 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 // Compute SD-JWT hash for key binding validation
                 // The hash is computed over: JWT~disclosure1~disclosure2~...~
                 // (everything before the key binding JWT, including the trailing tilde)
-                var sdJwtParts = parts.Take(parts.Length - 1);
-                var sdJwtString = string.Join("~", sdJwtParts) + "~";
                 string sdJwtHash;
                 try
                 {
-                    var sdJwtBytes = System.Text.Encoding.UTF8.GetBytes(sdJwtString);
+                    // The last component is the KB-JWT. Its preceding '~' is
+                    // part of the signed SD-JWT hash input. Hash that exact
+                    // prefix without reconstructing and copying every part
+                    // into an additional large UTF-16 string.
+                    var prefixLength = presentation.Length - keyBindingJwt.Length;
+                    // Span-based encoding preserves the exact wire input without
+                    // allocating an intermediate UTF-16 substring. The two-argument
+                    // overload writes into the correctly sized UTF-8 destination.
+                    var sdJwtBytes = new byte[System.Text.Encoding.UTF8.GetByteCount(
+                        presentation.AsSpan(0, prefixLength))];
+                    System.Text.Encoding.UTF8.GetBytes(
+                        presentation.AsSpan(0, prefixLength), sdJwtBytes);
                     var hashBytes = algorithm switch
                     {
                         HashAlgorithm.Sha256 => SHA256.HashData(sdJwtBytes),
