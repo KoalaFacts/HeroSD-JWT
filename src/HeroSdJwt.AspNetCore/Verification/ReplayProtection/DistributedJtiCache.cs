@@ -66,7 +66,7 @@ public sealed class DistributedJtiCache : IJtiCache
     }
 
     /// <inheritdoc />
-    public Task RemoveAsync(
+    public async Task RemoveAsync(
         string issuer,
         string jti,
         CancellationToken cancellationToken = default)
@@ -75,7 +75,10 @@ public sealed class DistributedJtiCache : IJtiCache
         cancellationToken.ThrowIfCancellationRequested();
 
         var key = BuildKey(issuer, jti);
-        return _cache.RemoveAsync(key, cancellationToken);
+        await _cache.RemoveAsync(key, cancellationToken).ConfigureAwait(false);
+        // A backend may complete the removal despite caller cancellation.
+        // Do not report successful completion of the canceled operation.
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     private string BuildKey(string issuer, string jti)
