@@ -35,10 +35,19 @@ internal static class StorageFailureClassifier
         {
             // Provider-reported nontransient errors include schema/constraint faults.
             DbException databaseError => databaseError.IsTransient,
-            // HTTP 401/403/404 and other client errors are not outages.
+            // .NET 8+ reports specific HTTP failures even without a response
+            // status or inner exception. TLS trust, authentication, and
+            // malformed responses must not bypass replay or revocation.
             HttpRequestException httpError =>
-                httpError.StatusCode is null or HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests ||
-                (int)httpError.StatusCode.Value >= 500,
+                (httpError.HttpRequestError is HttpRequestError.Unknown or
+                    HttpRequestError.NameResolutionError or HttpRequestError.ConnectionError or
+                    HttpRequestError.ResponseEnded) &&
+                (httpError.StatusCode is null or HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests ||
+                    (int)httpError.StatusCode.Value >= 500),
+            // HttpIOException derives from IOException: a malformed or
+            // oversized response is not a temporary network interruption.
+            HttpIOException httpIoError =>
+                httpIoError.HttpRequestError is HttpRequestError.ConnectionError or HttpRequestError.ResponseEnded,
             // These IOException subclasses can reflect corrupt records or
             // broken local configuration rather than temporary transport faults.
             InvalidDataException or EndOfStreamException or FileNotFoundException or
