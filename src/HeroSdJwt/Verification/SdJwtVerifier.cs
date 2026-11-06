@@ -997,8 +997,21 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             var seenDigests = new HashSet<string>(StringComparer.Ordinal);
             var nonArrayDisclosures = new List<string>();
             var arrayDisclosures = new List<string>();
-            if (!CollectAllSdDigests(
-                payload, expectedDigests, arrayDigests, algorithm, seenDigests, allowTopLevelSdAlg: true))
+            // The signed JWT payload follows the same nesting ceiling as
+            // Disclosure values. Its traversal must return a domain failure,
+            // not leak ArgumentException from the throwing verification APIs.
+            bool payloadDigestsValid;
+            try
+            {
+                payloadDigestsValid = CollectAllSdDigests(
+                    payload, expectedDigests, arrayDigests, algorithm, seenDigests, allowTopLevelSdAlg: true);
+            }
+            catch (ArgumentException)
+            {
+                payloadDigestsValid = false;
+            }
+
+            if (!payloadDigestsValid)
             {
                 errors.Add(ErrorCode.InvalidInput);
                 return new VerificationResult(errors, "Invalid or repeated SD-JWT disclosure digest reference");
