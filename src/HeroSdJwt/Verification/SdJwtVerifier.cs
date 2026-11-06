@@ -481,6 +481,15 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
+            // A malformed compact payload cannot be verified by the built-in JWS
+            // validator. Reject it before contacting a potentially remote key resolver.
+            if (!SignatureValidator.HasCanonicalBase64UrlEncoding(jwtParts[1]))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("JWT payload has invalid base64url encoding");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
             var headerJson = Base64UrlEncoder.DecodeString(jwtParts[0]);
             using var headerDocument = JsonDocument.Parse(headerJson);
             var header = headerDocument.RootElement;
