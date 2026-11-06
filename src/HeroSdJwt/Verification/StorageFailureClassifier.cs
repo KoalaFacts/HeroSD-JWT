@@ -3,9 +3,6 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
-using System.Security;
-using System.Security.Authentication;
-using System.Security.Cryptography;
 
 namespace HeroSdJwt.Verification;
 
@@ -18,32 +15,39 @@ internal static class StorageFailureClassifier
 {
     internal static bool IsTransient(Exception error)
     {
-        // HTTP clients and storage providers can wrap permanent TLS trust,
-        // authorization or decryption failures inside IOException or
-        // HttpRequestException. These must never bypass replay/revocation.
+        // Storage libraries can wrap a corrupt record, rejected request or
+        // invalid provider state inside a recognizable transport exception.
+        // Every cause must be a known temporary failure: classifying only the
+        // outermost wrapper could silently bypass replay and revocation checks.
         for (Exception? cause = error; cause is not null; cause = cause.InnerException)
         {
-            if (cause is AuthenticationException or UnauthorizedAccessException or
-                SecurityException or CryptographicException)
+            if (!IsKnownTemporaryFailure(cause))
             {
                 return false;
             }
         }
 
-        return error switch
+        return true;
+    }
+
+    private static bool IsKnownTemporaryFailure(Exception cause) =>
+        cause switch
         {
-            // DbException also covers schema and constraint errors, which
-            // cannot safely bypass revocation or replay protection.
+            // Provider-reported nontransient errors include schema/constraint faults.
             DbException databaseError => databaseError.IsTransient,
-            // Authentication/configuration mistakes (e.g. HTTP 401/403/404)
-            // require intervention. Allow only timeout, throttling or 5xx.
+            // HTTP 401/403/404 and other client errors are not outages.
             HttpRequestException httpError =>
                 httpError.StatusCode is null or HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests ||
                 (int)httpError.StatusCode.Value >= 500,
+            // These IOException subclasses can reflect corrupt records or
+            // broken local configuration rather than temporary transport faults.
+            InvalidDataException or EndOfStreamException or FileNotFoundException or
+                DirectoryNotFoundException or PathTooLongException => false,
             IOException => true,
             TimeoutException => true,
             SocketException => true,
+            // Unknown nested causes (including TLS trust, cancellation,
+            // authorization, JSON parsing and invalid provider state) fail closed.
             _ => false
         };
-    }
 }
