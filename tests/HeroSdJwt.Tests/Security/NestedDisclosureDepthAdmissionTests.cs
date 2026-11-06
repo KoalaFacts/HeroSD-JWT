@@ -1,4 +1,5 @@
 using HeroSdJwt.Encoding;
+using HeroSdJwt.Exceptions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
@@ -63,6 +64,62 @@ public class NestedDisclosureDepthAdmissionTests
             Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
             Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
             Assert.Contains(ErrorCode.InvalidInput, asyncDirect.Errors);
+        }
+    }
+
+    [Theory]
+    [InlineData(9, true)]
+    [InlineData(10, false)]
+    public async Task Should_PreserveDomainError_WhenSignedPayloadExceedsDigestDepth(
+        int nestingDepth, bool shouldAccept)
+    {
+        // Unlike a presented Disclosure, nested signed JWT claims are visited
+        // starting from the issuer payload root (one additional depth level).
+        var claimValue = "42";
+        for (var i = 0; i < nestingDepth; i++)
+        {
+            claimValue = $"{{\"child\":{claimValue}}}";
+        }
+
+        var payload = $"{{\"exp\":4102444800,\"profile\":{claimValue}}}";
+        var header = Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256","kid":"depth-test-key"}""");
+        var signingInput = header + "." + Base64UrlEncoder.Encode(payload);
+        var signature = HMACSHA256.HashData(_signingKey, System.Text.Encoding.UTF8.GetBytes(signingInput));
+        var presentation = signingInput + "." + Base64UrlEncoder.Encode(signature) + "~";
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .Build();
+
+        var direct = verifier.TryVerifyPresentation(presentation, _signingKey);
+        var resolved = verifier.TryVerifyPresentation(
+            presentation, kid => kid == "depth-test-key" ? _signingKey : null);
+        var asyncDirect = await verifier.TryVerifyPresentationAsync(
+            presentation, _signingKey, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(shouldAccept, direct.IsValid);
+        Assert.Equal(shouldAccept, resolved.IsValid);
+        Assert.Equal(shouldAccept, asyncDirect.IsValid);
+
+        if (!shouldAccept)
+        {
+            Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
+            Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
+            Assert.Contains(ErrorCode.InvalidInput, asyncDirect.Errors);
+
+            // Prior to the fix, the internal depth guard leaked a plain
+            // ArgumentException from throwing sync/async verification APIs.
+            var directError = Assert.Throws<SdJwtException>(() =>
+                verifier.VerifyPresentation(presentation, _signingKey));
+            var resolvedError = Assert.Throws<SdJwtException>(() =>
+                verifier.VerifyPresentation(presentation,
+                    kid => kid == "depth-test-key" ? _signingKey : null));
+            var asyncError = await Assert.ThrowsAsync<SdJwtException>(() =>
+                verifier.VerifyPresentationAsync(
+                    presentation, _signingKey, cancellationToken: TestContext.Current.CancellationToken));
+
+            Assert.Equal(ErrorCode.InvalidInput, directError.ErrorCode);
+            Assert.Equal(ErrorCode.InvalidInput, resolvedError.ErrorCode);
+            Assert.Equal(ErrorCode.InvalidInput, asyncError.ErrorCode);
         }
     }
 }
