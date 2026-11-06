@@ -213,6 +213,51 @@ public sealed class ReplayCacheFailureModeTests
         Assert.Equal(1, cache.Attempts);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_RejectMalformedCacheRecord_DespiteFailOpen(bool resolveKey)
+    {
+        // The previous catch-all fail-open branch silently admitted this credential.
+        const string diagnostic = "private-malformed-replay-cache-record";
+        const string keyId = "malformed-replay-cache-key";
+        var cache = new FaultingCache(new FormatException(diagnostic));
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .WithReplayProtection(new JtiValidator(cache, NewOptions(CacheFailureMode.FailOpen)))
+            .Build();
+        var presentation = SdJwtIssuerBuilder.Create()
+            .WithKeyId(keyId)
+            .WithClaim("iss", "https://issuer.example.test")
+            .WithClaim("jti", "malformed-replay-record-token")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds())
+            .SignWithHmac(_signingKey)
+            .Build()
+            .ToPresentation();
+
+        var result = resolveKey
+            ? await verifier.TryVerifyPresentationAsync(
+                presentation, id => id == keyId ? _signingKey : null,
+                cancellationToken: TestContext.Current.CancellationToken)
+            : verifier.TryVerifyPresentation(presentation, _signingKey);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.DoesNotContain(diagnostic, result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(1, cache.Attempts);
+    }
+
+    [Fact]
+    public async Task Should_AllowTimeout_WhenCacheFailureModeIsFailOpen()
+    {
+        var cache = new FaultingCache(new TimeoutException("temporary cache timeout"));
+        var validator = new JtiValidator(cache, NewOptions(CacheFailureMode.FailOpen));
+
+        await validator.ValidateAsync(ValidClaims(), TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, cache.Attempts);
+    }
+
     [Fact]
     public async Task Should_PropagateCacheReportedReplay_WhenPolicyIsFailOpen()
     {

@@ -36,7 +36,8 @@ public enum RevocationFailureMode
     FailClosed,
 
     /// <summary>
-    /// Fail open: Allow tokens if revocation check fails.
+    /// Fail open on recognized transient transport failures and timeouts.
+    /// Unknown provider failures and corrupted records still fail closed.
     /// This prioritizes availability over security.
     /// Use this only if high availability is more important than the risk
     /// of accepting revoked tokens during storage outages.

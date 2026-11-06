@@ -157,15 +157,10 @@ public class JtiValidator
         }
         catch (Exception error) when (
             _options.FailureMode == CacheFailureMode.FailOpen &&
-            error is not ArgumentException &&
-            error is not SdJwtException &&
-            error is not ObjectDisposedException &&
-            error is not NotSupportedException &&
-            error is not NotImplementedException)
+            StorageFailureClassifier.IsTransient(error))
         {
-            // Invalid inputs, unsupported provider capabilities, domain rejections
-            // and disposed caches are not transient outages. Never authenticate
-            // a credential when its replay admission cannot be enforced.
+            // Only known transport failures and timeouts may bypass admission.
+            // Malformed records or unknown provider failures must fail closed.
             cancellationToken.ThrowIfCancellationRequested();
             return;
         }

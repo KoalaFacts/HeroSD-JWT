@@ -137,6 +137,48 @@ public sealed class PartialRevocationStoreFailureTests
         Assert.Equal(1, store.GetLookupCount(lookup));
     }
 
+    [Theory]
+    [InlineData("jti", false)]
+    [InlineData("jti", true)]
+    [InlineData("key", false)]
+    [InlineData("key", true)]
+    [InlineData("user", false)]
+    [InlineData("user", true)]
+    public async Task Should_RejectMalformedRevocationRecord_DespiteFailOpen(
+        string lookup, bool resolveKey)
+    {
+        // A backend parsing error is not evidence that the token is not revoked.
+        const string diagnostic = BACKEND_SECRET;
+        var store = new PartialFailureStore(
+            lookup, revokedLookup: null, new FormatException(diagnostic));
+        var verifier = CreateVerifier(store);
+        var presentation = CreatePresentation();
+
+        var result = resolveKey
+            ? await verifier.TryVerifyPresentationAsync(
+                presentation, ResolveKey, cancellationToken: TestContext.Current.CancellationToken)
+            : verifier.TryVerifyPresentation(presentation, _signingKey);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.DoesNotContain(diagnostic, result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(1, store.GetLookupCount(lookup));
+    }
+
+    [Fact]
+    public void Should_AllowTransientRevocationTimeout_WhenFailOpen()
+    {
+        var store = new PartialFailureStore(
+            "jti", revokedLookup: null, new TimeoutException(BACKEND_SECRET));
+        var verifier = CreateVerifier(store);
+
+        var result = verifier.TryVerifyPresentation(CreatePresentation(), _signingKey);
+
+        Assert.True(result.IsValid, result.ErrorDetails);
+        Assert.Equal(1, store.GetLookupCount("key"));
+        Assert.Equal(1, store.GetLookupCount("user"));
+    }
+
     private static SdJwtVerifier CreateVerifier(IRevocationStore store) =>
         TestHelpers.CreateVerifierWithRevocation(
             new SdJwtVerificationOptions
