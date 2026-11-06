@@ -72,6 +72,7 @@ public sealed class MalformedSignatureResolverPreflightTests
     [InlineData("padding")]
     [InlineData("nonzero-unused-bits")]
     [InlineData("invalid-length")]
+    [InlineData("empty")]
     public async Task Should_RejectMalformedPayloadBeforeKeyResolution(string corruption)
     {
         // The two-sextet tail permits a noncanonical encoding with unchanged length.
@@ -88,6 +89,7 @@ public sealed class MalformedSignatureResolverPreflightTests
             "nonzero-unused-bits" => payload[..^1] +
                 BASE64URL_ALPHABET[BASE64URL_ALPHABET.IndexOf(payload[^1]) + 1],
             "invalid-length" => payload[..^1],
+            "empty" => string.Empty,
             _ => throw new ArgumentOutOfRangeException(nameof(corruption))
         };
         var invalidJwt = jwt[..payloadStart] + invalidPayload + jwt[payloadEnd..];
