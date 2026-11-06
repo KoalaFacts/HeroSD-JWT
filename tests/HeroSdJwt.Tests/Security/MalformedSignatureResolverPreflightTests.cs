@@ -67,6 +67,59 @@ public sealed class MalformedSignatureResolverPreflightTests
         Assert.Equal(0, resolverCalls);
     }
 
+    [Theory]
+    [InlineData("invalid-character")]
+    [InlineData("padding")]
+    [InlineData("nonzero-unused-bits")]
+    [InlineData("invalid-length")]
+    public async Task Should_RejectMalformedPayloadBeforeKeyResolution(string corruption)
+    {
+        // The two-sextet tail permits a noncanonical encoding with unchanged length.
+        var jwt = SignJwt(/*lang=json,strict*/ """{"exp":4102444800,"sub":"a"}""");
+        var payloadStart = jwt.IndexOf('.') + 1;
+        var payloadEnd = jwt.IndexOf('.', payloadStart);
+        var payload = jwt[payloadStart..payloadEnd];
+        Assert.Equal(2, payload.Length % 4);
+
+        var invalidPayload = corruption switch
+        {
+            "invalid-character" => "!" + payload[1..],
+            "padding" => payload[..^1] + "=",
+            "nonzero-unused-bits" => payload[..^1] +
+                BASE64URL_ALPHABET[BASE64URL_ALPHABET.IndexOf(payload[^1]) + 1],
+            "invalid-length" => payload[..^1],
+            _ => throw new ArgumentOutOfRangeException(nameof(corruption))
+        };
+        var invalidJwt = jwt[..payloadStart] + invalidPayload + jwt[payloadEnd..];
+
+        var resolverCalls = 0;
+        byte[]? Resolve(string _)
+        {
+            resolverCalls++;
+            return _issuerKey;
+        }
+
+        var standaloneError = Assert.Throws<SdJwtException>(() =>
+            new SignatureValidator().VerifyJwtSignature(invalidJwt, Resolve));
+        Assert.Equal(ErrorCode.InvalidInput, standaloneError.ErrorCode);
+        Assert.Equal(0, resolverCalls);
+
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .Build();
+
+        var sync = verifier.TryVerifyPresentation(invalidJwt + "~", Resolve);
+        Assert.False(sync.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, sync.Errors);
+        Assert.Equal(0, resolverCalls);
+
+        var asyncResult = await verifier.TryVerifyPresentationAsync(
+            invalidJwt + "~", Resolve, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.False(asyncResult.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, asyncResult.Errors);
+        Assert.Equal(0, resolverCalls);
+    }
+
     [Fact]
     public async Task Should_ResolveOneKeyForWellFormedSignedJwt()
     {
@@ -90,10 +143,9 @@ public sealed class MalformedSignatureResolverPreflightTests
         Assert.Equal(2, resolverCalls);
     }
 
-    private static string SignJwt()
+    private static string SignJwt(string payload = /*lang=json,strict*/ """{"exp":4102444800}""")
     {
         const string header = /*lang=json,strict*/ """{"alg":"HS256","kid":"signature-preflight-key"}""";
-        const string payload = /*lang=json,strict*/ """{"exp":4102444800}""";
         var input = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payload);
         var signature = HMACSHA256.HashData(_issuerKey, System.Text.Encoding.UTF8.GetBytes(input));
         return input + "." + Base64UrlEncoder.Encode(signature);
