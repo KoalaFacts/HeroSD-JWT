@@ -177,6 +177,42 @@ public sealed class ReplayCacheFailureModeTests
         Assert.Equal(1, cache.Attempts);
     }
 
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_RejectInvalidProviderState_WhenReplayCacheIsFailOpen(bool resolveKey)
+    {
+        // Custom atomic adapters can reject admission when their consistency
+        // requirements are not met. That must not become an untracked success.
+        const string diagnostic = "private-inconsistent-replay-cache-state";
+        const string keyId = "invalid-replay-cache-state";
+        var cache = new FaultingCache(new InvalidOperationException(diagnostic));
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .WithReplayProtection(new JtiValidator(cache, NewOptions(CacheFailureMode.FailOpen)))
+            .Build();
+        var presentation = SdJwtIssuerBuilder.Create()
+            .WithKeyId(keyId)
+            .WithClaim("iss", "https://issuer.example.test")
+            .WithClaim("jti", "invalid-state-replay-token")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds())
+            .SignWithHmac(_signingKey)
+            .Build()
+            .ToPresentation();
+
+        var result = resolveKey
+            ? await verifier.TryVerifyPresentationAsync(
+                presentation, id => id == keyId ? _signingKey : null,
+                cancellationToken: TestContext.Current.CancellationToken)
+            : verifier.TryVerifyPresentation(presentation, _signingKey);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.DoesNotContain(diagnostic, result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(1, cache.Attempts);
+    }
+
     [Fact]
     public async Task Should_PropagateCacheReportedReplay_WhenPolicyIsFailOpen()
     {

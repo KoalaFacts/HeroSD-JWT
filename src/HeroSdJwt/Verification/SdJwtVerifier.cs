@@ -1744,9 +1744,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             error is not SdJwtException &&
             error is not ObjectDisposedException &&
             error is not NotSupportedException &&
-            error is not NotImplementedException)
+            error is not NotImplementedException &&
+            error is not InvalidOperationException)
         {
-            // Disposed stores and unsupported provider capabilities are permanent
+            // Disposed stores, invalid provider state and unsupported capabilities are permanent
             // contract failures, not transient outages. Never bypass revocation.
             cancellationToken.ThrowIfCancellationRequested();
             // Never expose secrets from backend exception messages.
