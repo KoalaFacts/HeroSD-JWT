@@ -1,4 +1,8 @@
+using System.Data.Common;
+using System.IO;
 using System.Net;
+using System.Net.Http;
+using System.Net.Sockets;
 
 namespace HeroSdJwt.Verification;
 
@@ -14,15 +18,15 @@ internal static class StorageFailureClassifier
         {
             // DbException also covers schema and constraint errors, which
             // cannot safely bypass revocation or replay protection.
-            System.Data.Common.DbException databaseError => databaseError.IsTransient,
+            DbException databaseError => databaseError.IsTransient,
             // Authentication/configuration mistakes (e.g. HTTP 401/403/404)
             // require intervention. Allow only timeout, throttling or 5xx.
-            System.Net.Http.HttpRequestException httpError =>
+            HttpRequestException httpError =>
                 httpError.StatusCode is null or HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests ||
                 (int)httpError.StatusCode.Value >= 500,
-            System.IO.IOException => true,
+            IOException => true,
             TimeoutException => true,
-            System.Net.Sockets.SocketException => true,
+            SocketException => true,
             _ => false
         };
 }
