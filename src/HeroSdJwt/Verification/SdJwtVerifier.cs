@@ -819,7 +819,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             // but the generic provider-error catch below would misclassify
             // malformed JOSE text as an ordinary signature mismatch. Match
             // the resolver preflight before invoking cryptographic verification.
+            // A missing signature for "none" must reach algorithm validation,
+            // preserving AlgorithmConfusion; valid algorithms still fail closed.
             if (_signatureValidator.GetType() == typeof(SignatureValidator) &&
+                jwtParts[2].Length > 0 &&
                 !SignatureValidator.HasCanonicalBase64UrlEncoding(jwtParts[2]))
             {
                 errors.Add(ErrorCode.InvalidInput);
