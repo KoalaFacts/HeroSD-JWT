@@ -147,13 +147,12 @@ public class JtiValidator
             // An atomic provider's affirmative replay report is not an outage.
             throw;
         }
-        catch (InvalidOperationException) when (_cache is InMemoryJtiCache)
+        catch (InvalidOperationException)
         {
-            // The built-in cache deliberately rejects admission at capacity
-            // instead of evicting a live replay marker. This is a security
-            // boundary, not a transient remote-cache outage: even FailOpen
-            // must not authenticate a token that cannot be replay-protected.
-            // Also fail closed if this in-memory cache has been disposed.
+            // A provider reporting invalid state cannot guarantee atomic replay
+            // admission, regardless of whether it is the built-in cache or a
+            // custom adapter. This is not a transient outage: fail closed even
+            // when the caller explicitly selected FailOpen for storage failures.
             throw;
         }
         catch (Exception error) when (

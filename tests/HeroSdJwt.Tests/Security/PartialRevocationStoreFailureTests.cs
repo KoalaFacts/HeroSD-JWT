@@ -108,6 +108,35 @@ public sealed class PartialRevocationStoreFailureTests
         Assert.Equal(1, store.GetLookupCount(lookup));
     }
 
+
+    [Theory]
+    [InlineData("jti", false)]
+    [InlineData("jti", true)]
+    [InlineData("key", false)]
+    [InlineData("key", true)]
+    [InlineData("user", false)]
+    [InlineData("user", true)]
+    public async Task Should_RejectInvalidProviderState_WhenRevocationIsFailOpen(
+        string lookup, bool resolveKey)
+    {
+        // A store rejecting a lookup because it is in an invalid state is not
+        // reporting a transient outage. All three revocation checks fail closed.
+        var store = new PartialFailureStore(
+            lookup, revokedLookup: null, new InvalidOperationException(BACKEND_SECRET));
+        var verifier = CreateVerifier(store);
+        var presentation = CreatePresentation();
+
+        var result = resolveKey
+            ? await verifier.TryVerifyPresentationAsync(
+                presentation, ResolveKey, cancellationToken: TestContext.Current.CancellationToken)
+            : verifier.TryVerifyPresentation(presentation, _signingKey);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.DoesNotContain(BACKEND_SECRET, result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(1, store.GetLookupCount(lookup));
+    }
+
     private static SdJwtVerifier CreateVerifier(IRevocationStore store) =>
         TestHelpers.CreateVerifierWithRevocation(
             new SdJwtVerificationOptions
