@@ -77,6 +77,37 @@ public sealed class PartialRevocationStoreFailureTests
         Assert.DoesNotContain(nameof(InMemoryRevocationStore), result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
     }
 
+
+    [Theory]
+    [InlineData("jti", false, false)]
+    [InlineData("jti", true, true)]
+    [InlineData("key", false, true)]
+    [InlineData("key", true, false)]
+    [InlineData("user", false, false)]
+    [InlineData("user", true, true)]
+    public async Task Should_RejectUnsupportedRevocationLookup_DespiteFailOpen(
+        string lookup, bool resolveKey, bool notImplemented)
+    {
+        // Unsupported operations are broken provider contracts rather than
+        // transient outages. Neither exception detail may reach callers.
+        var failure = notImplemented
+            ? (Exception)new NotImplementedException(BACKEND_SECRET)
+            : new NotSupportedException(BACKEND_SECRET);
+        var store = new PartialFailureStore(lookup, revokedLookup: null, failure);
+        var verifier = CreateVerifier(store);
+        var presentation = CreatePresentation();
+
+        var result = resolveKey
+            ? await verifier.TryVerifyPresentationAsync(
+                presentation, ResolveKey, cancellationToken: TestContext.Current.CancellationToken)
+            : verifier.TryVerifyPresentation(presentation, _signingKey);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.DoesNotContain(BACKEND_SECRET, result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(1, store.GetLookupCount(lookup));
+    }
+
     private static SdJwtVerifier CreateVerifier(IRevocationStore store) =>
         TestHelpers.CreateVerifierWithRevocation(
             new SdJwtVerificationOptions
@@ -100,7 +131,7 @@ public sealed class PartialRevocationStoreFailureTests
     private static byte[]? ResolveKey(string keyId) =>
         keyId == KEY_ID ? _signingKey : null;
 
-    private sealed class PartialFailureStore(string failingLookup, string? revokedLookup) : IRevocationStore
+    private sealed class PartialFailureStore(string failingLookup, string? revokedLookup, Exception? failure = null) : IRevocationStore
     {
         private int _jtiReads;
         private int _keyReads;
@@ -118,7 +149,7 @@ public sealed class PartialRevocationStoreFailureTests
         {
             if (lookup == failingLookup)
             {
-                return Task.FromException<bool>(new IOException(BACKEND_SECRET));
+                return Task.FromException<bool>(failure ?? new IOException(BACKEND_SECRET));
             }
 
             return Task.FromResult(lookup == revokedLookup);

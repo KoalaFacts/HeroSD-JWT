@@ -160,11 +160,13 @@ public class JtiValidator
             _options.FailureMode == CacheFailureMode.FailOpen &&
             error is not ArgumentException &&
             error is not SdJwtException &&
-            error is not ObjectDisposedException)
+            error is not ObjectDisposedException &&
+            error is not NotSupportedException &&
+            error is not NotImplementedException)
         {
-            // Invalid provider inputs, explicit domain rejections and disposed
-            // cache instances are not transient outages. Never authenticate an
-            // untracked credential when its replay protection is unavailable.
+            // Invalid inputs, unsupported provider capabilities, domain rejections
+            // and disposed caches are not transient outages. Never authenticate
+            // a credential when its replay admission cannot be enforced.
             cancellationToken.ThrowIfCancellationRequested();
             return;
         }
