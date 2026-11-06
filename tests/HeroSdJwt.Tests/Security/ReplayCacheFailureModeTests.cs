@@ -5,6 +5,8 @@ using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using HeroSdJwt.Verification.ReplayProtection;
 using System.Text.Json;
+using System.Net.Http;
+using System.Security.Authentication;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -282,6 +284,21 @@ public sealed class ReplayCacheFailureModeTests
 
         await Assert.ThrowsAsync<ReplayAttackException>(() =>
             validator.ValidateAsync(ValidClaims(), TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Should_RejectWrappedTlsTrustFailure_WhenReplayIsFailOpen()
+    {
+        var failure = new HttpRequestException(
+            "private-cache-tls-diagnostic", new AuthenticationException("certificate invalid"));
+        var cache = new FaultingCache(failure);
+        var validator = new JtiValidator(cache, NewOptions(CacheFailureMode.FailOpen));
+
+        var observed = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            validator.ValidateAsync(ValidClaims(), TestContext.Current.CancellationToken));
+
+        Assert.Same(failure, observed);
+        Assert.Equal(1, cache.Attempts);
     }
 
     [Fact]

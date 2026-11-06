@@ -2,6 +2,9 @@ using HeroSdJwt.Verification;
 using System.Data.Common;
 using System.Net;
 using System.Net.Http;
+using System.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -37,6 +40,29 @@ public sealed class StorageFailureClassifierTests
         Assert.True(StorageFailureClassifier.IsTransient(new IOException("backend offline")));
         Assert.True(StorageFailureClassifier.IsTransient(new TimeoutException("request expired")));
         Assert.True(StorageFailureClassifier.IsTransient(new HttpRequestException("connection reset")));
+    }
+
+    [Fact]
+    public void Should_RejectAuthenticationAndAuthorizationFailuresWrappedByTransportErrors()
+    {
+        // A transport exception is not evidence of a temporary outage when
+        // the underlying failure is TLS trust, access policy or cryptography.
+        Exception[] errors =
+        [
+            new HttpRequestException("TLS certificate rejected",
+                new AuthenticationException("untrusted certificate")),
+            new HttpRequestException("storage credentials rejected",
+                new UnauthorizedAccessException("access denied")),
+            new IOException("secure channel failed",
+                new SecurityException("permission denied")),
+            new IOException("invalid protected payload",
+                new CryptographicException("decryption failed"))
+        ];
+
+        foreach (var error in errors)
+        {
+            Assert.False(StorageFailureClassifier.IsTransient(error));
+        }
     }
 
     [Fact]

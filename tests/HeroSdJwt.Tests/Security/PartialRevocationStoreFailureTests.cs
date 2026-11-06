@@ -2,6 +2,8 @@ using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using HeroSdJwt.Verification.Revocation;
+using System.Net.Http;
+using System.Security.Authentication;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -163,6 +165,22 @@ public sealed class PartialRevocationStoreFailureTests
         Assert.Contains(ErrorCode.InvalidInput, result.Errors);
         Assert.DoesNotContain(diagnostic, result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
         Assert.Equal(1, store.GetLookupCount(lookup));
+    }
+
+    [Fact]
+    public void Should_RejectWrappedTlsTrustFailure_WhenRevocationIsFailOpen()
+    {
+        var failure = new HttpRequestException(
+            BACKEND_SECRET, new AuthenticationException("untrusted backend certificate"));
+        var store = new PartialFailureStore("jti", revokedLookup: null, failure);
+        var verifier = CreateVerifier(store);
+
+        var result = verifier.TryVerifyPresentation(CreatePresentation(), _signingKey);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.DoesNotContain(BACKEND_SECRET, result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(1, store.GetLookupCount("jti"));
     }
 
     [Fact]
