@@ -159,10 +159,12 @@ public class JtiValidator
         catch (Exception error) when (
             _options.FailureMode == CacheFailureMode.FailOpen &&
             error is not ArgumentException &&
-            error is not SdJwtException)
+            error is not SdJwtException &&
+            error is not ObjectDisposedException)
         {
-            // Invalid provider inputs and explicit domain validation failures
-            // are not storage outages. Never accept an untracked credential.
+            // Invalid provider inputs, explicit domain rejections and disposed
+            // cache instances are not transient outages. Never authenticate an
+            // untracked credential when its replay protection is unavailable.
             cancellationToken.ThrowIfCancellationRequested();
             return;
         }
