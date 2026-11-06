@@ -12,8 +12,8 @@ public class ReplayProtectionOptions
     public bool Enabled { get; set; } = false;
 
     /// <summary>
-    /// Gets or sets the behavior when cache operations fail.
-    /// Default: <c>FailClosed</c> (security over availability).
+    /// Gets or sets behavior for transient cache transport failures and timeouts.
+    /// Unknown provider failures always reject. Default: <c>FailClosed</c>.
     /// </summary>
     public CacheFailureMode FailureMode { get; set; } = CacheFailureMode.FailClosed;
 

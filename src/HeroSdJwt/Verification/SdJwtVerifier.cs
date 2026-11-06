@@ -1740,15 +1740,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         }
         catch (Exception error) when (
             _options.Revocation.FailureMode == RevocationFailureMode.FailOpen &&
-            error is not ArgumentException &&
-            error is not SdJwtException &&
-            error is not ObjectDisposedException &&
-            error is not NotSupportedException &&
-            error is not NotImplementedException &&
-            error is not InvalidOperationException)
+            StorageFailureClassifier.IsTransient(error))
         {
-            // Disposed stores, invalid provider state and unsupported capabilities are permanent
-            // contract failures, not transient outages. Never bypass revocation.
+            // Only known transport failures and timeouts may bypass this lookup.
+            // Malformed records or unknown provider failures must fail closed.
             cancellationToken.ThrowIfCancellationRequested();
             // Never expose secrets from backend exception messages.
             errorDetails.Add("Revocation check failed but allowing token (fail-open mode)");
