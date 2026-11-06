@@ -4,9 +4,9 @@ using HeroSdJwt.Issuance;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using HeroSdJwt.Verification.ReplayProtection;
-using System.Text.Json;
 using System.Net.Http;
 using System.Security.Authentication;
+using System.Text.Json;
 
 namespace HeroSdJwt.Tests.Security;
 
