@@ -184,6 +184,33 @@ public sealed class PartialRevocationStoreFailureTests
     }
 
     [Theory]
+    [InlineData("jti", HttpRequestError.SecureConnectionError)]
+    [InlineData("key", HttpRequestError.UserAuthenticationError)]
+    [InlineData("user", HttpRequestError.InvalidResponse)]
+    public async Task Should_RejectCategorizedHttpFailuresInEveryRevocationLookup(
+        string lookup, HttpRequestError category)
+    {
+        // HTTP errors can identify a permanent trust, authorization or corrupt
+        // response failure without an inner exception or response status.
+        var failure = new HttpRequestException(category, BACKEND_SECRET);
+        var store = new PartialFailureStore(lookup, revokedLookup: null, failure);
+        var verifier = CreateVerifier(store);
+        var presentation = CreatePresentation();
+
+        var direct = verifier.TryVerifyPresentation(presentation, _signingKey);
+        var resolved = await verifier.TryVerifyPresentationAsync(
+            presentation, ResolveKey, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.False(direct.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, direct.Errors);
+        Assert.DoesNotContain(BACKEND_SECRET, direct.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.False(resolved.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, resolved.Errors);
+        Assert.DoesNotContain(BACKEND_SECRET, resolved.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(2, store.GetLookupCount(lookup));
+    }
+
+    [Theory]
     [InlineData("jti")]
     [InlineData("key")]
     [InlineData("user")]
