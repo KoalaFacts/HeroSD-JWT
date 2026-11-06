@@ -73,6 +73,41 @@ public sealed class StorageFailureClassifierTests
         Assert.False(StorageFailureClassifier.IsTransient(new ObjectDisposedException("backend")));
     }
 
+    [Fact]
+    public void Should_RejectPermanentProviderFaultsHiddenByTransportWrappers()
+    {
+        // The outer IOException/HttpRequestException does not turn a corrupt
+        // record, invalid provider state, or denied storage request into an outage.
+        Exception[] errors =
+        [
+            new IOException("backend wrapper", new FormatException("corrupt marker")),
+            new HttpRequestException("backend wrapper", new System.Text.Json.JsonException("malformed record")),
+            new InvalidDataException("invalid binary record"),
+            new IOException("backend wrapper", new InvalidOperationException("provider state invalid")),
+            new IOException("backend wrapper",
+                new HttpRequestException("backend denied request", null, HttpStatusCode.Forbidden)),
+            new IOException("backend wrapper", new ProviderDatabaseException(false)),
+            new IOException("backend wrapper", new ArgumentException("invalid storage key"))
+        ];
+
+        foreach (var error in errors)
+        {
+            Assert.False(StorageFailureClassifier.IsTransient(error));
+        }
+    }
+
+    [Fact]
+    public void Should_AllowRecognizedTransportFailuresThroughNestedWrappers()
+    {
+        Assert.True(StorageFailureClassifier.IsTransient(
+            new HttpRequestException("connection reset",
+                new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.ConnectionReset))));
+        Assert.True(StorageFailureClassifier.IsTransient(
+            new IOException("request failed", new TimeoutException("timed out"))));
+        Assert.True(StorageFailureClassifier.IsTransient(
+            new IOException("network failed", new IOException("network unavailable"))));
+    }
+
     private sealed class ProviderDatabaseException(bool isTransient) : DbException("backend diagnostic")
     {
         public override bool IsTransient => isTransient;

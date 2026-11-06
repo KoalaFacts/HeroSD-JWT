@@ -301,6 +301,40 @@ public sealed class ReplayCacheFailureModeTests
         Assert.Equal(1, cache.Attempts);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_RejectWrappedMalformedCacheMarker_DespiteFailOpen(bool resolveKey)
+    {
+        const string diagnostic = "private-corrupt-cache-marker";
+        const string keyId = "wrapped-corrupt-cache-key";
+        var cache = new FaultingCache(new IOException(
+            "storage wrapper", new FormatException(diagnostic)));
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .WithReplayProtection(new JtiValidator(cache, NewOptions(CacheFailureMode.FailOpen)))
+            .Build();
+        var presentation = SdJwtIssuerBuilder.Create()
+            .WithKeyId(keyId)
+            .WithClaim("iss", "https://issuer.example.test")
+            .WithClaim("jti", "corrupt-storage-replay-token")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds())
+            .SignWithHmac(_signingKey)
+            .Build()
+            .ToPresentation();
+
+        var result = resolveKey
+            ? await verifier.TryVerifyPresentationAsync(
+                presentation, id => id == keyId ? _signingKey : null,
+                cancellationToken: TestContext.Current.CancellationToken)
+            : verifier.TryVerifyPresentation(presentation, _signingKey);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.DoesNotContain(diagnostic, result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(1, cache.Attempts);
+    }
+
     [Fact]
     public void Should_RejectUndefinedReplayFailureMode_BeforeVerification()
     {

@@ -183,6 +183,25 @@ public sealed class PartialRevocationStoreFailureTests
         Assert.Equal(1, store.GetLookupCount("jti"));
     }
 
+    [Theory]
+    [InlineData("jti")]
+    [InlineData("key")]
+    [InlineData("user")]
+    public void Should_RejectWrappedMalformedRevocationRecord_DespiteFailOpen(string lookup)
+    {
+        var failure = new HttpRequestException(
+            BACKEND_SECRET, new System.Text.Json.JsonException("invalid revocation record"));
+        var store = new PartialFailureStore(lookup, revokedLookup: null, failure);
+        var verifier = CreateVerifier(store);
+
+        var result = verifier.TryVerifyPresentation(CreatePresentation(), _signingKey);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.DoesNotContain(BACKEND_SECRET, result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(1, store.GetLookupCount(lookup));
+    }
+
     [Fact]
     public void Should_AllowTransientRevocationTimeout_WhenFailOpen()
     {
