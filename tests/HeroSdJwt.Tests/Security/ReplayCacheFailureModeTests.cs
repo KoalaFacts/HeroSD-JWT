@@ -302,6 +302,40 @@ public sealed class ReplayCacheFailureModeTests
     }
 
     [Theory]
+    [InlineData(false, HttpRequestError.SecureConnectionError)]
+    [InlineData(true, HttpRequestError.UserAuthenticationError)]
+    public async Task Should_FailClosedForCategorizedHttpErrorsWithoutInnerException(
+        bool resolveKey, HttpRequestError category)
+    {
+        const string diagnostic = "private-http-cache-failure";
+        const string keyId = "categorized-cache-error";
+        var cache = new FaultingCache(new HttpRequestException(category, diagnostic));
+        var verifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .WithReplayProtection(new JtiValidator(cache, NewOptions(CacheFailureMode.FailOpen)))
+            .Build();
+        var presentation = SdJwtIssuerBuilder.Create()
+            .WithKeyId(keyId)
+            .WithClaim("iss", "https://issuer.example.test")
+            .WithClaim("jti", "categorized-http-replay")
+            .WithClaim("exp", DateTimeOffset.UtcNow.AddMinutes(10).ToUnixTimeSeconds())
+            .SignWithHmac(_signingKey)
+            .Build()
+            .ToPresentation();
+
+        var result = resolveKey
+            ? await verifier.TryVerifyPresentationAsync(
+                presentation, id => id == keyId ? _signingKey : null,
+                cancellationToken: TestContext.Current.CancellationToken)
+            : verifier.TryVerifyPresentation(presentation, _signingKey);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(ErrorCode.InvalidInput, result.Errors);
+        Assert.DoesNotContain(diagnostic, result.ErrorDetails ?? string.Empty, StringComparison.Ordinal);
+        Assert.Equal(1, cache.Attempts);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task Should_RejectWrappedMalformedCacheMarker_DespiteFailOpen(bool resolveKey)

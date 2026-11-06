@@ -26,6 +26,55 @@ public sealed class StorageFailureClassifierTests
     }
 
     [Theory]
+    [InlineData(HttpRequestError.SecureConnectionError)]
+    [InlineData(HttpRequestError.UserAuthenticationError)]
+    [InlineData(HttpRequestError.ProxyTunnelError)]
+    [InlineData(HttpRequestError.InvalidResponse)]
+    [InlineData(HttpRequestError.ConfigurationLimitExceeded)]
+    [InlineData(HttpRequestError.VersionNegotiationError)]
+    [InlineData(HttpRequestError.HttpProtocolError)]
+    [InlineData(HttpRequestError.ExtendedConnectNotSupported)]
+    public void Should_RejectNonTransientHttpErrorCategoriesWithoutInnerExceptions(
+        HttpRequestError category)
+    {
+        // .NET 8+ supplies a specific cause even when there is no inner
+        // AuthenticationException/FormatException and no HTTP response status.
+        Assert.False(StorageFailureClassifier.IsTransient(
+            new HttpRequestException(category, "private provider diagnostic")));
+    }
+
+    [Theory]
+    [InlineData(HttpRequestError.NameResolutionError)]
+    [InlineData(HttpRequestError.ConnectionError)]
+    [InlineData(HttpRequestError.ResponseEnded)]
+    public void Should_AllowKnownTemporaryHttpErrorCategories(HttpRequestError category)
+    {
+        Assert.True(StorageFailureClassifier.IsTransient(
+            new HttpRequestException(category, "connection interrupted")));
+    }
+
+    [Fact]
+    public void Should_RejectNonTransientHttpResponseReadFailures()
+    {
+        Assert.False(StorageFailureClassifier.IsTransient(
+            new HttpIOException(HttpRequestError.InvalidResponse, "malformed server response")));
+        Assert.False(StorageFailureClassifier.IsTransient(
+            new HttpIOException(HttpRequestError.ConfigurationLimitExceeded, "server response too large")));
+        Assert.True(StorageFailureClassifier.IsTransient(
+            new HttpIOException(HttpRequestError.ResponseEnded, "connection interrupted")));
+    }
+
+    [Fact]
+    public void Should_NotOverrideAnAuthenticationFailureWithRetryableHttpStatusOrOuterIOException()
+    {
+        var error = new HttpRequestException(
+            HttpRequestError.UserAuthenticationError, "authentication failed",
+            statusCode: HttpStatusCode.ServiceUnavailable);
+        Assert.False(StorageFailureClassifier.IsTransient(error));
+        Assert.False(StorageFailureClassifier.IsTransient(new IOException("backend wrapper", error)));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void Should_RespectDatabaseProviderTransientClassification(bool isTransient)
