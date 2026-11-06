@@ -3,6 +3,9 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography;
 
 namespace HeroSdJwt.Verification;
 
@@ -13,8 +16,21 @@ namespace HeroSdJwt.Verification;
 /// </summary>
 internal static class StorageFailureClassifier
 {
-    internal static bool IsTransient(Exception error) =>
-        error switch
+    internal static bool IsTransient(Exception error)
+    {
+        // HTTP clients and storage providers can wrap permanent TLS trust,
+        // authorization or decryption failures inside IOException or
+        // HttpRequestException. These must never bypass replay/revocation.
+        for (Exception? cause = error; cause is not null; cause = cause.InnerException)
+        {
+            if (cause is AuthenticationException or UnauthorizedAccessException or
+                SecurityException or CryptographicException)
+            {
+                return false;
+            }
+        }
+
+        return error switch
         {
             // DbException also covers schema and constraint errors, which
             // cannot safely bypass revocation or replay protection.
@@ -29,4 +45,5 @@ internal static class StorageFailureClassifier
             SocketException => true,
             _ => false
         };
+    }
 }
