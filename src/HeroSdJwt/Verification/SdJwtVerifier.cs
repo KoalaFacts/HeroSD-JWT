@@ -481,6 +481,15 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 return new VerificationResult(errors, string.Join("; ", errorDetails));
             }
 
+            // A malformed compact payload cannot be verified by the built-in JWS
+            // validator. Reject it before contacting a potentially remote key resolver.
+            if (!SignatureValidator.HasCanonicalBase64UrlEncoding(jwtParts[1]))
+            {
+                errors.Add(ErrorCode.InvalidInput);
+                errorDetails.Add("JWT payload has invalid base64url encoding");
+                return new VerificationResult(errors, string.Join("; ", errorDetails));
+            }
+
             var headerJson = Base64UrlEncoder.DecodeString(jwtParts[0]);
             using var headerDocument = JsonDocument.Parse(headerJson);
             var header = headerDocument.RootElement;
@@ -810,7 +819,10 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
             // but the generic provider-error catch below would misclassify
             // malformed JOSE text as an ordinary signature mismatch. Match
             // the resolver preflight before invoking cryptographic verification.
+            // A missing signature for "none" must reach algorithm validation,
+            // preserving AlgorithmConfusion; valid algorithms still fail closed.
             if (_signatureValidator.GetType() == typeof(SignatureValidator) &&
+                jwtParts[2].Length > 0 &&
                 !SignatureValidator.HasCanonicalBase64UrlEncoding(jwtParts[2]))
             {
                 errors.Add(ErrorCode.InvalidInput);

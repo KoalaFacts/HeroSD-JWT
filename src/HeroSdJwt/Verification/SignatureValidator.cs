@@ -752,7 +752,9 @@ public class SignatureValidator : ISignatureValidator
     // resolving a key, not only the decoded bytes after resolution.
     internal static bool HasCanonicalBase64UrlEncoding(ReadOnlySpan<char> segment)
     {
-        if (segment.Length % 4 == 1)
+        // An empty string is valid base64url for zero bytes, but not a compact JWT
+        // payload or signature. Reject it before a remote key lookup.
+        if (segment.IsEmpty || segment.Length % 4 == 1)
         {
             return false;
         }
