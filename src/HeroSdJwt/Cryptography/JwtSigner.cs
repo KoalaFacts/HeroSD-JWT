@@ -303,9 +303,20 @@ public class JwtSigner : IJwtSigner
         }
         finally
         {
-            if (seed is not null) CryptographicOperations.ZeroMemory(seed);
-            if (wrappedSeed is not null) CryptographicOperations.ZeroMemory(wrappedSeed);
-            if (expandedPrivateKey is not null) CryptographicOperations.ZeroMemory(expandedPrivateKey);
+            if (seed is not null)
+            {
+                CryptographicOperations.ZeroMemory(seed);
+            }
+
+            if (wrappedSeed is not null)
+            {
+                CryptographicOperations.ZeroMemory(wrappedSeed);
+            }
+
+            if (expandedPrivateKey is not null)
+            {
+                CryptographicOperations.ZeroMemory(expandedPrivateKey);
+            }
         }
     }
 
