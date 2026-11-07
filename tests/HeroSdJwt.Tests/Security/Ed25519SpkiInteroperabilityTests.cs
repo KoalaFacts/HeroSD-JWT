@@ -52,14 +52,14 @@ public sealed class Ed25519SpkiInteroperabilityTests
         Convert.FromHexString("302c300706032b65700500032100").CopyTo(withNullParameters, 0);
         publicKey.CopyTo(withNullParameters, 14);
 
-        var invalidKeys = new[]
-        {
+        byte[][] invalidKeys =
+        [
             x25519Oid,
             unusedBits,
             withNullParameters,
             spki[..^1],
             [.. spki, (byte)0]
-        };
+        ];
 
         foreach (var invalidKey in invalidKeys)
         {
