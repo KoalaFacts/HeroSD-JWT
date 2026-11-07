@@ -2,7 +2,6 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 
 namespace HeroSdJwt.Tests.Security;
@@ -77,7 +76,7 @@ public sealed class OptionalExpirationProfileTests
         const string header = /*lang=json,strict*/ """{"alg":"HS256","kid":"test-key"}""";
         const string payload = /*lang=json,strict*/ """{"sub":"alice","_sd":[]}""";
         var signingInput = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payload);
-        var signature = HMACSHA256.HashData(key, Encoding.UTF8.GetBytes(signingInput));
+        var signature = HMACSHA256.HashData(key, global::System.Text.Encoding.UTF8.GetBytes(signingInput));
         var presentation = signingInput + "." + Base64UrlEncoder.Encode(signature) + "~";
 
         var strictVerifier = TestHelpers.CreateVerifier(new SdJwtVerificationOptions
@@ -92,7 +91,10 @@ public sealed class OptionalExpirationProfileTests
             RequireExpiration = false
         });
 
-        byte[]? Resolve(string keyId) => keyId == "test-key" ? key : null;
+        byte[]? Resolve(string keyId)
+        {
+            return keyId == "test-key" ? key : null;
+        }
 
         var direct = profileVerifier.TryVerifyPresentation(presentation, key);
         var resolved = profileVerifier.TryVerifyPresentation(presentation, Resolve);
