@@ -15,7 +15,7 @@ namespace HeroSdJwt.Verification;
 public class SignatureValidator : ISignatureValidator
 {
     // RFC 8410 Ed25519 SPKI DER prefix (the 32-byte raw public key follows).
-    private static readonly byte[] Ed25519SpkiPrefix =
+    private static readonly byte[] _ed25519SpkiPrefix =
         [0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x70, 0x03, 0x21, 0x00];
 
     /// <summary>
@@ -589,9 +589,9 @@ public class SignatureValidator : ISignatureValidator
             // Require the complete canonical prefix rather than accepting
             // a permissively parsed SPKI or a trailing ASN.1 object.
             if (publicKeyBytes.Length == 44 &&
-                publicKeyBytes.AsSpan(0, Ed25519SpkiPrefix.Length).SequenceEqual(Ed25519SpkiPrefix))
+                publicKeyBytes.AsSpan(0, _ed25519SpkiPrefix.Length).SequenceEqual(_ed25519SpkiPrefix))
             {
-                publicKeyBytes = publicKeyBytes[Ed25519SpkiPrefix.Length..];
+                publicKeyBytes = publicKeyBytes[_ed25519SpkiPrefix.Length..];
             }
             else if (publicKeyBytes.Length != 32)
             {
