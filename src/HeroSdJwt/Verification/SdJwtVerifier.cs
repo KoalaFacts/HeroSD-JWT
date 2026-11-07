@@ -1370,7 +1370,21 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
                 throw new SdJwtException("SD-JWT _sd_alg must be a string", ErrorCode.InvalidInput);
             }
 
-            var algString = sdAlgElement.GetString();
+            string? algString;
+            try
+            {
+                algString = sdAlgElement.GetString();
+            }
+            catch (InvalidOperationException)
+            {
+                // System.Text.Json can parse an escaped lone surrogate, but
+                // GetString rejects it. A signed malformed _sd_alg must fail
+                // through the verifier's domain error contract, not leak a
+                // raw JSON DOM exception from throwing verification APIs.
+                throw new SdJwtException(
+                    "SD-JWT _sd_alg contains invalid Unicode",
+                    ErrorCode.InvalidInput);
+            }
             algorithm = algString switch
             {
                 "sha-256" => HashAlgorithm.Sha256,
