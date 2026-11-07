@@ -14,12 +14,15 @@ namespace HeroSdJwt.Verification;
 /// </summary>
 public class SignatureValidator : ISignatureValidator
 {
+    // RFC 8410 Ed25519 SPKI DER prefix (the 32-byte raw public key follows).
+    private static readonly byte[] _ed25519SpkiPrefix =
+        [0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x70, 0x03, 0x21, 0x00];
 
     /// <summary>
     /// Verifies the signature of a JWT.
     /// </summary>
     /// <param name="jwt">The JWT in format: header.payload.signature</param>
-    /// <param name="publicKey">The public key or shared secret for verification.</param>
+    /// <param name="publicKey">Public key or shared secret; Ed25519 accepts 32 raw bytes or RFC 8410 SubjectPublicKeyInfo.</param>
     /// <returns>True if signature is valid; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown when jwt or publicKey is null.</exception>
     /// <exception cref="AlgorithmConfusionException">Thrown when algorithm is "none" or case variant.</exception>
@@ -580,11 +583,20 @@ public class SignatureValidator : ISignatureValidator
     {
         try
         {
-            // Validate key size
-            if (publicKeyBytes.Length != 32)
+            // An RFC 8410 Ed25519 SubjectPublicKeyInfo is exactly 44 bytes
+            // of DER: SEQUENCE, Ed25519 OID with absent parameters, then a
+            // BIT STRING with zero unused bits and the raw 32-byte key.
+            // Require the complete canonical prefix rather than accepting
+            // a permissively parsed SPKI or a trailing ASN.1 object.
+            if (publicKeyBytes.Length == 44 &&
+                publicKeyBytes.AsSpan(0, _ed25519SpkiPrefix.Length).SequenceEqual(_ed25519SpkiPrefix))
+            {
+                publicKeyBytes = publicKeyBytes[_ed25519SpkiPrefix.Length..];
+            }
+            else if (publicKeyBytes.Length != 32)
             {
                 throw new SdJwtException(
-                    $"Ed25519 public key must be 32 bytes. Provided key is {publicKeyBytes.Length} bytes.",
+                    $"Ed25519 public key must be 32 raw bytes or a 44-byte RFC 8410 SPKI. Provided key is {publicKeyBytes.Length} bytes.",
                     ErrorCode.InvalidInput);
             }
 
