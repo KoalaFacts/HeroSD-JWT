@@ -60,4 +60,27 @@ public class SdJwtConstructorAdmissionTests
 
         Assert.Equal(SdJwt.MAX_CREDENTIAL_DISCLOSURES, sdJwt.Disclosures.Count);
     }
+
+    [Fact]
+    public void Should_AllowLargeImportedCredential_ButRejectItsWireSerialization()
+    {
+        // Signed large JWTs must remain available for holder-side mapping.
+        // The 64-KiB limit applies only when serializing a presentation.
+        var jwt = new string('a', Constants.MAX_JWT_SIZE_BYTES + 1);
+        var credential = new SdJwt(jwt, [], HashAlgorithm.Sha256);
+
+        Assert.Equal(jwt, credential.Jwt);
+        _ = Assert.Throws<ArgumentException>(credential.ToCombinedFormat);
+    }
+
+    [Fact]
+    public void Should_AllowLargeAttachedKeyBindingInCredential_ButRejectWireSerialization()
+    {
+        var keyBinding = new string('a', Constants.MAX_JWT_SIZE_BYTES);
+        var credential = new SdJwt(
+            "header.payload.signature", [], HashAlgorithm.Sha256, keyBinding);
+
+        Assert.Equal(keyBinding, credential.KeyBindingJwt);
+        _ = Assert.Throws<ArgumentException>(credential.ToCombinedFormat);
+    }
 }
