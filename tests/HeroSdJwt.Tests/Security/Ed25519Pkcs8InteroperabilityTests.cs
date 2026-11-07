@@ -8,7 +8,7 @@ namespace HeroSdJwt.Tests.Security;
 /// <summary>
 /// RFC 8410 wraps an Ed25519 seed in two OCTET STRINGs inside PKCS#8.
 /// External key stores commonly export that format instead of the library's
-/// legacy 64-byte seed-plus-public-key representation.
+/// legacy 64-byte seed-plus-nonce-prefix representation.
 /// </summary>
 public sealed class Ed25519Pkcs8InteroperabilityTests
 {
@@ -64,8 +64,6 @@ public sealed class Ed25519Pkcs8InteroperabilityTests
     {
         Assert.Equal(32, seed.Length);
         // PrivateKeyInfo version 0, Ed25519 OID, outer and inner OCTET STRING.
-        return Convert.FromHexString("302e020100300506032b657004220420")
-            .Concat(seed)
-            .ToArray();
+        return [.. Convert.FromHexString("302e020100300506032b657004220420"), .. seed];
     }
 }
