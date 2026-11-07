@@ -77,6 +77,28 @@ internal static partial class GroupOperations
     {
         FieldElement u, v, v3, vxx, check;
 
+        // RFC 8032 section 5.1.3: y must be less than p = 2^255 - 19.
+        // The field decoder operates modulo p and must not silently accept
+        // a different, non-canonical encoding of the same curve point.
+        var yIsCanonical = false;
+        for (var i = 31; i >= 0; i--)
+        {
+            var yByte = i == 31 ? s[offset + i] & 0x7F : s[offset + i];
+            var primeByte = i == 31 ? 0x7F : (i == 0 ? 0xED : 0xFF);
+
+            if (yByte != primeByte)
+            {
+                yIsCanonical = yByte < primeByte;
+                break;
+            }
+        }
+
+        if (!yIsCanonical)
+        {
+            h = default;
+            return false;
+        }
+
         // Extract y-coordinate (ignore top bit)
         FieldOperations.FeFromBytes(out h.Y, s, offset);
 
@@ -145,6 +167,13 @@ internal static partial class GroupOperations
         // Adjust sign of x
         bool x_is_negative = h.X.IsNegative();
         bool s_is_negative = (s[offset + 31] & 0x80) != 0;
+
+        // RFC 8032 forbids the negative-zero encoding (x = 0, sign bit 1).
+        if (!h.X.IsNonZero() && s_is_negative)
+        {
+            h = default;
+            return false;
+        }
 
         if (x_is_negative != s_is_negative)
         {
