@@ -43,7 +43,8 @@ public class IssuerOptionalExpirationContractTests
         var syncResult = profileVerifier.TryVerifyPresentation(presentation, _signingKey);
         Assert.True(syncResult.IsValid, syncResult.ErrorDetails);
 
-        var asyncResult = await profileVerifier.TryVerifyPresentationAsync(presentation, _signingKey);
+        var asyncResult = await profileVerifier.TryVerifyPresentationAsync(
+            presentation, _signingKey, cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(asyncResult.IsValid, asyncResult.ErrorDetails);
     }
 
