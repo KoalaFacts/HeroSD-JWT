@@ -2,6 +2,7 @@ using HeroSdJwt.Cryptography;
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
+using System.Text.Json;
 
 namespace HeroSdJwt.Tests.Security;
 
@@ -34,8 +35,8 @@ public class Ed25519SmallOrderPublicKeyTests
             identityPublicKey.CopyTo(verificationKey, spkiPrefix.Length);
         }
 
-        var header = Base64UrlEncoder.Encode("{\"alg\":\"EdDSA\",\"typ\":\"JWT\"}");
-        var payload = Base64UrlEncoder.Encode("{\"sub\":\"not-authorized\"}");
+        var header = Base64UrlEncoder.Encode(JsonSerializer.Serialize(new { alg = "EdDSA", typ = "JWT" }));
+        var payload = Base64UrlEncoder.Encode(JsonSerializer.Serialize(new { sub = "not-authorized" }));
         var jwt = $"{header}.{payload}.{Base64UrlEncoder.Encode(forgedSignature)}";
 
         Assert.False(new SignatureValidator().VerifyJwtSignature(jwt, verificationKey));
