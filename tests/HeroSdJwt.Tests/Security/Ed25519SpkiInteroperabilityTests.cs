@@ -58,7 +58,7 @@ public sealed class Ed25519SpkiInteroperabilityTests
             unusedBits,
             withNullParameters,
             spki[..^1],
-            [.. spki, (byte)0]
+            [.. spki, 0]
         ];
 
         foreach (var invalidKey in invalidKeys)
