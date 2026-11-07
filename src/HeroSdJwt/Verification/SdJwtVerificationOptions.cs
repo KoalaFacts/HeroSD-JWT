@@ -18,6 +18,14 @@ public class SdJwtVerificationOptions
     public TimeSpan ClockSkew { get; init; } = TimeSpan.FromMinutes(5);
 
     /// <summary>
+    /// Gets whether the issuer-signed JWT must contain an expiration claim.
+    /// Defaults to true to reject open-ended credentials. Set to false only
+    /// when a trusted application profile enforces validity through a separate
+    /// lifetime policy. An exp claim, when present, is always validated.
+    /// </summary>
+    public bool RequireExpiration { get; init; } = true;
+
+    /// <summary>
     /// Gets whether key binding JWT is required.
     /// When true, presentations without key binding will fail verification.
     /// Default is false (key binding is optional unless explicitly enabled).
