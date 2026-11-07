@@ -155,11 +155,10 @@ public class SdJwtIssuerBuilder
     }
 
     /// <summary>
-    /// Signs the SD-JWT with EdDSA using Ed25519 curve.
-    /// Requires a private key in PKCS#8 format.
-    /// Note: Ed25519 support requires .NET 9.0 or later.
+    /// Signs the SD-JWT with EdDSA using Ed25519. Accepts a legacy 64-byte
+    /// expanded key or RFC 8410 PKCS#8 Ed25519 PrivateKeyInfo version 0.
     /// </summary>
-    /// <param name="privateKey">Ed25519 private key in PKCS#8 format.</param>
+    /// <param name="privateKey">Expanded Ed25519 key or RFC 8410 PKCS#8 Ed25519 key.</param>
     public SdJwtIssuerBuilder SignWithEd25519(byte[] privateKey)
     {
         _signingKey = (byte[])(privateKey ?? throw new ArgumentNullException(nameof(privateKey))).Clone();

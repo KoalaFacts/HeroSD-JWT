@@ -3,6 +3,7 @@ using HeroSdJwt.Internal.Ed25519;
 using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using System.Buffers;
+using System.Formats.Asn1;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -239,21 +240,84 @@ public class JwtSigner : IJwtSigner
     }
 
     /// <summary>
-    /// Signs data using EdDSA with Ed25519 curve (asymmetric).
-    /// Key must be a 64-byte expanded Ed25519 private key.
+    /// Signs with a legacy 64-byte expanded Ed25519 secret key or an
+    /// RFC 8410 PKCS#8 PrivateKeyInfo (version 0) containing a 32-byte seed.
     /// </summary>
     private static byte[] SignEdDsa(byte[] data, byte[] privateKeyBytes)
     {
-        if (privateKeyBytes.Length != 64)
+        if (privateKeyBytes.Length == 64)
         {
-            throw new ArgumentException(
-                $"Ed25519 private key must be 64 bytes (expanded format). Provided key is {privateKeyBytes.Length} bytes.",
-                nameof(privateKeyBytes));
+            return Ed25519.Sign(data, privateKeyBytes);
         }
 
-        var signature = new byte[64];
-        Ed25519Operations.CryptoSign(signature, 0, data, 0, data.Length, privateKeyBytes, 0);
-        return signature;
+        // RFC 8410 wraps a CurvePrivateKey OCTET STRING inside the PKCS#8
+        // privateKey OCTET STRING. AlgorithmIdentifier parameters are forbidden.
+        byte[]? wrappedSeed = null;
+        byte[]? seed = null;
+        byte[]? expandedPrivateKey = null;
+        try
+        {
+            var reader = new AsnReader(privateKeyBytes, AsnEncodingRules.DER);
+            var privateKeyInfo = reader.ReadSequence();
+            if (privateKeyInfo.ReadInteger() != 0)
+            {
+                throw new ArgumentException(
+                    "Only RFC 8410 PKCS#8 Ed25519 PrivateKeyInfo version 0 is supported.",
+                    nameof(privateKeyBytes));
+            }
+
+            var algorithm = privateKeyInfo.ReadSequence();
+            if (algorithm.ReadObjectIdentifier() != "1.3.101.112" || algorithm.HasData)
+            {
+                throw new ArgumentException(
+                    "Private key must use Ed25519 OID without parameters.",
+                    nameof(privateKeyBytes));
+            }
+
+            wrappedSeed = privateKeyInfo.ReadOctetString();
+            privateKeyInfo.ThrowIfNotEmpty();
+            reader.ThrowIfNotEmpty();
+
+            var seedReader = new AsnReader(wrappedSeed, AsnEncodingRules.DER);
+            seed = seedReader.ReadOctetString();
+            seedReader.ThrowIfNotEmpty();
+            if (seed.Length != Ed25519.PRIVATE_KEY_SEED_SIZE_IN_BYTES)
+            {
+                throw new ArgumentException(
+                    "RFC 8410 Ed25519 private key seed must be 32 bytes.",
+                    nameof(privateKeyBytes));
+            }
+
+            // Temporary key material is not retained after signing.
+            var publicKey = new byte[Ed25519.PUBLIC_KEY_SIZE_IN_BYTES];
+            expandedPrivateKey = new byte[Ed25519.EXPANDED_PRIVATE_KEY_SIZE_IN_BYTES];
+            Ed25519Operations.CryptoSignKeypair(
+                publicKey, 0, expandedPrivateKey, 0, seed, 0);
+            return Ed25519.Sign(data, expandedPrivateKey);
+        }
+        catch (AsnContentException ex)
+        {
+            throw new ArgumentException(
+                "Invalid RFC 8410 Ed25519 PKCS#8 private key encoding.",
+                nameof(privateKeyBytes), ex);
+        }
+        finally
+        {
+            if (seed is not null)
+            {
+                CryptographicOperations.ZeroMemory(seed);
+            }
+
+            if (wrappedSeed is not null)
+            {
+                CryptographicOperations.ZeroMemory(wrappedSeed);
+            }
+
+            if (expandedPrivateKey is not null)
+            {
+                CryptographicOperations.ZeroMemory(expandedPrivateKey);
+            }
+        }
     }
 
 
