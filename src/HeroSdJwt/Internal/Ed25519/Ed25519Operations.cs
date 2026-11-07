@@ -158,6 +158,24 @@ internal static class Ed25519Operations
         if (!GroupOperations.GeFromBytesNegateVartime(out A, pk, pkoffset))
             return false;
 
+        // An Ed25519 public key of order 1, 2, 4 or 8 has no private-key
+        // security: for the identity point, for example, [s]B = R verifies
+        // independent of the message. Reject all small-order points, including
+        // alternate encodings, before evaluating the signature equation.
+        // [8]A = identity detects them without an expensive inversion.
+        var cofactorPoint = A;
+        for (var i = 0; i < 3; i++)
+        {
+            GroupOperations.GeP3Dbl(out GroupElementP1P1 doubled, ref cofactorPoint);
+            GroupOperations.GeP1P1ToP3(out cofactorPoint, ref doubled);
+        }
+
+        FieldOperations.FeSub(out FieldElement yMinusZ, ref cofactorPoint.Y, ref cofactorPoint.Z);
+        if (!cofactorPoint.X.IsNonZero() && !yMinusZ.IsNonZero())
+        {
+            return false;
+        }
+
         // Negate A for the verification equation [s]B - [k]A = R
         // We compute this as [s]B + [k](-A) using Shamir's trick
         FieldOperations.FeNeg(out A.X, ref A.X);
