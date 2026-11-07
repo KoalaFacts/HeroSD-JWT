@@ -82,6 +82,34 @@ public sealed class SdJwt
             throw new ArgumentException("Key binding JWT contains an invalid component.", nameof(keyBindingJwt));
         }
 
+        // A combined presentation always includes at least one '~', even if
+        // no claims are disclosed. Reject a JWT that could never fit on the
+        // wire before consuming an untrusted disclosure enumerable.
+        if (jwt.Length >= Constants.MAX_JWT_SIZE_BYTES ||
+            (jwt.Length >= Constants.MAX_JWT_SIZE_BYTES / 3 &&
+             System.Text.Encoding.UTF8.GetByteCount(jwt) >= Constants.MAX_JWT_SIZE_BYTES))
+        {
+            throw new ArgumentException(
+                "JWT is too large to fit in a combined presentation.",
+                nameof(jwt));
+        }
+
+        // An attached key binding JWT also occupies the mandatory minimum
+        // presentation, before any optional disclosures are selected.
+        if (keyBindingJwt is not null)
+        {
+            var minimumLength = (long)jwt.Length + 1 + keyBindingJwt.Length;
+            if (minimumLength > Constants.MAX_JWT_SIZE_BYTES ||
+                (minimumLength > Constants.MAX_JWT_SIZE_BYTES / 3 &&
+                 (long)System.Text.Encoding.UTF8.GetByteCount(jwt) + 1 +
+                 System.Text.Encoding.UTF8.GetByteCount(keyBindingJwt) > Constants.MAX_JWT_SIZE_BYTES))
+            {
+                throw new ArgumentException(
+                    "JWT and key binding JWT are too large to fit in a combined presentation.",
+                    nameof(keyBindingJwt));
+            }
+        }
+
         // Do not eagerly materialize an unbounded lazy source. The
         // constructor must preserve the larger credential use case, but an
         // unbounded source still needs an independent admission ceiling.
