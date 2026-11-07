@@ -2,6 +2,24 @@
 
 These additive entry points are **development-source additions**. They are not a claim that the currently published NuGet version contains them. Import `HeroSdJwt.Verification` to use them with a builder-created `SdJwtVerifier`, `ISdJwtVerifier`, or `ISdJwtVerifierAsync` resolved through dependency injection.
 
+## Expiration requirement
+
+The verifier requires a signed `exp` claim by default. When a trusted application
+profile enforces credential lifetime separately, the fluent verifier can opt out
+of the **presence** requirement:
+
+```csharp
+var verifier = SdJwtVerifierBuilder.Create()
+    .WithExpectedKeyType(VerificationKeyType.Asymmetric)
+    .AllowMissingExpiration()
+    .Build();
+```
+
+This does not disable expiration validation: a supplied expired or malformed
+`exp` is still rejected, as are invalid `nbf` or future `iat` values.
+Do not use this opt-in without a separately enforced lifetime policy.
+Equivalent direct construction uses `SdJwtVerificationOptions { RequireExpiration = false }`.
+
 ## Choose one failure contract
 
 | Entry point | Verification failure | Cancellation |
