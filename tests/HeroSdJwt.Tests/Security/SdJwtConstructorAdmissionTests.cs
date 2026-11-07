@@ -60,4 +60,65 @@ public class SdJwtConstructorAdmissionTests
 
         Assert.Equal(SdJwt.MAX_CREDENTIAL_DISCLOSURES, sdJwt.Disclosures.Count);
     }
+
+    [Fact]
+    public void Should_RejectJwtThatCannotFitInAnyPresentation_BeforeReadingDisclosures()
+    {
+        var enumerated = false;
+
+        IEnumerable<string> Disclosures()
+        {
+            enumerated = true;
+            yield return "W10";
+        }
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwt(
+                new string('a', Constants.MAX_JWT_SIZE_BYTES),
+                Disclosures(),
+                HashAlgorithm.Sha256));
+
+        Assert.Equal("jwt", error.ParamName);
+        Assert.False(enumerated);
+    }
+
+    [Fact]
+    public void Should_RejectJwtWhoseUtf8BytesExceedPresentationLimit()
+    {
+        // A 32-Ki UTF-16 string occupies 64 KiB in UTF-8 before
+        // even adding the mandatory combined-presentation separator.
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwt(
+                new string('\u00e9', Constants.MAX_JWT_SIZE_BYTES / 2),
+                [],
+                HashAlgorithm.Sha256));
+
+        Assert.Equal("jwt", error.ParamName);
+    }
+
+    [Fact]
+    public void Should_RejectKeyBindingJwtThatCannotFitInAnyPresentation()
+    {
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwt(
+                "header.payload.signature",
+                [],
+                HashAlgorithm.Sha256,
+                keyBindingJwt: new string('a', Constants.MAX_JWT_SIZE_BYTES)));
+
+        Assert.Equal("keyBindingJwt", error.ParamName);
+    }
+
+    [Fact]
+    public void Should_RejectOversizedMinimumCombinedJwtAndKeyBinding()
+    {
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwt(
+                new string('a', Constants.MAX_JWT_SIZE_BYTES / 2),
+                [],
+                HashAlgorithm.Sha256,
+                keyBindingJwt: new string('b', Constants.MAX_JWT_SIZE_BYTES / 2)));
+
+        Assert.Equal("keyBindingJwt", error.ParamName);
+    }
 }
