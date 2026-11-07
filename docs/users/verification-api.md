@@ -20,6 +20,24 @@ This does not disable expiration validation: a supplied expired or malformed
 Do not use this opt-in without a separately enforced lifetime policy.
 Equivalent direct construction uses `SdJwtVerificationOptions { RequireExpiration = false }`.
 
+Issuance also adds a five-minute `exp` by default. To issue a credential
+without `exp` for this application-managed lifetime profile, explicitly opt out:
+
+```csharp
+var credential = SdJwtIssuerBuilder.Create()
+    .WithClaim("sub", "subject-123")
+    .WithoutImplicitExpiration()
+    .SignWithHmac(signingKey)
+    .Build();
+```
+
+An explicit `exp` always survives issuance and is checked for a valid
+NumericDate. The low-level `SdJwtIssuer` also offers a nine-argument
+`CreateSdJwt(..., addDefaultExpiration: false)` overload; its original
+`ISdJwtIssuer` method remains unchanged and continues injecting `exp`.
+**Replay protection still requires `exp`** to calculate a safe marker
+lifetime and rejects expiration-free credentials.
+
 ## Choose one failure contract
 
 | Entry point | Verification failure | Cancellation |
