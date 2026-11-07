@@ -76,7 +76,7 @@ public sealed class OptionalExpirationProfileTests
         const string header = /*lang=json,strict*/ """{"alg":"HS256","kid":"test-key"}""";
         const string payload = /*lang=json,strict*/ """{"sub":"alice","_sd":[]}""";
         var signingInput = Base64UrlEncoder.Encode(header) + "." + Base64UrlEncoder.Encode(payload);
-        var signature = HMACSHA256.HashData(key, global::System.Text.Encoding.UTF8.GetBytes(signingInput));
+        var signature = HMACSHA256.HashData(key, System.Text.Encoding.UTF8.GetBytes(signingInput));
         var presentation = signingInput + "." + Base64UrlEncoder.Encode(signature) + "~";
 
         var strictVerifier = TestHelpers.CreateVerifier(new SdJwtVerificationOptions
