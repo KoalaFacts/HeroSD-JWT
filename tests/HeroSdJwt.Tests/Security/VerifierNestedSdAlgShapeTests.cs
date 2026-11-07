@@ -39,6 +39,17 @@ public class VerifierNestedSdAlgShapeTests
         await AssertRejectedAsync(payload, disclosure);
     }
 
+    [Theory]
+    [InlineData(/*lang=json*/ "{\"exp\":4102444800,\"_sd_alg\":\"\\\\uD800\"}")]
+    [InlineData(/*lang=json*/ "{\"exp\":4102444800,\"_sd_alg\":\"\\\\uDC00\"}")]
+    public async Task Should_RejectMalformedUnicodeInTopLevelSdAlgWithDomainError(string payloadJson)
+    {
+        // An authenticated issuer payload with malformed escaped Unicode must
+        // report InvalidInput across direct/resolved and sync/async APIs.
+        // A raw InvalidOperationException from JsonElement.GetString must not escape.
+        await AssertRejectedAsync(payloadJson);
+    }
+
     [Fact]
     public async Task Should_AcceptTopLevelSdAlgAndOrdinaryNestedClaims()
     {
