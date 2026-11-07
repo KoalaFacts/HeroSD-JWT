@@ -67,6 +67,7 @@ public class SdJwtVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifier
         _options = new SdJwtVerificationOptions
         {
             ClockSkew = options.ClockSkew,
+            RequireExpiration = options.RequireExpiration,
             RequireKeyBinding = options.RequireKeyBinding,
             ExpectedIssuer = options.ExpectedIssuer,
             ExpectedAudience = options.ExpectedAudience,

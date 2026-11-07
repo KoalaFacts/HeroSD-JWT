@@ -39,20 +39,23 @@ public class ClaimValidator : IClaimValidator
         var nowTicks = NumericDateParser.GetCurrentUnixTicks(currentTime ?? DateTimeOffset.UtcNow);
         var clockSkewTicks = options.ClockSkew.Ticks;
 
-        // Validate expiration time (exp) - REQUIRED for SD-JWT per spec
-        if (!payload.TryGetProperty("exp", out var expElement))
+        // RFC 9901 leaves required validity claims to the application profile.
+        // Require exp by default. A profile that manages lifetime separately may
+        // opt out of its presence, but a supplied exp is always validated.
+        if (payload.TryGetProperty("exp", out var expElement))
         {
-            return false; // Missing required exp claim
-        }
+            if (!NumericDateParser.TryParseUnixTicks(expElement, out var expTicks))
+            {
+                return false;
+            }
 
-        if (!NumericDateParser.TryParseUnixTicks(expElement, out var expTicks))
-        {
-            return false;
+            // RFC 7519: now must be strictly before exp (including configured skew).
+            if (nowTicks - expTicks >= clockSkewTicks)
+            {
+                return false;
+            }
         }
-
-        // RFC 7519 Section 4.1.4 requires now to be strictly before exp.
-        // Clock skew extends the deadline, not its inclusivity.
-        if (nowTicks - expTicks >= clockSkewTicks)
+        else if (options.RequireExpiration)
         {
             return false;
         }
