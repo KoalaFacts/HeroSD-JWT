@@ -90,12 +90,16 @@ internal static class Ed25519Operations
         byte[] publicKey = new byte[32];
         GroupOperations.GeP3ToBytes(publicKey, 0, ref A);
 
-        // STEP 2: Compute r = SHA-512(sk[32..63] || message)
+        // STEP 2: Compute r = SHA-512(SHA-512(seed)[32..63] || message)
         byte[] r = new byte[64];
         using (var sha512 = SHA512.Create())
         {
             sha512.Initialize();
-            sha512.TransformBlock(sk, skoffset + 32, 32, null, 0);
+            // RFC 8032 derives the nonce prefix from SHA-512(seed). The trailing
+            // half of a caller-provided 64-byte key may instead be the PUBLIC
+            // key (seed || publicKey format). Never let those bytes determine r:
+            // a public nonce prefix would expose the signing scalar.
+            sha512.TransformBlock(hash, 32, 32, null, 0);
             sha512.TransformFinalBlock(m, moffset, mlen);
             Array.Copy(sha512.Hash!, r, 64);
         }
