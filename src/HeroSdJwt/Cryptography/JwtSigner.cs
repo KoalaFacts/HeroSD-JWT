@@ -92,11 +92,11 @@ public class JwtSigner : IJwtSigner
         }
 
         // Encode header and payload using AOT-compatible serialization
-        var headerJson = SerializeDictionary(header);
-        var headerBase64 = Base64UrlEncoder.Encode(headerJson);
-
-        var payloadJson = SerializeDictionary(payload);
-        var payloadBase64 = Base64UrlEncoder.Encode(payloadJson);
+        // Utf8JsonWriter already produces the exact UTF-8 JSON bytes. Encode
+        // those bytes directly, avoiding a temporary UTF-16 JSON string and
+        // a second UTF-8 byte[] for each signed header and payload.
+        var headerBase64 = SerializeDictionaryBase64Url(header);
+        var payloadBase64 = SerializeDictionaryBase64Url(payload);
 
         // The standalone verifier accepts compact JWTs up to 64 KiB. Every
         // supported signature is at least 32 bytes (43 base64url characters);
@@ -393,7 +393,7 @@ public class JwtSigner : IJwtSigner
     /// Serializes a dictionary to JSON using Utf8JsonWriter for AOT compatibility.
     /// Handles string, number, boolean, and JsonElement values.
     /// </summary>
-    private static string SerializeDictionary(Dictionary<string, object> dict)
+    private static string SerializeDictionaryBase64Url(Dictionary<string, object> dict)
     {
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { MaxDepth = MAX_VERIFIER_JSON_DEPTH }))
@@ -411,7 +411,7 @@ public class JwtSigner : IJwtSigner
             writer.Flush();
         }
 
-        return System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
+        return Base64UrlEncoder.Encode(buffer.WrittenSpan);
     }
 
     /// <summary>
