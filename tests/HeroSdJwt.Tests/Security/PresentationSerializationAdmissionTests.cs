@@ -83,4 +83,60 @@ public class PresentationSerializationAdmissionTests
         Assert.Equal(Constants.MAX_JWT_SIZE_BYTES, sdJwt.ToCombinedFormat().Length);
         Assert.Equal(Constants.MAX_JWT_SIZE_BYTES, new SdJwtPresenter().FormatPresentation(presentation).Length);
     }
+    [Fact]
+    public void Should_RejectJwtThatCannotFitInAnyPresentation_BeforeReadingDisclosures()
+    {
+        var enumerated = false;
+
+        IEnumerable<string> Disclosures()
+        {
+            enumerated = true;
+            yield return "W10";
+        }
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresentation(
+                new string('a', Constants.MAX_JWT_SIZE_BYTES),
+                Disclosures()));
+
+        Assert.Equal("jwt", error.ParamName);
+        Assert.False(enumerated);
+    }
+
+    [Fact]
+    public void Should_RejectJwtWhoseUtf8BytesExceedPresentationLimit()
+    {
+        // 32-Ki UTF-16 code units occupy 64 KiB in UTF-8.
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresentation(
+                new string('\u00e9', Constants.MAX_JWT_SIZE_BYTES / 2),
+                []));
+
+        Assert.Equal("jwt", error.ParamName);
+    }
+
+    [Fact]
+    public void Should_RejectKeyBindingJwtThatCannotFitInAnyPresentation()
+    {
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresentation(
+                "header.payload.signature",
+                [],
+                new string('a', Constants.MAX_JWT_SIZE_BYTES)));
+
+        Assert.Equal("keyBindingJwt", error.ParamName);
+    }
+
+    [Fact]
+    public void Should_RejectOversizedMinimumCombinedJwtAndKeyBinding()
+    {
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresentation(
+                new string('a', Constants.MAX_JWT_SIZE_BYTES / 2),
+                [],
+                new string('b', Constants.MAX_JWT_SIZE_BYTES / 2)));
+
+        Assert.Equal("keyBindingJwt", error.ParamName);
+    }
+
 }

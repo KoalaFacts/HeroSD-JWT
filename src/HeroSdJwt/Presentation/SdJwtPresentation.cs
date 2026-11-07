@@ -29,11 +29,37 @@ public sealed class SdJwtPresentation
     /// <param name="jwt">The JWT string.</param>
     /// <param name="selectedDisclosures">The selected disclosures.</param>
     /// <param name="keyBindingJwt">Optional key binding JWT.</param>
-    /// <exception cref="ArgumentException">More than the supported number of disclosures were provided.</exception>
+    /// <exception cref="ArgumentException">The minimum presentation exceeds the wire-size limit, or too many disclosures were provided.</exception>
     public SdJwtPresentation(string jwt, IEnumerable<string> selectedDisclosures, string? keyBindingJwt = null)
     {
         ArgumentNullException.ThrowIfNull(jwt);
         ArgumentNullException.ThrowIfNull(selectedDisclosures);
+
+        // A credential may be larger than one wire presentation, but a
+        // presentation that cannot fit even without disclosures must be
+        // rejected before enumerating a potentially untrusted lazy source.
+        if (jwt.Length >= Constants.MAX_JWT_SIZE_BYTES ||
+            (jwt.Length >= Constants.MAX_JWT_SIZE_BYTES / 3 &&
+             System.Text.Encoding.UTF8.GetByteCount(jwt) >= Constants.MAX_JWT_SIZE_BYTES))
+        {
+            throw new ArgumentException(
+                "JWT is too large to fit in a combined presentation.",
+                nameof(jwt));
+        }
+
+        if (keyBindingJwt is not null)
+        {
+            var minimumLength = (long)jwt.Length + 1 + keyBindingJwt.Length;
+            if (minimumLength > Constants.MAX_JWT_SIZE_BYTES ||
+                (minimumLength > Constants.MAX_JWT_SIZE_BYTES / 3 &&
+                 (long)System.Text.Encoding.UTF8.GetByteCount(jwt) + 1 +
+                 System.Text.Encoding.UTF8.GetByteCount(keyBindingJwt) > Constants.MAX_JWT_SIZE_BYTES))
+            {
+                throw new ArgumentException(
+                    "JWT and key binding JWT are too large to fit in a combined presentation.",
+                    nameof(keyBindingJwt));
+            }
+        }
 
         // Stop consuming a lazy source as soon as its count exceeds the same
         // limit enforced by FormatPresentation. Materializing the entire source
