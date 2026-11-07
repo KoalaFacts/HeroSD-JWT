@@ -38,6 +38,7 @@ public class SdJwtIssuerBuilder
     private SignatureAlgorithm _signatureAlgorithm = SignatureAlgorithm.HS256;
     private byte[]? _holderPublicKey;
     private int _decoyDigestCount = 0;
+    private bool _addDefaultExpiration = true;
     private string? _keyId;
 
     // Capture caller-owned collections at configuration time. The issuer signs
@@ -224,6 +225,18 @@ public class SdJwtIssuerBuilder
     }
 
     /// <summary>
+    /// Omits the issuer's implicit five-minute expiration when no exp claim is
+    /// supplied. Only use when a trusted application policy enforces lifetime
+    /// separately. An explicitly supplied exp remains unchanged and validated.
+    /// </summary>
+    /// <returns>This builder for method chaining.</returns>
+    public SdJwtIssuerBuilder WithoutImplicitExpiration()
+    {
+        _addDefaultExpiration = false;
+        return this;
+    }
+
+    /// <summary>
     /// Builds the SD-JWT with the configured options.
     /// </summary>
     /// <returns>The created SD-JWT.</returns>
@@ -253,6 +266,7 @@ public class SdJwtIssuerBuilder
             _signatureAlgorithm,
             _holderPublicKey,
             _decoyDigestCount,
-            _keyId);
+            _keyId,
+            _addDefaultExpiration);
     }
 }

@@ -57,7 +57,38 @@ public class SdJwtIssuer(
         SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256,
         byte[]? holderPublicKey = null,
         int decoyDigestCount = 0,
-        string? keyId = null)
+        string? keyId = null) =>
+        CreateSdJwt(claims, selectivelyDisclosableClaims, signingKey, hashAlgorithm,
+            signatureAlgorithm, holderPublicKey, decoyDigestCount, keyId, addDefaultExpiration: true);
+
+    /// <summary>
+    /// Creates an SD-JWT with an explicit policy for adding a default expiration.
+    /// </summary>
+    /// <remarks>
+    /// Disabling the implicit expiration requires an application-enforced credential
+    /// lifetime. Any explicit exp claim is still validated and retained.
+    /// The original overload and ISdJwtIssuer contract always add the default.
+    /// </remarks>
+    /// <param name="claims">All claims to include in the JWT.</param>
+    /// <param name="selectivelyDisclosableClaims">Claim paths to selectively disclose.</param>
+    /// <param name="signingKey">Signing key.</param>
+    /// <param name="hashAlgorithm">Disclosure digest algorithm.</param>
+    /// <param name="signatureAlgorithm">JWT signature algorithm.</param>
+    /// <param name="holderPublicKey">Optional holder public key.</param>
+    /// <param name="decoyDigestCount">Number of privacy decoy digests.</param>
+    /// <param name="keyId">Optional JOSE key identifier.</param>
+    /// <param name="addDefaultExpiration">Whether to add an exp claim, defaulting to five minutes from issuance, when one is absent.</param>
+    /// <returns>The issued SD-JWT.</returns>
+    public SdJwt CreateSdJwt(
+        Dictionary<string, object> claims,
+        IEnumerable<string> selectivelyDisclosableClaims,
+        byte[] signingKey,
+        HashAlgorithm hashAlgorithm,
+        SignatureAlgorithm signatureAlgorithm,
+        byte[]? holderPublicKey,
+        int decoyDigestCount,
+        string? keyId,
+        bool addDefaultExpiration)
     {
         ArgumentNullException.ThrowIfNull(claims);
         ArgumentNullException.ThrowIfNull(selectivelyDisclosableClaims);
@@ -72,32 +103,36 @@ public class SdJwtIssuer(
         // An owned copy also prevents subsequent changes to caller-owned data.
         var modifiedClaims = new Dictionary<string, object>(claims, StringComparer.Ordinal);
 
-        // SD-JWT spec requires an expiration claim. Generate the default without
-        // modifying the caller's dictionary, even when later validation fails.
+        // Default to short-lived credentials without mutating the caller's
+        // dictionary. RFC 9901 permits application profiles to manage lifetime
+        // separately, but only an explicit issuer opt-out may omit exp.
         var hasExplicitExpiration = modifiedClaims.TryGetValue("exp", out var expClaim);
-        if (!hasExplicitExpiration)
+        if (!hasExplicitExpiration && addDefaultExpiration)
         {
             expClaim = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
         }
 
-        try
+        if (hasExplicitExpiration || addDefaultExpiration)
         {
+            try
+            {
 #pragma warning disable IL2026, IL3050 // JsonSerializer.SerializeToElement at API boundary
-            var expElement = JsonSerializer.SerializeToElement(expClaim);
+                var expElement = JsonSerializer.SerializeToElement(expClaim);
 #pragma warning restore IL2026, IL3050
-            if (!NumericDateParser.TryParseUnixTicks(expElement, out _))
+                if (!NumericDateParser.TryParseUnixTicks(expElement, out _))
+                {
+                    throw new ArgumentException(
+                        "The 'exp' claim must be a representable numeric Unix timestamp (seconds since epoch).",
+                        nameof(claims));
+                }
+            }
+            catch (JsonException ex)
             {
                 throw new ArgumentException(
-                    "The 'exp' claim must be a representable numeric Unix timestamp (seconds since epoch).",
-                    nameof(claims));
+                    "The 'exp' claim must be a numeric Unix timestamp (seconds since epoch).",
+                    nameof(claims),
+                    ex);
             }
-        }
-        catch (JsonException ex)
-        {
-            throw new ArgumentException(
-                "The 'exp' claim must be a numeric Unix timestamp (seconds since epoch).",
-                nameof(claims),
-                ex);
         }
 
         // Repeated selectors should not be retained just to remove them later.
@@ -260,7 +295,7 @@ public class SdJwtIssuer(
 
             // Redact nested claims and build objects with _sd arrays before wrapping parents.
             // The generated default belongs to the issued payload only.
-            if (!hasExplicitExpiration)
+            if (!hasExplicitExpiration && addDefaultExpiration)
             {
                 modifiedClaims["exp"] = expClaim!;
             }
