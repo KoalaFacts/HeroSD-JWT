@@ -40,7 +40,7 @@ public sealed class Ed25519Pkcs8InteroperabilityTests
 
         var result = TestHelpers.CreateVerifier().TryVerifyPresentation(
             sdJwt.ToCombinedFormat(), publicKey);
-        Assert.True(result.IsValid, result.ErrorMessage);
+        Assert.True(result.IsValid, result.ErrorDetails);
     }
 
     [Fact]
