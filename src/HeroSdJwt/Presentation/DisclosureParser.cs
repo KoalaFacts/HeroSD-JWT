@@ -2,7 +2,6 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.Exceptions;
 using HeroSdJwt.Models;
 using HeroSdJwt.Primitives;
-using HeroSdJwt.Verification;
 using System.Text.Json;
 
 namespace HeroSdJwt.Presentation;
@@ -84,21 +83,11 @@ public class DisclosureParser : IDisclosureParser
             throw new MalformedDisclosureException("Disclosure salt cannot be empty or whitespace");
         }
 
-        // A signed disclosure digest does not resolve ambiguity when JSON
-        // consumers disagree on the first/last duplicate member value.
-        // Apply the verifier's name policy also to standalone parser callers.
-        if (JsonObjectMemberGuard.HasInvalidOrDuplicateNamesRecursively(
-            jsonArray[arrayLength == 2 ? 1 : 2]))
-        {
-            throw new MalformedDisclosureException(
-                "Disclosure claim value contains duplicate JSON member names or invalid Unicode");
-        }
-
         if (arrayLength == 2)
         {
             // Array element disclosure: [salt, claim_value]
             var claimValue = jsonArray[1];
-            return new Disclosure(salt, claimValue.Clone());
+            return CreateValidatedDisclosure(salt, claimName: null, claimValue);
         }
         else
         {
@@ -128,7 +117,27 @@ public class DisclosureParser : IDisclosureParser
             }
 
             var claimValue = jsonArray[2];
-            return new Disclosure(salt, claimName, claimValue.Clone());
+            return CreateValidatedDisclosure(salt, claimName, claimValue);
+        }
+    }
+
+    // Disclosure owns and validates its JsonElement. Running a separate recursive
+    // member-name scan before construction doubles work for nested claim values;
+    // cloning here also duplicates the constructor's ownership step. Convert its
+    // validation errors to the parser's existing public exception contract.
+    private static Disclosure CreateValidatedDisclosure(
+        string salt, string? claimName, JsonElement claimValue)
+    {
+        try
+        {
+            return claimName is null
+                ? new Disclosure(salt, claimValue)
+                : new Disclosure(salt, claimName, claimValue);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new MalformedDisclosureException(
+                "Disclosure claim value contains duplicate JSON member names or invalid Unicode", ex);
         }
     }
 
