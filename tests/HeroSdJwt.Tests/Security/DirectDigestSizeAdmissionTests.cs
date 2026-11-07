@@ -38,6 +38,10 @@ public class DirectDigestSizeAdmissionTests
         var calculator = new DigestCalculator();
         var disclosure = new string('A', 2 * 1024 * 1024);
 
+        // Warm the exception path so one-time JIT/runtime initialization is not
+        // mistaken for a proportional UTF-8 input allocation on this call.
+        _ = Assert.Throws<ArgumentException>(() => calculator.ComputeDigest(disclosure, algorithm));
+
         // Measure only the attempted digest: the caller-owned text is already allocated.
         var before = GC.GetAllocatedBytesForCurrentThread();
         var exception = Assert.Throws<ArgumentException>(() => calculator.ComputeDigest(disclosure, algorithm));
