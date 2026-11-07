@@ -37,6 +37,7 @@ public class SdJwtVerifierBuilder
 {
     private TimeSpan _clockSkew = TimeSpan.FromMinutes(5);
     private bool _requireKeyBinding = false;
+    private bool _requireExpiration = true;
     private string? _expectedIssuer;
     private IReadOnlyCollection<string>? _expectedAudiences;
     private string? _expectedKeyBindingAudience;
@@ -70,6 +71,17 @@ public class SdJwtVerifierBuilder
     public SdJwtVerifierBuilder WithClockSkew(TimeSpan clockSkew)
     {
         _clockSkew = clockSkew;
+        return this;
+    }
+
+    /// <summary>
+    /// Allows issuer-signed credentials without an exp claim when the application
+    /// enforces validity through another trusted lifetime policy.
+    /// A supplied exp is still validated; the secure default requires it.
+    /// </summary>
+    public SdJwtVerifierBuilder AllowMissingExpiration()
+    {
+        _requireExpiration = false;
         return this;
     }
 
@@ -290,6 +302,7 @@ public class SdJwtVerifierBuilder
         {
             ClockSkew = _clockSkew,
             RequireKeyBinding = _requireKeyBinding,
+            RequireExpiration = _requireExpiration,
             ExpectedIssuer = _expectedIssuer,
             ExpectedAudience = primaryAudience,
             ExpectedAudiences = expectedAudiences,

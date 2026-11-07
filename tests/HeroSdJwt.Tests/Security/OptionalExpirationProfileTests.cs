@@ -108,4 +108,34 @@ public sealed class OptionalExpirationProfileTests
             Assert.True(result.IsValid, result.ErrorDetails);
         }
     }
+
+    [Fact]
+    public void Should_AllowMissingExpirationThroughFluentBuilder_OnlyWhenOptedIn()
+    {
+        byte[] key = [.. Enumerable.Range(1, 32).Select(i => (byte)i)];
+        var headerSegment = Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256"}""");
+
+        string SignPresentation(string payload)
+        {
+            var signingInput = headerSegment + "." + Base64UrlEncoder.Encode(payload);
+            var signature = HMACSHA256.HashData(key, System.Text.Encoding.UTF8.GetBytes(signingInput));
+            return signingInput + "." + Base64UrlEncoder.Encode(signature) + "~";
+        }
+
+        var withoutExpiration = SignPresentation(/*lang=json,strict*/ """{"sub":"alice","_sd":[]}""");
+        var expired = SignPresentation(/*lang=json,strict*/ """{"sub":"alice","exp":1,"_sd":[]}""");
+
+        var defaultVerifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .Build();
+        var profileVerifier = SdJwtVerifierBuilder.Create()
+            .WithExpectedKeyType(VerificationKeyType.Symmetric)
+            .AllowMissingExpiration()
+            .Build();
+
+        Assert.False(defaultVerifier.TryVerifyPresentation(withoutExpiration, key).IsValid);
+        var result = profileVerifier.TryVerifyPresentation(withoutExpiration, key);
+        Assert.True(result.IsValid, result.ErrorDetails);
+        Assert.False(profileVerifier.TryVerifyPresentation(expired, key).IsValid);
+    }
 }
