@@ -40,8 +40,8 @@ public class VerifierNestedSdAlgShapeTests
     }
 
     [Theory]
-    [InlineData(/*lang=json*/ "{\"exp\":4102444800,\"_sd_alg\":\"\\\\uD800\"}")]
-    [InlineData(/*lang=json*/ "{\"exp\":4102444800,\"_sd_alg\":\"\\\\uDC00\"}")]
+    [InlineData(/*lang=json*/ "{\"exp\":4102444800,\"_sd_alg\":\"\\uD800\"}")]
+    [InlineData(/*lang=json*/ "{\"exp\":4102444800,\"_sd_alg\":\"\\uDC00\"}")]
     public async Task Should_RejectMalformedUnicodeInTopLevelSdAlgWithDomainError(string payloadJson)
     {
         // An authenticated issuer payload with malformed escaped Unicode must
