@@ -11,16 +11,16 @@ namespace HeroSdJwt.Tests.Security;
 public class PresentationSerializationAdmissionTests
 {
     [Fact]
-    public void Should_RejectOversizedCombinedPresentation_When_Formatting()
+    public void Should_RejectOversizedCombinedPresentation_When_Constructing()
     {
-        // JWT alone fits the verifier's size gate, but the separator and
-        // selected disclosure put the combined presentation over the limit.
-        var presentation = new SdJwtPresentation(
-            new string('a', Constants.MAX_JWT_SIZE_BYTES - 1),
-            ["W10"]);
+        // JWT alone fits, but one disclosure pushes the wire size over the
+        // limit. Reject it while reading the source, not after materialization.
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresentation(
+                new string('a', Constants.MAX_JWT_SIZE_BYTES - 1),
+                ["W10"]));
 
-        _ = Assert.Throws<ArgumentException>(() =>
-            new SdJwtPresenter().FormatPresentation(presentation));
+        Assert.Equal("selectedDisclosures", error.ParamName);
     }
 
     [Fact]
@@ -49,6 +49,34 @@ public class PresentationSerializationAdmissionTests
         var error = Assert.Throws<ArgumentException>(() =>
             new SdJwtPresentation("header.payload.signature", AdversarialStream()));
         Assert.Equal("selectedDisclosures", error.ParamName);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Should_StopConsumingDisclosureStream_When_CumulativeWireBudgetIsExceeded(bool useMultibyte)
+    {
+        // The first disclosure fits. The second overflows the combined wire
+        // budget, either by UTF-16 length or by UTF-8 byte length.
+        var disclosure = useMultibyte
+            ? new string('\u00E9', Constants.MAX_JWT_SIZE_BYTES / 4)
+            : new string('x', Constants.MAX_JWT_SIZE_BYTES / 2);
+        var yielded = 0;
+
+        IEnumerable<string> AdversarialStream()
+        {
+            yielded++;
+            yield return disclosure;
+            yielded++;
+            yield return disclosure;
+            throw new InvalidOperationException("The enumerator advanced past the wire budget.");
+        }
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresentation("header.payload.signature", AdversarialStream()));
+
+        Assert.Equal("selectedDisclosures", error.ParamName);
+        Assert.Equal(2, yielded);
     }
 
     [Fact]
