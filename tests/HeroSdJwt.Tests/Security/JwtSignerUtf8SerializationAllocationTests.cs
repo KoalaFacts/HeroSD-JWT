@@ -3,7 +3,6 @@ using HeroSdJwt.Encoding;
 using HeroSdJwt.Primitives;
 using System.Buffers;
 using System.Reflection;
-using System.Text;
 using System.Text.Json;
 
 namespace HeroSdJwt.Tests.Security;
@@ -72,7 +71,7 @@ public sealed class JwtSignerUtf8SerializationAllocationTests
             writer.Flush();
         }
 
-        return Base64UrlEncoder.Encode(Encoding.UTF8.GetString(buffer.WrittenSpan));
+        return Base64UrlEncoder.Encode(System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan));
     }
 
     private static long MeasureAllocations(Func<string> action, int iterations)
