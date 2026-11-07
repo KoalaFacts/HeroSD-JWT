@@ -240,8 +240,10 @@ public class JwtSigner : IJwtSigner
     }
 
     /// <summary>
-    /// Signs with a legacy 64-byte expanded Ed25519 secret key or an
+    /// Signs with a 64-byte seed-prefixed Ed25519 secret key or an
     /// RFC 8410 PKCS#8 PrivateKeyInfo (version 0) containing a 32-byte seed.
+    /// The nonce prefix is always derived from the seed: a 64-byte key's
+    /// trailing bytes are not trusted because some formats store a public key there.
     /// </summary>
     private static byte[] SignEdDsa(byte[] data, byte[] privateKeyBytes)
     {
