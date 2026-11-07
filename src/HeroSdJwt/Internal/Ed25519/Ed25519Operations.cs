@@ -90,7 +90,7 @@ internal static class Ed25519Operations
         byte[] publicKey = new byte[32];
         GroupOperations.GeP3ToBytes(publicKey, 0, ref A);
 
-        // STEP 2: Compute r = SHA-512(sk[32..63] || message)
+        // STEP 2: Compute r = SHA-512(SHA-512(seed)[32..63] || message)
         byte[] r = new byte[64];
         using (var sha512 = SHA512.Create())
         {
