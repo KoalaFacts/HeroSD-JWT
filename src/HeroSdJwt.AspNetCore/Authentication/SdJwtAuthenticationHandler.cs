@@ -99,6 +99,38 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
             return AuthenticateResult.Fail("Invalid SD-JWT compact serialization");
         }
 
+        // An SD-JWT presentation needs the first '~' even without
+        // Disclosures. Each intermediate slot must be a nonempty canonical
+        // base64url Disclosure, and the number of those slots is bounded.
+        // Leave the final slot to normal key-binding verification: it may be
+        // empty or contain a compact KB-JWT with dots.
+        if (jwtEnd < 0)
+        {
+            return AuthenticateResult.Fail("Invalid SD-JWT compact serialization");
+        }
+
+        var componentStart = jwtEnd + 1;
+        var disclosureCount = 0;
+        while (componentStart < token.Length)
+        {
+            var nextSeparator = token.IndexOf('~', componentStart);
+            if (nextSeparator < 0)
+            {
+                break;
+            }
+
+            var disclosure = token.AsSpan(componentStart, nextSeparator - componentStart);
+            if (disclosure.IsEmpty ||
+                ++disclosureCount > Constants.MAX_DISCLOSURES ||
+                disclosure.Length % 4 == 1 ||
+                !HasOnlyBase64UrlCharacters(disclosure))
+            {
+                return AuthenticateResult.Fail("Invalid SD-JWT compact serialization");
+            }
+
+            componentStart = nextSeparator + 1;
+        }
+
         try
         {
             // A scheme verifier factory may perform KMS, database or network
