@@ -45,12 +45,27 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
     /// <returns>An <see cref="AuthenticateResult"/> indicating success or failure.</returns>
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        // An HTTP Authorization field must identify exactly one credential.
+        // Joining repeated fields can hand an ambiguous token to an application
+        // verifier factory (which might call KMS or other remote services).
+        if (Request.Headers.Authorization.Count > 1)
+        {
+            return AuthenticateResult.Fail("Multiple Authorization values are not supported");
+        }
+
         // Extract token from Authorization header
         string? token = ExtractTokenFromHeader();
         if (token == null)
         {
             Logger.LogDebug("No SD-JWT token found in Authorization header");
             return AuthenticateResult.NoResult();
+        }
+
+        // A proxy may coalesce duplicate Authorization fields with a comma.
+        // Comma is not part of the SD-JWT compact serialization alphabet.
+        if (token.Contains(','))
+        {
+            return AuthenticateResult.Fail("Invalid SD-JWT Authorization field");
         }
 
         // Every supported verifier enforces the 64-KiB combined presentation
