@@ -274,6 +274,6 @@ public class JtiValidator
         // Cache implementations retain TimeSpan ticks. Always round UP here:
         // truncating a sub-tick NumericDate would expire the marker too early.
         var roundedTtlTicks = (long)decimal.Ceiling(ttlTicks);
-        return TimeSpan.FromTicks(Math.Max(TimeSpan.TicksPerSecond, roundedTtlTicks));
+        return TimeSpan.FromTicks(roundedTtlTicks);
     }
 }
