@@ -1,7 +1,9 @@
 using HeroSdJwt.Encoding;
+using HeroSdJwt.Exceptions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
 using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
 using System.Text.Json;
 
 namespace HeroSdJwt.Presentation;
@@ -122,7 +124,13 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
             // Issuer-produced maps have already been derived from those digests;
             // keep their fast path without re-parsing each presentation.
             IReadOnlyDictionary<string, int> claimPathToIndex;
-            if (sdJwt.ClaimPathMapping is { } issuedMapping && sdJwt.HasTrustedClaimPathMapping)
+            // Preserve existing holder-only use of synthetic or otherwise
+            // non-decodable JWTs with caller-provided maps. Such inputs cannot
+            // authenticate as an issuer JWT; no signed digest tree can be
+            // reconstructed to check against. Real JSON JWT payloads must
+            // always pass the cache-to-digest comparison below.
+            if (sdJwt.ClaimPathMapping is { } issuedMapping &&
+                (sdJwt.HasTrustedClaimPathMapping || !HasStructuredJwtPayload(sdJwt.Jwt)))
             {
                 claimPathToIndex = issuedMapping;
             }
@@ -258,6 +266,33 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
         catch
         {
             throw;
+        }
+    }
+
+    // The holder API has historically supported synthetic, non-JWT inputs
+    // with explicit index mappings. Keep that behavior for un-verifiable
+    // objects while checking all maps accompanying actual JSON JWT payloads.
+    private static bool HasStructuredJwtPayload(string jwt)
+    {
+        var segments = CompactJwtSplitter.Split(jwt);
+        if (segments is null ||
+            !SignatureValidator.HasCanonicalBase64UrlEncoding(segments[1]))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var payload = JsonDocument.Parse(Base64UrlEncoder.DecodeString(segments[1]));
+            return payload.RootElement.ValueKind == JsonValueKind.Object;
+        }
+        catch (SdJwtException)
+        {
+            return false;
+        }
+        catch (JsonException)
+        {
+            return false;
         }
     }
 
