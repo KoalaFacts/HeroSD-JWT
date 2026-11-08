@@ -64,6 +64,10 @@ public sealed class AuthenticationCancellationTests
     [InlineData("Bearer header.pay+load.signature~")]
     [InlineData("Bearer header.payload.sig/nature~")]
     [InlineData("Bearer header.payload.signature=~")]
+    [InlineData("Bearer header.payload.signature")]
+    [InlineData("Bearer header.payload.signature~~")]
+    [InlineData("Bearer header.payload.signature~%%%~")]
+    [InlineData("Bearer header.payload.signature~a~")]
     public async Task Should_RejectImpossibleCompactJwtBeforeInvokingVerifierFactory(string authorization)
     {
         // Custom policy factories may perform KMS/database work. A malformed
@@ -80,6 +84,44 @@ public sealed class AuthenticationCancellationTests
         Assert.False(result.Succeeded);
         Assert.NotNull(result.Failure);
         Assert.Equal(0, verifier.FactoryCalls);
+    }
+
+    [Fact]
+    public async Task Should_RejectExcessDisclosureSlotsBeforeInvokingVerifierFactory()
+    {
+        var verifier = new CancelingVerifier();
+        var services = CreateServices(verifier);
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
+        context.Request.Headers.Authorization =
+            "Bearer header.payload.signature~" +
+            string.Concat(Enumerable.Repeat("W10~", Constants.MAX_DISCLOSURES + 1));
+
+        var result = await context.AuthenticateAsync("SdJwt");
+
+        Assert.False(result.Succeeded);
+        Assert.NotNull(result.Failure);
+        Assert.Equal(0, verifier.FactoryCalls);
+    }
+
+    [Theory]
+    [InlineData("Bearer header.payload.signature~")]
+    [InlineData("Bearer header.payload.signature~W10~")]
+    [InlineData("Bearer header.payload.signature~W10~header.payload.signature")]
+    public async Task Should_KeepPlausiblePresentationsAvailableToCustomVerifierFactory(string authorization)
+    {
+        var verifier = new CancelingVerifier();
+        var services = CreateServices(verifier);
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
+        context.Request.Headers.Authorization = authorization;
+
+        var result = await context.AuthenticateAsync("SdJwt");
+
+        Assert.False(result.Succeeded); // The test verifier deliberately cancels.
+        Assert.Equal(1, verifier.FactoryCalls);
     }
 
     private static ServiceCollection CreateServices(CancelingVerifier? verifier = null)
