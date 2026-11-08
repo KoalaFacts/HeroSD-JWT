@@ -91,6 +91,9 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
             lastDot <= firstDot + 1 ||
             lastDot == jwt.Length - 1 ||
             jwt[(firstDot + 1)..lastDot].IndexOf('.') >= 0 ||
+            !HasOnlyBase64UrlCharacters(jwt[..firstDot]) ||
+            !HasOnlyBase64UrlCharacters(jwt[(firstDot + 1)..lastDot]) ||
+            !HasOnlyBase64UrlCharacters(jwt[(lastDot + 1)..]) ||
             token.AsSpan().IndexOfAny(" \t\r\n") >= 0)
         {
             return AuthenticateResult.Fail("Invalid SD-JWT compact serialization");
@@ -211,6 +214,23 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
                 ex.GetType().Name);
             return AuthenticateResult.Fail("SD-JWT authentication failed");
         }
+    }
+
+    // A compact JWS segment may only use the unpadded base64url alphabet.
+    // Checking the text before invoking a custom verifier factory avoids
+    // needless external KMS/cache calls for impossible issuer JWTs without
+    // decoding buffers or changing valid presentation semantics.
+    private static bool HasOnlyBase64UrlCharacters(ReadOnlySpan<char> segment)
+    {
+        foreach (var character in segment)
+        {
+            if (!char.IsAsciiLetterOrDigit(character) && character != '-' && character != '_')
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
