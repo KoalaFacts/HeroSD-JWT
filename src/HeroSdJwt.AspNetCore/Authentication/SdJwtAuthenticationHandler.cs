@@ -85,15 +85,7 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
         // Span slicing avoids allocating strings for hostile Authorization input.
         var jwtEnd = token.IndexOf('~');
         var jwt = token.AsSpan(0, jwtEnd >= 0 ? jwtEnd : token.Length);
-        var firstDot = jwt.IndexOf('.');
-        var lastDot = jwt.LastIndexOf('.');
-        if (firstDot <= 0 ||
-            lastDot <= firstDot + 1 ||
-            lastDot == jwt.Length - 1 ||
-            jwt[(firstDot + 1)..lastDot].IndexOf('.') >= 0 ||
-            !HasOnlyBase64UrlCharacters(jwt[..firstDot]) ||
-            !HasOnlyBase64UrlCharacters(jwt[(firstDot + 1)..lastDot]) ||
-            !HasOnlyBase64UrlCharacters(jwt[(lastDot + 1)..]) ||
+        if (!HasPlausibleCompactJwt(jwt) ||
             token.AsSpan().IndexOfAny(" \t\r\n") >= 0)
         {
             return AuthenticateResult.Fail("Invalid SD-JWT compact serialization");
@@ -129,6 +121,16 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
             }
 
             componentStart = nextSeparator + 1;
+        }
+
+        // The final slot is either empty (no key binding) or a compact
+        // KB-JWT. Reject impossible encodings without invoking a potentially
+        // remote-backed verifier factory. A valid JWT is still fully checked
+        // by the verifier after this cheap, allocation-free shape check.
+        var keyBindingJwt = token.AsSpan(componentStart);
+        if (!keyBindingJwt.IsEmpty && !HasPlausibleCompactJwt(keyBindingJwt))
+        {
+            return AuthenticateResult.Fail("Invalid SD-JWT compact serialization");
         }
 
         try
@@ -246,6 +248,22 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
                 ex.GetType().Name);
             return AuthenticateResult.Fail("SD-JWT authentication failed");
         }
+    }
+
+    // Check a compact JWS without splitting/allocating its segments.
+    // This is only an admission preflight; cryptographic and canonical
+    // encoding validation remain the verifier's responsibility.
+    private static bool HasPlausibleCompactJwt(ReadOnlySpan<char> jwt)
+    {
+        var firstDot = jwt.IndexOf('.');
+        var lastDot = jwt.LastIndexOf('.');
+        return firstDot > 0 &&
+            lastDot > firstDot + 1 &&
+            lastDot != jwt.Length - 1 &&
+            jwt[(firstDot + 1)..lastDot].IndexOf('.') < 0 &&
+            HasOnlyBase64UrlCharacters(jwt[..firstDot]) &&
+            HasOnlyBase64UrlCharacters(jwt[(firstDot + 1)..lastDot]) &&
+            HasOnlyBase64UrlCharacters(jwt[(lastDot + 1)..]);
     }
 
     // A compact JWS segment may only use the unpadded base64url alphabet.
