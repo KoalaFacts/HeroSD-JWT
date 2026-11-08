@@ -78,7 +78,10 @@ public sealed class SdJwtPresentation
                     nameof(selectedDisclosures));
             }
 
-            combinedCharacterLength += (disclosure?.Length ?? 0) + 1;
+            // Preserve malformed null components for the formatter; use a
+            // nullable sizing view without weakening the original list type.
+            string? disclosureForSize = disclosure;
+            combinedCharacterLength += (disclosureForSize?.Length ?? 0) + 1;
             if (combinedCharacterLength > Constants.MAX_JWT_SIZE_BYTES)
             {
                 throw new ArgumentException(
@@ -102,7 +105,7 @@ public sealed class SdJwtPresentation
 
             if (measuringUtf8)
             {
-                combinedUtf8Length += System.Text.Encoding.UTF8.GetByteCount(disclosure ?? string.Empty) + 1;
+                combinedUtf8Length += System.Text.Encoding.UTF8.GetByteCount(disclosureForSize ?? string.Empty) + 1;
                 if (combinedUtf8Length > Constants.MAX_JWT_SIZE_BYTES)
                 {
                     throw new ArgumentException(
