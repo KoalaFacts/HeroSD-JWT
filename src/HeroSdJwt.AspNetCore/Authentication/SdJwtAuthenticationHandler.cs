@@ -248,38 +248,39 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
     {
         var claims = new List<Claim>();
 
-        // Extract JWT payload claims (always visible claims like sub, iss, aud, name, role, etc.)
-        try
+        // A verifier reporting success is not enough to issue an authentication
+        // ticket if the issuer's payload cannot be projected. In particular,
+        // swallowing a JSON/decoder failure here would authenticate a principal
+        // missing its always-visible claims.
+        // Only the issuer JWT payload is needed; do not copy disclosures.
+        var jwtEnd = presentation.IndexOf('~');
+        var jwt = presentation.AsSpan(0, jwtEnd >= 0 ? jwtEnd : presentation.Length);
+        var firstDot = jwt.IndexOf('.');
+        var lastDot = jwt.LastIndexOf('.');
+        if (firstDot <= 0 || lastDot <= firstDot + 1 ||
+            lastDot == jwt.Length - 1 ||
+            jwt[(firstDot + 1)..lastDot].IndexOf('.') >= 0)
         {
-            // Only the issuer JWT payload is needed. Splitting the complete
-            // presentation copies every Disclosure into a new string after
-            // verification, even though those components are never used here.
-            var jwtEnd = presentation.IndexOf('~');
-            var jwt = presentation.AsSpan(0, jwtEnd >= 0 ? jwtEnd : presentation.Length);
-            var firstDot = jwt.IndexOf('.');
-            var lastDot = jwt.LastIndexOf('.');
-            if (firstDot >= 0 && lastDot > firstDot &&
-                jwt[(firstDot + 1)..lastDot].IndexOf('.') < 0)
-            {
-                var payloadJson = Base64UrlEncoder.DecodeString(jwt[(firstDot + 1)..lastDot].ToString());
-                using var payloadDocument = JsonDocument.Parse(payloadJson);
-                var payload = payloadDocument.RootElement;
-
-                foreach (var property in payload.EnumerateObject())
-                {
-                    // Skip SD-JWT-specific claims
-                    if (property.Name is "_sd" or "_sd_alg" or "cnf")
-                    {
-                        continue;
-                    }
-
-                    AddClaimFromJsonElement(claims, property.Name, property.Value);
-                }
-            }
+            throw new JsonException("Verified JWT has an invalid compact payload.");
         }
-        catch (Exception ex)
+
+        var payloadJson = Base64UrlEncoder.DecodeString(jwt[(firstDot + 1)..lastDot].ToString());
+        using var payloadDocument = JsonDocument.Parse(payloadJson);
+        var payload = payloadDocument.RootElement;
+        if (payload.ValueKind != JsonValueKind.Object)
         {
-            Logger.LogWarning(ex, "Failed to extract JWT payload claims");
+            throw new JsonException("Verified JWT payload must be a JSON object.");
+        }
+
+        foreach (var property in payload.EnumerateObject())
+        {
+            // Skip SD-JWT-specific claims
+            if (property.Name is "_sd" or "_sd_alg" or "cnf")
+            {
+                continue;
+            }
+
+            AddClaimFromJsonElement(claims, property.Name, property.Value);
         }
 
         // Add disclosed claims (selectively revealed claims)
