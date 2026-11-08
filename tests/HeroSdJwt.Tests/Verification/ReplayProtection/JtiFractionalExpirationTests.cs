@@ -82,6 +82,34 @@ public class JtiFractionalExpirationTests
     }
 
     [Fact]
+    public async Task Should_ReleaseShortLivedReplayMarkerAtFractionalExpirationBoundary()
+    {
+        // A one-second minimum TTL retains expired markers needlessly and can
+        // exhaust a bounded cache when the issuer uses sub-second NumericDates.
+        var options = CreateOptions();
+        options.MaxCacheEntries = 1;
+        var clock = new ManualTimeProvider(_start);
+        using var cache = new InMemoryJtiCache(options, clock);
+        var validator = new JtiValidator(cache, options, clock);
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var firstClaims = CreateClaims("1700000000.125");
+
+        await validator.ValidateAsync(firstClaims, cancellationToken);
+        clock.UtcNow = _start.AddMilliseconds(124);
+        Assert.True(await cache.ExistsAsync(ISSUER, JTI, cancellationToken));
+
+        // At the exact expiry of the first credential, an unrelated valid
+        // credential must be admitted rather than rejected for capacity.
+        clock.UtcNow = _start.AddMilliseconds(125);
+        var secondClaims = CreateClaims("1700000000.250");
+        secondClaims["jti"] = JsonSerializer.SerializeToElement("next-fractional-jti");
+        await validator.ValidateAsync(secondClaims, cancellationToken);
+
+        Assert.False(await cache.ExistsAsync(ISSUER, JTI, cancellationToken));
+        Assert.True(await cache.ExistsAsync(ISSUER, "next-fractional-jti", cancellationToken));
+    }
+
+    [Fact]
     public async Task Should_RoundSubTickFractionUpToKeepReplayMarkerLive()
     {
         var options = CreateOptions();
