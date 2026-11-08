@@ -48,6 +48,25 @@ public sealed class SdJwt
     /// </summary>
     public IReadOnlyDictionary<string, int>? ClaimPathMapping { get; }
 
+    // Only the built-in issuer may mark a path map as derived from
+    // digest-linked disclosures. Externally supplied maps require validation
+    // before a holder can use them to reveal any claim.
+    internal bool HasTrustedClaimPathMapping { get; private init; }
+
+    internal static SdJwt CreateIssuedWithClaimPathMapping(
+        string jwt,
+        IEnumerable<string> disclosures,
+        HashAlgorithm hashAlgorithm,
+        IReadOnlyDictionary<string, int> claimPathMapping)
+    {
+        ArgumentNullException.ThrowIfNull(claimPathMapping);
+
+        return new SdJwt(jwt, disclosures, hashAlgorithm, claimPathMapping: claimPathMapping)
+        {
+            HasTrustedClaimPathMapping = true
+        };
+    }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="SdJwt"/> class.
     /// </summary>

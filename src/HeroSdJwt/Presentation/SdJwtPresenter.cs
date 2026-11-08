@@ -1,7 +1,9 @@
 using HeroSdJwt.Encoding;
+using HeroSdJwt.Exceptions;
 using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
 using HeroSdJwt.Primitives;
+using HeroSdJwt.Verification;
 using System.Text.Json;
 
 namespace HeroSdJwt.Presentation;
@@ -115,8 +117,40 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
 
             // Use cached claim path mapping if available (computed at issuance time for performance),
             // otherwise compute on-demand per SD-JWT spec: "it is up to the Holder how to maintain the mapping"
-            IReadOnlyDictionary<string, int> claimPathToIndex = sdJwt.ClaimPathMapping
-                ?? _claimPathMapper.BuildClaimPathMapping(sdJwt);
+            // A public SdJwt constructor can receive an external cached map.
+            // Immutability prevents later changes but does not prove the original
+            // indices match the issuer's signed digests. An incorrect index could
+            // silently expose another claim (e.g. tax_id when selecting email).
+            // Issuer-produced maps have already been derived from those digests;
+            // keep their fast path without re-parsing each presentation.
+            IReadOnlyDictionary<string, int> claimPathToIndex;
+            // Preserve existing holder-only use of synthetic or otherwise
+            // non-decodable JWTs with caller-provided maps. Such inputs cannot
+            // authenticate as an issuer JWT; no signed digest tree can be
+            // reconstructed to check against. Real JSON JWT payloads must
+            // always pass the cache-to-digest comparison below.
+            if (sdJwt.ClaimPathMapping is { } issuedMapping &&
+                (sdJwt.HasTrustedClaimPathMapping || !HasStructuredJwtPayload(sdJwt.Jwt)))
+            {
+                claimPathToIndex = issuedMapping;
+            }
+            else
+            {
+                claimPathToIndex = _claimPathMapper.BuildClaimPathMapping(sdJwt);
+                if (sdJwt.ClaimPathMapping is { } externalMapping)
+                {
+                    foreach (var (path, index) in externalMapping)
+                    {
+                        if (!claimPathToIndex.TryGetValue(path, out var actualIndex) ||
+                            actualIndex != index)
+                        {
+                            throw new ArgumentException(
+                                "Cached claim path mapping does not match the credential disclosures.",
+                                nameof(sdJwt));
+                        }
+                    }
+                }
+            }
 
             // Select disclosures based on requested claim paths
             // Also include parent disclosures for nested paths (e.g., for "address.geo.lat", include "address.geo")
@@ -232,6 +266,33 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
         catch
         {
             throw;
+        }
+    }
+
+    // The holder API has historically supported synthetic, non-JWT inputs
+    // with explicit index mappings. Keep that behavior for un-verifiable
+    // objects while checking all maps accompanying actual JSON JWT payloads.
+    private static bool HasStructuredJwtPayload(string jwt)
+    {
+        var segments = CompactJwtSplitter.Split(jwt);
+        if (segments is null ||
+            !SignatureValidator.HasCanonicalBase64UrlEncoding(segments[1]))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var payload = JsonDocument.Parse(Base64UrlEncoder.DecodeString(segments[1]));
+            return payload.RootElement.ValueKind == JsonValueKind.Object;
+        }
+        catch (SdJwtException)
+        {
+            return false;
+        }
+        catch (JsonException)
+        {
+            return false;
         }
     }
 
