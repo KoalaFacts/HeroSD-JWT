@@ -91,6 +91,60 @@ public class KeyBindingSigningInputTests
             proof, holder.ExportSubjectPublicKeyInfo(), SD_HASH, audience, nonce));
     }
 
+    [Fact]
+    public void Should_RejectNonCanonicalHeader_EvenWithValidHolderSignature()
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        const string audience = "https://verifier.example";
+        var proof = new KeyBindingGenerator().CreateKeyBindingJwt(
+            holder.ExportECPrivateKey(), SD_HASH, audience, NONCE);
+        var key = holder.ExportSubjectPublicKeyInfo();
+        var validator = new KeyBindingValidator();
+        Assert.True(validator.ValidateKeyBinding(proof, key, SD_HASH, audience, NONCE));
+
+        var parts = proof.Split('.');
+        Assert.Equal(3, parts[0].Length % 4);
+
+        // The unused low two bits in the final base64url sextet must be zero.
+        // Changing only those bits leaves the decoded JSON header unchanged.
+        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+        var lastIndex = alphabet.IndexOf(parts[0][^1]);
+        Assert.Equal(0, lastIndex & 3);
+        var nonCanonicalHeader = parts[0][..^1] + alphabet[lastIndex + 1];
+        var signingInput = nonCanonicalHeader + "." + parts[1];
+        var signature = holder.SignData(
+            System.Text.Encoding.ASCII.GetBytes(signingInput), HashAlgorithmName.SHA256);
+        var nonCanonicalProof = signingInput + "." + Base64UrlEncoder.Encode(signature);
+
+        // The signature authenticates the altered text, but the JOSE header
+        // still violates RFC 4648 canonical encoding.
+        Assert.False(validator.ValidateKeyBinding(nonCanonicalProof, key, SD_HASH, audience, NONCE));
+    }
+
+    [Fact]
+    public void Should_RejectNonCanonicalSignatureAlias_ForAuthenticHolderProof()
+    {
+        using var holder = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        const string audience = "https://verifier.example";
+        var proof = new KeyBindingGenerator().CreateKeyBindingJwt(
+            holder.ExportECPrivateKey(), SD_HASH, audience, NONCE);
+        var key = holder.ExportSubjectPublicKeyInfo();
+        var validator = new KeyBindingValidator();
+        Assert.True(validator.ValidateKeyBinding(proof, key, SD_HASH, audience, NONCE));
+
+        const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+        var lastDot = proof.LastIndexOf('.');
+        var signature = proof[(lastDot + 1)..];
+        Assert.Equal(2, signature.Length % 4); // 64 bytes of ES256 signature
+        var lastIndex = alphabet.IndexOf(signature[^1]);
+        Assert.Equal(0, lastIndex & 15);
+        var nonCanonicalProof = proof[..^1] + alphabet[lastIndex + 1];
+
+        // The final sextet differs only in unused low bits; accepting this
+        // alias makes one signed holder proof have multiple wire identities.
+        Assert.False(validator.ValidateKeyBinding(nonCanonicalProof, key, SD_HASH, audience, NONCE));
+    }
+
     private sealed class RejectingClock : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() =>

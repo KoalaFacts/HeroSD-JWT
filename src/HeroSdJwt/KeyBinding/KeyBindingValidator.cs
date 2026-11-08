@@ -124,6 +124,17 @@ public class KeyBindingValidator(TimeProvider timeProvider) : IKeyBindingValidat
             var payloadBase64 = keyBindingJwt[(firstSeparator + 1)..secondSeparator];
             var signatureBase64 = keyBindingJwt[(secondSeparator + 1)..];
 
+            // RFC 4648 unused pad bits must be zero. Otherwise, different
+            // compact KB-JWT strings can decode to the same signed header,
+            // payload or ES256 signature. Match issuer JWT validation and
+            // reject aliases before importing the holder key.
+            if (!SignatureValidator.HasCanonicalBase64UrlEncoding(headerBase64) ||
+                !SignatureValidator.HasCanonicalBase64UrlEncoding(payloadBase64) ||
+                !SignatureValidator.HasCanonicalBase64UrlEncoding(signatureBase64))
+            {
+                return false;
+            }
+
             // Decode and validate header
             var headerJson = Base64UrlEncoder.DecodeString(headerBase64);
             using var headerDocument = JsonDocument.Parse(headerJson);
