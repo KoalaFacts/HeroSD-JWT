@@ -20,6 +20,8 @@ public sealed class SignatureLengthPreflightTests
     [InlineData("ES384", 95)]
     [InlineData("ES512", 131)]
     [InlineData("EdDSA", 63)]
+    [InlineData("RS256", 255)]
+    [InlineData("PS256", 255)]
     public void Should_RejectImpossibleSignatureLength_BeforeCallingResolver(
         string algorithm, int invalidSignatureLength)
     {
@@ -59,8 +61,12 @@ public sealed class SignatureLengthPreflightTests
         Assert.Equal(ErrorCode.InvalidInput, exception.ErrorCode);
     }
 
-    [Fact]
-    public async Task Should_RejectImpossibleSignatureLength_BeforeHighLevelKeyResolution()
+    [Theory]
+    [InlineData("ES256", 63)]
+    [InlineData("RS256", 255)]
+    [InlineData("PS256", 255)]
+    public async Task Should_RejectImpossibleSignatureLength_BeforeHighLevelKeyResolution(
+        string algorithm, int invalidSignatureLength)
     {
         var resolverCalls = 0;
         byte[]? Resolver(string _)
@@ -69,7 +75,7 @@ public sealed class SignatureLengthPreflightTests
             return new byte[64];
         }
 
-        var presentation = CreateJwt("ES256", 63, includeKeyId: true) + "~";
+        var presentation = CreateJwt(algorithm, invalidSignatureLength, includeKeyId: true) + "~";
         var verifier = SdJwtVerifierBuilder.Create()
             .WithExpectedKeyType(VerificationKeyType.Asymmetric)
             .Build();
@@ -84,6 +90,25 @@ public sealed class SignatureLengthPreflightTests
         Assert.False(asyncResult.IsValid);
         Assert.Contains(ErrorCode.InvalidInput, asyncResult.Errors);
         Assert.Equal(0, resolverCalls);
+    }
+
+    [Theory]
+    [InlineData("RS256")]
+    [InlineData("PS256")]
+    public void Should_ConsultResolver_WhenRsaSignatureMeetsMinimumSize(string algorithm)
+    {
+        var resolverCalls = 0;
+        var jwt = CreateJwt(algorithm, 256, includeKeyId: true);
+        // A 2048-bit RSA signature is structurally possible, even if this
+        // zero-filled test signature and the returned key are not valid.
+        var verified = new SignatureValidator().VerifyJwtSignature(jwt, _ =>
+        {
+            resolverCalls++;
+            return [];
+        });
+
+        Assert.False(verified);
+        Assert.Equal(1, resolverCalls);
     }
 
     private static string CreateJwt(string algorithm, int signatureLength, bool includeKeyId)
