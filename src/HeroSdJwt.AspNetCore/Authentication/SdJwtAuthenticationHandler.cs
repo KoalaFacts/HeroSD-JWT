@@ -79,6 +79,23 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
             return AuthenticateResult.Fail("SD-JWT presentation exceeds maximum allowed size");
         }
 
+        // Do not create a potentially remote-backed verifier for a credential
+        // which cannot possibly be a compact JWS. Only examine the issuer JWT
+        // before the first SD-JWT separator; a valid presentation may end in '~'.
+        // Span slicing avoids allocating strings for hostile Authorization input.
+        var jwtEnd = token.IndexOf('~');
+        var jwt = token.AsSpan(0, jwtEnd >= 0 ? jwtEnd : token.Length);
+        var firstDot = jwt.IndexOf('.');
+        var lastDot = jwt.LastIndexOf('.');
+        if (firstDot <= 0 ||
+            lastDot <= firstDot + 1 ||
+            lastDot == jwt.Length - 1 ||
+            jwt[(firstDot + 1)..lastDot].IndexOf('.') >= 0 ||
+            token.AsSpan().IndexOfAny(" \t\r\n") >= 0)
+        {
+            return AuthenticateResult.Fail("Invalid SD-JWT compact serialization");
+        }
+
         try
         {
             // A scheme verifier factory may perform KMS, database or network

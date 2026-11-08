@@ -54,6 +54,30 @@ public sealed class AuthenticationCancellationTests
         Assert.NotNull(result.Failure);
     }
 
+    [Theory]
+    [InlineData("Bearer not-a-compact-jwt")]
+    [InlineData("Bearer header..signature~")]
+    [InlineData("Bearer header.payload.~")]
+    [InlineData("Bearer header.payload.signature.extra~")]
+    [InlineData("Bearer header.payload.signature~invalid disclosure")]
+    public async Task Should_RejectImpossibleCompactJwtBeforeInvokingVerifierFactory(string authorization)
+    {
+        // Custom policy factories may perform KMS/database work. A malformed
+        // Authorization value must be rejected before invoking them.
+        var verifier = new CancelingVerifier();
+        var services = CreateServices(verifier);
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
+        context.Request.Headers.Authorization = authorization;
+
+        var result = await context.AuthenticateAsync("SdJwt");
+
+        Assert.False(result.Succeeded);
+        Assert.NotNull(result.Failure);
+        Assert.Equal(0, verifier.FactoryCalls);
+    }
+
     private static ServiceCollection CreateServices(CancelingVerifier? verifier = null)
     {
         var services = new ServiceCollection();
