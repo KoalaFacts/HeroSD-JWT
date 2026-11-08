@@ -660,6 +660,14 @@ public class SignatureValidator : ISignatureValidator
     // intentionally left to the cryptographic verifier.
     internal static bool HasImpossibleEncodedSignatureLength(string algorithm, int encodedLength)
     {
+        // RS256/PS256 keys must be at least 2048 bits. Any shorter signature
+        // is impossible, regardless of which RSA key a remote resolver returns.
+        // Larger RSA signatures are variable-width; do not reject them by size.
+        if (algorithm is "RS256" or "PS256")
+        {
+            return encodedLength < (256 * 8 + 5) / 6;
+        }
+
         var expectedBytes = FixedSignatureLengthInBytes(algorithm);
         return expectedBytes > 0 && encodedLength != (expectedBytes * 8 + 5) / 6;
     }
