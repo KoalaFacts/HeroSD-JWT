@@ -25,10 +25,13 @@ public class PresentationUtf8ByteSizeTests
     public void Should_RejectOversizedUtf8CombinedFormat_WhenPresenterCharacterCountFits()
     {
         var disclosure = new string('\u00E9', Constants.MAX_JWT_SIZE_BYTES / 2);
-        var presentation = new SdJwtPresentation("header.payload.signature", [disclosure]);
+        const string jwt = "header.payload.signature";
+        Assert.True(jwt.Length + disclosure.Length + 2 < Constants.MAX_JWT_SIZE_BYTES);
 
-        Assert.True(presentation.Jwt.Length + disclosure.Length + 2 < Constants.MAX_JWT_SIZE_BYTES);
-        _ = Assert.Throws<ArgumentException>(() => new SdJwtPresenter().FormatPresentation(presentation));
+        var error = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresentation(jwt, [disclosure]));
+
+        Assert.Equal("selectedDisclosures", error.ParamName);
     }
     [Fact]
     public void Should_AllowExactUtf8ByteLimit_WhenUnicodeCharacterCountIsSmaller()
