@@ -1,5 +1,6 @@
 using HeroSdJwt.Encoding;
 using HeroSdJwt.Models;
+using HeroSdJwt.Primitives;
 using HeroSdJwt.Verification;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
@@ -50,6 +51,17 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
         {
             Logger.LogDebug("No SD-JWT token found in Authorization header");
             return AuthenticateResult.NoResult();
+        }
+
+        // Every supported verifier enforces the 64-KiB combined presentation
+        // wire budget. A custom policy factory may invoke external KMS or cache
+        // services, so reject an impossible input before consulting it.
+        // UTF-16 string length alone undercounts multi-byte UTF-8 input.
+        if (token.Length > Constants.MAX_JWT_SIZE_BYTES ||
+            (token.Length > Constants.MAX_JWT_SIZE_BYTES / 3 &&
+             System.Text.Encoding.UTF8.GetByteCount(token) > Constants.MAX_JWT_SIZE_BYTES))
+        {
+            return AuthenticateResult.Fail("SD-JWT presentation exceeds maximum allowed size");
         }
 
         try
