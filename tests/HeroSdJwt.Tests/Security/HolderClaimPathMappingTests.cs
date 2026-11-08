@@ -86,6 +86,27 @@ public class HolderClaimPathMappingTests
     }
 
     [Fact]
+    public void Should_RejectArrayDisclosureReferencedByObjectDigest()
+    {
+        // An object _sd digest must refer to [salt, name, value], not the
+        // two-element [salt, value] form used by array placeholders.
+        var disclosure = Base64UrlEncoder.Encode(/*lang=json,strict*/ """["salt","private"]""");
+        var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
+        var header = Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256"}""");
+        var payload = Base64UrlEncoder.Encode(
+            $"{{\"exp\":4102444800,\"_sd\":[\"{digest}\"]}}");
+        var signingInput = $"{header}.{payload}";
+        var signature = HMACSHA256.HashData(_signingKey, System.Text.Encoding.UTF8.GetBytes(signingInput));
+        var imported = new SdJwt(
+            $"{signingInput}.{Base64UrlEncoder.Encode(signature)}",
+            [disclosure],
+            HashAlgorithm.Sha256);
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
+
+    [Fact]
     public void Should_ContinueMappingCanonicalSignedArrayDisclosure()
     {
         var disclosure = Base64UrlEncoder.Encode(/*lang=json,strict*/ "[\"salt\",\"degree\"]");
