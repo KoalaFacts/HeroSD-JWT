@@ -465,7 +465,7 @@ public class SdJwtIssuer(
             var claimPathMapping = claimPathMapper.BuildClaimPathMapping(tempSdJwt);
 
             // Step 5: Create final SdJwt object with cached mapping
-            var sdJwt = new SdJwt(jwt, disclosures, hashAlgorithm, null, claimPathMapping);
+            var sdJwt = SdJwt.CreateIssuedWithClaimPathMapping(jwt, disclosures, hashAlgorithm, claimPathMapping);
 
             return sdJwt;
         }

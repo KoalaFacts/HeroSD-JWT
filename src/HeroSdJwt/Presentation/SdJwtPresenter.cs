@@ -115,8 +115,34 @@ public class SdJwtPresenter(IDisclosureClaimPathMapper claimPathMapper) : ISdJwt
 
             // Use cached claim path mapping if available (computed at issuance time for performance),
             // otherwise compute on-demand per SD-JWT spec: "it is up to the Holder how to maintain the mapping"
-            IReadOnlyDictionary<string, int> claimPathToIndex = sdJwt.ClaimPathMapping
-                ?? _claimPathMapper.BuildClaimPathMapping(sdJwt);
+            // A public SdJwt constructor can receive an external cached map.
+            // Immutability prevents later changes but does not prove the original
+            // indices match the issuer's signed digests. An incorrect index could
+            // silently expose another claim (e.g. tax_id when selecting email).
+            // Issuer-produced maps have already been derived from those digests;
+            // keep their fast path without re-parsing each presentation.
+            IReadOnlyDictionary<string, int> claimPathToIndex;
+            if (sdJwt.ClaimPathMapping is { } issuedMapping && sdJwt.HasTrustedClaimPathMapping)
+            {
+                claimPathToIndex = issuedMapping;
+            }
+            else
+            {
+                claimPathToIndex = _claimPathMapper.BuildClaimPathMapping(sdJwt);
+                if (sdJwt.ClaimPathMapping is { } externalMapping)
+                {
+                    foreach (var (path, index) in externalMapping)
+                    {
+                        if (!claimPathToIndex.TryGetValue(path, out var actualIndex) ||
+                            actualIndex != index)
+                        {
+                            throw new ArgumentException(
+                                "Cached claim path mapping does not match the credential disclosures.",
+                                nameof(sdJwt));
+                        }
+                    }
+                }
+            }
 
             // Select disclosures based on requested claim paths
             // Also include parent disclosures for nested paths (e.g., for "address.geo.lat", include "address.geo")
