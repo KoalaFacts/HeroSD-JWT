@@ -42,6 +42,44 @@ public class CachedClaimPathMappingOwnershipTests
         _ = Assert.Throws<NotSupportedException>(() => exposedMapping["email"] = taxIdIndex);
     }
 
+    [Fact]
+    public void Should_RejectForgedMapping_BeforeDisclosingAnotherClaim()
+    {
+        var issued = IssueCredential();
+        var forgedMapping = new Dictionary<string, int>(issued.ClaimPathMapping!, StringComparer.Ordinal)
+        {
+            ["email"] = issued.ClaimPathMapping!["tax_id"]
+        };
+        var imported = new SdJwt(
+            issued.Jwt,
+            issued.Disclosures,
+            issued.HashAlgorithm,
+            claimPathMapping: forgedMapping);
+
+        // The supplied mapping is immutable after construction but was
+        // already wrong at construction. Email selection must not reveal tax_id.
+        var exception = Assert.Throws<ArgumentException>(() =>
+            new SdJwtPresenter().CreatePresentation(imported, ["email"]));
+        Assert.Contains("mapping", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Should_PreserveCorrectExternalMapping_WhenReconstructingCredential()
+    {
+        var issued = IssueCredential();
+        var imported = new SdJwt(
+            issued.Jwt,
+            issued.Disclosures,
+            issued.HashAlgorithm,
+            claimPathMapping: issued.ClaimPathMapping);
+
+        var presentation = new SdJwtPresenter().CreatePresentation(imported, ["email"]);
+
+        Assert.Equal(
+            issued.Disclosures[issued.ClaimPathMapping!["email"]],
+            Assert.Single(presentation.SelectedDisclosures));
+    }
+
     private static SdJwt IssueCredential()
     {
         var claims = new Dictionary<string, object>
