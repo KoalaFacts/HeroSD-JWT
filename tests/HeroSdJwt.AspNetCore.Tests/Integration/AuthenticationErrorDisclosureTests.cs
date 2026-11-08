@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using System.Collections.Concurrent;
 using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
@@ -87,6 +88,40 @@ public class AuthenticationErrorDisclosureTests
 
         Assert.False(result.Succeeded);
         Assert.NotNull(result.Failure);
+        Assert.Equal(0, verifier.FactoryCalls);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_RejectAmbiguousAuthorization_BeforeCustomVerifierFactory(bool foldedHeader)
+    {
+        // Duplicate values and comma-folded Authorization headers are ambiguous.
+        // Neither may be passed to a custom verifier that could access a remote KMS.
+        var verifier = new ProviderFailureVerifier("factory-should-not-run", failInFactory: true);
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSdJwtServices();
+        services.AddSingleton<ISdJwtVerifier>(verifier);
+        services.AddAuthentication().AddSdJwt(options =>
+        {
+            options.FallbackKey = new byte[32];
+            options.VerificationOptions = new SdJwtVerificationOptions
+            {
+                ExpectedKeyType = VerificationKeyType.Symmetric
+            };
+        });
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
+        context.Request.Headers.Authorization = foldedHeader
+            ? new StringValues("Bearer header.payload.signature~, Bearer another.payload.signature~")
+            : new StringValues(["Bearer header.payload.signature~", "Bearer another.payload.signature~"]);
+
+        var result = await context.AuthenticateAsync("SdJwt");
+
+        Assert.False(result.Succeeded);
         Assert.Equal(0, verifier.FactoryCalls);
     }
 
