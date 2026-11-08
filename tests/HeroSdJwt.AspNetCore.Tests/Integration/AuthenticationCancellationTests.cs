@@ -60,6 +60,10 @@ public sealed class AuthenticationCancellationTests
     [InlineData("Bearer header.payload.~")]
     [InlineData("Bearer header.payload.signature.extra~")]
     [InlineData("Bearer header.payload.signature~invalid disclosure")]
+    [InlineData("Bearer head!.payload.signature~")]
+    [InlineData("Bearer header.pay+load.signature~")]
+    [InlineData("Bearer header.payload.sig/nature~")]
+    [InlineData("Bearer header.payload.signature=~")]
     public async Task Should_RejectImpossibleCompactJwtBeforeInvokingVerifierFactory(string authorization)
     {
         // Custom policy factories may perform KMS/database work. A malformed
