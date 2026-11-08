@@ -53,11 +53,51 @@ public class AuthenticationErrorDisclosureTests
             StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_RejectOversizedPresentation_BeforeConsultingCustomVerifier(bool multibyte)
+    {
+        // A custom verifier may consult a KMS or another remote service.
+        // Oversized wire inputs can never be valid and must be rejected by
+        // the authentication boundary without invoking that factory.
+        var verifier = new ProviderFailureVerifier("factory-should-not-run", failInFactory: true);
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSdJwtServices();
+        services.AddSingleton<ISdJwtVerifier>(verifier);
+        services.AddAuthentication().AddSdJwt(options =>
+        {
+            options.FallbackKey = new byte[32];
+            options.VerificationOptions = new SdJwtVerificationOptions
+            {
+                ExpectedKeyType = VerificationKeyType.Symmetric
+            };
+        });
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
+        var oversizedToken = multibyte
+            ? new string('é', Constants.MAX_JWT_SIZE_BYTES / 2 + 1)
+            : new string('a', Constants.MAX_JWT_SIZE_BYTES + 1);
+        context.Request.Headers.Authorization = "Bearer " + oversizedToken;
+
+        var result = await context.AuthenticateAsync("SdJwt");
+
+        Assert.False(result.Succeeded);
+        Assert.NotNull(result.Failure);
+        Assert.Equal(0, verifier.FactoryCalls);
+    }
+
     private sealed class ProviderFailureVerifier(string diagnostic, bool failInFactory)
         : ISdJwtVerifier, ISdJwtVerifierFactory
     {
+        public int FactoryCalls { get; private set; }
+
         public ISdJwtVerifier CreateVerifier(SdJwtVerificationOptions options)
         {
+            FactoryCalls++;
             if (failInFactory)
             {
                 throw new InvalidOperationException(diagnostic);
