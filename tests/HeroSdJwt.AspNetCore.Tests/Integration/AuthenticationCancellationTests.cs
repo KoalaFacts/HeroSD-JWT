@@ -14,7 +14,8 @@ public sealed class AuthenticationCancellationTests
     [Fact]
     public async Task Should_PropagateCancellation_WhenRequestIsAborted()
     {
-        var services = CreateServices();
+        var verifier = new CancelingVerifier();
+        var services = CreateServices(verifier);
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         using var aborted = new CancellationTokenSource();
@@ -31,6 +32,10 @@ public sealed class AuthenticationCancellationTests
         // swallow the cancellation or report it as a failed credential.
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => context.AuthenticateAsync("SdJwt"));
+
+        // A verifier factory may call remote KMS or database services. An
+        // already-aborted request must not invoke the factory at all.
+        Assert.Equal(0, verifier.FactoryCalls);
     }
 
     [Fact]
@@ -49,11 +54,11 @@ public sealed class AuthenticationCancellationTests
         Assert.NotNull(result.Failure);
     }
 
-    private static ServiceCollection CreateServices()
+    private static ServiceCollection CreateServices(CancelingVerifier? verifier = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddSingleton<ISdJwtVerifier>(new CancelingVerifier());
+        services.AddSingleton<ISdJwtVerifier>(verifier ?? new CancelingVerifier());
         services.AddAuthentication().AddSdJwt(options =>
         {
             options.FallbackKey = new byte[32];
@@ -63,7 +68,13 @@ public sealed class AuthenticationCancellationTests
 
     private sealed class CancelingVerifier : ISdJwtVerifier, ISdJwtVerifierAsync, ISdJwtVerifierFactory
     {
-        public ISdJwtVerifier CreateVerifier(SdJwtVerificationOptions options) => this;
+        public int FactoryCalls { get; private set; }
+
+        public ISdJwtVerifier CreateVerifier(SdJwtVerificationOptions options)
+        {
+            FactoryCalls++;
+            return this;
+        }
 
         private static Task<VerificationResult> Canceled() =>
             Task.FromCanceled<VerificationResult>(new CancellationToken(canceled: true));

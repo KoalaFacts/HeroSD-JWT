@@ -81,6 +81,11 @@ public class SdJwtAuthenticationHandler : AuthenticationHandler<SdJwtAuthenticat
 
         try
         {
+            // A scheme verifier factory may perform KMS, database or network
+            // work before creating the verifier. Do not invoke it for an
+            // already-aborted HTTP request.
+            Context.RequestAborted.ThrowIfCancellationRequested();
+
             // Verify the SD-JWT presentation (prefer async when available to avoid blocking caches/stores)
             VerificationResult result;
             if (_verifier is not ISdJwtVerifierFactory factory)
