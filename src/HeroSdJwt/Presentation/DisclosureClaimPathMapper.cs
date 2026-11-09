@@ -153,7 +153,18 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                 throw new MalformedDisclosureException(
                     "An array element placeholder cannot be used as an ordinary object member.");
             }
-            else if (property.Name != "_sd_alg") // Skip metadata
+            else if (property.Name == "_sd_alg")
+            {
+                // RFC 9901 permits _sd_alg only at the root of the issuer
+                // payload. Do not silently ignore it inside a signed nested
+                // object or a referenced Disclosure value.
+                if (currentPath.Length > 0)
+                {
+                    throw new MalformedDisclosureException(
+                        "The _sd_alg member is only permitted at the root issuer payload.");
+                }
+            }
+            else
             {
                 // Recursively process nested structures
                 var newPath = string.IsNullOrEmpty(currentPath)
