@@ -199,6 +199,46 @@ public class HolderClaimPathMappingTests
         Assert.Equal(disclosure, Assert.Single(presentation.SelectedDisclosures));
     }
 
+    [Theory]
+    [InlineData(/*lang=json,strict*/ "{\"exp\":4102444800,\"profile\":{\"_sd_alg\":\"sha-512\"}}")]
+    [InlineData(/*lang=json,strict*/ "{\"exp\":4102444800,\"roles\":[{\"_sd_alg\":null}]}")]
+    public void Should_RejectNestedSdAlgInSignedPayloadBeforeMapping(string payloadJson)
+    {
+        // RFC 9901 reserves _sd_alg for the root issuer payload. The verifier
+        // rejects nested instances, so holder-side mapping must not ignore them.
+        var imported = CreateSignedPayload(payloadJson);
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
+
+    [Fact]
+    public void Should_RejectNestedSdAlgInReferencedDisclosureBeforeMapping()
+    {
+        var disclosure = Base64UrlEncoder.Encode(
+            /*lang=json,strict*/ "[\"salt\",\"profile\",{\"_sd_alg\":\"sha-256\"}]");
+        var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
+        var imported = CreateSignedPayload($"{{\"exp\":4102444800,\"_sd\":[\"{digest}\"]}}", disclosure);
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
+
+    [Fact]
+    public void Should_ContinueMappingRootSdAlgWithValidDisclosure()
+    {
+        var disclosure = Base64UrlEncoder.Encode(
+            /*lang=json,strict*/ "[\"salt\",\"profile\",{\"name\":\"Alice\"}]");
+        var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
+        var imported = CreateSignedPayload(
+            $"{{\"exp\":4102444800,\"_sd_alg\":\"sha-256\",\"_sd\":[\"{digest}\"]}}",
+            disclosure);
+
+        var mapping = new DisclosureClaimPathMapper().BuildClaimPathMapping(imported);
+
+        Assert.Equal(0, mapping["profile"]);
+    }
+
     private static SdJwt CreateSignedPayload(string payloadJson, params string[] disclosures)
     {
         var header = Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256"}""");
