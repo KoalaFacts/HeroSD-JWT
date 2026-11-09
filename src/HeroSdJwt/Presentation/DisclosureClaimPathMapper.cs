@@ -4,6 +4,7 @@ using HeroSdJwt.Issuance;
 using HeroSdJwt.Models;
 using HeroSdJwt.Verification;
 using System.Text.Json;
+using HashAlgorithm = HeroSdJwt.Primitives.HashAlgorithm;
 
 namespace HeroSdJwt.Presentation;
 
@@ -72,6 +73,41 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
             throw new ArgumentException(
                 "JWT payload must be an object with unique, valid JSON member names.",
                 nameof(sdJwt));
+        }
+
+        // The signed payload determines the disclosure hash algorithm.
+        // An imported SdJwt's algorithm metadata must agree before mapping.
+        var wireAlgorithm = HashAlgorithm.Sha256;
+        if (payload.TryGetProperty("_sd_alg", out var sdAlg))
+        {
+            if (sdAlg.ValueKind != JsonValueKind.String)
+            {
+                throw new MalformedDisclosureException("The root _sd_alg must be a string.");
+            }
+
+            string? declaredAlgorithm;
+            try
+            {
+                declaredAlgorithm = sdAlg.GetString();
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new MalformedDisclosureException("The root _sd_alg contains invalid Unicode.", ex);
+            }
+
+            wireAlgorithm = declaredAlgorithm switch
+            {
+                "sha-256" => HashAlgorithm.Sha256,
+                "sha-384" => HashAlgorithm.Sha384,
+                "sha-512" => HashAlgorithm.Sha512,
+                _ => throw new MalformedDisclosureException("The root _sd_alg is unsupported.")
+            };
+        }
+
+        if (wireAlgorithm != sdJwt.HashAlgorithm)
+        {
+            throw new MalformedDisclosureException(
+                "The root _sd_alg does not match the SD-JWT hash algorithm.");
         }
 
         // Build digest-to-disclosure-index map
