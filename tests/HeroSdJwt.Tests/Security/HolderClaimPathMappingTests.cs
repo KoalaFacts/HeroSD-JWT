@@ -86,9 +86,9 @@ public class HolderClaimPathMappingTests
     }
 
     [Theory]
-    [InlineData("{\"...\":null}")]
-    [InlineData("{\"...\":false}")]
-    [InlineData("{\"...\":\"digest\",\"public\":true}")]
+    [InlineData(/*lang=json,strict*/ "{\"...\":null}")]
+    [InlineData(/*lang=json,strict*/ "{\"...\":false}")]
+    [InlineData(/*lang=json,strict*/ "{\"...\":\"digest\",\"public\":true}")]
     public void Should_RejectMalformedArrayPlaceholderBeforeMapping(string arrayItem)
     {
         var imported = CreateSignedPayload($"{{\"exp\":4102444800,\"items\":[{arrayItem}]}}");
