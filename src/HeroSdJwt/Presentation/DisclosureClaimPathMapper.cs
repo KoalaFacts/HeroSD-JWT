@@ -118,8 +118,12 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
             digestToIndex[digest] = i;
         }
 
+        // RFC 9901 forbids reusing any digest, including decoys and array slots.
+        // Digest equality compares decoded bytes, so padded aliases cannot evade this check.
+        var seenDigests = new HashSet<Digest>();
+
         // Recursively process payload to find all _sd arrays and map them
-        ProcessElement(payload, "", digestToIndex, sdJwt.Disclosures, mapping, nestedPaths);
+        ProcessElement(payload, "", digestToIndex, sdJwt.Disclosures, mapping, nestedPaths, seenDigests, sdJwt.HashAlgorithm);
 
         return mapping;
     }
@@ -133,15 +137,17 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
         Dictionary<string, int> digestToIndex,
         IReadOnlyList<string> disclosures,
         Dictionary<string, int> mapping,
-        Dictionary<string, int>? nestedPaths)
+        Dictionary<string, int>? nestedPaths,
+        HashSet<Digest> seenDigests,
+        HashAlgorithm algorithm)
     {
         if (element.ValueKind == JsonValueKind.Object)
         {
-            ProcessObject(element, currentPath, digestToIndex, disclosures, mapping, nestedPaths);
+            ProcessObject(element, currentPath, digestToIndex, disclosures, mapping, nestedPaths, seenDigests, algorithm);
         }
         else if (element.ValueKind == JsonValueKind.Array)
         {
-            ProcessArray(element, currentPath, digestToIndex, disclosures, mapping, nestedPaths);
+            ProcessArray(element, currentPath, digestToIndex, disclosures, mapping, nestedPaths, seenDigests, algorithm);
         }
     }
 
@@ -154,7 +160,9 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
         Dictionary<string, int> digestToIndex,
         IReadOnlyList<string> disclosures,
         Dictionary<string, int> mapping,
-        Dictionary<string, int>? nestedPaths)
+        Dictionary<string, int>? nestedPaths,
+        HashSet<Digest> seenDigests,
+        HashAlgorithm algorithm)
     {
         List<string>? sdDigests = null;
 
@@ -206,7 +214,7 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                 var newPath = string.IsNullOrEmpty(currentPath)
                     ? property.Name
                     : $"{currentPath}.{property.Name}";
-                ProcessElement(property.Value, newPath, digestToIndex, disclosures, mapping, nestedPaths);
+                ProcessElement(property.Value, newPath, digestToIndex, disclosures, mapping, nestedPaths, seenDigests, algorithm);
             }
         }
 
@@ -215,6 +223,7 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
         {
             foreach (var digest in sdDigests)
             {
+                RejectRepeatedDigestReference(seenDigests, digest, algorithm);
                 if (digestToIndex.TryGetValue(digest, out var disclosureIndex))
                 {
                     // Parse the disclosure to get the claim name and value
@@ -255,7 +264,7 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
 
                         // Recursively process the disclosure value if it's an object or array
                         // This handles nested _sd arrays within selectively disclosable claims
-                        ProcessElement(disclosure.ClaimValue, fullPath, digestToIndex, disclosures, mapping, nestedPaths);
+                        ProcessElement(disclosure.ClaimValue, fullPath, digestToIndex, disclosures, mapping, nestedPaths, seenDigests, algorithm);
                     }
                 }
             }
@@ -271,7 +280,9 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
         Dictionary<string, int> digestToIndex,
         IReadOnlyList<string> disclosures,
         Dictionary<string, int> mapping,
-        Dictionary<string, int>? nestedPaths)
+        Dictionary<string, int>? nestedPaths,
+        HashSet<Digest> seenDigests,
+        HashAlgorithm algorithm)
     {
         var index = 0;
         foreach (var item in array.EnumerateArray())
@@ -283,6 +294,7 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
             {
                 // This is an array element placeholder
                 var digest = digestProp.GetString()!;
+                RejectRepeatedDigestReference(seenDigests, digest, algorithm);
                 if (digestToIndex.TryGetValue(digest, out var disclosureIndex))
                 {
                     // Array element path: "claimName[index]"
@@ -300,19 +312,29 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                             "An array digest must reference a two-element Disclosure.");
                     }
 
-                    ProcessElement(disclosure.ClaimValue, arrayPath, digestToIndex, disclosures, mapping, nestedPaths);
+                    ProcessElement(disclosure.ClaimValue, arrayPath, digestToIndex, disclosures, mapping, nestedPaths, seenDigests, algorithm);
                 }
             }
             else
             {
                 // Recursively process nested elements
                 var newPath = $"{currentPath}[{index}]";
-                ProcessElement(item, newPath, digestToIndex, disclosures, mapping, nestedPaths);
+                ProcessElement(item, newPath, digestToIndex, disclosures, mapping, nestedPaths, seenDigests, algorithm);
             }
 
             index++;
         }
     }
+    private static void RejectRepeatedDigestReference(
+        HashSet<Digest> seenDigests, string digest, HashAlgorithm algorithm)
+    {
+        if (!seenDigests.Add(new Digest(digest, algorithm)))
+        {
+            throw new MalformedDisclosureException(
+                "An SD-JWT digest value cannot appear more than once.");
+        }
+    }
+
     private static void AddUnambiguousMapping(Dictionary<string, int> mapping, string path, int disclosureIndex)
     {
         if (mapping.TryGetValue(path, out var existingIndex) && existingIndex != disclosureIndex)
