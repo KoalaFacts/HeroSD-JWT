@@ -155,6 +155,14 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                 {
                     // Parse the disclosure to get the claim name and value
                     var disclosure = _disclosureParser.Parse(disclosures[disclosureIndex]);
+                    if (disclosure.ClaimName is null)
+                    {
+                        // Object digests name properties. Array-element disclosures
+                        // are only valid behind an array's "..." placeholder.
+                        throw new MalformedDisclosureException(
+                            "An object digest must reference a three-element Disclosure.");
+                    }
+
                     if (disclosure.ClaimName != null)
                     {
                         // RFC 9901 Section 7.1 prohibits a disclosure from replacing a
