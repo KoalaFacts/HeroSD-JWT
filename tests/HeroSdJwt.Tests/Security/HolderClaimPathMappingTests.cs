@@ -283,6 +283,68 @@ public class HolderClaimPathMappingTests
         Assert.Equal(0, mapping["email"]);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Should_RejectRepeatedObjectDigestBeforeHolderMapping(bool paddedAlias)
+    {
+        // The verifier rejects duplicate references even when two textual
+        // encodings decode to the same digest bytes (RFC 9901 Section 4.1).
+        var disclosure = Base64UrlEncoder.Encode(/*lang=json,strict*/ """["salt","email","alice@example.test"]""");
+        var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
+        var repeated = paddedAlias ? digest + "=" : digest;
+        var imported = CreateSignedPayload(
+            $"{{\"exp\":4102444800,\"_sd\":[\"{digest}\",\"{repeated}\"]}}",
+            disclosure);
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
+
+    [Fact]
+    public void Should_RejectRepeatedDecoyDigestAcrossNestedObjectsBeforeMapping()
+    {
+        // Duplicate decoy references are forbidden even if no disclosure
+        // matches either digest. Mapping currently skips them silently.
+        var digest = new DigestCalculator().ComputeDigest("unreferenced-decoy", HashAlgorithm.Sha256);
+        var imported = CreateSignedPayload(
+            $"{{\"exp\":4102444800,\"profile\":{{\"_sd\":[\"{digest}\"]}},\"contact\":{{\"_sd\":[\"{digest}\"]}}}}");
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
+
+    [Fact]
+    public void Should_RejectRepeatedArrayPlaceholderDigestBeforeHolderMapping()
+    {
+        var disclosure = Base64UrlEncoder.Encode(/*lang=json,strict*/ """["salt","degree"]""");
+        var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
+        var imported = CreateSignedPayload(
+            $"{{\"exp\":4102444800,\"items\":[{{\"...\":\"{digest}\"}},{{\"...\":\"{digest}\"}}]}}",
+            disclosure);
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
+
+    [Fact]
+    public void Should_ContinueMappingDistinctDigestReferences()
+    {
+        var first = Base64UrlEncoder.Encode(/*lang=json,strict*/ """["salt-1","email","alice@example.test"]""");
+        var second = Base64UrlEncoder.Encode(/*lang=json,strict*/ """["salt-2","name","Alice"]""");
+        var calculator = new DigestCalculator();
+        var firstDigest = calculator.ComputeDigest(first, HashAlgorithm.Sha256);
+        var secondDigest = calculator.ComputeDigest(second, HashAlgorithm.Sha256);
+        var imported = CreateSignedPayload(
+            $"{{\"exp\":4102444800,\"_sd\":[\"{firstDigest}\",\"{secondDigest}\"]}}",
+            first, second);
+
+        var mapping = new DisclosureClaimPathMapper().BuildClaimPathMapping(imported);
+
+        Assert.Equal(0, mapping["email"]);
+        Assert.Equal(1, mapping["name"]);
+    }
+
     private static SdJwt CreateSignedPayload(string payloadJson, params string[] disclosures)
     {
         var header = Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256"}""");
