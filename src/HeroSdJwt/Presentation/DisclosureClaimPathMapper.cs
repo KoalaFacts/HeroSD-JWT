@@ -146,6 +146,13 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
                     sdDigests.Add(digest.GetString()!);
                 }
             }
+            else if (property.Name == "...")
+            {
+                // RFC 9901 permits this control only as the sole property of
+                // an array slot. ProcessArray handles valid placeholders.
+                throw new MalformedDisclosureException(
+                    "An array element placeholder cannot be used as an ordinary object member.");
+            }
             else if (property.Name != "_sd_alg") // Skip metadata
             {
                 // Recursively process nested structures

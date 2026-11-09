@@ -60,18 +60,53 @@ public class HolderClaimPathMappingTests
     }
 
     [Fact]
-    public void Should_NotTreatMultiPropertyArrayObjectAsDisclosurePlaceholder()
+    public void Should_RejectMultiPropertyArrayObjectWithReservedPlaceholder()
     {
+        // RFC 9901 permits "..." only as the sole member of an array slot.
         var disclosure = Base64UrlEncoder.Encode(/*lang=json,strict*/ "[\"salt\",\"secret\"]");
         var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
         var imported = CreateSignedCredential($"[{{\"...\":\"{digest}\",\"public\":true}}]", disclosure);
-        var mapper = new DisclosureClaimPathMapper();
 
-        var mapping = mapper.BuildClaimPathMapping(imported);
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
 
-        Assert.DoesNotContain("items[0]", mapping.Keys);
-        _ = Assert.Throws<ArgumentException>(() =>
-            new SdJwtPresenter(mapper).CreatePresentation(imported, ["items[0]"]));
+    [Theory]
+    [InlineData("\"...\":\"opaque\"")]
+    [InlineData("\"profile\":{\"...\":\"opaque\"}")]
+    [InlineData("\"records\":[{\"profile\":{\"...\":\"opaque\"}}]")]
+    public void Should_RejectReservedPlaceholderOutsideArraySlotBeforeMapping(string payloadMember)
+    {
+        // The signed payload is not a valid SD-JWT structure even without a
+        // matching Disclosure; the holder must not silently skip this member.
+        var imported = CreateSignedPayload($"{{\"exp\":4102444800,{payloadMember}}}");
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
+
+    [Theory]
+    [InlineData(/*lang=json,strict*/ "{\"...\":null}")]
+    [InlineData(/*lang=json,strict*/ "{\"...\":false}")]
+    [InlineData(/*lang=json,strict*/ "{\"...\":\"digest\",\"public\":true}")]
+    public void Should_RejectMalformedArrayPlaceholderBeforeMapping(string arrayItem)
+    {
+        var imported = CreateSignedPayload($"{{\"exp\":4102444800,\"items\":[{arrayItem}]}}");
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
+
+    [Fact]
+    public void Should_RejectReservedPlaceholderInsideReferencedDisclosureValue()
+    {
+        var disclosure = Base64UrlEncoder.Encode(
+            /*lang=json,strict*/ "[\"salt\",\"profile\",{\"...\":\"opaque\"}]");
+        var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
+        var imported = CreateSignedPayload($"{{\"exp\":4102444800,\"_sd\":[\"{digest}\"]}}", disclosure);
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
     }
 
     [Theory]
