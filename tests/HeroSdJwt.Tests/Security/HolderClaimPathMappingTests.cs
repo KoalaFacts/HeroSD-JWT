@@ -239,6 +239,50 @@ public class HolderClaimPathMappingTests
         Assert.Equal(0, mapping["profile"]);
     }
 
+    [Theory]
+    [InlineData("null")]
+    [InlineData("false")]
+    [InlineData("42")]
+    [InlineData("\"md5\"")]
+    [InlineData("\"SHA-256\"")]
+    public void Should_RejectMalformedRootHashAlgorithmBeforeMapping(string algorithmJson)
+    {
+        var imported = CreateSignedPayload(
+            $"{{\"exp\":4102444800,\"_sd_alg\":{algorithmJson}}}");
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
+
+    [Fact]
+    public void Should_RejectHashAlgorithmMismatchBetweenSignedPayloadAndImportedMetadata()
+    {
+        var imported = CreateSignedPayload(
+            /*lang=json,strict*/ """{"exp":4102444800,"_sd_alg":"sha-512"}""");
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
+
+    [Theory]
+    [InlineData(HashAlgorithm.Sha384, "sha-384")]
+    [InlineData(HashAlgorithm.Sha512, "sha-512")]
+    public void Should_ContinueMappingMatchingNonDefaultHashAlgorithm(
+        HashAlgorithm algorithm, string algorithmName)
+    {
+        var disclosure = Base64UrlEncoder.Encode(
+            /*lang=json,strict*/ """["salt","email","alice@example.test"]""");
+        var digest = new DigestCalculator().ComputeDigest(disclosure, algorithm);
+        var signed = CreateSignedPayload(
+            $"{{\"exp\":4102444800,\"_sd_alg\":\"{algorithmName}\",\"_sd\":[\"{digest}\"]}}",
+            disclosure);
+        var imported = new SdJwt(signed.Jwt, signed.Disclosures, algorithm);
+
+        var mapping = new DisclosureClaimPathMapper().BuildClaimPathMapping(imported);
+
+        Assert.Equal(0, mapping["email"]);
+    }
+
     private static SdJwt CreateSignedPayload(string payloadJson, params string[] disclosures)
     {
         var header = Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256"}""");
