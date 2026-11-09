@@ -74,6 +74,49 @@ public class HolderClaimPathMappingTests
             new SdJwtPresenter(mapper).CreatePresentation(imported, ["items[0]"]));
     }
 
+    [Theory]
+    [InlineData("null")]
+    [InlineData("false")]
+    [InlineData("42")]
+    [InlineData("\"digest\"")]
+    [InlineData("{}")]
+    [InlineData("[null]")]
+    [InlineData("[42]")]
+    [InlineData("[{}]")]
+    [InlineData("[\"digest\",null]")]
+    public void Should_RejectMalformedObjectDigestMetadataBeforeMapping(string invalidSd)
+    {
+        // This issuer JWT is correctly signed. A holder must not silently
+        // ignore malformed _sd metadata when deriving disclosure paths.
+        var imported = CreateSignedPayload($"{{\"exp\":4102444800,\"_sd\":{invalidSd}}}");
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("[false]")]
+    public void Should_RejectMalformedNestedObjectDigestMetadataBeforeMapping(string invalidSd)
+    {
+        var imported = CreateSignedPayload($"{{\"exp\":4102444800,\"profile\":{{\"_sd\":{invalidSd}}}}}");
+
+        _ = Assert.Throws<MalformedDisclosureException>(() =>
+            new DisclosureClaimPathMapper().BuildClaimPathMapping(imported));
+    }
+
+    [Fact]
+    public void Should_ContinueMappingValidSignedObjectDigest()
+    {
+        var disclosure = Base64UrlEncoder.Encode(/*lang=json,strict*/ """["salt","email","alice@example.test"]""");
+        var digest = new DigestCalculator().ComputeDigest(disclosure, HashAlgorithm.Sha256);
+        var imported = CreateSignedPayload($"{{\"exp\":4102444800,\"_sd\":[\"{digest}\"]}}", disclosure);
+
+        var mapping = new DisclosureClaimPathMapper().BuildClaimPathMapping(imported);
+
+        Assert.Equal(0, mapping["email"]);
+    }
+
     [Fact]
     public void Should_RejectObjectDisclosureInArrayPlaceholder()
     {
@@ -119,6 +162,18 @@ public class HolderClaimPathMappingTests
 
         Assert.Equal(0, mapping["items[0]"]);
         Assert.Equal(disclosure, Assert.Single(presentation.SelectedDisclosures));
+    }
+
+    private static SdJwt CreateSignedPayload(string payloadJson, params string[] disclosures)
+    {
+        var header = Base64UrlEncoder.Encode(/*lang=json,strict*/ """{"alg":"HS256"}""");
+        var payload = Base64UrlEncoder.Encode(payloadJson);
+        var signingInput = $"{header}.{payload}";
+        var signature = HMACSHA256.HashData(_signingKey, System.Text.Encoding.UTF8.GetBytes(signingInput));
+        return new SdJwt(
+            $"{signingInput}.{Base64UrlEncoder.Encode(signature)}",
+            disclosures,
+            HashAlgorithm.Sha256);
     }
 
     private static SdJwt CreateSignedCredential(string itemsJson, string disclosure)
