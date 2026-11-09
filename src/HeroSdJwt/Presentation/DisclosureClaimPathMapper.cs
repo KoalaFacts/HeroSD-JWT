@@ -124,16 +124,26 @@ public class DisclosureClaimPathMapper(IDigestCalculator digestCalculator, IDisc
 
         foreach (var property in obj.EnumerateObject())
         {
-            if (property.Name == "_sd" && property.Value.ValueKind == JsonValueKind.Array)
+            if (property.Name == "_sd")
             {
-                // Found _sd array - collect digests
+                // The verifier rejects malformed digest metadata. The holder
+                // must not silently omit it and derive an incomplete path map.
+                if (property.Value.ValueKind != JsonValueKind.Array)
+                {
+                    throw new MalformedDisclosureException(
+                        "An object _sd member must contain an array of digest strings.");
+                }
+
                 sdDigests = [];
                 foreach (var digest in property.Value.EnumerateArray())
                 {
-                    if (digest.ValueKind == JsonValueKind.String)
+                    if (digest.ValueKind != JsonValueKind.String)
                     {
-                        sdDigests.Add(digest.GetString()!);
+                        throw new MalformedDisclosureException(
+                            "An object _sd array must contain only digest strings.");
                     }
+
+                    sdDigests.Add(digest.GetString()!);
                 }
             }
             else if (property.Name != "_sd_alg") // Skip metadata
