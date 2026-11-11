@@ -2,10 +2,10 @@
   <PropertyGroup>
     <!-- Default multi-targeting for all projects -->
     <!-- Individual projects can override if they need specific frameworks (e.g., source generators using netstandard2.0) -->
-    <SupportedTargetFrameworks>net8.0;net9.0;net10.0</SupportedTargetFrameworks>
+    <SupportedTargetFrameworks>net8.0;net9.0;net10.0;net11.0</SupportedTargetFrameworks>
 
     <!-- Pin SDKs alongside global.json and package locks; SDK updates can change implicit ILLink dependencies. -->
-    <SupportedSdkVersions>8.0.426;9.0.319;10.0.402</SupportedSdkVersions>
+    <SupportedSdkVersions>8.0.426;9.0.319;10.0.402;11.0.100</SupportedSdkVersions>
 
     <!-- Enable NuGet package lock files for reproducible builds -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>

@@ -348,7 +348,7 @@ public class ClaimValidator : IClaimValidator
         {
             if (!string.IsNullOrWhiteSpace(expectedAudience))
             {
-                expectedSet ??= new HashSet<string>(StringComparer.Ordinal);
+                expectedSet ??= [with(StringComparer.Ordinal)];
                 _ = expectedSet.Add(expectedAudience);
             }
         }

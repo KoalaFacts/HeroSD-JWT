@@ -26,6 +26,11 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+    <!-- .NET 11: Microsoft.AspNetCore.OpenApi 11.x (brings Microsoft.OpenApi 3.x) -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
+  </ItemGroup>
+
   <ItemGroup>
 		<PackageReference Include="Scalar.AspNetCore" Version="2.18.0" />
 		<ProjectReference Include="..\..\src\HeroSdJwt.AspNetCore\HeroSdJwt.AspNetCore.csproj" />

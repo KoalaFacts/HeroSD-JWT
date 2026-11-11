@@ -100,7 +100,7 @@ public class PresentationSelectionAdmissionTests
         public Dictionary<string, int> BuildClaimPathMapping(SdJwt sdJwt)
         {
             CallCount++;
-            return new Dictionary<string, int>(StringComparer.Ordinal);
+            return [with(StringComparer.Ordinal)];
         }
     }
 
