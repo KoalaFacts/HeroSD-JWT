@@ -51,7 +51,7 @@ SD-JWT enables privacy-preserving credential sharing by allowing holders to sele
 - Uses .NET BCL APIs plus `Microsoft.Bcl.Memory` on .NET 8; Ed25519 uses vendored source (see [Requirements](#requirements))
 - Constant-time comparison for security-critical operations
 - Algorithm confusion prevention (rejects "none" algorithm)
-- Multi-targeting .NET 8.0, .NET 9.0, and .NET 10.0
+- Multi-targeting .NET 8.0, .NET 9.0, .NET 10.0, and .NET 11.0
 
 ## Installation
 
@@ -511,8 +511,8 @@ For vulnerability reporting and security best practices, see:
 
 ## Requirements
 
-- **Package consumers**: supported target frameworks are `net8.0`, `net9.0`, and `net10.0`.
-- **Building this repository**: install exactly **.NET SDK 10.0.402** as pinned by [global.json](global.json), with SDK roll-forward disabled. Install the corresponding runtimes to run tests for all three target frameworks.
+- **Package consumers**: supported target frameworks are `net8.0`, `net9.0`, `net10.0`, and `net11.0` (.NET 8 and 9 left Microsoft support on 2026-11-10; their targets are kept).
+- **Building this repository**: install exactly **.NET SDK 11.0.100** (the .NET 11 GA SDK) as pinned by [global.json](global.json), with SDK roll-forward disabled. Install the .NET 8, 9 and 10 runtimes (and ASP.NET Core runtimes) to run tests for all four target frameworks.
 - **Core package dependencies**: the .NET 8 target references `Microsoft.Bcl.Memory` to provide `Base64Url` APIs; .NET 9/10 use the native BCL APIs.
 - **Vendored cryptography**: Ed25519 includes source ported from Chaos.NaCl; see [third-party notices](src/HeroSdJwt/Internal/Ed25519/THIRD-PARTY-NOTICES.txt).
 
@@ -543,7 +543,7 @@ This prepares the input only; **the subsequent issuance and verification paths s
 
 ### Building the Project
 
-Source builds require the exact .NET SDK **10.0.402** pinned in `global.json`, independently of the package's .NET 8/9/10 consumption targets. The project uses the modern .slnx solution format:
+Source builds require the exact .NET SDK **11.0.100** pinned in `global.json`, independently of the package's .NET 8/9/10/11 consumption targets. The project uses the modern .slnx solution format:
 
 ```bash
 # Build the entire solution
@@ -556,7 +556,7 @@ dotnet build HeroSD-JWT.slnx --configuration Release
 dotnet restore HeroSD-JWT.slnx
 ```
 
-All projects multi-target .NET 8.0, .NET 9.0, and .NET 10.0. The build configuration is centrally managed in `Directory.Build.props`.
+All projects multi-target .NET 8.0, .NET 9.0, .NET 10.0, and .NET 11.0. The build configuration is centrally managed in `Directory.Build.props`.
 
 ## Testing
 

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 HeroSD-JWT is a .NET library implementing **SD-JWT** (Selective Disclosure for JSON Web Tokens) per the IETF `draft-ietf-oauth-selective-disclosure-jwt` spec. It lets an issuer mint credentials whose individual claims can be selectively revealed by a holder and cryptographically verified by a verifier, without disclosing the rest.
 
 Two shipped packages:
-- **`HeroSdJwt`** (`src/HeroSdJwt`) — the core library. Zero third-party runtime dependencies (BCL only; .NET 8 adds the `Microsoft.Bcl.Memory` polyfill for `Base64Url`). Multi-targets `net8.0;net9.0;net10.0` and is AOT-compatible.
+- **`HeroSdJwt`** (`src/HeroSdJwt`) — the core library. Zero third-party runtime dependencies (BCL only; .NET 8 adds the `Microsoft.Bcl.Memory` polyfill for `Base64Url`). Multi-targets `net8.0;net9.0;net10.0;net11.0` and is AOT-compatible.
 - **`HeroSdJwt.AspNetCore`** (`src/HeroSdJwt.AspNetCore`) — DI registration, an authentication handler, and distributed (`IDistributedCache`-backed) replay-protection / revocation adapters.
 
 ## Build, Test, Format
@@ -18,7 +18,7 @@ The solution uses the modern `.slnx` format (`HeroSD-JWT.slnx`).
 dotnet restore HeroSD-JWT.slnx
 dotnet build HeroSD-JWT.slnx --configuration Release
 dotnet test                                   # all tests, all target frameworks
-dotnet test --framework net10.0               # single TFM (much faster while iterating)
+dotnet test --framework net11.0               # single TFM (much faster while iterating)
 dotnet format --verify-no-changes             # CI fails the build if this reports changes
 ```
 
@@ -73,11 +73,11 @@ Everything is built around **constructor-injected interfaces**. Built-in statele
 
 ## Tests
 
-- xUnit **v4.0.2** (`xunit.v3.mtp-off` package; package name retains `v3` but the resolved core framework is **4.0.2**) with the official VSTest adapter `xunit.runner.visualstudio` **4.0.1**. Keeping VSTest preserves existing `dotnet test --logger trx --collect` CI semantics across .NET 8/9/10; do not add a nonexistent `xunit.v4` package. Property-based tests use **CsCheck**, fake data uses **Bogus**, manual load tests use a **bounded BCL-only runner** (see `docs/development/manual-load-runner.md`).
+- xUnit **v4.0.2** (`xunit.v3.mtp-off` package; package name retains `v3` but the resolved core framework is **4.0.2**) with the official VSTest adapter `xunit.runner.visualstudio` **4.0.1**. Keeping VSTest preserves existing `dotnet test --logger trx --collect` CI semantics across .NET 8/9/10/11; do not add a nonexistent `xunit.v4` package. Property-based tests use **CsCheck**, fake data uses **Bogus**, manual load tests use a **bounded BCL-only runner** (see `docs/development/manual-load-runner.md`).
 - Two test projects: `tests/HeroSdJwt.Tests` (core) and `tests/HeroSdJwt.AspNetCore.Tests`. Internals are exposed via `InternalsVisibleTo("HeroSdJwt.Tests")`.
 - Tests are organized **by folder/namespace**, not xUnit traits: `Unit/`, `Integration/`, `Contract/`, `Scenarios/`, `Security/`, `Fuzz/`, `Load/`, plus `Verification/ReplayProtection/`. The README's `--filter "Category=Integration"` examples do not match any traits in this repo — filter by `FullyQualifiedName~<Namespace-or-ClassName>` instead.
 - Test naming convention: `Should_ExpectedBehavior_When_Condition`.
 
 ## CI
 
-`.github/workflows/ci.yml` runs build + test across the matrix of {ubuntu, windows, macOS} × {net8.0, net9.0, net10.0}, plus a **Code Quality** job that builds with warnings-as-errors and runs `dotnet format --verify-no-changes`, plus a dependency-review job. Run `dotnet format` and a full `dotnet test` before pushing — formatting and analyzer drift are the most common CI failures. Other workflows: nightly integration (`run-integrations.yml`), security scanning (`scan-security.yml`), benchmarks (`perform-benchmarks.yml`), NuGet publish and release (`publish-nuget.yml`, `create-release.yml`).
+`.github/workflows/ci.yml` runs build + test across the matrix of {ubuntu, windows, macOS} × {net8.0, net9.0, net10.0, net11.0}, plus a **Code Quality** job that builds with warnings-as-errors and runs `dotnet format --verify-no-changes`, plus a dependency-review job. Run `dotnet format` and a full `dotnet test` before pushing — formatting and analyzer drift are the most common CI failures. Other workflows: nightly integration (`run-integrations.yml`), security scanning (`scan-security.yml`), benchmarks (`perform-benchmarks.yml`), NuGet publish and release (`publish-nuget.yml`, `create-release.yml`).

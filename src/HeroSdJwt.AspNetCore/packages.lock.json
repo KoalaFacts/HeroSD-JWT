@@ -6,6 +6,11 @@
         "type": "Project"
       }
     },
+    "net11.0": {
+      "HeroSD-JWT": {
+        "type": "Project"
+      }
+    },
     "net8.0": {
       "Microsoft.Bcl.Memory": {
         "type": "Transitive",

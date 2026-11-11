@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- .NET 11: both packages add the `net11.0` target (.NET 11 GA, 2026-11-10); CI, integration and benchmark matrices run net11.0. Source builds pin the GA SDK 11.0.100. Benchmarks stay on net8.0–net10.0: the benchmark evidence pipeline pins BenchmarkDotNet 0.15.8, which does not run on .NET 11.
+
 - [Upgrade guidance for the forthcoming 2.0 release](docs/users/upgrading-to-2.0.md).
 
 - Align ECDSA handling with JWS spec: ES256/384/512 signatures are emitted as JOSE raw R||S and verifiers accept JOSE format.
