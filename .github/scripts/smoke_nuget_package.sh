@@ -3,7 +3,7 @@
 set -euo pipefail
 version="${1:?Provide a version}"
 framework="${2:?Provide a target framework}"
-case "$framework" in net8.0|net9.0|net10.0) ;; *) exit 2;; esac
+case "$framework" in net8.0|net9.0|net10.0|net11.0) ;; *) exit 2;; esac
 package_dir="$(pwd)/src/HeroSdJwt/bin/Release"
 package="$package_dir/HeroSD-JWT.$version.nupkg"
 test -f "$package" || { echo "Missing: $package" >&2; exit 1; }
